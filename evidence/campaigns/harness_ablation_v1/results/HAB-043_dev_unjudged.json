@@ -1,0 +1,1812 @@
+{
+ "id": "HAB-043",
+ "split": "dev",
+ "set": "nodata",
+ "at": "2026-11-16T03:21:38+00:00",
+ "arms": [
+  "blueprint_rules",
+  "blueprint_pipeline",
+  "blueprint_architect",
+  "model_only"
+ ],
+ "repeats": 1,
+ "models": {
+  "arms": "qwen/qwen3.8-flash",
+  "judge": null,
+  "route_check": "qwen/qwen3.8-flash"
+ },
+ "spent_eur": 0.2302,
+ "cap_eur": 0.45,
+ "kept": "agent_runs/live_tests/2026-11-16-harness-ablation-HAB-043",
+ "manifest": {
+  "run_id": "HAB-043",
+  "at": "2026-11-16T03:21:38+00:00",
+  "arms": [
+   "blueprint_rules",
+   "blueprint_pipeline",
+   "blueprint_architect",
+   "model_only"
+  ],
+  "repeats": 1,
+  "cap_eur": 0.45,
+  "code": {
+   "commit": "cf89c92ecc80b4f92b54a257437731bd4ac7ebce",
+   "dirty": [],
+   "diff_sha256": null,
+   "untracked_sha256": null,
+   "untracked_files": 0
+  },
+  "models": {
+   "arms": "qwen/qwen3.8-flash",
+   "judge": null,
+   "route_check": "qwen/qwen3.8-flash"
+  },
+  "prompt_sha256": {
+   "ablation_model_only": "d76ca4c71ca2349a",
+   "ablation_model_only_short": "74c593495acb5f60",
+   "ablation_minimal_agent": "9bacaefe1c839f92",
+   "ablation_judge": "6ae9b4e558cb8e12",
+   "exam_plain": "6b4a893172133d54",
+   "case_agent": "04956cc04a4915d4",
+   "case_agent_think_first": "98a726e97accd7c0",
+   "route_check": "61027a2803db8856",
+   "no_data_architect": "51a5a690583338c2",
+   "no_data_critic": "b4d2e398b024a6ed"
+  },
+  "tool_schema_sha256": {
+   "open": "772a142db9c94f65",
+   "plain": "607296ffbd9ccef9",
+   "case": "96fcda10b0e3e919"
+  },
+  "flags": {
+   "DCLAB_CASE_AGENT": null,
+   "DCLAB_CASE_THINK_FIRST": null,
+   "DCLAB_ROUTE_MODEL": null,
+   "DCLAB_THINKING_EFFORT": "high",
+   "DCLAB_LLM_PROVIDER": "openrouter"
+  },
+  "cases_sha256": "aaecac397040a787606f6f789c1c5eb548c0386d58a45cce68109a2fa82f8e4c",
+  "set": "nodata",
+  "max_turns": 4,
+  "go_ahead": "Everything I know is in what I wrote. Choose what you judge best and go ahead.",
+  "label": "nodata-v2"
+ },
+ "capture": {
+  "exchanges": 83,
+  "ok": 83,
+  "whole": 83,
+  "with_thinking": 83,
+  "without_thinking": [],
+  "purposes": [
+   "ai_first",
+   "brief_checker",
+   "case_specialist",
+   "debate_judge",
+   "decomposer",
+   "exam_plain",
+   "feature_engineer",
+   "map_reviewer",
+   "no_data_architect",
+   "no_data_critic",
+   "problem_analyst",
+   "solution_challenger",
+   "solution_planner",
+   "synthetic_schema",
+   "understanding_critic"
+  ]
+ },
+ "label": "nodata-v2",
+ "note": "a pilot of eight cases: traces and reason codes, no claim that one arm is better",
+ "code": "one commit",
+ "conversations": [
+  {
+   "id": "ND-01",
+   "arm": "blueprint_rules",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "We want to reduce B2B SaaS subscription churn before annual renewal, but we do not have a clean dataset yet. We have 5,000 enterprise accounts, an 8% annual churn rate, a $50 CSM intervention cost, and $2,500 saved per retained account.",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "# DCLab No-Data Solution Blueprint (churn)\n\n**Problem:** We want to reduce B2B SaaS subscription churn before annual renewal, but we do not have a clean dataset yet. We have 5,000 enterprise accounts, an 8% annual churn rate, a $50 CSM intervention cost, and $2,500 saved per retained account.\n**Data mode:** No-Data Solution Design\n**Harness mode:** `deterministic_floor` · Gates passed: `5/5`\n\n## 0. Deep Problem & Domain Understanding (Epistemic Provenance)\n- **Restatement:** Solve `churn` decisioning for `account` at `End of active billing/usage cycle before the retention outreach window opens`, optimizing `pr_auc (Precision-Recall AUC) + Top-K Net Retention Gain` to guide `Prioritize high-value churn interventions under capacity/cost constraints`.\n- **Goal** (`DCLab default`): We want to reduce B2B SaaS subscription churn before annual renewal, but we do not have a clean dataset yet. We have 5,000 enterprise accounts, an 8% annual churn rate, a $50 CSM intervention cost, an — *DCLab default (nobody said it): Synthesized from your problem statement.*\n- **Decision Action** (`DCLab default`): Prioritize high-value churn interventions under capacity/cost constraints — *DCLab default (nobody said it): Standard operational action for churn decisions.*\n- **Decision Unit** (`Stated by you`): account — *Quoted verbatim from your description: \"per retained account\"*\n- **Prediction Moment** (`DCLab default`): End of active billing/usage cycle before the retention outreach window opens — *DCLab default (nobody said it): Sets the strict point-in-time feature boundary to prevent look-ahead leakage.*\n- **Outcome And Horizon** (`DCLab default`): `churned_within_30d` observed over Next 30 days (or next billing cycle) — *DCLab default (nobody said it): Defines when ground-truth labels mature without censor leakage.*\n- **Primary Metric** (`DCLab default`): pr_auc (Precision-Recall AUC) + Top-K Net Retention Gain — *DCLab default (nobody said it): Matches class balance, asymmetric error costs, and operational ranking needs.*\n- **Alternative Problem Framings Considered:**\n  - `survival`: Time-to-event (hazard) modeling is stronger if exact tenure censorship and variable horizons matter, whereas a fixed 30-day binary window is simpler for monthly retention campaigns.\n  - `uplift`: Uplift (persuadability) modeling directly targets customers whose churn probability drops when given an offer, once randomized treatment/control retention logs are collected.\n\n## 1. Business Solution & Decision Economics\n- **Decision owner & action:** Operations / Analytics Lead — Prioritize high-value churn interventions under capacity/cost constraints\n- **Day-0 non-ML baseline:** Scorecard heuristic using top 3 domain risk rules + randomized control holdout to measure baseline lift before ML.\n- **Read this first:** 1 of 5 inputs below are DCLab's placeholders (share of actions that work), not facts about your business. Every figure computed from them is an illustration until you give your own numbers.\n- **Monthly volume:** 5000 (stated by you) · **Base rate:** 8.0% (stated by you)\n- **Cost per action:** 50.0 (stated by you) · **Value per caught case:** 2500.0 (stated by you) · **Share of actions that work:** 35% (assumed by DCLab)\n- **Break-even precision:** 5.7% (an illustration: computed from assumed inputs)\n\n### ROI Scenarios (an illustration: computed from assumed inputs; the lifts are DCLab's assumptions)\n| Scenario | Precision | Flagged/mo | Gross Value | Cost | Net/mo |\n|---|---:|---:|---:|---:|---:|\n| Conservative (1.5x lift) | 12.0% | 750 | 78750.0 | 37500.0 | 41250.0 |\n| Target ML (2.5x lift) | 20.0% | 750 | 131250.0 | 37500.0 | 93750.0 |\n| Strong ML (3.5x lift) | 28.0% | 750 | 183750.0 | 37500.0 | 146250.0 |\n\n## 2. Data Science Solution & Minimum Viable Data Spec\n- **Unit / Entity:** `customer_id`\n- **Prediction Cutoff Time:** `snapshot_date (e.g. monthly billing cutoff / T-30d)`\n- **Label Horizon:** next 30 days after snapshot_date (exclude immature accounts)\n- **Target:** `churned_within_30d`\n- **Tier-1 Day-1 Features:** plan_tier, monthly_fee, tenure_months, active_days_last_30d, usage_trend_30d_vs_90d, support_tickets_30d, payment_failures_90d, contract_days_remaining\n- **Tier-2 High-Leverage Features:** nps_last_response, seat_utilization_pct\n- **Forbidden Post-Decision Columns:** cancellation_reason, retention_offer_accepted_after_snapshot, final_invoice_date, account_closed_flag\n- **Validation Split:** Out-of-time snapshot split PLUS entity-group isolation (no entity appears in both train and holdout).\n- **Metrics:** pr_auc, roc_auc, precision_at_top_k, brier_score\n- **Verified Fold-Safe Feature Programs (`dclab_core.features`):** `customer_id_count (count)`, `customer_id_day_count (count)`, `monthly_fee_entity_mean (mean)`, `monthly_fee_entity_deviation (deviation)`, `customer_id_time_since_prev (since_previous)`, `monthly_fee_rolling3_mean (rolling_mean)`\n\n### Pre-Data Leakage Traps\n- **Strict as-of point-in-time join** (DATASET-telco_churn): Compute every feature strictly using events <= snapshot_date (e.g. monthly billing cutoff / T-30d).\n- **Ban post-decision columns** (KND-001): Drop/audit post-cutoff fields before training: cancellation_reason, final_invoice_date, retention_offer_accepted_after_snapshot, account_closed_flag.\n- **Lock label maturity window** (PIT-004): Only assign negative labels after next 30 days after snapshot_date (exclude immature accounts) has elapsed, or censoring bias inflates false negatives.\n\n## 3. ML Solution, Multi-Model Debate & Pre-Data Task Plan\n- **Stage 1 Baseline:** L2-regularized Logistic Regression with missing-value indicators & target/frequency encoding inside CV folds.\n- **Stage 2 Primary:** LightGBM / CatBoost with class weighting (or focal objective), early stopping on validation PR-AUC.\n- **Stage 3 Decision Layer:** Isotonic / Platt probability calibration -> act when P(y=1) >= break-even 5.7% capped at top 15% capacity.\n- **What Evidence Would Change Algorithm Choice:** If the real data holds few positive outcomes or many missing values, prefer regularized logistic/linear models over deep trees.\n- **DCLab's rules' plan (no model debate ran):** Split: Out-of-time snapshot split PLUS entity-group isolation (no entity appears in both train and holdout). · Metric `pr_auc` · Families `dummy, logistic_regression, random_forest, gradient_boosting`\n- **TP-08 Selected Pre-Data Tasks:** time_split_check, grouped_split, check_join_key, threshold_for_cost, baseline\n\n## 4. Next Options (When Ready)\n- Tell me missing economics or operational constraints to tighten these numbers.\n- If you want a **synthetic prototype**, answer the simulation questions so I can show the schema design for your approval first.\n- When real data is ready, upload/connect it — `Build project` remains unchanged whenever you attach data.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "answered",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    0.09
+   ],
+   "safety": {
+    "uncited": [
+     "30",
+     "30",
+     "30",
+     "30",
+     "30",
+     "30"
+    ],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0,
+    "upload_demanded": 0,
+    "sums_checked": 0
+   },
+   "notes": {
+    "family": "churn",
+    "mode": "deterministic_floor",
+    "roles_called": [],
+    "gates_passed": {
+     "gate_1_epistemic_provenance": true,
+     "gate_2_number_grounding": true,
+     "gate_3_virtual_schema_and_features": true,
+     "gate_4_workflow_and_debate": true,
+     "gate_5_budget": true
+    },
+    "cost_eur": 0.0,
+    "assumed_inputs": [
+     "share of actions that work"
+    ],
+    "fits": true,
+    "need": null,
+    "repaired": null,
+    "removed": 0,
+    "kind": null,
+    "findings": 0,
+    "errors": [],
+    "first_failed": [],
+    "still_failed": []
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": false,
+    "pending": true,
+    "problems": [
+     "not judged yet: the judge runs later on the kept conversation"
+    ]
+   },
+   "spent_eur": 0,
+   "judge_spent_eur": 0
+  },
+  {
+   "id": "ND-01",
+   "arm": "blueprint_pipeline",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "We want to reduce B2B SaaS subscription churn before annual renewal, but we do not have a clean dataset yet. We have 5,000 enterprise accounts, an 8% annual churn rate, a $50 CSM intervention cost, and $2,500 saved per retained account.",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "# DCLab No-Data Solution Blueprint (churn)\n\n**Problem:** We want to reduce B2B SaaS subscription churn before annual renewal, but we do not have a clean dataset yet. We have 5,000 enterprise accounts, an 8% annual churn rate, a $50 CSM intervention cost, and $2,500 saved per retained account.\n**Data mode:** No-Data Solution Design\n**Harness mode:** `ai_harnessed` · Gates passed: `5/5`\n\n## 0. Deep Problem & Domain Understanding (Epistemic Provenance)\n- **Restatement:** Predict SaaS accounts likely to churn before annual renewal.\n- **Goal** (`AI inferred`): Reduce B2B SaaS subscription churn before annual renewal — *proposed by the advisor from \"We want to reduce B2B SaaS subscription churn before annual renewal\"*\n- **Decision Action** (`AI inferred`): CSM intervention — *proposed by the advisor from \"a $50 CSM intervention cost\"*\n- **Decision Unit** (`Stated by you`): account — *Quoted verbatim from your description: \"per retained account\"*\n- **Prediction Moment** (`AI inferred`): Before renewal, using data at snapshot_date. — *AI domain inference: Predict delayed churn event.*\n- **Outcome And Horizon** (`AI inferred`): Churn within outcome window. (Observed only after delayed window.) — *AI domain inference: Predict delayed churn event.*\n- **Primary Metric** (`AI inferred`): cost-weighted precision/recall and PR-AUC — *AI domain inference: Predict delayed churn event.*\n- **Alternative Problem Framings Considered:**\n  - `uplift`: No randomized intervention response data yet.\n\n## 1. Business Solution & Decision Economics\n- **Decision owner & action:** Operations / Analytics Lead — CSM intervention\n- **Day-0 non-ML baseline:** Scorecard heuristic using top 3 domain risk rules + randomized control holdout to measure baseline lift before ML.\n- **Read this first:** 1 of 5 inputs below are DCLab's placeholders (share of actions that work), not facts about your business. Every figure computed from them is an illustration until you give your own numbers.\n- **Monthly volume:** 5000 (stated by you) · **Base rate:** 8.0% (stated by you)\n- **Cost per action:** 50.0 (stated by you) · **Value per caught case:** 2500.0 (stated by you) · **Share of actions that work:** 35% (assumed by DCLab)\n- **Break-even precision:** 5.7% (an illustration: computed from assumed inputs)\n- **Domain Expert (fact):** The highest-leverage lever is directing the $50 CSM intervention only to renewal-proximate accounts whose churn would likely cost the $2,500 retained-account value. The 8% base rate should be treated as background churn, not as a target that each intervention must beat.\n- **Domain Expert (fact):** The strongest business ranking variables are declining usage, support stress, payment stress, renewal timing, and account value. These map to usage_trend_30d_vs_90d, active_days_last_30d, seat_utilization_pct, support_tickets_30d, payment_failures_90d, days_to_renewal, contract_days_remaining, plan_tier, monthly_fee, account_segment, and nps_last_response.\n- **Domain Expert (assumption):** A safe Day-0 baseline is a transparent risk-and-value rule, not a model: prioritize renewal-nearest enterprise accounts with low usage and high support or payment risk, then intervene only when expected retained value exceeds the $50 cost. Test whether this rule lowers churned_within_30d versus a comparable non-intervened control group.\n\n### ROI Scenarios (an illustration: computed from assumed inputs; the lifts are DCLab's assumptions)\n| Scenario | Precision | Flagged/mo | Gross Value | Cost | Net/mo |\n|---|---:|---:|---:|---:|---:|\n| Conservative (1.5x lift) | 12.0% | 750 | 78750.0 | 37500.0 | 41250.0 |\n| Target ML (2.5x lift) | 20.0% | 750 | 131250.0 | 37500.0 | 93750.0 |\n| Strong ML (3.5x lift) | 28.0% | 750 | 183750.0 | 37500.0 | 146250.0 |\n\n## 2. Data Science Solution & Minimum Viable Data Spec\n- **Unit / Entity:** `customer_id`\n- **Prediction Cutoff Time:** `snapshot_date (e.g. monthly billing cutoff / T-30d)`\n- **Label Horizon:** next 30 days after snapshot_date (exclude immature accounts)\n- **Target:** `churned_within_30d`\n- **Tier-1 Day-1 Features:** usage_trend_30d_vs_90d, contract_days_remaining, support_tickets_30d, account_id, days_to_renewal, plan_tier, industry, region\n- **Tier-2 High-Leverage Features:** nps_last_response, seat_utilization_pct\n- **Forbidden Post-Decision Columns:** cancellation_reason, retention_offer_accepted_after_snapshot, final_invoice_date, account_closed_flag\n- **Validation Split:** Out-of-time snapshot split PLUS entity-group isolation (no entity appears in both train and holdout).\n- **Metrics:** pr_auc, roc_auc, precision_at_top_k, brier_score\n- **Verified Fold-Safe Feature Programs (`dclab_core.features`):** `customer_id_count (count)`, `customer_id_day_count (count)`, `usage_trend_30d_vs_90d_entity_mean (mean)`, `usage_trend_30d_vs_90d_entity_deviation (deviation)`, `customer_id_time_since_prev (since_previous)`, `usage_trend_30d_vs_90d_rolling3_mean (rolling_mean)`\n\n### Pre-Data Leakage Traps\n- **Strict as-of point-in-time join** (DATASET-telco_churn): Compute every feature strictly using events <= snapshot_date (e.g. monthly billing cutoff / T-30d).\n- **Ban post-decision columns** (KND-001): Drop/audit post-cutoff fields before training: cancellation_reason, final_invoice_date, retention_offer_accepted_after_snapshot, account_closed_flag.\n- **Lock label maturity window** (PIT-004): Only assign negative labels after next 30 days after snapshot_date (exclude immature accounts) has elapsed, or censoring bias inflates false negatives.\n- **Leak Suspect `cancellation_reason` (exclude):** Post-churn decision.\n- **Leak Suspect `final_invoice_date` (exclude):** May follow outcome.\n- **Leakage Auditor (fact):** churned_within_30d is the outcome after snapshot_date, so it belongs only to the target and must never be fed as a feature.\n- **Leakage Auditor (risk):** cancellation_reason, retention_offer_accepted_after_snapshot, final_invoice_date, and account_closed_flag describe churn, renewal, or closure events and therefore leak the outcome or decision.\n\n## 3. ML Solution, Multi-Model Debate & Pre-Data Task Plan\n- **Stage 1 Baseline:** L2-regularized Logistic Regression with missing-value indicators & target/frequency encoding inside CV folds.\n- **Stage 2 Primary:** LightGBM / CatBoost with class weighting (or focal objective), early stopping on validation PR-AUC.\n- **Stage 3 Decision Layer:** Isotonic / Platt probability calibration -> act when P(y=1) >= break-even 5.7% capped at top 15% capacity.\n- **What Evidence Would Change Algorithm Choice:** If randomized CSM outcomes exist, use uplift ranking.\n- **Planner-Challenger-Judge Debate Verdict:** Split `group, group_column customer_id, holdout locked first, used once, after the choice` · Metric `roc_auc` · Families `dummy, logistic_regression, random_forest, gradient_boosting`\n- **TP-08 Selected Pre-Data Tasks:** time_split_check, grouped_split, check_join_key, threshold_for_cost, baseline\n\n## 4. Next Options (When Ready)\n- Tell me missing economics or operational constraints to tighten these numbers.\n- If you want a **synthetic prototype**, answer the simulation questions so I can show the schema design for your approval first.\n- When real data is ready, upload/connect it — `Build project` remains unchanged whenever you attach data.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "answered",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    1493.84
+   ],
+   "safety": {
+    "uncited": [
+     "30",
+     "30",
+     "30",
+     "30"
+    ],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0,
+    "upload_demanded": 0,
+    "sums_checked": 0
+   },
+   "notes": {
+    "family": "churn",
+    "mode": "ai_harnessed",
+    "roles_called": [
+     "problem_analyst",
+     "brief_checker",
+     "ai_first",
+     "synthetic_schema",
+     "understanding_critic",
+     "feature_engineer",
+     "case_specialist:domain_expert",
+     "case_specialist:leakage_auditor",
+     "decomposer",
+     "map_reviewer",
+     "solution_router",
+     "solution_planner",
+     "solution_challenger",
+     "debate_judge"
+    ],
+    "gates_passed": {
+     "gate_1_epistemic_provenance": true,
+     "gate_2_number_grounding": true,
+     "gate_3_virtual_schema_and_features": true,
+     "gate_4_workflow_and_debate": true,
+     "gate_5_budget": true
+    },
+    "cost_eur": 0.044283,
+    "assumed_inputs": [
+     "share of actions that work"
+    ],
+    "fits": true,
+    "need": null,
+    "repaired": null,
+    "removed": 0,
+    "kind": null,
+    "findings": 0,
+    "errors": [],
+    "first_failed": [],
+    "still_failed": []
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": false,
+    "pending": true,
+    "problems": [
+     "not judged yet: the judge runs later on the kept conversation"
+    ]
+   },
+   "spent_eur": 0.0443,
+   "judge_spent_eur": 0
+  },
+  {
+   "id": "ND-01",
+   "arm": "blueprint_architect",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "We want to reduce B2B SaaS subscription churn before annual renewal, but we do not have a clean dataset yet. We have 5,000 enterprise accounts, an 8% annual churn rate, a $50 CSM intervention cost, and $2,500 saved per retained account.",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "# A solution designed without data\n\n## The problem\nThe business decision is whether to spend a CSM intervention before an annual renewal to try to keep an enterprise account that is likely to churn. The unit is an account-renewal cycle: which accounts should be contacted before renewal. The person gave a base of 5,000 enterprise accounts, an 8% annual churn rate, a $50 CSM intervention cost, and $2,500 saved per retained account. What is not known is the clean historical dataset, the exact lead time before renewal when the decision should be made, which pre-renewal signals actually predict churn, whether the CSM action causes retention, and whether the $2,500 saved figure is the right value for every account.\n\n## What needs care\nThe answer would be wrong if it treats churn prediction as the same thing as successful retention. A model can rank accounts that are likely to churn, but a CSM action only creates value if it changes the outcome for accounts that would otherwise have churned. The renewal decision moment must be fixed before modeling: if the model is used too early or too late, the data snapshots and the label become inconsistent. Historical churn labels may already be biased because CSMs may have contacted only accounts they already believed were risky, so outcomes cannot be read as intervention effects without tracking who was contacted and who was not. The $2,500 retained value and the $50 intervention cost must be kept in separate fields: value saved is an outcome-side amount, while intervention cost is a decision cost. Finally, the 8% churn rate is an average, and it does not tell which accounts can be saved by an intervention.\n\n## Business solution\nStart now with a renewal triage rule and a manual action log. Before each account’s renewal review, have the CSM or account owner record whether there is a clear pre-renewal reason to act: payment dispute, unresolved support escalation, contract dispute, executive sponsor departure, no renewal owner, or a visible usage problem. The action is one CSM renewal intervention for accounts on that list; accounts with no recorded reason are left for normal renewal processing.\n\nA simple first rule is: intervene when there is a visible account risk signal that suggests the account is not on track for renewal, and do not intervene when there is no visible signal and the account appears on track. This rule is deliberately conservative: it starts building the label, the decision moment, the action, and the outcome history needed for a model.\n\nUse the person’s numbers to frame the stakes. At the stated churn rate, the current account base represents 5,000 × 8% = 400 churn events. If every account were contacted at $50, the intervention cost would be 5,000 × 50 = 250,000. The theoretical maximum retained savings if every annual churn event were prevented is 5,000 × 8% × 2,500 = 1,000,000. Because the cost of one action is $50 and the value of one retained account is $2,500, the intervention is worth funding when, for the contacted list, at least 50 / 2,500 = 2% of the contacted accounts are retained because of the intervention. The first business action is therefore to target a list where the CSM believes the action can matter, log the contact, and check whether the retained value clears that cost.\n\n## Data to record\n\n| column | what it is | known when | role |\n|---|---|---|---|\n| account_id | Stable B2B SaaS enterprise account identifier | before | key |\n| snapshot_date | Date when the renewal risk decision is made | at | time |\n| renewal_due_date | Date when the annual renewal or contract end occurs | before | time |\n| current_contract_value | Contract value in force for the account at the snapshot | before | input |\n| renewal_owner_status | Whether the account has an active renewal owner or champion at the snapshot | before | input |\n| executive_contact_change | Whether the executive sponsor or key account leader has changed at the snapshot | before | input |\n| usage_trend | Product usage pattern compared with the prior period at the snapshot | before | input |\n| product_adoption | Seats, licenses, modules, or features actively used at the snapshot | before | input |\n| support_escalation_flag | Whether there is an unresolved or severe support issue at the snapshot | before | input |\n| payment_issue_flag | Whether there is a late, failed, disputed, or unusual payment situation at the snapshot | before | input |\n| contract_dispute_flag | Whether legal, terms, pricing, or renewal-condition friction exists at the snapshot | before | input |\n| prior_renewal_history | Past renewal behavior, tenure, or prior renewal risk information available before the snapshot | before | input |\n| csm_workload_capacity | Whether the CSM team can actually act at the decision moment | at | input |\n| csm_action_taken | Whether the CSM intervention occurred after the decision | after | not used |\n| churn_at_renewal | Whether the account churned instead of renewing after the decision | after | label |\n\n- One row is an account snapshot for one renewal cycle at the moment the pre-renewal decision is made.  \n- The moment of the decision is the chosen renewal triage point before annual renewal; the exact lead time is not yet known and should be fixed from the business process.  \n- The label is churn at renewal: churn is recorded if the account does not renew at or past the renewal due date according to the company’s contractual definition, and it becomes known after the renewal date and any contractual waiting or grace period has passed.\n\n## Model\nThe simple baseline should not be a fancy algorithm. Use the first business rule as the baseline: flag accounts where the CSM recorded a clear pre-renewal risk reason at the decision moment, then compare this list against accounts with no recorded risk signal. If a model is trained, start with logistic regression or another simple score because it is transparent and works with early, sparse account data. The input should be one row per account per renewal snapshot, and the target should be churn_at_renewal.\n\nTest the baseline and the model with time. Use earlier completed renewal cohorts to train, then test on a later renewal cohort that was not used in model building. Do not randomly split accounts across the same future renewal window, because that leaks the decision moment and makes the score look better than it is. Measure the model by the business decision: did the contacted list contain enough accounts that would have churned but were retained, relative to the $50 action cost? The basic model quality measures are precision, recall, and net value after action costs; precision answers how many contacted high-risk accounts actually needed action, recall answers how many churned accounts the list found, and net value answers whether the action was worth the cost.\n\nConvert the score into the decision by ranking accounts from highest expected value of intervention to lowest. Contact from the top down until the available CSM capacity is exhausted or until the expected retained value from the next accounts no longer clears the $50 cost. A pure risk score is not enough unless there is evidence that the CSM action can save the account; when that evidence is missing, treat the model as a triage and measurement system first. Because the cost of one action is $50 and the saved value per retained account is $2,500, any targeting rule needs to satisfy the break-even condition 50 / 2,500 = 2% for the actions that actually cause retention.\n\nKind: cost-sensitive binary churn prediction.\n\n## Plan\n1. Define the renewal decision moment and the churn label this week.  \n   What is done: fix the date or event before annual renewal when CSMs decide whether to act, and fix the renewal outcome that will be called churn.  \n   What it needs: agreement from CSM leadership, renewal operations, and the account team.  \n   How to tell it is finished: the upcoming renewal process has a named decision date for each account and a written churn definition.\n\n2. Start a manual pre-renewal action log.  \n   What is done: CSMs record the account, decision date, observed risk reason, whether intervention was made, and the renewal outcome.  \n   What it needs: the existing CRM, support, billing, and CSM notes that are already available.  \n   How to tell it is finished: every account reviewed before the next renewal has a decision row and an outcome row when renewal ends.\n\n3. Build the account snapshot dataset.  \n   What is done: create one table with the columns shown above, using the decision moment from step one and pulling pre-decision fields from system records.  \n   What it needs: account identifiers, renewal dates, contract values, usage history, support status, payment status, account ownership, and prior renewal behavior.  \n   How to tell it is finished: each renewal cycle has one row per account at the decision moment, with a future label field ready to fill.\n\n4. Run the baseline rule on past or upcoming renewals.  \n   What is done: flag accounts with recorded pre-renewal risk reasons and compare churn among flagged and unflagged accounts.  \n   What it needs: at least one completed renewal cohort with labels and action logs.  \n   How to tell it is finished: the baseline list is measured by its net value against the $50 intervention cost.\n\n5. Train the first model after enough completed cohorts exist.  \n   What is done: use the pre-decision columns to predict churn_at_renewal.  \n   What it needs: many account snapshots with completed labels and no post-decision information used as model input.  \n   How to tell it is finished: a time-split validation shows the model or model-based list beats the manual baseline in precision, recall, or net value.\n\n6. Add intervention measurement.  \n   What is done: track which accounts were contacted, which were not, and what happened after the decision.  \n   What it needs: the action log and the churn label.  \n   How to tell it is finished: the organization can separate churn risk from intervention effect for at least one renewal cycle.\n\n7. Deploy a reviewed risk list.  \n   What is done: send a ranked list to CSMs before renewal and require them to record what they do and why.  \n   What it needs: CSM capacity, account ownership, and the model or baseline list.  \n   How to tell it is finished: the list is used in the renewal workflow and outcomes are reviewed after renewal.\n\n## What only real data can settle\nReal data is needed to know which pre-renewal signals actually predict churn for this company, which accounts are both risky and preventable by a CSM action, how long before renewal the decision should be made, how many contacted accounts are retained because of the action rather than despite the action, whether usage, support, contract, or account ownership fields matter most, and whether the $2,500 saved value holds across account segments. Without real snapshots and outcome labels, the model can describe a design but cannot prove a targeting rule.\n\n## Questions for you\n1. What exact point before annual renewal is the decision made, and when does the company consider churn final for label purposes?  \n2. What does the $50 CSM intervention actually consist of, and can treated accounts be compared with similar untreated accounts to measure whether the action causes retention?  \n3. Is the $2,500 saved per retained account net contribution margin, lost contract value, or a blended value estimate that differs by account size?\n\n## Checked by code\n- Sums checked by code: `50 / 2,500 = 2%`; `5,000 × 8% = 400`; `5,000 × 50 = 250,000`; `5,000 × 8% × 2,500 = 1,000,000`.\n\n## Checks DCLab will run when real data arrives\n- `time_split_check` on `snapshot_date`: Declared time column\n- `grouped_split` on `account_id`: Declared entity key\n- `baseline` on `roc_auc`: Baseline model\n\n## A second reader's findings\n- The solution ranks accounts by expected value of intervention, but the plan never supplies the causal effect of the CSM action; a churn-risk score cannot by itself estimate accounts saved. Create treated and comparable untreated accounts, then use measured incremental retention only after the action effect is known.\n- The manual action log records CSM choices without a holdout or assignment rule, so the plan cannot separate risky accounts from accounts that would renew anyway. Add a randomized holdout among eligible accounts, or a strict cutoff for borderline accounts, so contacted and not contacted outcomes can be compared.\n- The cost-value framing treats the given saved amount as automatically realized for every retained account and ignores account-specific renewal value, discounts, partial saves, and other intervention costs. Record and validate the true incremental retained value for each account before using any break-even targeting rule.\n- The triage rule depends on a CSM judging whether a risk reason is clear or visible, which will not be consistent across teams and may not become a clean label. Define triggers with objective system flags or written thresholds, and keep judgment as an override field.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "asks",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    290.24
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0,
+    "upload_demanded": 0,
+    "sums_checked": 9
+   },
+   "notes": {
+    "family": null,
+    "mode": "architect",
+    "roles_called": [
+     "architect",
+     "critic"
+    ],
+    "gates_passed": {
+     "need": true,
+     "parts": true,
+     "sums": true,
+     "numbers": true,
+     "data table": true,
+     "an outcome and an input": true,
+     "inputs known in time": true,
+     "label after the decision": true,
+     "plan": true,
+     "model": true,
+     "no upload asked": true,
+     "no data made": true
+    },
+    "cost_eur": 0.010093,
+    "assumed_inputs": [],
+    "fits": null,
+    "need": "full",
+    "repaired": false,
+    "removed": 0,
+    "kind": "cost-sensitive binary churn prediction",
+    "findings": 4,
+    "errors": [],
+    "first_failed": [],
+    "still_failed": []
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": false,
+    "pending": true,
+    "problems": [
+     "not judged yet: the judge runs later on the kept conversation"
+    ]
+   },
+   "spent_eur": 0.0101,
+   "judge_spent_eur": 0
+  },
+  {
+   "id": "ND-01",
+   "arm": "model_only",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "We want to reduce B2B SaaS subscription churn before annual renewal, but we do not have a clean dataset yet. We have 5,000 enterprise accounts, an 8% annual churn rate, a $50 CSM intervention cost, and $2,500 saved per retained account.",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "## What the problem really is\n\nYou are trying to decide **which enterprise accounts should receive CSM intervention before annual renewal**, given that:\n\n- the population is **5,000 enterprise accounts**;\n- the observed aggregate annual churn rate is **8%**;\n- each CSM intervention costs **$50**;\n- retaining an account saves **$2,500**.\n\nSo the decision is not just “predict churn.” It is: **Which accounts should we spend $50 each to save, and how do we know whether the intervention actually helps?**\n\n### Who uses the result\n\nThe likely users are:\n\n- Customer Success teams who execute the intervention.\n- CS leadership who decide where to spend effort and dollars.\n- Revenue or renewal operations who forecast renewals.\n- Finance or business leaders who care about churn economics.\n\n### Unit of the prediction or decision\n\nThe unit is an **enterprise account**, not a user, seat, department, or contract line.\n\n### Moment it concerns\n\nThe moment is **before annual renewal**, but the exact lead time is not known from what you gave. For example, it is not known whether this means 30, 60, 90, or 180 days before renewal. That timing must be chosen from your renewal process.\n\n### What is known\n\nYou told us:\n\n- There are **5,000 enterprise accounts**.\n- The annual churn rate is **8%**.\n- CSM intervention costs **$50** per account.\n- Each retained account saves **$2,500**.\n\n### What is not known\n\nThe important unknowns are:\n\n- Whether the churn outcome is known for each account.\n- What account features are available.\n- Which accounts have already renewed and which are still pending.\n- Whether CSM intervention actually changes renewal behavior.\n- Whether intervention works better for some account types than others.\n- What CSM capacity exists.\n- What the best timing before renewal is.\n- Whether churn risk is concentrated in identifiable patterns.\n\n### What I am assuming\n\nI am assuming the following unless you say otherwise:\n\n- The **$2,500 saved per retained account** is the relevant financial value of preventing that account from churning.\n- The **$50 CSM intervention cost** is the marginal cost of contacting and helping the account.\n- CSM intervention may be effective, but it has not yet been proven in your setting.\n- The aggregate **8% annual churn rate** describes the account population, but it is not a reliable account-level probability by itself.\n\n---\n\n## Possible approaches, with costs and what each gives\n\n### Approach 1: No model at all\n\nIntervene based on manual judgment or simple business rules.\n\nExamples of rules:\n\n- Intervene if the account has low product usage.\n- Intervene if the account has recent support problems.\n- Intervene if the account has no executive sponsor.\n- Intervene if the renewal contract is large.\n- Intervene if the customer has been quiet for too long.\n\n**Cost:** Low.  \n**What it gives:** Immediate action without needing a clean dataset.  \n**Limit:** It may spend CSM effort on accounts that would have renewed anyway, or miss accounts where intervention would actually save renewal.\n\n---\n\n### Approach 2: Descriptive segmentation\n\nGroup accounts into segments and look at churn behavior by segment.\n\nExamples:\n\n- By industry.\n- By contract size.\n- By product used.\n- By support ticket volume.\n- By customer success manager.\n- By account tenure.\n- By renewal timing.\n\n**Cost:** Moderate. It needs enough history and decent data organization.  \n**What it gives:** Insight into where churn tends to appear.  \n**Limit:** It may not identify individual accounts worth intervening on, and it does not prove intervention causes retention.\n\n---\n\n### Approach 3: Simple statistical risk model\n\nBuild a churn probability model using historical accounts with known renewal outcomes.\n\nA typical model would rank accounts by likelihood of churning.\n\n**Cost:** Higher. It needs:\n\n- account-level historical data;\n- clean labels for churn or renewal;\n- feature history at the decision moment;\n- enough accounts whose renewal outcome is known.\n\n**What it gives:** A ranked list of high-risk accounts.  \n**Limit:** Predicting churn is not the same as knowing whether CSM intervention will prevent churn. A model can find high-risk accounts, but those accounts may be unrecoverable, while mid-risk accounts may respond well to intervention.\n\n---\n\n### Approach 4: Survival or timing model\n\nModel when accounts are likely to churn relative to the renewal date.\n\nThis is useful because the business decision happens **before renewal**, and timing matters.\n\n**Cost:** Higher. It needs renewal dates, churn dates, and a way to handle accounts that have not yet reached the renewal decision moment.  \n**What it gives:** A more useful prediction because it tells you when to act, not just who is risky.  \n**Limit:** Still needs clean timing data and may not prove intervention effectiveness.\n\n---\n\n### Approach 5: Uplift or causal model\n\nModel which accounts are likely to be saved by the CSM intervention.\n\nThis asks a different question:\n\n> Which account will churn without intervention but renew if we intervene?\n\nThat is closer to the business problem because the value comes from **incremental retained accounts**, not merely risky accounts.\n\n**Cost:** Highest. It ideally requires:\n\n- historical intervention records;\n- randomized or controlled CSM outreach;\n- known renewal outcomes for intervened and non-intervened accounts;\n- enough treated and control accounts to learn response differences.\n\n**What it gives:** The best economic targeting for CSM dollars.  \n**Limit:** It is difficult without clean intervention data or experiments.\n\n---\n\n### Approach 6: Experiment first, model later\n\nStart with a small CSM intervention test on a selected group of accounts, with a holdout group that does not receive the intervention.\n\nThis gives evidence before spending large effort on modeling.\n\n**Cost:** Intervention cost is **$50** per treated account, plus operational effort to run the test.  \n**What it gives:** A direct answer to whether CSM intervention changes renewal outcomes.  \n**Limit:** The result may be noisy if too few accounts are tested, but the size of the test is not specified in your input.\n\n---\n\n## The approach I choose\n\nI would choose a staged approach:\n\n> **Start with a rule-based target list plus a randomized CSM intervention experiment. Use modeling only after the experiment shows evidence of what works.**\n\nWhy this choice?\n\nBecause you said you do not yet have a clean dataset. Building a sophisticated model immediately would be fragile. Also, your economics strongly suggest that the real question is not only “who will churn?” but “who can we save by intervening?”\n\nThe chosen path gives you three benefits:\n\n1. You can act soon using simple business knowledge.\n2. You can test whether CSM intervention actually causes retention.\n3. You can build a better model later if there is evidence to support it.\n\n---\n\n## Step-by-step plan\n\n### Step 1: Define the churn label clearly\n\nYou need a precise account-level outcome:\n\n- Did the enterprise account renew at its annual renewal moment?\n- Or did it cancel, not renew, or fail to renew?\n\nThe label should be:\n\n- **Renewed**\n- **Churned**\n\nIf an account has not reached its renewal moment yet, its label should be marked as **pending**, not used as a completed label.\n\n**What this needs:**\n\n- A master list of enterprise accounts.\n- Renewal dates or renewal windows.\n- Historical outcomes for accounts whose renewal moment has already passed.\n- A consistent definition of churn.\n\n**Why this matters:**\n\nThe **8% aggregate annual churn rate** tells you the overall business baseline, but your targeting system needs account-level labels.\n\n---\n\n### Step 2: Build the minimal dataset\n\nSince you do not have a clean dataset yet, do not try to build a perfect data lake first. Build the smallest useful dataset.\n\nEach account should have, where available:\n\n- Account identifier.\n- Whether it is an enterprise account.\n- Renewal date or renewal period.\n- Churn or renewal label if already known.\n- Contract or subscription value.\n- Product usage indicators.\n- Support ticket history.\n- Customer success touch history.\n- Executive sponsor or champion information.\n- Account age.\n- Industry or segment.\n- Any prior CSM intervention flag.\n\n**What this needs:**\n\n- CRM data.\n- Billing or subscription data.\n- Product usage data.\n- Support ticket data.\n- Customer success notes or task history.\n- A data owner who can reconcile duplicates and account mismatches.\n\n**Output of this step:**\n\nA table where each row represents an enterprise account, and enough columns are present to make a churn-risk judgment.\n\n---\n\n### Step 3: Create a simple baseline risk list\n\nBefore modeling, use business rules to identify accounts that look risky.\n\nPossible rule categories:\n\n- Low usage.\n- Recent support escalations.\n- Missing champion or sponsor.\n- Long gap since last CSM engagement.\n- Contract value at risk.\n- Unpaid invoices or billing issues.\n- Account history suggesting renewal uncertainty.\n\nThe output is not a probability model. It is a priority queue of accounts that may deserve CSM attention.\n\n**What this needs:**\n\n- Agreement from CSM or CS leadership on what signals matter.\n- A small set of accessible features.\n- A way to rank accounts from most to least priority.\n\n**What this gives:**\n\nA practical first list for action.\n\n---\n\n### Step 4: Run a randomized intervention experiment\n\nFrom the high-priority list, divide accounts into two groups:\n\n- **Treatment group:** CSM performs the intervention.\n- **Control group:** CSM does not perform the intervention, or receives the standard non-touch process.\n\nThe intervention should be clearly documented. For example:\n\n- outreach call;\n- health check;\n- escalation review;\n- executive briefing;\n- usage rescue plan;\n- contract discussion.\n\n**What this needs:**\n\n- Enough CSM capacity.\n- A repeatable intervention process.\n- Tracking of which accounts received the intervention.\n- Renewal outcomes at the annual renewal moment.\n- A way to compare treatment and control accounts.\n\n**Why randomization matters:**\n\nIt helps separate “high-risk accounts that would churn anyway” from “accounts that respond to CSM help.”\n\nWithout randomization, CSMs may intervene only on accounts that look troubled, making results hard to interpret.\n\n---\n\n### Step 5: Measure the business result\n\nThe experiment should answer this question:\n\n> Does the CSM intervention cause more accounts to renew?\n\nThe evaluation should compare renewal or churn outcomes between:\n\n- accounts that received intervention;\n- accounts that did not receive intervention.\n\nThen use the economic rule:\n\n> If the intervention is worth expanding, the extra retained accounts multiplied by **$2,500** should exceed the treated accounts multiplied by **$50**.\n\nIn words:\n\n- The saved retention value is **$2,500** per retained account.\n- The cost is **$50** per treated account.\n- A positive business result is not just “some churn is lower.” It is “enough additional renewals are created to justify the intervention cost.”\n\n**What to check:**\n\n- Did the treated group renew more often than the control group?\n- Were high-risk treated accounts different from low-risk treated accounts?\n- Did some segments respond better?\n- Did any intervention appear ineffective or harmful?\n- Did the observed baseline align with the aggregate **8%** annual churn rate?\n\n---\n\n### Step 6: Only then build a model\n\nIf the experiment shows that CSM intervention can save accounts, build a model to improve targeting.\n\nThere are two possible model types.\n\n#### Option A: Churn risk model\n\nThis predicts which accounts are likely to churn.\n\nUseful if intervention is broadly helpful and CSMs should focus on risky accounts.\n\nNeeds:\n\n- historical account features;\n- known renewal outcomes;\n- feature values available before renewal;\n- validation data.\n\nChecks:\n\n- Does the model rank churn risk better than the simple rules?\n- Does it hold out on new accounts?\n- Do CSMs agree with the results?\n\n#### Option B: Uplift model\n\nThis predicts which accounts are likely to be saved by intervention.\n\nThis is better for your economic objective because you have:\n\n- **$50** intervention cost;\n- **$2,500** retention value.\n\nNeeds:\n\n- randomized treatment and control outcomes;\n- enough labeled accounts;\n- features that explain intervention response.\n\nChecks:\n\n- Does the model identify accounts where intervention creates incremental retention?\n- Does a pilot using the model outperform the rule-based list?\n- Does it remain stable over time?\n\n---\n\n### Step 7: Turn the result into a CSM workflow\n\nThe model or rule list is only useful if it changes action.\n\nThe output should be:\n\n- a ranked list of accounts;\n- reason codes, such as “low usage” or “missing sponsor”;\n- suggested intervention playbook;\n- account owner or CSM assignment;\n- review cadence;\n- tracking of outcome.\n\n**What this needs:**\n\nCSM capacity, ownership, and a way to record interventions.\n\n---\n\n## How the result should be checked\n\nThere are three layers of checking.\n\n### 1. Data-quality check\n\nAsk:\n\n- Are account identities clean?\n- Are renewal dates available?\n- Are churn labels consistent?\n- Are features available before the renewal decision moment?\n- Are intervention records complete?\n\nIf this fails, modeling or scoring is risky.\n\n### 2. Predictive check\n\nFor a churn-risk model:\n\n- Hold out past accounts.\n- Compare predicted risk with actual renewal or churn.\n- Check whether higher-risk ranked accounts truly churn more often.\n\n### 3. Economic check\n\nFor intervention value:\n\n- Compare treated and control renewal outcomes.\n- Count incremental retained accounts created by intervention.\n- Multiply those incremental retained accounts by **$2,500**.\n- Compare that to **$50** per treated account.\n\nThis is the most important check because the business decision is based on money, not just prediction accuracy.\n\n---\n\n## When to stop or pause\n\nYou should stop or pause if:\n\n1. **No clean account-level churn labels can be produced.**  \n   Without labels, risk modeling is weak.\n\n2. **The intervention test shows no incremental retention benefit.**  \n   If CSM contact does not cause more renewals, a churn model will not solve the problem. The intervention itself must be changed.\n\n3. **The cost of intervention is not offset by saved retention.**  \n   The test should show enough extra retained accounts to justify the **$50** per-account cost against the **$2,500** retention value.\n\n4. **CSMs do not trust or use the output.**  \n   If the model produces a list but cannot be acted on cleanly, it is not valuable.\n\n5. **A simple rule works almost as well as a model.**  \n   Then modeling may not be worth the complexity yet.\n\n6. **The data changes too much from period to period.**  \n   Churn behavior may shift, so the score must be refreshed and monitored.\n\n---\n\n## Recommended starting position\n\nGiven what you have told me, I would not start by building a complex machine-learning model.\n\nI would start with:\n\n1. account-level churn labels;\n2. a simple risk rule list;\n3. a randomized CSM intervention test;\n4. an economic evaluation using **$50** cost and **$2,500** saved per retained account;\n5. a model only if the test gives evidence to justify it.\n\nThat path gives you a practical answer sooner, while also creating the dataset needed for a better churn-reduction program later.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "asks",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    131.61
+   ],
+   "safety": {
+    "uncited": [
+     "30,",
+     "60,",
+     "90,",
+     "180"
+    ],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0,
+    "upload_demanded": 0,
+    "sums_checked": 0
+   },
+   "notes": {},
+   "repeat": 1,
+   "judged": {
+    "valid": false,
+    "pending": true,
+    "problems": [
+     "not judged yet: the judge runs later on the kept conversation"
+    ]
+   },
+   "spent_eur": 0.004,
+   "judge_spent_eur": 0
+  },
+  {
+   "id": "ND-02",
+   "arm": "blueprint_rules",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "Our fintech app needs to block fraudulent card transactions at checkout across 50,000 monthly transactions without uploading confidential customer data. Fraud rate is 1.5%, manual review costs $4, and each caught fraud saves $180.",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "# DCLab No-Data Solution Blueprint (fraud)\n\n**Problem:** Our fintech app needs to block fraudulent card transactions at checkout across 50,000 monthly transactions without uploading confidential customer data. Fraud rate is 1.5%, manual review costs $4, and each caught fraud saves $180.\n**Data mode:** No-Data Solution Design\n**Harness mode:** `deterministic_floor` · Gates passed: `5/5`\n\n## 0. Deep Problem & Domain Understanding (Epistemic Provenance)\n- **Restatement:** Solve `fraud` decisioning for `transaction` at `at checkout`, optimizing `pr_auc (Precision@Recallfloor) + Net Fraud Loss Prevented` to guide `to block fraudulent card transactions at checkout across a domain-calibrated level`.\n- **Goal** (`DCLab default`): Our fintech app needs to block fraudulent card transactions at checkout across 50,000 monthly transactions without uploading confidential customer data. Fraud rate is 1.5%, manual review costs $4, and — *DCLab default (nobody said it): Synthesized from your problem statement.*\n- **Decision Action** (`Stated by you`): to block fraudulent card transactions at checkout across 50 — *Quoted verbatim from your description: \"to block fraudulent card transactions at checkout across 50\"*\n- **Decision Unit** (`DCLab default`): transaction — *DCLab default (nobody said it): One prediction per `transaction_id` grain.*\n- **Prediction Moment** (`Stated by you`): at checkout — *Quoted verbatim from your description: \"at checkout\"*\n- **Outcome And Horizon** (`DCLab default`): `is_fraud_confirmed` observed over Immediate transaction event + 30-day chargeback maturity window — *DCLab default (nobody said it): Defines when ground-truth labels mature without censor leakage.*\n- **Primary Metric** (`DCLab default`): pr_auc (Precision@Recallfloor) + Net Fraud Loss Prevented — *DCLab default (nobody said it): Matches class balance, asymmetric error costs, and operational ranking needs.*\n- **Alternative Problem Framings Considered:**\n  - `anomaly`: Unsupervised anomaly detection catches novel zero-day fraud patterns without label delay, but supervised rare-event classification achieves higher precision at fixed investigator capacity once confirmed chargeback labels arrive.\n  - `ranking`: Learning-to-rank optimizes the top-K investigator queue directly when review capacity is strictly capped per shift.\n\n## 1. Business Solution & Decision Economics\n- **Decision owner & action:** Operations / Analytics Lead — to block fraudulent card transactions at checkout across 50\n- **Day-0 non-ML baseline:** Scorecard heuristic using top 3 domain risk rules + randomized control holdout to measure baseline lift before ML.\n- **Read this first:** 1 of 5 inputs below are DCLab's placeholders (share of actions that work), not facts about your business. Every figure computed from them is an illustration until you give your own numbers.\n- **Monthly volume:** 50000 (stated by you) · **Base rate:** 1.5% (stated by you)\n- **Cost per action:** 4.0 (stated by you) · **Value per caught case:** 180.0 (stated by you) · **Share of actions that work:** 35% (assumed by DCLab)\n- **Break-even precision:** 6.3% (an illustration: computed from assumed inputs)\n\n### ROI Scenarios (an illustration: computed from assumed inputs; the lifts are DCLab's assumptions)\n| Scenario | Precision | Flagged/mo | Gross Value | Cost | Net/mo |\n|---|---:|---:|---:|---:|---:|\n| Conservative (1.5x lift) | 2.2% | 7500 | 10647.0 | 30000.0 | -19353.0 |\n| Target ML (2.5x lift) | 3.8% | 7500 | 17703.0 | 30000.0 | -12297.0 |\n| Strong ML (3.5x lift) | 5.2% | 7500 | 24822.0 | 30000.0 | -5178.0 |\n\n## 2. Data Science Solution & Minimum Viable Data Spec\n- **Unit / Entity:** `transaction_id / account_id`\n- **Prediction Cutoff Time:** `tx_authorized_at`\n- **Label Horizon:** 30-60 days for chargeback/dispute settlement\n- **Target:** `is_fraud_confirmed`\n- **Tier-1 Day-1 Features:** account_id, amount, currency, merchant_category, channel, device_age_days, ip_country_mismatch, tx_count_1h\n- **Tier-2 High-Leverage Features:** velocity_ratio_24h_vs_30d, device_account_fanout_7d, merchant_historical_dispute_rate_asof\n- **Forbidden Post-Decision Columns:** refund_issued_flag, chargeback_filed_at, manual_review_outcome, account_frozen_after_tx\n- **Validation Split:** Out-of-time snapshot split PLUS entity-group isolation (no entity appears in both train and holdout).\n- **Metrics:** pr_auc, roc_auc, precision_at_top_k, brier_score\n- **Verified Fold-Safe Feature Programs (`dclab_core.features`):** `transaction_id_count (count)`, `transaction_id_day_count (count)`, `amount_entity_mean (mean)`, `amount_entity_deviation (deviation)`, `transaction_id_time_since_prev (since_previous)`, `amount_rolling3_mean (rolling_mean)`\n\n### Pre-Data Leakage Traps\n- **Strict as-of point-in-time join** (EXP-052): Compute every feature strictly using events <= tx_authorized_at.\n- **Ban post-decision columns** (LEAK-credit_card_fraud): Drop/audit post-cutoff fields before training: chargeback_filed_at, manual_review_outcome, account_frozen_after_tx, refund_issued_flag.\n- **Lock label maturity window** (EXP-051): Only assign negative labels after 30-60 days for chargeback/dispute settlement has elapsed, or censoring bias inflates false negatives.\n\n## 3. ML Solution, Multi-Model Debate & Pre-Data Task Plan\n- **Stage 1 Baseline:** L2-regularized Logistic Regression with missing-value indicators & target/frequency encoding inside CV folds.\n- **Stage 2 Primary:** LightGBM / CatBoost with class weighting (or focal objective), early stopping on validation PR-AUC.\n- **Stage 3 Decision Layer:** Isotonic / Platt probability calibration -> act when P(y=1) >= break-even 6.3% capped at top 15% capacity.\n- **What Evidence Would Change Algorithm Choice:** If the real data holds few positive outcomes or many missing values, prefer regularized logistic/linear models over deep trees.\n- **DCLab's rules' plan (no model debate ran):** Split: Out-of-time snapshot split PLUS entity-group isolation (no entity appears in both train and holdout). · Metric `pr_auc` · Families `dummy, logistic_regression, random_forest, gradient_boosting`\n- **TP-08 Selected Pre-Data Tasks:** time_split_check, grouped_split, leakage_probe, check_join_key, threshold_for_cost, baseline\n\n## 4. Next Options (When Ready)\n- Tell me missing economics or operational constraints to tighten these numbers.\n- If you want a **synthetic prototype**, answer the simulation questions so I can show the schema design for your approval first.\n- When real data is ready, upload/connect it — `Build project` remains unchanged whenever you attach data.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "answered",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    0.07
+   ],
+   "safety": {
+    "uncited": [
+     "50",
+     "50",
+     "30",
+     "50",
+     "30",
+     "60",
+     "30",
+     "60"
+    ],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0,
+    "upload_demanded": 0,
+    "sums_checked": 0
+   },
+   "notes": {
+    "family": "fraud",
+    "mode": "deterministic_floor",
+    "roles_called": [],
+    "gates_passed": {
+     "gate_1_epistemic_provenance": true,
+     "gate_2_number_grounding": true,
+     "gate_3_virtual_schema_and_features": true,
+     "gate_4_workflow_and_debate": true,
+     "gate_5_budget": true
+    },
+    "cost_eur": 0.0,
+    "assumed_inputs": [
+     "share of actions that work"
+    ],
+    "fits": true,
+    "need": null,
+    "repaired": null,
+    "removed": 0,
+    "kind": null,
+    "findings": 0,
+    "errors": [],
+    "first_failed": [],
+    "still_failed": []
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": false,
+    "pending": true,
+    "problems": [
+     "not judged yet: the judge runs later on the kept conversation"
+    ]
+   },
+   "spent_eur": 0,
+   "judge_spent_eur": 0
+  },
+  {
+   "id": "ND-02",
+   "arm": "blueprint_pipeline",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "Our fintech app needs to block fraudulent card transactions at checkout across 50,000 monthly transactions without uploading confidential customer data. Fraud rate is 1.5%, manual review costs $4, and each caught fraud saves $180.",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "# DCLab No-Data Solution Blueprint (fraud)\n\n**Problem:** Our fintech app needs to block fraudulent card transactions at checkout across 50,000 monthly transactions without uploading confidential customer data. Fraud rate is 1.5%, manual review costs $4, and each caught fraud saves $180.\n**Data mode:** No-Data Solution Design\n**Harness mode:** `ai_harnessed` · Gates passed: `4/5` · not passed: workflow\n\n## 0. Deep Problem & Domain Understanding (Epistemic Provenance)\n- **Restatement:** Block or review fraudulent card transactions at checkout to maximize expected profit.\n- **Goal** (`AI inferred`): Block fraudulent card transactions at checkout — *proposed by the advisor from \"block fraudulent card transactions at checkout\"*\n- **Decision Action** (`Stated by you`): to block fraudulent card transactions at checkout across 50 — *Quoted verbatim from your description: \"to block fraudulent card transactions at checkout across 50\"*\n- **Decision Unit** (`AI inferred`): card transaction — *proposed by the advisor from \"card transactions\"*\n- **Prediction Moment** (`Stated by you`): at checkout — *Quoted verbatim from your description: \"at checkout\"*\n- **Outcome And Horizon** (`AI inferred`): Whether transaction is fraudulent. (Confirmed later by fraud review or chargeback.) — *AI domain inference: Low 0.015 positive rate with asymmetric economic rewards.*\n- **Primary Metric** (`AI inferred`): expected_profit — *AI domain inference: Low 0.015 positive rate with asymmetric economic rewards.*\n- **Alternative Problem Framings Considered:**\n  - `classification`: Valid, but rare_event captures cost-sensitive scarcity better.\n  - `anomaly`: Use only if labels are unavailable or badly delayed.\n\n## 1. Business Solution & Decision Economics\n- **Decision owner & action:** Operations / Analytics Lead — to block fraudulent card transactions at checkout across 50\n- **Day-0 non-ML baseline:** Scorecard heuristic using top 3 domain risk rules + randomized control holdout to measure baseline lift before ML.\n- **Read this first:** 1 of 5 inputs below are DCLab's placeholders (share of actions that work), not facts about your business. Every figure computed from them is an illustration until you give your own numbers.\n- **Monthly volume:** 50000 (stated by you) · **Base rate:** 1.5% (stated by you)\n- **Cost per action:** 4.0 (stated by you) · **Value per caught case:** 180.0 (stated by you) · **Share of actions that work:** 35% (assumed by DCLab)\n- **Break-even precision:** 6.3% (an illustration: computed from assumed inputs)\n- **Domain Expert (fact):** The goal economics are set by $180 per caught fraud, $4 per manual review, and a 1.5% fraud base rate across 50,000 monthly transactions.\n- **Domain Expert (fact):** At checkout, scoring must rely only on values known by authorization_timestamp, such as account_id, amount_usd, currency_code, card_network, channel, merchant_category, device_age_days, tx_count_1h, tx_amount_24h, and ip_country_mismatch.\n- **Domain Expert (risk):** Leakage from refund_issued_flag, chargeback_filed_at, manual_review_outcome, or account_frozen_after_tx is the main operational trap because these are unavailable at checkout and distort offline metrics.\n\n### ROI Scenarios (an illustration: computed from assumed inputs; the lifts are DCLab's assumptions)\n| Scenario | Precision | Flagged/mo | Gross Value | Cost | Net/mo |\n|---|---:|---:|---:|---:|---:|\n| Conservative (1.5x lift) | 2.2% | 7500 | 10647.0 | 30000.0 | -19353.0 |\n| Target ML (2.5x lift) | 3.8% | 7500 | 17703.0 | 30000.0 | -12297.0 |\n| Strong ML (3.5x lift) | 5.2% | 7500 | 24822.0 | 30000.0 | -5178.0 |\n\n## 2. Data Science Solution & Minimum Viable Data Spec\n- **Unit / Entity:** `transaction_id / account_id`\n- **Prediction Cutoff Time:** `tx_authorized_at`\n- **Label Horizon:** 30-60 days for chargeback/dispute settlement\n- **Target:** `is_fraud_confirmed`\n- **Tier-1 Day-1 Features:** account_id, amount, merchant_category, device_age_days, tx_count_1h, authorization_timestamp, amount_usd, currency_code\n- **Tier-2 High-Leverage Features:** velocity_ratio_24h_vs_30d, device_account_fanout_7d, merchant_historical_dispute_rate_asof\n- **Forbidden Post-Decision Columns:** refund_issued_flag, chargeback_filed_at, manual_review_outcome, account_frozen_after_tx\n- **Validation Split:** Out-of-time snapshot split PLUS entity-group isolation (no entity appears in both train and holdout).\n- **Metrics:** pr_auc, roc_auc, precision_at_top_k, brier_score\n- **Verified Fold-Safe Feature Programs (`dclab_core.features`):** `transaction_id_count (count)`, `transaction_id_day_count (count)`, `amount_entity_mean (mean)`, `amount_entity_deviation (deviation)`, `transaction_id_time_since_prev (since_previous)`, `amount_rolling3_mean (rolling_mean)`\n\n### Pre-Data Leakage Traps\n- **Strict as-of point-in-time join** (EXP-052): Compute every feature strictly using events <= tx_authorized_at.\n- **Ban post-decision columns** (LEAK-credit_card_fraud): Drop/audit post-cutoff fields before training: chargeback_filed_at, manual_review_outcome, account_frozen_after_tx, refund_issued_flag.\n- **Lock label maturity window** (EXP-051): Only assign negative labels after 30-60 days for chargeback/dispute settlement has elapsed, or censoring bias inflates false negatives.\n- **Leak Suspect `manual_review_outcome` (exclude):** May encode label or reviewer decision.\n- **Leak Suspect `chargeback_filed_at` (exclude):** Post-authorization event.\n- **Leak Suspect `account_frozen_after_tx` (exclude):** Post-event enforcement.\n- **Leakage Auditor (risk):** is_fraud_confirmed is outcome-like and would likely be known only after checkout investigation, so it leaks the answer if used as an input.\n\n## 3. ML Solution, Multi-Model Debate & Pre-Data Task Plan\n- **Stage 1 Baseline:** L2-regularized Logistic Regression with missing-value indicators & target/frequency encoding inside CV folds.\n- **Stage 2 Primary:** LightGBM / CatBoost with class weighting (or focal objective), early stopping on validation PR-AUC.\n- **Stage 3 Decision Layer:** Isotonic / Platt probability calibration -> act when P(y=1) >= break-even 6.3% capped at top 15% capacity.\n- **What Evidence Would Change Algorithm Choice:** If labels are unavailable, cold-start devices dominate, or latency blocks complex models.\n- **Planner-Challenger-Judge Debate Verdict:** Split `stratified, holdout locked first, used once, after the choice` · Metric `roc_auc` · Families `dummy, logistic_regression, random_forest, gradient_boosting`\n- **TP-08 Selected Pre-Data Tasks:** time_split_check, grouped_split, leakage_probe, check_join_key, threshold_for_cost, baseline\n\n## 4. Next Options (When Ready)\n- Tell me missing economics or operational constraints to tighten these numbers.\n- If you want a **synthetic prototype**, answer the simulation questions so I can show the schema design for your approval first.\n- When real data is ready, upload/connect it — `Build project` remains unchanged whenever you attach data.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "answered",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    1528.22
+   ],
+   "safety": {
+    "uncited": [
+     "50",
+     "50",
+     "50",
+     "30",
+     "60",
+     "30",
+     "60"
+    ],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0,
+    "upload_demanded": 0,
+    "sums_checked": 0
+   },
+   "notes": {
+    "family": "fraud",
+    "mode": "ai_harnessed",
+    "roles_called": [
+     "problem_analyst",
+     "brief_checker",
+     "ai_first",
+     "synthetic_schema",
+     "understanding_critic",
+     "feature_engineer",
+     "case_specialist:domain_expert",
+     "case_specialist:leakage_auditor",
+     "decomposer",
+     "map_reviewer",
+     "solution_router",
+     "solution_planner",
+     "solution_challenger",
+     "debate_judge"
+    ],
+    "gates_passed": {
+     "gate_1_epistemic_provenance": true,
+     "gate_2_number_grounding": true,
+     "gate_3_virtual_schema_and_features": true,
+     "gate_4_workflow_and_debate": false,
+     "gate_5_budget": true
+    },
+    "cost_eur": 0.051302,
+    "assumed_inputs": [
+     "share of actions that work"
+    ],
+    "fits": true,
+    "need": null,
+    "repaired": null,
+    "removed": 0,
+    "kind": null,
+    "findings": 0,
+    "errors": [],
+    "first_failed": [],
+    "still_failed": []
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": false,
+    "pending": true,
+    "problems": [
+     "not judged yet: the judge runs later on the kept conversation"
+    ]
+   },
+   "spent_eur": 0.0513,
+   "judge_spent_eur": 0
+  },
+  {
+   "id": "ND-02",
+   "arm": "blueprint_architect",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "Our fintech app needs to block fraudulent card transactions at checkout across 50,000 monthly transactions without uploading confidential customer data. Fraud rate is 1.5%, manual review costs $4, and each caught fraud saves $180.",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "# A solution designed without data\n\n## The problem\n\nThe decision is whether a card transaction at checkout should be allowed, sent to manual review, or blocked.\n\nThe decision maker is the transaction risk system together with the fraud or risk policy owner, and the decision is made at checkout request time. The unit is one card transaction attempt.\n\nYou told: the app handles 50,000 monthly transactions; the fraud rate is 1.5%; manual review costs $4; each caught fraud saves $180; and you do not want to upload confidential customer data.\n\nNot known: what evidence is available at checkout, how fraud is confirmed, how long confirmation takes, what a false block costs, whether automatic block is required or manual review is acceptable, how review agents catch fraud, and which existing rules or signals are already used.\n\n## What needs care\n\nReviewing every transaction is not economically attractive under the numbers you gave. The full review cost would be `50,000 × 4 = 200,000`. The most that could be saved if every fraud case were caught is `50,000 × 1.5% × 180 = 135,000`. That gives a net loss of `200,000 - 135,000 = 65,000`.\n\nThe break-even for manual review depends on how many reviewed transactions turn out to be confirmed fraud and are successfully caught. If a caught fraud always saves the full $180 and costs nothing beyond review, the reviewed group needs a success share of `4 / 180 = 2.22%`. If manual review does not reliably catch frauds in the reviewed group, the required share is higher.\n\nFraud labels will often arrive late, through chargebacks, disputes, or investigations. A model must not use any field that is only known after the checkout decision. Also, automatic blocking has a different cost than manual review: false positives may cost lost sales, customer dissatisfaction, or re-contact effort, and those costs were not provided.\n\n## Business solution\n\nStart with manual review, not automatic block, because blocking has an unknown false-positive cost and review has a known cost of $4.\n\nAction now, without any model:\n1. Keep the normal allow path for transactions that do not match any known high-risk condition.\n2. Send to manual review only cases where the current risk evidence indicates at least `4 / 180 = 2.22%` expected confirmed-fraud share, assuming review reliably catches the frauds it sees.\n3. Measure, for the reviewed group, the number of confirmed frauds and the number of reviews. If confirmed frauds caught in the reviewed group do not give at least the 2.22% break-even share, tighten the rule or stop that rule.\n4. Avoid blocking at checkout until the cost of a false block can be stated, unless the transaction is confirmed by an existing policy or evidence that does not need a model.\n\nIn your numbers: the monthly expected fraud population is `50,000 × 1.5% = 750`. If every one of those 750 were caught, the maximum saving would be `50,000 × 1.5% × 180 = 135,000`. That is less than reviewing all 50,000 transactions, which would cost `50,000 × 4 = 200,000`. The business answer is to review selectively, and the economic floor for a review queue is `4 / 180 = 2.22%`.\n\n## Data to record\n\n| column | what it is | known when | role |\n|---|---|---|---|\n| transaction_id | pseudonymous identifier for one checkout attempt | at | key |\n| decision_timestamp | moment when the checkout decision is taken | at | time |\n| account_id | pseudonymous customer identifier | before | key |\n| card_token | pseudonymous card identifier, not the raw card number | before | key |\n| device_token | pseudonymous device identifier | before | key |\n| amount | requested transaction value | before | input |\n| currency | transaction currency | before | input |\n| account_age_days | days from account opening to this attempt | before | input |\n| card_country | issuing country known from the card token or public BIN data | before | input |\n| card_type | debit, credit, prepaid, or similar | before | input |\n| channel | app, web, card-present, card-not-present, or similar | before | input |\n| merchant_category_code | merchant category code | before | input |\n| merchant_id | merchant identifier | before | not used |\n| distance_to_home | distance between home or registered address and merchant or transaction location | at | input |\n| ip_country | country associated with the request IP | at | input |\n| account_recent_txn_count | count of prior account transactions in a recent window chosen locally | before | input |\n| card_recent_txn_count | count of prior card transactions in a recent window chosen locally | before | input |\n| merchant_recent_txn_count | count of merchant transactions in a recent window chosen locally | before | input |\n| prior_fraud_flag | whether the account, card, or device had confirmed fraud before this attempt | before | input |\n| is_confirmed_fraud | whether later internal evidence confirms this attempt as fraud | after | label |\n| decision_action | allow, manual review, or block taken at checkout | at | not used |\n| fraud_confirmation_source | chargeback, dispute, manual review, internal investigation, or similar | after | not used |\n| fraud_confirmation_timestamp | when the fraud label became known | after | not used |\n\n- One row is one checkout attempt and the fields known before or at the decision, plus the later outcome.\n- The moment of decision is the instant the transaction request must be allowed, sent to manual review, or blocked.\n- The label is `confirmed fraud` if a chargeback, dispute, manual review decision, or internal investigation later confirms the attempt was fraudulent; otherwise it is `not confirmed fraud`; it becomes known only after that confirmation process finishes.\n\n## Model\n\nBaseline first: use existing historical labels to create simple buckets, such as card country, channel, account age band, amount band, and recent activity band. For each bucket, measure the confirmed-fraud share that manual review would catch. Send buckets to manual review only if their expected success share is at least `4 / 180 = 2.22%`. This is a non-model rule, but it gives a reference line and tests whether the data can support any detection value.\n\nThen use a gradient-boosted decision-tree model. It uses only fields known before or at the decision: amount, currency, account age, card country, card type, channel, merchant category, distance, IP country, recent counts, prior fraud flag, and similar available transaction and account history features. The target is the later `is_confirmed_fraud` label.\n\nTesting: split by time, never randomly across transactions. Train on earlier monthly periods, validate on a later period, and test on the next unseen monthly period. Roll the split forward as new months arrive. Make sure every feature used at the checkout moment is actually available then, and exclude any field that is only known after the label or after the action.\n\nMeasure: precision and recall are useful for operations, but the business measure should be net value. For a cutoff that reviews `R` transactions and catches `F` confirmed frauds, the review economics are `180 × F - 4 × R`. Compare that with the 2.22% break-even line and with the baseline bucket rule.\n\nScore to decision: convert the model output to a calibrated fraud probability. For a review-only policy, send to manual review when the estimated probability, adjusted for the manual review catch rate, exceeds the break-even share. If manual review catches confirmed frauds reliably, the floor is `4 / 180 = 2.22%`. If it catches less reliably, the required probability must be higher. Automatic block should be used only when the false-block cost is known and the model is validated enough that the expected value of blocking is better than the expected value of reviewing.\n\nKind: binary classification\n\n## Plan\n\n1. Define the checkout action policy for the next period.  \n   - What is done: state whether medium-risk transactions will be manually reviewed or automatically blocked, and start with manual review unless blocking policy is already approved.  \n   - Needs: risk policy owner, product owner, and transaction request flow.  \n   - Finished when: one written rule exists showing when to allow, when to send to review, and whether auto-block is allowed.\n\n2. Create a local label ledger.  \n   - What is done: link confirmed fraud, chargeback, dispute, or investigation outcomes back to transaction attempts using pseudonymous keys.  \n   - Needs: existing internal transaction history, fraud labels, and payment or chargeback records; no confidential upload required.  \n   - Finished when: checkout attempts can be labeled as confirmed fraud, not confirmed fraud, or still unknown.\n\n3. Build the no-model economic gate.  \n   - What is done: list current rules or manual-review triggers and check whether each trigger’s reviewed group reaches at least `4 / 180 = 2.22%` confirmed-fraud success share.  \n   - Needs: historical decisions and labels from step 2.  \n   - Finished when: each existing rule is classified as economically useful, not useful, or unknown because sample is too small.\n\n4. Record the data schema locally.  \n   - What is done: store the columns listed above using pseudonymous identifiers and local feature generation.  \n   - Needs: checkout event logging, account and card metadata, merchant metadata, device and IP metadata, and recent-history features.  \n   - Finished when: new transactions include all fields known before or at the decision, and later outcomes are linked back.\n\n5. Build the historical bucket baseline.  \n   - What is done: calculate fraud share by coarse, stable buckets and identify buckets above the 2.22% review break-even.  \n   - Needs: labeled historical transactions and the data schema from step 4.  \n   - Finished when: baseline buckets produce a review list for a later monthly period and can be scored against actual confirmed frauds.\n\n6. Train the first model with time-based evaluation.  \n   - What is done: train a gradient-boosted classifier on earlier months and test on unseen later months.  \n   - Needs: labeled history, feature availability at decision time, and a split by calendar month.  \n   - Finished when: the model produces scores on a holdout month without using any after-decision information.\n\n7. Choose the decision threshold by business value.  \n   - What is done: compare model cutoffs using `180 × F - 4 × R`, precision, recall, and operational review workload.  \n   - Needs: model scores, actual labels, review outcomes, and false-block risk appetite.  \n   - Finished when: cutoffs for allow, manual review, and possible auto-block are documented.\n\n8. Run a shadow pilot.  \n   - What is done: score transactions in real time but let existing operations decide the action; record what the model would have reviewed or blocked.  \n   - Needs: real transaction flow, fraud label collection, and risk operations.  \n   - Finished when: real review volume, caught frauds, missed frauds, and review costs are measured for the current monthly volume.\n\n9. Move to a graduated live rule.  \n   - What is done: allow low-risk transactions, manually review higher-risk transactions, and only auto-block the highest-risk cases if false-positive cost and policy approval justify it.  \n   - Needs: validated thresholds, monitoring, alerts, and a rollback rule.  \n   - Finished when: the checkout decision uses the model, and monthly net value is compared with the `200,000` full-review cost and the `135,000` maximum saving benchmark.\n\n## What only real data can settle\n\nReal data is needed to know which features are actually available at checkout, how fraud is truly defined in your disputes and chargebacks, how long confirmation takes, how often manual review catches frauds, what false blocks cost, whether the 1.5% fraud rate is stable across months and customer segments, and whether a model can beat the simple 2.22% break-even rule.\n\n## Questions for you\n\n- At checkout, can the transaction be held for manual review, or must the app allow or block instantly? This changes the decision policy and the threshold.\n- What is the cost of a false block or a blocked legitimate transaction compared with the $180 saved from a caught fraud? This changes whether automatic block is sensible.\n- How do you confirm fraud, and how long after checkout does that confirmation become known? This changes label design and evaluation timing.\n\n## Checked by code\n- Sums checked by code: `4 / 180 = 2.22%`; `50,000 × 1.5% = 750`; `50,000 × 4 = 200,000`; `50,000 × 1.5% × 180 = 135,000`; `200,000 - 135,000 = 65,000`.\n\n## Checks DCLab will run when real data arrives\n- `time_split_check` on `decision_timestamp`: Declared time column\n- `grouped_split` on `transaction_id`: Declared entity key\n- `baseline` on `roc_auc`: Baseline model\n\n## A second reader's findings\n- The solution’s first business action is manual review, but the person asked to block fraudulent transactions at checkout; if the app must decide instantly, manual review is not a valid substitute. Instead, confirm the checkout latency and false-block cost, then design an automatic allow/review/block policy that actually stops risky attempts when required.\n- It lists prior fraud history as known before the decision, but fraud confirmation often arrives late through chargebacks, disputes, or investigations, so that flag may not be available at checkout for recent attempts. Instead, use prior fraud only when its confirmation timestamp is earlier than the transaction decision time, and treat unknown prior confirmations separately.\n- The plan evaluates recent monthly periods with confirmed fraud labels even though late dispute windows can make those labels incomplete or biased. Instead, wait for a label-maturity period, use provisional evidence carefully, or evaluate only periods whose outcomes are fully observed.\n- It prescribes a model-based system before core constraints and available checkout evidence are known, while simple rules and manual-review economics may be enough to start. Instead, test existing deterministic rules and review queues first, and build a model only after decision-time fields, label timing, and false-block costs are verified.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "asks",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    283.0
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0,
+    "upload_demanded": 0,
+    "sums_checked": 17
+   },
+   "notes": {
+    "family": null,
+    "mode": "architect",
+    "roles_called": [
+     "architect",
+     "critic"
+    ],
+    "gates_passed": {
+     "need": true,
+     "parts": true,
+     "sums": true,
+     "numbers": true,
+     "data table": true,
+     "an outcome and an input": true,
+     "inputs known in time": true,
+     "label after the decision": true,
+     "plan": true,
+     "model": true,
+     "no upload asked": true,
+     "no data made": true
+    },
+    "cost_eur": 0.009555,
+    "assumed_inputs": [],
+    "fits": null,
+    "need": "full",
+    "repaired": false,
+    "removed": 0,
+    "kind": "binary classification",
+    "findings": 4,
+    "errors": [],
+    "first_failed": [],
+    "still_failed": []
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": false,
+    "pending": true,
+    "problems": [
+     "not judged yet: the judge runs later on the kept conversation"
+    ]
+   },
+   "spent_eur": 0.0096,
+   "judge_spent_eur": 0
+  },
+  {
+   "id": "ND-02",
+   "arm": "model_only",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "Our fintech app needs to block fraudulent card transactions at checkout across 50,000 monthly transactions without uploading confidential customer data. Fraud rate is 1.5%, manual review costs $4, and each caught fraud saves $180.",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "The problem is: your fintech app must decide, at checkout, whether to allow, challenge, manually review, or block each card transaction. The unit is one card transaction at the moment of authorization. The result is used by checkout logic and your fraud/risk operations team. From what you gave, the known facts are: 50,000 transactions per month, a 1.5% fraud rate, manual review costs $4, each caught fraud saves $180, and confidential customer data cannot be uploaded. Not known: the cost of blocking a legitimate customer, available transaction features, quality of fraud labels, acceptable latency, false-positive tolerance, and vendor or engineering costs.\n\nPossible approaches:\n\n- No model / allow all or basic policy only: low cost, no build. Gives no real fraud prevention, but creates a baseline.\n- Static rules: low cost, fast, understandable. Catches obvious fraud, but misses subtle fraud and can block valid customers.\n- Manual review of flagged transactions: uses human judgment, costs $4 per reviewed transaction. Good accuracy when reviewers are informed, but cannot block automatically without people.\n- Privacy-safe local model: train on internal data, with no confidential upload. Moderate to higher cost for data engineering, labeling, compute, and monitoring. Gives a ranked risk score for each transaction.\n- Third-party fraud scoring or device intelligence: external service cost and integration effort. May give broader signals, but still requires careful privacy review.\n- Hybrid of rules, local model, and manual review: most practical for checkout, but more costly to design and maintain.\n\nI would choose the hybrid plan.\n\nPlan:\n\n1. Define the decision policy: allow low risk, send medium risk to manual review, block high risk. Keep the decision at checkout.\n2. Set privacy boundaries: keep raw confidential data local; use only approved pseudonymized, aggregated, or non-sensitive features.\n3. Prepare historical data: transaction outcomes, confirmed fraud, chargebacks, false positives, and feature history.\n4. Create features that can be computed locally, such as velocity, card patterns, merchant behavior, session/device characteristics, and payment amount patterns, if allowed.\n5. Start with simple rules to remove obvious fraud and reduce review load.\n6. Build a first model to rank risk, using time-based training: train on older data, test on newer data to avoid leakage.\n7. Calibrate the model output so risk scores can be converted into allow, review, or block decisions.\n8. Check the result using both model metrics and business cost: compare caught fraud savings at $180, manual review cost at $4, false positives, and missed fraud. Also measure latency and customer friction.\n9. Run a shadow test first, then a limited live test.\n10. Monitor drift, label new outcomes, and retrain or revise rules as needed.\n\nStop the model path only if the business case is not met. Continue if the hybrid approach lowers expected fraud loss using your given cost figures, while staying within privacy limits and acceptable customer friction. If labels, features, or privacy constraints are not available, fall back to rules plus manual review rather than forcing a model.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "answered",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    50.04
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0,
+    "upload_demanded": 0,
+    "sums_checked": 0
+   },
+   "notes": {},
+   "repeat": 1,
+   "judged": {
+    "valid": false,
+    "pending": true,
+    "problems": [
+     "not judged yet: the judge runs later on the kept conversation"
+    ]
+   },
+   "spent_eur": 0.0017,
+   "judge_spent_eur": 0
+  },
+  {
+   "id": "ND-03",
+   "arm": "blueprint_rules",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "We are opening a grocery chain and have no historical data yet. How should we forecast weekly SKU store demand 14 days ahead to prevent stockouts and spoilage?",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "# DCLab No-Data Solution Blueprint (forecasting)\n\n**Problem:** We are opening a grocery chain and have no historical data yet. How should we forecast weekly SKU store demand 14 days ahead to prevent stockouts and spoilage?\n**Data mode:** No-Data Solution Design\n**Harness mode:** `deterministic_floor` · Gates passed: `5/5`\n\n## 0. Deep Problem & Domain Understanding (Epistemic Provenance)\n- **Restatement:** Solve `forecasting` decisioning for `sku` at `At the planning cutoff (T0) before ordering or staffing for the next horizon`, optimizing `mae / wape + P90 Quantile Pinball Loss` to guide `Prioritize high-value forecasting interventions under capacity/cost constraints`.\n- **Goal** (`Stated by you`): How should we forecast weekly SKU store demand 14 days ahead to prevent stockouts and spoilage? — *Quoted verbatim from your description: \"How should we forecast weekly SKU store demand 14 days ahead to prevent stockouts and spoilage?\"*\n- **Decision Action** (`DCLab default`): Prioritize high-value forecasting interventions under capacity/cost constraints — *DCLab default (nobody said it): Standard operational action for forecasting decisions.*\n- **Decision Unit** (`DCLab default`): sku — *DCLab default (nobody said it): One prediction per `sku_id` grain.*\n- **Prediction Moment** (`DCLab default`): At the planning cutoff (T0) before ordering or staffing for the next horizon — *DCLab default (nobody said it): Sets the strict point-in-time feature boundary to prevent look-ahead leakage.*\n- **Outcome And Horizon** (`Stated by you`): 14 days ahead — *Quoted verbatim from your description: \"14 days ahead\"*\n- **Primary Metric** (`DCLab default`): mae / wape + P90 Quantile Pinball Loss — *DCLab default (nobody said it): Matches class balance, asymmetric error costs, and operational ranking needs.*\n- **Alternative Problem Framings Considered:**\n  - `regression`: Cross-sectional tabular regression ignores autocorrelation and seasonal lags; time-series forecasting with rolling origin splits respects temporal ordering.\n  - `optimization`: Inventory reorder optimization sits downstream of quantile demand forecasts (P50/P90) once holding and stockout costs are parameterized.\n\n## 1. Business Solution & Decision Economics\n- **Decision owner & action:** Operations / Analytics Lead — Prioritize high-value forecasting interventions under capacity/cost constraints\n- **Day-0 non-ML baseline:** Scorecard heuristic using top 3 domain risk rules + randomized control holdout to measure baseline lift before ML.\n- **Read this first:** 5 of 5 inputs below are DCLab's placeholders (monthly volume, base rate, cost per action, value per caught case, share of actions that work), not facts about your business. Every figure computed from them is an illustration until you give your own numbers.\n- **Monthly volume:** 10000 (assumed by DCLab) · **Base rate:** 8.0% (assumed by DCLab)\n- **Cost per action:** 15.0 (assumed by DCLab) · **Value per caught case:** 180.0 (assumed by DCLab) · **Share of actions that work:** 35% (assumed by DCLab)\n- **Break-even precision:** 23.8% (an illustration: computed from assumed inputs)\n\n### ROI Scenarios (an illustration: computed from assumed inputs; the lifts are DCLab's assumptions)\n| Scenario | Precision | Flagged/mo | Gross Value | Cost | Net/mo |\n|---|---:|---:|---:|---:|---:|\n| Conservative (1.5x lift) | 12.0% | 1500 | 11340.0 | 22500.0 | -11160.0 |\n| Target ML (2.5x lift) | 20.0% | 1500 | 18900.0 | 22500.0 | -3600.0 |\n| Strong ML (3.5x lift) | 28.0% | 1500 | 26460.0 | 22500.0 | 3960.0 |\n\n## 2. Data Science Solution & Minimum Viable Data Spec\n- **Unit / Entity:** `sku_id / store_id`\n- **Prediction Cutoff Time:** `forecast_origin_date`\n- **Label Horizon:** h = 7 to 28 days ahead (strict origin cutoff)\n- **Target:** `target_demand_units`\n- **Tier-1 Day-1 Features:** store_id, date, unit_price, promo_active_planned, stock_on_hand_start, day_of_week, is_holiday, lag_7d_units\n- **Tier-2 High-Leverage Features:** stockout_adjusted_demand_28d, same_store_category_trend, lead_time_days\n- **Forbidden Post-Decision Columns:** actual_stockout_during_horizon, end_of_day_revenue, future_markdown_applied\n- **Validation Split:** Rolling temporal origin backtest (train <= T_k, gap >= horizon, test at T_k + h); never random shuffle.\n- **Metrics:** wape, mae, rmse, pinball_loss_p90\n- **Verified Fold-Safe Feature Programs (`dclab_core.features`):** `sku_id_count (count)`, `sku_id_day_count (count)`, `date_entity_mean (mean)`, `date_entity_deviation (deviation)`, `sku_id_time_since_prev (since_previous)`, `date_rolling3_mean (rolling_mean)`\n\n### Pre-Data Leakage Traps\n- **Strict as-of point-in-time join** (KND-004): Compute every feature strictly using events <= forecast_origin_date.\n- **Ban post-decision columns** (DCLAB-R04): Drop/audit post-cutoff fields before training: actual_stockout_during_horizon, end_of_day_revenue, future_markdown_applied.\n- **Lock label maturity window** (EXP-011): Only assign negative labels after h = 7 to 28 days ahead (strict origin cutoff) has elapsed, or censoring bias inflates false negatives.\n\n## 3. ML Solution, Multi-Model Debate & Pre-Data Task Plan\n- **Stage 1 Baseline:** Seasonal Naive / Rolling Mean + Calendar Ridge Regression (must beat before adding complexity).\n- **Stage 2 Primary:** Global LightGBM / CatBoost over lagged, calendar & promo features with recursive/direct multi-horizon loss.\n- **Stage 3 Decision Layer:** Quantile / conformal prediction intervals mapped directly to safety-stock & reorder cost asymmetry.\n- **What Evidence Would Change Algorithm Choice:** If the real data holds few positive outcomes or many missing values, prefer regularized logistic/linear models over deep trees.\n- **DCLab's rules' plan (no model debate ran):** Split: Rolling temporal origin backtest (train <= T_k, gap >= horizon, test at T_k + h); never random shuffle. · Metric `wape` · Families `dummy, ridge, random_forest, gradient_boosting`\n- **TP-08 Selected Pre-Data Tasks:** time_split_check, grouped_split, threshold_for_cost, baseline\n\n## 4. Next Options (When Ready)\n- Tell me missing economics or operational constraints to tighten these numbers.\n- If you want a **synthetic prototype**, answer the simulation questions so I can show the schema design for your approval first.\n- When real data is ready, upload/connect it — `Build project` remains unchanged whenever you attach data.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "asks",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    0.68
+   ],
+   "safety": {
+    "uncited": [
+     "28",
+     "28"
+    ],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0,
+    "upload_demanded": 0,
+    "sums_checked": 0
+   },
+   "notes": {
+    "family": "forecasting",
+    "mode": "deterministic_floor",
+    "roles_called": [],
+    "gates_passed": {
+     "gate_1_epistemic_provenance": true,
+     "gate_2_number_grounding": true,
+     "gate_3_virtual_schema_and_features": true,
+     "gate_4_workflow_and_debate": true,
+     "gate_5_budget": true
+    },
+    "cost_eur": 0.0,
+    "assumed_inputs": [
+     "monthly volume",
+     "base rate",
+     "cost per action",
+     "value per caught case",
+     "share of actions that work"
+    ],
+    "fits": true,
+    "need": null,
+    "repaired": null,
+    "removed": 0,
+    "kind": null,
+    "findings": 0,
+    "errors": [],
+    "first_failed": [],
+    "still_failed": []
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": false,
+    "pending": true,
+    "problems": [
+     "not judged yet: the judge runs later on the kept conversation"
+    ]
+   },
+   "spent_eur": 0,
+   "judge_spent_eur": 0
+  },
+  {
+   "id": "ND-03",
+   "arm": "blueprint_pipeline",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "We are opening a grocery chain and have no historical data yet. How should we forecast weekly SKU store demand 14 days ahead to prevent stockouts and spoilage?",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "# DCLab No-Data Solution Blueprint (forecasting)\n\n**Problem:** We are opening a grocery chain and have no historical data yet. How should we forecast weekly SKU store demand 14 days ahead to prevent stockouts and spoilage?\n**Data mode:** No-Data Solution Design\n**Harness mode:** `ai_harnessed` · Gates passed: `5/5`\n\n## 0. Deep Problem & Domain Understanding (Epistemic Provenance)\n- **Restatement:** Forecast weekly SKU-store demand 14 days ahead for a new grocery chain to reduce stockouts and spoilage.\n- **Goal** (`Stated by you`): How should we forecast weekly SKU store demand 14 days ahead to prevent stockouts and spoilage? — *Quoted verbatim from your description: \"How should we forecast weekly SKU store demand 14 days ahead to prevent stockouts and spoilage?\"*\n- **Decision Action** (`AI inferred`): Prevent stockouts and spoilage — *proposed by the advisor from \"to prevent stockouts and spoilage\"*\n- **Decision Unit** (`AI inferred`): SKU-store week — *proposed by the advisor from \"forecast weekly SKU store demand\"*\n- **Prediction Moment** (`AI inferred`): At forecast_origin_date, about 14 days before the target week ends; only planned attributes are known. — *AI domain inference: Predict numeric weekly demand units for a future SKU-store week.*\n- **Outcome And Horizon** (`Stated by you`): 14 days ahead — *Quoted verbatim from your description: \"14 days ahead\"*\n- **Primary Metric** (`AI inferred`): Weighted MAE plus business loss combining stockout and spoilage penalties — *AI domain inference: Predict numeric weekly demand units for a future SKU-store week.*\n- **Alternative Problem Framings Considered:**\n  - `classification`: Quantity is needed, not only stockout yes/no.\n  - `time_to_event`: The goal is weekly demand level, not event duration.\n\n## 1. Business Solution & Decision Economics\n- **Decision owner & action:** Operations / Analytics Lead — Prevent stockouts and spoilage\n- **Day-0 non-ML baseline:** Scorecard heuristic using top 3 domain risk rules + randomized control holdout to measure baseline lift before ML.\n- **Read this first:** 5 of 5 inputs below are DCLab's placeholders (monthly volume, base rate, cost per action, value per caught case, share of actions that work), not facts about your business. Every figure computed from them is an illustration until you give your own numbers.\n- **Monthly volume:** 10000 (assumed by DCLab) · **Base rate:** 8.0% (assumed by DCLab)\n- **Cost per action:** 15.0 (assumed by DCLab) · **Value per caught case:** 180.0 (assumed by DCLab) · **Share of actions that work:** 35% (assumed by DCLab)\n- **Break-even precision:** 23.8% (an illustration: computed from assumed inputs)\n- **Domain Expert (fact):** The highest-leverage business levers are planned promotions, planned price changes, assortment breadth, holiday calendar, perishable shelf life, and lead time.\n- **Domain Expert (assumption):** The cold-start baseline should start with a simple rule using planned attributes and category benchmarks before model learning.\n- **Domain Expert (fact):** At the forecast origin, only planned attributes are known, so 14-day-ahead demand should rely on promo flags, holiday flags, day of week, unit price, and early rolling history where available.\n\n### ROI Scenarios (an illustration: computed from assumed inputs; the lifts are DCLab's assumptions)\n| Scenario | Precision | Flagged/mo | Gross Value | Cost | Net/mo |\n|---|---:|---:|---:|---:|---:|\n| Conservative (1.5x lift) | 12.0% | 1500 | 11340.0 | 22500.0 | -11160.0 |\n| Target ML (2.5x lift) | 20.0% | 1500 | 18900.0 | 22500.0 | -3600.0 |\n| Strong ML (3.5x lift) | 28.0% | 1500 | 26460.0 | 22500.0 | 3960.0 |\n\n## 2. Data Science Solution & Minimum Viable Data Spec\n- **Unit / Entity:** `sku_id / store_id`\n- **Prediction Cutoff Time:** `forecast_origin_date`\n- **Label Horizon:** h = 7 to 28 days ahead (strict origin cutoff)\n- **Target:** `target_demand_units`\n- **Tier-1 Day-1 Features:** store_id, planned_promo_flag, is_holiday_week, date, unit_price, promo_active_planned, stock_on_hand_start, day_of_week\n- **Tier-2 High-Leverage Features:** stockout_adjusted_demand_28d, same_store_category_trend, lead_time_days\n- **Forbidden Post-Decision Columns:** actual_stockout_during_horizon, end_of_day_revenue, future_markdown_applied\n- **Validation Split:** Rolling temporal origin backtest (train <= T_k, gap >= horizon, test at T_k + h); never random shuffle.\n- **Metrics:** wape, mae, rmse, pinball_loss_p90\n- **Verified Fold-Safe Feature Programs (`dclab_core.features`):** `sku_id_count (count)`, `sku_id_day_count (count)`, `is_holiday_week_entity_mean (mean)`, `is_holiday_week_entity_deviation (deviation)`, `sku_id_time_since_prev (since_previous)`, `is_holiday_week_rolling3_mean (rolling_mean)`\n\n### Pre-Data Leakage Traps\n- **Strict as-of point-in-time join** (KND-004): Compute every feature strictly using events <= forecast_origin_date.\n- **Ban post-decision columns** (DCLAB-R04): Drop/audit post-cutoff fields before training: actual_stockout_during_horizon, end_of_day_revenue, future_markdown_applied.\n- **Lock label maturity window** (EXP-011): Only assign negative labels after h = 7 to 28 days ahead (strict origin cutoff) has elapsed, or censoring bias inflates false negatives.\n- **Leak Suspect `target_demand_units` (exclude):** Outcome only known after target week.\n- **Leak Suspect `planned_promo_flag` (review):** Could be edited from actual promo after origin.\n- **Leakage Auditor (fact):** target_demand_units is the outcome label, and actual_stockout_during_horizon, end_of_day_revenue, and future_markdown_applied are known forbidden post-outcome or future traps.\n- **Leakage Auditor (risk):** lag_7d_units and rolling_28d_mean leak if any part of their 7-day or 28-day history includes demand after forecast_origin_date or inside the target week.\n\n## 3. ML Solution, Multi-Model Debate & Pre-Data Task Plan\n- **Stage 1 Baseline:** Seasonal Naive / Rolling Mean + Calendar Ridge Regression (must beat before adding complexity).\n- **Stage 2 Primary:** Global LightGBM / CatBoost over lagged, calendar & promo features with recursive/direct multi-horizon loss.\n- **Stage 3 Decision Layer:** Quantile / conformal prediction intervals mapped directly to safety-stock & reorder cost asymmetry.\n- **What Evidence Would Change Algorithm Choice:** If promo/price interactions are strong, favor gradient boosting; if data is extremely sparse, favor Bayesian hierarchy or external benchmarks.\n- **Planner-Challenger-Judge Debate Verdict:** Split `group, group_column sku_id, holdout locked first, used once, after the choice` · Metric `mae` · Families `dummy, ridge, random_forest, gradient_boosting`\n- **TP-08 Selected Pre-Data Tasks:** time_split_check, grouped_split, threshold_for_cost, baseline\n\n## 4. Next Options (When Ready)\n- Tell me missing economics or operational constraints to tighten these numbers.\n- If you want a **synthetic prototype**, answer the simulation questions so I can show the schema design for your approval first.\n- When real data is ready, upload/connect it — `Build project` remains unchanged whenever you attach data.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "asks",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    1147.94
+   ],
+   "safety": {
+    "uncited": [
+     "28",
+     "28",
+     "28"
+    ],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0,
+    "upload_demanded": 0,
+    "sums_checked": 0
+   },
+   "notes": {
+    "family": "forecasting",
+    "mode": "ai_harnessed",
+    "roles_called": [
+     "problem_analyst",
+     "brief_checker",
+     "ai_first",
+     "understanding_critic",
+     "feature_engineer",
+     "case_specialist:domain_expert",
+     "case_specialist:leakage_auditor",
+     "decomposer",
+     "map_reviewer",
+     "solution_router",
+     "solution_planner",
+     "solution_challenger",
+     "debate_judge"
+    ],
+    "gates_passed": {
+     "gate_1_epistemic_provenance": true,
+     "gate_2_number_grounding": true,
+     "gate_3_virtual_schema_and_features": true,
+     "gate_4_workflow_and_debate": true,
+     "gate_5_budget": true
+    },
+    "cost_eur": 0.04082,
+    "assumed_inputs": [
+     "monthly volume",
+     "base rate",
+     "cost per action",
+     "value per caught case",
+     "share of actions that work"
+    ],
+    "fits": true,
+    "need": null,
+    "repaired": null,
+    "removed": 0,
+    "kind": null,
+    "findings": 0,
+    "errors": [],
+    "first_failed": [],
+    "still_failed": []
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": false,
+    "pending": true,
+    "problems": [
+     "not judged yet: the judge runs later on the kept conversation"
+    ]
+   },
+   "spent_eur": 0.0408,
+   "judge_spent_eur": 0
+  },
+  {
+   "id": "ND-03",
+   "arm": "blueprint_architect",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "We are opening a grocery chain and have no historical data yet. How should we forecast weekly SKU store demand 14 days ahead to prevent stockouts and spoilage?",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "# A solution designed without data\n\n## The problem\nYou are opening a grocery chain and want to forecast weekly SKU-store demand 14 days ahead so that replenishment orders balance stockouts against spoilage.\n\nThe underlying decision is: for each SKU and store, choose how much to order or replenish for the target demand week, with the order decision made about 14 days before that week. The decision owner is the replenishment buyer, category manager, or store operations lead, depending on your organisation. The unit is one SKU in one store for one target week.\n\nYou told us: weekly SKU-store demand, 14-day horizon, new opening chain, no historical data, goals are to prevent stockouts and spoilage.\n\nNot known: true demand per SKU-store-week, promotion response, price elasticity, local store preferences, substitute behaviour, cannibalisation, shelf-life consumption pattern, supplier lead-time reliability, stockout censoring, waste reasons, and the cost/service trade-off you want.\n\n## What needs care\n- Because there is no history, any “forecast” must start as an explicit opening plan plus a data collection plan, not a hidden assumption.\n- Stockouts hide demand: if the shelf was empty, measured sales are not true demand.\n- Spoilage is not only a forecast error; it depends on order quantity, shelf life, display capacity, markdown rules, and store handling.\n- Slow movers, long-tail SKUs, and fresh/perishable SKUs need different rules from stable dry goods.\n- Opening weeks can be irregular: grand-opening traffic, incomplete assortment, shelf gaps, staff learning, and local price perception can distort demand.\n\n## Business solution\nStart with a manual, auditable ordering rule rather than waiting for a trained model.\n\nDo this now:\n- Put each SKU-store-week into an order decision grid: SKU, store, target week, category, shelf-life class, store format, planned price, planned promotion, planned shelf capacity.\n- For each SKU-store, make an opening demand estimate using buyer judgement, category plan, comparable store knowledge, and local assortment decisions. Treat it as a provisional estimate, not truth.\n- Apply a simple replenishment rule:\n\n  `order quantity = demand estimate + safety allowance - current stock on hand - stock already on order`\n\n- For perishables and short shelf-life SKUs, add a cap:\n\n  `do not order more than the quantity expected to sell before the remaining sellable life ends`\n\n- Classify SKUs:\n  - fresh/perishable: lower opening quantity, tighter review, faster markdown or donation rules;\n  - fast-moving staples: higher confidence, safety allowance based on supplier lead time;\n  - slow movers/long tail: minimum viable display, less order quantity, review less often or use cross-store transfers where possible;\n  - promo-sensitive SKUs: require explicit planned price/promotion before ordering.\n\nA simple starting rule for buyers:\n- If an SKU is short shelf-life, start conservative and review sooner.\n- If an SKU is a stable staple with known supplier lead time, allow more buffer for the first weeks.\n- If an SKU has no local evidence, do not let “full shelf appearance” override spoilage risk; use category planogram and minimum display rules.\n\nCosts and gains in your own numbers:\n- Stockout cost: lost gross margin on unsold units, plus possible customer satisfaction or traffic loss.\n- Spoilage cost: cost of goods wasted, disposal or shrink cost, and any markdown cost if waste is avoided by discounting.\n- Manual opening rule cost: buyer time and risk of inconsistent judgement.\n- Manual opening rule gain: avoids blind bulk opening orders, creates a structured record, and gives you the data needed to replace judgement with a model.\n\n## Data to record\n\n| column | what it is | known when | role |\n| --- | --- | --- | --- |\n| store_id | Store for which demand is forecast and replenished | before | key |\n| sku_id | SKU to forecast | before | key |\n| forecast_origin_date | Date when the order or replenishment decision is made | at | time |\n| target_week_start | First day of the demand week being forecast | before | time |\n| category | Merchandising category and subcategory | before | input |\n| shelf_life_limit | Maximum sellable life or remaining-life rule for the SKU | before | input |\n| store_format | Store size, banner, type, or cluster known at decision time | before | input |\n| planned_price | Price planned for the target week | at | input |\n| planned_promotion | Promotion planned for the target week | at | input |\n| planned_shelf_space | Facings, shelf capacity, or planogram space planned for the target week | before | input |\n| planned_order_quantity | Quantity ordered by the buyer or policy at decision time | at | not used |\n| units_sold | Units sold during the target week | after | label |\n| units_wasted | Units wasted, spoiled, removed, or donated during the target week | after | label |\n| stockout_flag | Whether the SKU was unavailable during the target week | after | label |\n\n- What one row is: one SKU in one store for one target week, linked to the single order or replenishment decision made at the forecast origin.\n- The moment of the decision: at the date when the buyer or system sets the order for the target week, here treated as about 14 days before the target week.\n- How the label is defined and how long it takes to be known: units sold, units wasted, and stockout flags are observed after the target week ends, once store sales, shrink, waste, and stock-status reports are finalised.\n\n## Model\nUse a baseline first, then replace it with a cold-start model as soon as opening weeks create labels.\n\nBaseline:\n- A category-and-store-format baseline: assign each SKU-store a provisional weekly demand from opening planogram or comparable market assumptions, grouped by category, store format, and shelf-life class.\n- Use the baseline with a safety allowance and shelf-life cap.\n- Track baseline error as data arrives; do not treat baseline as final.\n\nModel after first weeks of data:\n- Fit a weekly SKU-store demand model using `units_sold` as the primary outcome and `stockout_flag` and `units_wasted` as outcome checks.\n- Because SKU-store demand is count-like and often has many slow movers, use a count model or gradient boosted trees with hierarchical structure, for example by category, store cluster, and SKU lifecycle stage.\n- Use only information available at the forecast origin: planned price, planned promotion, category, shelf-life limit, store format, store cluster, opening lifecycle index, planned shelf space, and supplier lead-time known at origin.\n- Do not use actual post-week promo status, actual waste, actual stockout, or actual sales as forecast inputs.\n\nHow it is tested:\n- Split by time using rolling origin validation: train on earlier forecast origins, test on later forecast origins.\n- Also simulate new-store cold start with grouped validation: hold out store groups or category groups and test on them.\n- Demand measure: weighted mean absolute percentage error or mean absolute error by category, because low-volume SKUs distort simple percentage error.\n- Business measure: simulate stockout and spoilage using the forecast, safety allowance, on-hand stock, on-order stock, lead time, shelf-life cap, and planned price/promo. Compare realised lost sales, realised waste, and inventory turns against the manual baseline.\n- Do not choose the model from forecast accuracy alone. Choose the model or safety setting that gives the best trade-off between stockouts and spoilage for your service target and waste budget.\n\nHow the score becomes the decision:\n- Convert the demand forecast into an order by adding a safety allowance selected from the stockout-versus-spoilage trade-off.\n- For perishables, cap the order by expected sellable life and planned price/markdown policy.\n- For slow movers, use minimum display and transfer/substitution rules rather than forcing an order quantity.\n- Keep buyer override fields so manual changes are recorded and learned from.\n\nKind: cold-start hierarchical weekly SKU-store demand forecasting with replenishment and perishability constraints.\n\n## Plan\n1. Define the decision unit and owner.\n   - Do: agree that the unit is one SKU-store-week and the decision is the order made about 14 days ahead.\n   - Needs: category, buying, and store operations agreement.\n   - Finished when: every SKU-store-week can be traced to one decision date and one decision owner.\n\n2. Build the opening data log this week without demand data.\n   - Do: create the columns in the data table above and make buyers fill them for every opening order.\n   - Needs: spreadsheet, inventory system export, or simple form.\n   - Finished when: each planned SKU-store order has category, shelf-life class, store format, planned price, planned promotion, planned shelf space, and target week.\n\n3. Set opening classes before the first order.\n   - Do: label SKUs as fresh/perishable, fast staple, slow mover, long tail, or promo-sensitive.\n   - Needs: SKU master data and shelf-life information.\n   - Finished when: each SKU has a class and a default ordering rule.\n\n4. Start with the manual baseline order rule.\n   - Do: apply `demand estimate + safety allowance - stock on hand - stock on order`, capped for perishables.\n   - Needs: buyer judgement, planogram, stock status, open purchase orders.\n   - Finished when: no opening order is made without a recorded demand estimate and safety allowance reason.\n\n5. Track stockouts and waste daily.\n   - Do: record whether the SKU was available during the target week and why units were wasted or removed.\n   - Needs: store task, simple reason code, POS or shelf audit signal.\n   - Finished when: each SKU-store-week has a stockout flag and waste reason by the time the week closes.\n\n6. Collect enough labelled weeks to evaluate cold start.\n   - Do: keep the manual rule stable for the opening period unless a serious stockout or waste pattern appears.\n   - Needs: actual sales, waste, stockout, price, promo, order quantity.\n   - Finished when: each target week can be compared with the order made 14 days before.\n\n7. Fit the baseline model.\n   - Do: estimate weekly demand by category, store format, shelf-life class, and SKU lifecycle stage.\n   - Needs: labelled SKU-store-weeks.\n   - Finished when: model errors and simulated stockout/spoilage outcomes are visible by SKU class.\n\n8. Replace manual judgement only where data is strong.\n   - Do: automate stable categories and keep manual review for promo-sensitive, very slow, or very short shelf-life SKUs.\n   - Needs: model, buyer override log, performance dashboard.\n   - Finished when: the system suggests orders and records why a buyer changed the suggestion.\n\n9. Review the stockout-versus-spoilage balance.\n   - Do: compare lost sales and waste by class, and change safety allowance only according to the chosen business target.\n   - Needs: your gross margin, waste cost, service expectation, and acceptable waste budget.\n   - Finished when: each SKU class has an explicit safety allowance or manual policy tied to those costs.\n\n## What only real data can settle\nReal data will tell you:\n- whether opening traffic followed or distorted the category plan;\n- which stores, categories, and SKUs truly differ from the initial analogue assumptions;\n- how price and promotion change demand at SKU-store level;\n- how much demand is hidden by stockouts;\n- which SKUs cause spoilage because of overordering, slow turnover, shelf life, markdown timing, or store handling;\n- whether the 14-day horizon, order frequency, supplier lead time, and shelf-life constraints are compatible;\n- what safety allowance is justified by your own margin, waste cost, and service target.\n\n## Questions for you\n1. What balance do you want between stockouts and spoilage: is a missed sale more costly than a wasted unit, or the other way round, for each major category?\n2. Which SKUs have short shelf life or expiry-date rules that make overordering more dangerous than underordering?\n3. Will planned price and planned promotion be known at the order decision date, or do some decisions depend on supplier promos that may change later?\n\n## Checks DCLab will run when real data arrives\n- `time_split_check` on `forecast_origin_date`: Declared time column\n- `grouped_split` on `store_id`: Declared entity key\n- `baseline` on `roc_auc`: Baseline model\n\n## A second reader's findings\n- The model plan risks forcing SKU-store demand modeling too soon on sparse, censored grocery labels; keep a category/store-cluster/planogram baseline longer and move down to SKU-store models only where labels are dense and stockout censoring is handled.\n- It still centers demand measurement on units_sold even though stockouts hide true demand; record or infer lost sales and substitution, and exclude or correct censored weeks before using them to set demand levels.\n- The replenishment rule subtracts stock on order without expected arrival timing, which can miss stockouts when supplier receipts are late or early; order against expected on-hand at the start of the target week and align each SKU to its real replenishment calendar.\n- The solution says safety allowances depend on stockout-versus-spoilage costs but lacks an explicit business policy by SKU class; set a service target and waste budget by class before judging whether any forecast rule works.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "asks",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    195.0
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0,
+    "upload_demanded": 0,
+    "sums_checked": 0
+   },
+   "notes": {
+    "family": null,
+    "mode": "architect",
+    "roles_called": [
+     "architect",
+     "critic"
+    ],
+    "gates_passed": {
+     "need": true,
+     "parts": true,
+     "sums": true,
+     "numbers": true,
+     "data table": true,
+     "an outcome and an input": true,
+     "inputs known in time": true,
+     "label after the decision": true,
+     "plan": true,
+     "model": true,
+     "no upload asked": true,
+     "no data made": true
+    },
+    "cost_eur": 0.006031,
+    "assumed_inputs": [],
+    "fits": null,
+    "need": "full",
+    "repaired": false,
+    "removed": 0,
+    "kind": "cold-start hierarchical weekly SKU-store demand forecasting with replenishment and perishability constraints",
+    "findings": 4,
+    "errors": [],
+    "first_failed": [],
+    "still_failed": []
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": false,
+    "pending": true,
+    "problems": [
+     "not judged yet: the judge runs later on the kept conversation"
+    ]
+   },
+   "spent_eur": 0.006,
+   "judge_spent_eur": 0
+  },
+  {
+   "id": "ND-03",
+   "arm": "model_only",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "We are opening a grocery chain and have no historical data yet. How should we forecast weekly SKU store demand 14 days ahead to prevent stockouts and spoilage?",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "**What the problem really is**\n\n- The decision being made is: how much of each SKU should each store plan to receive, transfer, or dispose of during the week that starts 14 days from now.\n- The people who will use the result are likely buyers, replenishment planners, store managers, and operations leads.\n- The unit of concern is “store by SKU,” and the time moment is the upcoming weekly demand period, decided ahead by 14 days.\n- What is known: the chain is new, so there is no store-level sales history; the demand object is weekly SKU-store; the goals are preventing stockouts and spoilage.\n- What is not known: the actual SKU mix, store locations, shelf-life lengths, supplier lead times, promotion intensity, local demographics, opening-week effects, weather effects, and the acceptable balance between waste and availability.\n- Assumption worth stating: this forecast is mainly a planning input for replenishment, not a standalone report.\n\n**Possible approaches and what each costs and gives**\n\n- **No model at all: expert planning and planned-order rules**\n  - Cost: low to start, but high manual effort and hard to scale.\n  - Gives: immediate action for opening stores, using category knowledge, buyer judgment, and operating rules.\n  - Risk: inconsistent, subjective, and likely to over- or under-buy unless tightly governed.\n\n- **External benchmarking or analog stores**\n  - Cost: needs comparable grocery data, category averages, supplier benchmarks, or pilot observations.\n  - Gives: a defensible starting demand pattern when history is absent.\n  - Risk: may be biased by differences in store size, local customer mix, product assortment, or opening effects.\n\n- **Simple baseline demand plus safety stock**\n  - Cost: modest; needs clean reference data and clear rules for buffers by category and perishability.\n  - Gives: a transparent, explainable weekly forecast for store-SKU pairs and a way to link forecast to order quantity.\n  - Risk: still only as good as the baseline and the chosen service policy.\n\n- **Machine learning demand forecasting**\n  - Cost: high; needs enough observations, stable store-SKU patterns, and strong data engineering.\n  - Gives: potential accuracy later, especially for seasonality, weather, promos, and cannibalization.\n  - Risk: not useful now for a cold-start chain; it can add complexity before there is data to trust it.\n\n- **Supply-side actions instead of only forecasting**\n  - Cost: operational change, possibly higher distribution complexity.\n  - Gives: direct reduction in spoilage and stockout exposure by shortening replenishment cycles, improving substitution, using shorter shelf-life planning, and adding markdown rules.\n  - Risk: not a forecast method, but very important because spoilage in groceries is often an execution problem, not just a prediction problem.\n\n**The approach I would choose now**\n\nUse a **cold-start hybrid**: start with category-level benchmarks and analog logic, then turn those into replenishment rules rather than treating the “forecast” as an isolated statistical exercise. This is not pure no-model, but it is also not premature ML. It gives something usable now and leaves a clean path to better models as history accumulates.\n\n**Plan**\n\n- **Clarify the policy goal**\n  - Need: define by category what matters more: availability or waste prevention, and whether some SKUs are deliberately managed with short shelf-life caps.\n  - This sets the direction for safety stock and planned orders.\n\n- **Build the operational foundation**\n  - Need: store-SKU master data, shelf-life, lead time, pack size, reorder points, minimum display quantities, and substitution rules.\n  - If this is weak, even the best forecast will not prevent stockouts or spoilage.\n\n- **Choose analogs and category benchmarks**\n  - Need: comparable grocery demand patterns by category, store format, local trade area, opening-week behavior, and seasonal factors.\n  - Use multiple sources if possible, not one benchmark.\n\n- **Create the initial weekly store-SKU forecast**\n  - Need: baseline expected demand for the upcoming week, 14 days ahead, adjusted for opening, holidays, weather, and local promotions.\n  - Keep it explainable: store, SKU, category, and adjustment factors.\n\n- **Convert forecast into replenishment decisions**\n  - Need: order logic that covers demand during supplier lead time and the review period, plus a buffer.\n  - For perishables, cap the plan by shelf-life risk; do not let a long forecast horizon cause over-ordering.\n\n- **Apply category-specific guardrails**\n  - Need: different rules for fresh, ambient, slow-moving, high-shrink, and high-stockout-risk items.\n  - Fresh items need tighter waste control; ambient items can carry more stock to avoid stockouts.\n\n- **Check results weekly**\n  - Need: compare forecast to actual demand by store-SKU and category.\n  - Track stockout occurrence, waste, inventory position, and whether plans were changed manually.\n  - Look for systematic bias: consistently too high or too low.\n\n- **Retune the method**\n  - Need: adjust benchmarks and buffers by observed behavior.\n  - If a store-SKU pattern emerges over time, move from external analogy to observed history.\n\n- **Stop the cold-start phase when**\n  - Need: stable store-SKU patterns have been observed for relevant categories, and the business agrees that the service and waste goals are being met.\n  - Then shift to simple observed-data forecasting, and only later consider ML if complexity earns its keep.\n\n**Key point**\n\nWithout history, the forecast is not the whole answer. The real task is to make a conservative, explainable weekly plan for each store-SKU 14 days ahead, with strong rules that tie the plan to shelf-life, lead time, and waste tolerance.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "answered",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    59.28
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0,
+    "upload_demanded": 0,
+    "sums_checked": 0
+   },
+   "notes": {},
+   "repeat": 1,
+   "judged": {
+    "valid": false,
+    "pending": true,
+    "problems": [
+     "not judged yet: the judge runs later on the kept conversation"
+    ]
+   },
+   "spent_eur": 0.0018,
+   "judge_spent_eur": 0
+  },
+  {
+   "id": "ND-04",
+   "arm": "blueprint_rules",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "هنوز دیتا ندارم و می‌خواهم بدون آپلود فایل، ریزش مشتریان اپراتور موبایل را پیش‌بینی کنم. ۲۰٬۰۰۰ مشترک داریم و نرخ ریزش ۱۰٪ است.",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "# DCLab No-Data Solution Blueprint (churn)\n\n**Problem:** هنوز دیتا ندارم و می‌خواهم بدون آپلود فایل، ریزش مشتریان اپراتور موبایل را پیش‌بینی کنم. ۲۰٬۰۰۰ مشترک داریم و نرخ ریزش ۱۰٪ است.\n**Data mode:** No-Data Solution Design\n**Harness mode:** `deterministic_floor` · Gates passed: `5/5`\n\n## 0. Deep Problem & Domain Understanding (Epistemic Provenance)\n- **Restatement:** Solve `churn` decisioning for `customer` at `End of active billing/usage cycle before the retention outreach window opens`, optimizing `pr_auc (Precision-Recall AUC) + Top-K Net Retention Gain` to guide `Prioritize high-value churn interventions under capacity/cost constraints`.\n- **Goal** (`DCLab default`): هنوز دیتا ندارم و می‌خواهم بدون آپلود فایل، ریزش مشتریان اپراتور موبایل را پیش‌بینی کنم. ۲۰٬۰۰۰ مشترک داریم و نرخ ریزش ۱۰٪ است. — *DCLab default (nobody said it): Synthesized from your problem statement.*\n- **Decision Action** (`DCLab default`): Prioritize high-value churn interventions under capacity/cost constraints — *DCLab default (nobody said it): Standard operational action for churn decisions.*\n- **Decision Unit** (`DCLab default`): customer — *DCLab default (nobody said it): One prediction per `customer_id` grain.*\n- **Prediction Moment** (`DCLab default`): End of active billing/usage cycle before the retention outreach window opens — *DCLab default (nobody said it): Sets the strict point-in-time feature boundary to prevent look-ahead leakage.*\n- **Outcome And Horizon** (`DCLab default`): `churned_within_30d` observed over Next 30 days (or next billing cycle) — *DCLab default (nobody said it): Defines when ground-truth labels mature without censor leakage.*\n- **Primary Metric** (`DCLab default`): pr_auc (Precision-Recall AUC) + Top-K Net Retention Gain — *DCLab default (nobody said it): Matches class balance, asymmetric error costs, and operational ranking needs.*\n- **Alternative Problem Framings Considered:**\n  - `survival`: Time-to-event (hazard) modeling is stronger if exact tenure censorship and variable horizons matter, whereas a fixed 30-day binary window is simpler for monthly retention campaigns.\n  - `uplift`: Uplift (persuadability) modeling directly targets customers whose churn probability drops when given an offer, once randomized treatment/control retention logs are collected.\n\n## 1. Business Solution & Decision Economics\n- **Decision owner & action:** Operations / Analytics Lead — Prioritize high-value churn interventions under capacity/cost constraints\n- **Day-0 non-ML baseline:** Scorecard heuristic using top 3 domain risk rules + randomized control holdout to measure baseline lift before ML.\n- **Read this first:** 3 of 5 inputs below are DCLab's placeholders (cost per action, value per caught case, share of actions that work), not facts about your business. Every figure computed from them is an illustration until you give your own numbers.\n- **Monthly volume:** 20000 (stated by you) · **Base rate:** 10.0% (stated by you)\n- **Cost per action:** 15.0 (assumed by DCLab) · **Value per caught case:** 180.0 (assumed by DCLab) · **Share of actions that work:** 35% (assumed by DCLab)\n- **Break-even precision:** 23.8% (an illustration: computed from assumed inputs)\n\n### ROI Scenarios (an illustration: computed from assumed inputs; the lifts are DCLab's assumptions)\n| Scenario | Precision | Flagged/mo | Gross Value | Cost | Net/mo |\n|---|---:|---:|---:|---:|---:|\n| Conservative (1.5x lift) | 15.0% | 3000 | 28350.0 | 45000.0 | -16650.0 |\n| Target ML (2.5x lift) | 25.0% | 3000 | 47250.0 | 45000.0 | 2250.0 |\n| Strong ML (3.5x lift) | 35.0% | 3000 | 66150.0 | 45000.0 | 21150.0 |\n\n## 2. Data Science Solution & Minimum Viable Data Spec\n- **Unit / Entity:** `customer_id`\n- **Prediction Cutoff Time:** `snapshot_date (e.g. monthly billing cutoff / T-30d)`\n- **Label Horizon:** next 30 days after snapshot_date (exclude immature accounts)\n- **Target:** `churned_within_30d`\n- **Tier-1 Day-1 Features:** plan_tier, monthly_fee, tenure_months, active_days_last_30d, usage_trend_30d_vs_90d, support_tickets_30d, payment_failures_90d, contract_days_remaining\n- **Tier-2 High-Leverage Features:** nps_last_response, seat_utilization_pct\n- **Forbidden Post-Decision Columns:** cancellation_reason, retention_offer_accepted_after_snapshot, final_invoice_date, account_closed_flag\n- **Validation Split:** Out-of-time snapshot split PLUS entity-group isolation (no entity appears in both train and holdout).\n- **Metrics:** pr_auc, roc_auc, precision_at_top_k, brier_score\n- **Verified Fold-Safe Feature Programs (`dclab_core.features`):** `customer_id_count (count)`, `customer_id_day_count (count)`, `monthly_fee_entity_mean (mean)`, `monthly_fee_entity_deviation (deviation)`, `customer_id_time_since_prev (since_previous)`, `monthly_fee_rolling3_mean (rolling_mean)`\n\n### Pre-Data Leakage Traps\n- **Strict as-of point-in-time join** (DATASET-telco_churn): Compute every feature strictly using events <= snapshot_date (e.g. monthly billing cutoff / T-30d).\n- **Ban post-decision columns** (KND-001): Drop/audit post-cutoff fields before training: cancellation_reason, final_invoice_date, retention_offer_accepted_after_snapshot, account_closed_flag.\n- **Lock label maturity window** (PIT-004): Only assign negative labels after next 30 days after snapshot_date (exclude immature accounts) has elapsed, or censoring bias inflates false negatives.\n\n## 3. ML Solution, Multi-Model Debate & Pre-Data Task Plan\n- **Stage 1 Baseline:** L2-regularized Logistic Regression with missing-value indicators & target/frequency encoding inside CV folds.\n- **Stage 2 Primary:** LightGBM / CatBoost with class weighting (or focal objective), early stopping on validation PR-AUC.\n- **Stage 3 Decision Layer:** Isotonic / Platt probability calibration -> act when P(y=1) >= break-even 23.8% capped at top 15% capacity.\n- **What Evidence Would Change Algorithm Choice:** If the real data holds few positive outcomes or many missing values, prefer regularized logistic/linear models over deep trees.\n- **DCLab's rules' plan (no model debate ran):** Split: Out-of-time snapshot split PLUS entity-group isolation (no entity appears in both train and holdout). · Metric `pr_auc` · Families `dummy, logistic_regression, random_forest, gradient_boosting`\n- **TP-08 Selected Pre-Data Tasks:** time_split_check, grouped_split, check_join_key, threshold_for_cost, baseline\n\n## 4. Next Options (When Ready)\n- Tell me missing economics or operational constraints to tighten these numbers.\n- If you want a **synthetic prototype**, answer the simulation questions so I can show the schema design for your approval first.\n- When real data is ready, upload/connect it — `Build project` remains unchanged whenever you attach data.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "answered",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    0.04
+   ],
+   "safety": {
+    "uncited": [
+     "30",
+     "30",
+     "30",
+     "30",
+     "30",
+     "30"
+    ],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0,
+    "upload_demanded": 0,
+    "sums_checked": 0
+   },
+   "notes": {
+    "family": "churn",
+    "mode": "deterministic_floor",
+    "roles_called": [],
+    "gates_passed": {
+     "gate_1_epistemic_provenance": true,
+     "gate_2_number_grounding": true,
+     "gate_3_virtual_schema_and_features": true,
+     "gate_4_workflow_and_debate": true,
+     "gate_5_budget": true
+    },
+    "cost_eur": 0.0,
+    "assumed_inputs": [
+     "cost per action",
+     "value per caught case",
+     "share of actions that work"
+    ],
+    "fits": true,
+    "need": null,
+    "repaired": null,
+    "removed": 0,
+    "kind": null,
+    "findings": 0,
+    "errors": [],
+    "first_failed": [],
+    "still_failed": []
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": false,
+    "pending": true,
+    "problems": [
+     "not judged yet: the judge runs later on the kept conversation"
+    ]
+   },
+   "spent_eur": 0,
+   "judge_spent_eur": 0
+  },
+  {
+   "id": "ND-04",
+   "arm": "blueprint_pipeline",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "هنوز دیتا ندارم و می‌خواهم بدون آپلود فایل، ریزش مشتریان اپراتور موبایل را پیش‌بینی کنم. ۲۰٬۰۰۰ مشترک داریم و نرخ ریزش ۱۰٪ است.",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "# DCLab No-Data Solution Blueprint (churn)\n\n**Problem:** هنوز دیتا ندارم و می‌خواهم بدون آپلود فایل، ریزش مشتریان اپراتور موبایل را پیش‌بینی کنم. ۲۰٬۰۰۰ مشترک داریم و نرخ ریزش ۱۰٪ است.\n**Data mode:** No-Data Solution Design\n**Harness mode:** `ai_harnessed` · Gates passed: `4/5` · not passed: workflow\n\n## 0. Deep Problem & Domain Understanding (Epistemic Provenance)\n- **Restatement:** Predict which mobile-operator customers are likely to churn in a near-term window for a monthly cohort of 20,000 customers with a stated 10% base churn rate.\n- **Goal** (`AI inferred`): Predict which mobile-operator customers are likely to churn in a near-term window for a monthly cohort of 20,000 customers with a stated 10% base churn rate. — *AI domain inference: The target is a customer-level churn/not-churn outcome within a fixed window.*\n- **Decision Action** (`AI inferred`): Prioritize retention outreach and offers to customers with the highest predicted churn risk. — *AI domain inference: The target is a customer-level churn/not-churn outcome within a fixed window.*\n- **Decision Unit** (`AI inferred`): One customer snapshot. — *AI domain inference: The target is a customer-level churn/not-churn outcome within a fixed window.*\n- **Prediction Moment** (`AI inferred`): At snapshot_date, before the churn outcome window closes; only historical, pre-moment features are known. — *AI domain inference: The target is a customer-level churn/not-churn outcome within a fixed window.*\n- **Outcome And Horizon** (`AI inferred`): Whether the customer churns within the target window. (After the target window closes and cancellation is confirmed in account history; only mature labels should be used for training.) — *AI domain inference: The target is a customer-level churn/not-churn outcome within a fixed window.*\n- **Primary Metric** (`AI inferred`): AUC-PR primary, capture rate of churners in top risk percentile, ROC-AUC secondary. — *AI domain inference: The target is a customer-level churn/not-churn outcome within a fixed window.*\n- **Alternative Problem Framings Considered:**\n  - `time_to_event`: Useful if exact churn date is available, but the current target is binary within a window.\n  - `ranking`: Ranking can be applied to the churn score for intervention, but prediction itself is binary classification.\n\n## 1. Business Solution & Decision Economics\n- **Decision owner & action:** Operations / Analytics Lead — Prioritize retention outreach and offers to customers with the highest predicted churn risk.\n- **Day-0 non-ML baseline:** Scorecard heuristic using top 3 domain risk rules + randomized control holdout to measure baseline lift before ML.\n- **Read this first:** 3 of 5 inputs below are DCLab's placeholders (cost per action, value per caught case, share of actions that work), not facts about your business. Every figure computed from them is an illustration until you give your own numbers.\n- **Monthly volume:** 20000 (stated by you) · **Base rate:** 10.0% (stated by you)\n- **Cost per action:** 15.0 (assumed by DCLab) · **Value per caught case:** 180.0 (assumed by DCLab) · **Share of actions that work:** 35% (assumed by DCLab)\n- **Break-even precision:** 23.8% (an illustration: computed from assumed inputs)\n- **Domain Expert (fact):** The stated inputs are a monthly cohort of 20,000 customers and a 10% churn base rate, but the virtual schema only provides potential Day-0 features, not observed outcomes.\n- **Domain Expert (risk):** The highest operational trap is future-information leakage; cancellation_reason, retention_offer_accepted_after_snapshot, final_invoice_date, and account_closed_flag cannot be available at snapshot_date.\n- **Domain Expert (question):** Ask the person what decision the score should drive: a fixed-size outreach list for limited retention capacity, a broad risk segmentation, or a probability threshold relative to the 10% base rate.\n\n### ROI Scenarios (an illustration: computed from assumed inputs; the lifts are DCLab's assumptions)\n| Scenario | Precision | Flagged/mo | Gross Value | Cost | Net/mo |\n|---|---:|---:|---:|---:|---:|\n| Conservative (1.5x lift) | 15.0% | 3000 | 28350.0 | 45000.0 | -16650.0 |\n| Target ML (2.5x lift) | 25.0% | 3000 | 47250.0 | 45000.0 | 2250.0 |\n| Strong ML (3.5x lift) | 35.0% | 3000 | 66150.0 | 45000.0 | 21150.0 |\n\n## 2. Data Science Solution & Minimum Viable Data Spec\n- **Unit / Entity:** `customer_id`\n- **Prediction Cutoff Time:** `snapshot_date (e.g. monthly billing cutoff / T-30d)`\n- **Label Horizon:** next 30 days after snapshot_date (exclude immature accounts)\n- **Target:** `churned_within_30d`\n- **Tier-1 Day-1 Features:** customer_age_years, tenure_months, plan_type, contract_status, customer_segment, monthly_bill_amount_irt, avg_data_usage_gb_per_day_90d, avg_call_minutes_per_day_90d\n- **Tier-2 High-Leverage Features:** nps_last_response, seat_utilization_pct\n- **Forbidden Post-Decision Columns:** cancellation_reason, retention_offer_accepted_after_snapshot, final_invoice_date, account_closed_flag\n- **Validation Split:** Out-of-time snapshot split PLUS entity-group isolation (no entity appears in both train and holdout).\n- **Metrics:** pr_auc, roc_auc, precision_at_top_k, brier_score\n- **Verified Fold-Safe Feature Programs (`dclab_core.features`):** `customer_id_count (count)`, `customer_id_day_count (count)`, `customer_age_years_entity_mean (mean)`, `customer_age_years_entity_deviation (deviation)`, `customer_id_time_since_prev (since_previous)`, `customer_age_years_rolling3_mean (rolling_mean)`\n\n### Pre-Data Leakage Traps\n- **Strict as-of point-in-time join** (DATASET-telco_churn): Compute every feature strictly using events <= snapshot_date (e.g. monthly billing cutoff / T-30d).\n- **Ban post-decision columns** (KND-001): Drop/audit post-cutoff fields before training: cancellation_reason, final_invoice_date, retention_offer_accepted_after_snapshot, account_closed_flag.\n- **Lock label maturity window** (PIT-004): Only assign negative labels after next 30 days after snapshot_date (exclude immature accounts) has elapsed, or censoring bias inflates false negatives.\n- **Leakage Auditor (fact):** The prediction row is anchored at snapshot_date in customer_snapshots_blueprint, and churned_within_30d is an outcome label rather than an admissible feature at the decision moment.\n- **Leakage Auditor (risk):** Features with 90d or 30d windows, including avg_data_usage_gb_per_day_90d, avg_call_minutes_per_day_90d, avg_sms_count_per_day_30d, max_late_payment_days_90d, active_days_last_30d, and usage_trend_30d_vs_90d, leak if their windows include snapshot_date or days after it.\n- **Leakage Auditor (risk):** Customer state columns such as customer_age_years, tenure_months, contract_status, plan_type, plan_tier, customer_segment, monthly_bill_amount_irt, and monthly_fee can point-in-time leak if they are refreshed after the snapshot rather than as-of snapshot_date.\n- **Leakage Auditor (question):** Ask for the event timestamp behind nps_last_response and seat_utilization_pct; without a pre-snapshot timestamp, they may capture post-outcome feedback or usage.\n\n## 3. ML Solution, Multi-Model Debate & Pre-Data Task Plan\n- **Stage 1 Baseline:** L2-regularized Logistic Regression with missing-value indicators & target/frequency encoding inside CV folds.\n- **Stage 2 Primary:** LightGBM / CatBoost with class weighting (or focal objective), early stopping on validation PR-AUC.\n- **Stage 3 Decision Layer:** Isotonic / Platt probability calibration -> act when P(y=1) >= break-even 23.8% capped at top 15% capacity.\n- **What Evidence Would Change Algorithm Choice:** If high-frequency usage sequences are available, prefer temporal embeddings; if exact churn dates are available, consider time-to-event; if retention experiments exist, switch to uplift for offer targeting.\n- **Planner-Challenger-Judge Debate Verdict:** Split `group, group_column customer_id, holdout locked first, used once, after the choice` · Metric `roc_auc` · Families `dummy, logistic_regression, random_forest, gradient_boosting`\n- **TP-08 Selected Pre-Data Tasks:** time_split_check, grouped_split, check_join_key, threshold_for_cost, baseline\n\n## 4. Next Options (When Ready)\n- Tell me missing economics or operational constraints to tighten these numbers.\n- If you want a **synthetic prototype**, answer the simulation questions so I can show the schema design for your approval first.\n- When real data is ready, upload/connect it — `Build project` remains unchanged whenever you attach data.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "answered",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    1345.06
+   ],
+   "safety": {
+    "uncited": [
+     "30",
+     "30",
+     "30",
+     "30",
+     "90",
+     "30"
+    ],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0,
+    "upload_demanded": 0,
+    "sums_checked": 0
+   },
+   "notes": {
+    "family": "churn",
+    "mode": "ai_harnessed",
+    "roles_called": [
+     "problem_analyst",
+     "brief_checker",
+     "ai_first",
+     "synthetic_schema",
+     "understanding_critic",
+     "feature_engineer",
+     "case_specialist:domain_expert",
+     "case_specialist:leakage_auditor",
+     "decomposer",
+     "map_reviewer",
+     "solution_router",
+     "solution_planner",
+     "solution_challenger",
+     "debate_judge"
+    ],
+    "gates_passed": {
+     "gate_1_epistemic_provenance": true,
+     "gate_2_number_grounding": true,
+     "gate_3_virtual_schema_and_features": true,
+     "gate_4_workflow_and_debate": false,
+     "gate_5_budget": true
+    },
+    "cost_eur": 0.048944,
+    "assumed_inputs": [
+     "cost per action",
+     "value per caught case",
+     "share of actions that work"
+    ],
+    "fits": true,
+    "need": null,
+    "repaired": null,
+    "removed": 0,
+    "kind": null,
+    "findings": 0,
+    "errors": [],
+    "first_failed": [],
+    "still_failed": []
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": false,
+    "pending": true,
+    "problems": [
+     "not judged yet: the judge runs later on the kept conversation"
+    ]
+   },
+   "spent_eur": 0.0489,
+   "judge_spent_eur": 0
+  },
+  {
+   "id": "ND-04",
+   "arm": "blueprint_architect",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "هنوز دیتا ندارم و می‌خواهم بدون آپلود فایل، ریزش مشتریان اپراتور موبایل را پیش‌بینی کنم. ۲۰٬۰۰۰ مشترک داریم و نرخ ریزش ۱۰٪ است.",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "# A solution designed without data\n\n## The problem\nتصمیم اصلی این است که کدام مشترک اپراتور موبایل باید برای اقدام نگهداری انتخاب شود. تصمیم‌گیرنده معمولاً تیم CRM/نگهداری است و زمان تصمیم همان لحظه‌ای است که اپراتور می‌تواند به مشترک تماس بزند، پیشنهاد دهد یا سرویس را اصلاح کند. واحد تصمیم، یک مشترک در یک تاریخ مشخص است. از شما دانسته‌ایم: `20,000` مشترک و نرخ ریزش `10%`؛ بنابراین تعداد مورد انتظار ریزش‌کننده‌ها در این جمعیت `20,000 × 10% = 2,000` است. مشخص نیست: تعریف دقیق ریزش، پنجره زمانی ریزش، فیلدهای موجود، ظرفیت تماس/پیام، هزینه اقدام، ارزش هر مشترک نجات‌یافته، و اینکه داده‌ها در چه سطحی ثبت می‌شوند.\n\n## What needs care\n- بدون داده واقعی نباید فیلدهای پرقدرت را قطعی بنامیم؛ این کار فقط با تجربه اپراتور و داده‌های آینده قابل بررسی است.\n- ریزش باید به شکلی تعریف شود که در لحظه تصمیم قابل پیش‌بینی باشد؛ مثلاً پایان قرارداد، قطع سرویس، عدم استفاده، یا انتقال به اپراتور دیگر.\n- اگر اقدام نگهداری انجام شود، نتیجه ریزش تحت تأثیر همان اقدام می‌افتد؛ پس باید تاریخ تصمیم و اقدام ثبت شوند تا مداخله باعث اشتباه مدل نشود.\n- اعتبارسنجی باید زمانی باشد: داده‌های قدیمی‌تر برای آموزش، داده‌های جدیدتر برای تست. استفاده تصادفی از همان تاریخ‌ها معمولاً نشت اطلاعات ایجاد می‌کند.\n- چون ریزش کمیاب است، فقط نگاه کردن به صحت کلی کافی نیست؛ باید ببینیم آیا مدل می‌تواند مشترکین پرریسک را برای لیست تماس بالا بیاورد.\n\n## Business solution\nبدون مدل و همین هفته می‌توان یک لیست اولویت‌دار از علائم عملیاتی ساخت.\n\n**اقدام:** یک لیست نگهداری از مشترکین با علائم قابل‌مشاهده ریزش تهیه کنید. این لیست می‌تواند بخشی از همان `20,000 × 10% = 2,000` مورد انتظار را پوشش دهد، اما اولویت را بر اساس سیگنال‌های واقعی‌تر می‌چیند.\n\n**قاعده ساده برای شروع:** مشترک را به لیست تماس بفرستید اگر، در آخرین ماه کامل پیش از تاریخ تصمیم، هم‌زمان یکی از علائم مالی و یکی از علائم مصرف را داشت:\n- علائم مالی: بدهی، تأخیر پرداخت، کسر اعتبار، کاهش تعداد شارژ/پرداخت.\n- علائم مصرف: کاهش داده، کاهش دقایق تماس، تغییر ناگهانی تعرفه، شکایت اخیر، یا عدم استفاده از سیم‌کارت.\n\n**هزینه و سود:**\n- سود بالقوه از نگه‌داشتن هر مشترک = `retained_count × value_per_customer`.\n- هزینه اقدام = `contacted_count × contact_cost`.\nعدد `value_per_customer` و `contact_cost` از شما مشخص نیست؛ با همین دو عدد می‌توان تصمیم را مالی کرد.\n\n## Data to record\n\n| column | what it is | known when | role |\n| --- | --- | --- | --- |\n| customer_id | شناسه یکتای مشترک | before | key |\n| observation_date | تاریخ لحظه تصمیم | at | time |\n| plan_id | نوع تعرفه یا سرویس فعال | before | input |\n| tenure_days | تعداد روزهای سابقه اشتراک تا لحظه تصمیم | before | input |\n| revenue_last_month | درآمد یا مبلغ حساب در آخرین ماه کامل پیش از تصمیم | before | input |\n| usage_mb_last_month | حجم داده مصرف‌شده در آخرین ماه کامل پیش از تصمیم | before | input |\n| call_minutes_last_month | دقایق تماس در آخرین ماه کامل پیش از تصمیم | before | input |\n| top_up_count_last_month | تعداد شارژ یا پرداخت در آخرین ماه کامل پیش از تصمیم | before | input |\n| payment_delay_days | وضعیت تأخیر یا بدهی پرداخت در لحظه تصمیم | before | input |\n| complaint_count | تعداد شکایات ثبت‌شده تا لحظه تصمیم | before | input |\n| contract_remaining_days | روزهای باقی‌مانده تا پایان قرارداد در لحظه تصمیم | before | input |\n| churn_flag_within_window | آیا مشترک در پنجره تعیین‌شده پس از تصمیم ریزش کرد | after | label |\n| churn_date | تاریخ دقیق ریزش، برای ساختن لیبل | after | not used |\n| retention_action | اقدام نگهداری انجام شد یا نه | after | not used |\n\n- یک ردیف: یک مشترک در یک `observation_date` که در آن لحظه هنوز نتیجه پنجره ریزش مشخص نیست.\n- لحظه تصمیم: همان لحظه‌ای که اپراتور می‌تواند تصمیم بگیرد این مشترک را برای اقدام نگهداری انتخاب کند.\n- تعریف لیبل: `churn_flag_within_window = 1` اگر مشترک در پنجره‌ای که تعیین می‌کنید پس از تاریخ تصمیم ریزش کند؛ این پنجره هنوز از شما مشخص نیست و تا پایان همان پنجره نتیجه معلوم نمی‌شود.\n\n## Model\n**Baseline بدون مدل:** یک لیست ساده بر اساس همان قاعده عملیاتی بسازید: بدهی/تأخیر + کاهش مصرف. این خط مبنا نشان می‌دهد حتی بدون مدل هم چند اولویت واقعی وجود دارد.\n\n**مدل اولیه:** یک مدل طبقه‌بندی دوتایی بسازید که احتمال ریزش را از فیلدهای `before` تخمین بزند. برای شروع، Logistic Regression قابل‌تفسیر و کم‌ریسک است؛ اگر داده‌ها بیشتر شدند و الگوهای غیرخطی دیده شد، Gradient Boosted Trees می‌تواند جایگزین شود.\n\n**تست:** داده‌ها را بر اساس `observation_date` تقسیم کنید. بازه‌های قدیمی‌تر برای آموزش، بازه‌های جدیدتر برای اعتبارسنجی. تقسیم تصادفی روی همان مشترکین یا همان ماه‌ها مناسب نیست چون تاریخ و نشت اطلاعات را نادیده می‌گیرد.\n\n**سنجه:** برای رتبه‌بندی مشترکین از PR-AUC یا ROC-AUC استفاده کنید، اما برای تصمیم عملی باید Precision و Recall را در لیست تماس‌های ممکن بررسی کنید؛ چون ریزش کمیاب است و هدف، یافتن چند مورد واقعی در لیست اقدام است.\n\n**تبدیل امتیاز به تصمیم:** مدل برای هر مشترک احتمال ریزش می‌دهد. مشترکین را بر اساس احتمال ریزش رتبه‌بندی کنید. اگر ظرفیت تماس یا بودجه مشخص باشد، بالاترین‌های لیست تا همان ظرفیت انتخاب می‌شوند. اگر ظرفیت مشخص نیست، آستانه نهایی را نمی‌توان تعیین کرد و فقط باید مدل را به‌صورت رتبه‌بندی ارائه داد.\n\nKind: binary classification\n\n## Plan\n\n1. همین هفته بدون داده جدید: یک تاریخ تصمیم، یک پنجره برای تعریف ریزش، و یک تعریف متنی برای «ریزش» مشخص کنید.\n   - نیاز: تصمیم تیم CRM درباره اینکه ریزش یعنی چه.\n   - تمام‌شدن: یک صفحه کوتاه که در آن لحظه تصمیم و تعریف نتیجه ثابت است.\n\n2. همان هفته: یک قاعده ساده برای لیست اولویت‌دار از علائم فعلی انتخاب کنید؛ مثلاً بدهی یا تأخیر پرداخت به‌همراه کاهش مصرف.\n   - نیاز: دسترسی عملیاتی به فیلدهای ساده مثل وضعیت پرداخت و مصرف ماه قبل.\n   - تمام‌شدن: یک لیست قابل‌اجرا از مشترکین برای تماس یا پیام، بدون نیاز به مدل.\n\n3. فیلدهای جدول `Data to record` را در سیستم ثبت کنید یا از سیستم‌های موجود استخراج‌پذیر کنید.\n   - نیاز: مشخص کردن اینکه کدام فیلد در لحظه تصمیم قابل‌ثبت است و کدام پس از پنجره معلوم می‌شود.\n   - تمام‌شدن: هر مشترک در هر تاریخ تصمیم بتواند یک ردیف با فیلدهای قبل، لحظه، و نتیجه داشته باشد.\n\n4. پس از شروع ثبت داده‌ها، ردیف‌های برچسب‌خورده جمع کنید؛ یعنی فقط ردیف‌هایی که پنجره لیبل آن‌ها بسته شده است.\n   - نیاز: زمان کافی تا نتیجه ریزش معلوم شود.\n   - تمام‌شدن: مجموعه‌ای از ردیف‌های قدیمی‌تر با لیبل مشخص برای آموزش و ردیف‌های جدیدتر برای تست زمانی.\n\n5. خط‌مبنای ساده را با یک مدل اولیه مقایسه کنید؛ Logistic Regression یا در صورت امکان Boosted Trees.\n   - نیاز: داده برچسب‌خورده و تقسیم زمانی.\n   - تمام‌شدن: مدل روی بازه جدیدتر امتیاز رتبه‌بندی تولید کند و معیارهای Precision/Recall در بازه تست محاسبه شوند.\n\n6. آستانه یا روش انتخاب را با ظرفیت واقعی تیم نگهداری مشخص کنید.\n   - نیاز: تعیین اینکه چند مشترک می‌توانند تماس دریافت کنند و هزینه و ارزش هر اقدام چقدر است.\n   - تمام‌شدن: یک سیاست عملی مشخص‌شده؛ مثلاً بالاترین رتبه‌ها تا ظرفیت تماس انتخاب شوند.\n\n## What only real data can settle\n- کدام فیلدها واقعاً پیش‌بینی ریزش را بهبود می‌دهند.\n- مدل چه دقتی در رتبه‌بندی مشترکین دارد و آیا بهتر از لیست ساده عملیاتی عمل می‌کند.\n- بهترین پنجره زمانی برای تعریف ریزش کدام است.\n- آستانه بهینه یا اندازه لیست تماس بر اساس ظرفیت واقعی و هزینه/ارزش.\n- اینکه آیا اقدام نگهداری باعث کاهش ریزش می‌شود، نه فقط بالاتر شدن احتمال در لیست.\n\n## Questions for you\n1. تعریف شما از ریزش چیست؟ قطع سرویس، عدم استفاده، پایان قرارداد، یا انتقال به اپراتور دیگر؟\n2. پنجره‌ای که می‌خواهید ریزش را در آن پیش‌بینی کنید چقدر است؛ کوتاه‌مدت برای تماس فوری، یا بلندمدت برای پیش‌بینی فصلی؟\n3. ظرفیت اقدام نگهداری، هزینه هر تماس/پیام، و ارزش هر مشترک نجات‌یافته را دارید یا باید این‌ها را با تیم مالی و CRM نهایی کنیم؟\n\n## Checked by code\n- Sums checked by code: `20,000 × 10% = 2,000`.\n\n## Checks DCLab will run when real data arrives\n- `time_split_check` on `observation_date`: Declared time column\n- `grouped_split` on `customer_id`: Declared entity key\n- `leakage_probe` on `records`: Suspect post-outcome column name\n- `baseline` on `roc_auc`: Baseline model\n\n## A second reader's findings\n- بدون دسترسی به داده در لحظه تصمیم، نمی‌توان لیست اولویت یا مدل را همین‌طور اجرا کرد؛ فقط از رویدادهایی استفاده کنید که تیم CRM واقعاً در همان لحظه می‌بیند و یک قاعده ساده از همان‌ها بسازید.\n- مدل احتمال ریزش با اقدام نگهداری ترکیب می‌شود و نتیجه را کج می‌کند؛ برای تصمیم باید گروه کنترل یا آزمون نگهداری/عدم‌نگهداری ثبت شود، نه فقط برچسب تاریخی ریزش.\n- جدول داده و مدل طبقه‌بندی بیش از خواسته فعلی است و در نبود داده قابل‌اجرا نیست؛ فعلاً فقط تعریف پنجره ریزش، نتیجه ریزش و یک قاعده قابل‌ثبت را مشخص کنید.\n- معیارهای PR-AUC و ROC-AUC و ادعای بهتر بودن مدل بدون داده سنجیده نمی‌شوند؛ فقط پس از جمع‌آوری برچسب‌های قدیمی و جدید و تقسیم زمانی از این معیارها استفاده کنید.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "answered",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    182.78
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0,
+    "upload_demanded": 0,
+    "sums_checked": 3
+   },
+   "notes": {
+    "family": null,
+    "mode": "architect",
+    "roles_called": [
+     "architect",
+     "critic"
+    ],
+    "gates_passed": {
+     "need": true,
+     "parts": true,
+     "sums": true,
+     "numbers": true,
+     "data table": true,
+     "an outcome and an input": true,
+     "inputs known in time": true,
+     "label after the decision": true,
+     "plan": true,
+     "model": true,
+     "no upload asked": true,
+     "no data made": true
+    },
+    "cost_eur": 0.007547,
+    "assumed_inputs": [],
+    "fits": null,
+    "need": "full",
+    "repaired": false,
+    "removed": 0,
+    "kind": "binary classification",
+    "findings": 4,
+    "errors": [],
+    "first_failed": [],
+    "still_failed": []
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": false,
+    "pending": true,
+    "problems": [
+     "not judged yet: the judge runs later on the kept conversation"
+    ]
+   },
+   "spent_eur": 0.0075,
+   "judge_spent_eur": 0
+  },
+  {
+   "id": "ND-04",
+   "arm": "model_only",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "هنوز دیتا ندارم و می‌خواهم بدون آپلود فایل، ریزش مشتریان اپراتور موبایل را پیش‌بینی کنم. ۲۰٬۰۰۰ مشترک داریم و نرخ ریزش ۱۰٪ است.",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "مسئله‌ای که مطرح کردید این است که می‌خواهید بفهمید کدام‌یک از مشترک‌های اپراتور موبایل در آینده ریزش می‌کنند؛ اما هنوز دادهٔ فردی یا فایل آپلودی در دسترس نیست.\n\n- تصمیم پشت کار: کدام مشترک را قبل از رفتن هدف‌گیری کنیم، با چه پیامی یا چه اقدامی نگهش داریم و هزینهٔ حفظ مشتری را کجا خرج کنیم.\n- کسی که نتیجه را می‌خواند: معمولاً تیم حفظ مشتری، بازاریابی، مهندسی درآمد، و تحلیلگر داده.\n- واحد کار: هر مشترک به‌صورت جداگانه؛ نه فقط نرخ کلی.\n- لحظهٔ مورد نظر: ریزش در یک بازهٔ آینده، مثلاً از تاریخ مشاهدهٔ داده تا یک دورهٔ بعدی؛ این دوره هنوز شما تعیین نکرده‌اید.\n- آنچه گفته‌اید: ۲۰٬۰۰۰ مشترک دارید و نرخ ریزش کلی ۱۰٪ است.\n- آنچه هنوز نمی‌دانیم: تعریف دقیق ریزش، دورهٔ ریزش، تاریخ مشاهده، برچسب هر مشترک، ویژگی‌های مصرف، قبض، مدت عضویت، دستگاه، شکایات، قرارداد، کیفیت سرویس، قیمت، تبلیغات، و اینکه کدام داده‌ها واقعاً قابل جمع‌آوری هستند.\n- نتیجهٔ مهم: بدون دادهٔ فردی، هیچ مدل آماری یا یادگیری ماشینی نمی‌تواند فهرست واقعی و قابل‌اتکای مشترک‌های در معرض ریزش را تولید کند. فقط نرخ کلی، فرض‌ها، یا شبیه‌سازی ممکن است؛ نه پیش‌بینی واقعی مشترک‌به‌مشترک.\n\nراه‌هایی که می‌توانند به این نیاز پاسخ دهند:\n\n- بی‌مدل و فقط نرخ کلی:\n  - هزینه: بسیار کم، فقط استفاده از ۱۰٪ به‌عنوان انتظار کلی.\n  - چه می‌دهد: برنامه‌ریزی سطح کل، بودجه‌بندی کلی، و آگاهی از شدت ریزش.\n  - چه نمی‌دهد: لیست مشترک‌های خاص، تشخیص زودهنگام، یا اولویت‌بندی دقیق.\n  - برای تصمیم واقعی بسیار محدود است.\n\n- قاعده‌محور یا تجربه‌محور:\n  - هزینه: کم تا متوسط؛ نیاز به قوانینی مثل «مشترک‌های کم‌مصرف یا نزدیک به پایان قرارداد را زیر نظر بگیر».\n  - چه می‌دهد: فهرست‌های ساده و قابل‌توضیح برای اقدام‌های عمومی.\n  - چه هزینه‌ای دارد: بدون دادهٔ واقعی، احتمالاً فرضی و نادرست است؛ اعتبارسنجی سخت است.\n  - مناسب: شروع سریع با ریسک کنترل‌شده، نه پیش‌بینی دقیق.\n\n- شبیه‌سازی دادهٔ مصنوعی:\n  - هزینه: بیشتر؛ باید فرض‌ها را مستند کنید و دادهٔ ساختگی بسازید.\n  - چه می‌دهد: یک نمونهٔ مدل، مسیر فنی، چارچوب ارزیابی، و درک بهتر از داده‌هایی که بعداً لازم دارید.\n  - چه هزینه‌ای دارد: نتایج فقط با فرض‌های شما درست است؛ نمی‌تواند جایگزین دادهٔ واقعی شود.\n  - مناسب: وقتی می‌خواهید روش را تمرین یا طراحی کنید، نه اینکه مشترک واقعی را هدف بگیرید.\n\n- مدل واقعی با جمع‌آوری داده:\n  - هزینه: نیاز به دسترسی به دادهٔ مشترک‌ها، تاریخچه، برچسب ریزش، نظارت روی حریم خصوصی، و زمانی برای اعتبارسنجی.\n  - چه می‌دهد: پیش‌بینی واقعی‌تر، فهرست هدفمند مشترک‌ها، و امکان مقایسهٔ اقدام‌های حفظ مشتری.\n  - برای کار شما در آینده، مسیر اصلی است.\n\nانتخاب من برای الان:\nچون هنوز داده ندارید و نمی‌خواهید فایل آپلود کنید، برنامه‌ای را انتخاب می‌کنم که با «شبیه‌سازی دادهٔ مصنوعی» فقط روش کار را طراحی کند، نه اینکه پیش‌بینی واقعی بدهد. اگر هدف تصمیم واقعی و صرف هزینه برای نگه‌داشتن مشترک است، این شبیه‌سازی نباید مبنای عمل باشد؛ در آن صورت فقط بی‌مدل و بر پایهٔ نرخ کلی قابل دفاع است.\n\nبرنامهٔ انتخاب‌شده:\n\n- ابتدا تعریف کسب‌وکاری را روشن کنید:\n  - ریزش چیست؟ قطع سرویس، تغییر اپراتور، یا عدم تمدید؟\n  - دورهٔ ریزش کدام بازهٔ آینده است؟\n  - اقدام حفظ مشتری چه چیزی می‌تواند باشد؟\n  - نتیجه برای چه تیمی استفاده می‌شود؟\n  - نیاز: توافق تیم حفظ مشتری، بازاریابی، و داده/فنی.\n\n- سپس فرض‌ها را جدا از واقعیت بنویسید:\n  - کدام ویژگی‌ها احتمالاً ریزش را بالا یا پایین می‌برند؟\n  - کدام‌ها در شرکت شما واقعاً قابل جمع‌آوری‌اند؟\n  - کدام‌ها فقط فرضی‌اند؟\n  - نیاز: مستندسازی روشن برای اینکه بعداً شبیه‌سازی با دادهٔ واقعی قاطی نشود.\n\n- بعد جدول شبیه‌سازی را فقط برای تمرین روش بسازید:\n  - بر پایهٔ همان ۲۰٬۰۰۰ مشترک.\n  - با همان نرخ ریزش کلی ۱۰٪.\n  - با ویژگی‌های ساختگی مثل مصرف، مدت عضویت، قبض، شکایت، قرارداد، یا کیفیت سرویس.\n  - نیاز: روش تولید دادهٔ مصنوعی و ثبت کامل فرض‌ها.\n\n- مدل را روی همان دادهٔ مصنوعی آموزش دهید:\n  - می‌توان از مدل ساده و تفسیرپذیر شروع کرد و بعد مدل‌های پیچیده‌تر را آزمود.\n  - دادهٔ مصنوعی را به بخش‌هایی برای یادگیری و ارزیابی تقسیم کنید.\n  - نیاز: کد یا ابزار مدل‌سازی، ولی نه دادهٔ واقعی مشترک‌ها.\n\n- نتیجه را این‌گونه بررسی کنید:\n  - با لیست تصادفی مقایسه کنید.\n  - با همان پیش‌بینی بی‌مدل و نرخ کلی مقایسه کنید.\n  - بررسی کنید که آیا مدل در فهرست‌های بالاتر، ریزش را بهتر از حد انتظار تشخیص می‌دهد یا نه.\n  - بررسی کنید که نتایج با تغییر فرض‌های ریزش چقدر سفت یا ناپایدار می‌شوند.\n  - معیار اصلی فقط «درست بودن روی دادهٔ مصنوعی» نیست؛ ثبات روش و قابلیت تفسیر آن مهم‌تر است.\n\n- زمان توقف:\n  - اگر مدل روی دادهٔ مصنوعی از نرخ کلی بهتر نمی‌شود، یا نتایج با کوچک‌ترین تغییر در فرض‌ها عوض می‌شود، شبیه‌سازی را متوقف کنید و آن را به‌عنوان روش قابل‌استفاده در نظر نگیرید.\n  - اگر شبیه‌سازی فقط برای تمرین فنی موفق شد، آن را به‌عنوان پیش‌بینی واقعی منتشر نکنید.\n  - بعد از همین مرحله، به‌جای ادامهٔ شبیه‌سازی، فیلدهای دادهٔ واقعی را تعریف کنید و از تیم داده بخواهید آن‌ها را فراهم کند.\n\nفیلدهای واقعی که برای مدل‌سازی درست لازم می‌شوند:\n- شناسهٔ مشترک.\n- تاریخ عضویت یا شروع سرویس.\n- تاریخ قطع یا عدم تمدید.\n- نشانگر ریزش در دورهٔ هدف.\n- میزان مصرف تماس، پیام، داده، یا خدمات ارزش‌افزوده.\n- مبلغ و روند قبض.\n- روش پرداخت، بدهی، یا تغییر تعرفه.\n- نوع قرارداد یا بسته.\n- شکایات، درخواست‌های پشتیبانی، یا تماس‌های ریزش.\n- دستگاه، نوع سرویس، پوشش شبکه، یا کیفیت اتصال.\n- کمپین‌ها، تخفیف‌ها، یا اقدام‌های حفظ مشتری در گذشته.\n- تاریخ‌های مربوط به هر ویژگی و تاریخ مشاهده.\n\nخلاصه:\nبا ۲۰٬۰۰۰ مشترک و نرخ ریزش ۱۰٪ می‌توان سطح کلی خطر را درک کرد یا روش آینده را شبیه‌سازی و تمرین کرد، اما بدون دادهٔ فردی نمی‌توان مشترک واقعی را برای اقدام حفظ مشتری پیش‌بینی کرد. اگر نمی‌خواهید فایل بدهید، بهترین کار در حال حاضر استفاده از نرخ کلی و ساخت یک نمونهٔ شبیه‌سازی‌شدهٔ غیرقابل‌استفاده برای تصمیم واقعی است؛ تصمیم‌های هزینه‌دار را تا زمانی که دادهٔ واقعی در دسترس نیاید، نگه دارید.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "answered",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    126.18
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0,
+    "upload_demanded": 0,
+    "sums_checked": 0
+   },
+   "notes": {},
+   "repeat": 1,
+   "judged": {
+    "valid": false,
+    "pending": true,
+    "problems": [
+     "not judged yet: the judge runs later on the kept conversation"
+    ]
+   },
+   "spent_eur": 0.0041,
+   "judge_spent_eur": 0
+  }
+ ],
+ "scores": {
+  "blueprint_rules": [
+   {
+    "run": "HAB-043",
+    "case": "ND-01",
+    "arm": "blueprint_rules",
+    "repeat": 1,
+    "judged": false,
+    "failed": false,
+    "understanding": null,
+    "solution_design": null,
+    "planning": null,
+    "evidence_discipline": null,
+    "adaptation": null,
+    "accepted": null,
+    "understood_share": null,
+    "forbidden_done": null,
+    "safety_failures": 6,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 0.09,
+    "spent_eur": 0,
+    "first_divergence": null,
+    "wanted_right": null,
+    "numbers_nobody_gave": 6
+   },
+   {
+    "run": "HAB-043",
+    "case": "ND-02",
+    "arm": "blueprint_rules",
+    "repeat": 1,
+    "judged": false,
+    "failed": false,
+    "understanding": null,
+    "solution_design": null,
+    "planning": null,
+    "evidence_discipline": null,
+    "adaptation": null,
+    "accepted": null,
+    "understood_share": null,
+    "forbidden_done": null,
+    "safety_failures": 8,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 0.07,
+    "spent_eur": 0,
+    "first_divergence": null,
+    "wanted_right": null,
+    "numbers_nobody_gave": 8
+   },
+   {
+    "run": "HAB-043",
+    "case": "ND-03",
+    "arm": "blueprint_rules",
+    "repeat": 1,
+    "judged": false,
+    "failed": false,
+    "understanding": null,
+    "solution_design": null,
+    "planning": null,
+    "evidence_discipline": null,
+    "adaptation": null,
+    "accepted": null,
+    "understood_share": null,
+    "forbidden_done": null,
+    "safety_failures": 2,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 0.68,
+    "spent_eur": 0,
+    "first_divergence": null,
+    "wanted_right": null,
+    "numbers_nobody_gave": 2
+   },
+   {
+    "run": "HAB-043",
+    "case": "ND-04",
+    "arm": "blueprint_rules",
+    "repeat": 1,
+    "judged": false,
+    "failed": false,
+    "understanding": null,
+    "solution_design": null,
+    "planning": null,
+    "evidence_discipline": null,
+    "adaptation": null,
+    "accepted": null,
+    "understood_share": null,
+    "forbidden_done": null,
+    "safety_failures": 6,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 0.04,
+    "spent_eur": 0,
+    "first_divergence": null,
+    "wanted_right": null,
+    "numbers_nobody_gave": 6
+   }
+  ],
+  "blueprint_pipeline": [
+   {
+    "run": "HAB-043",
+    "case": "ND-01",
+    "arm": "blueprint_pipeline",
+    "repeat": 1,
+    "judged": false,
+    "failed": false,
+    "understanding": null,
+    "solution_design": null,
+    "planning": null,
+    "evidence_discipline": null,
+    "adaptation": null,
+    "accepted": null,
+    "understood_share": null,
+    "forbidden_done": null,
+    "safety_failures": 4,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 1493.84,
+    "spent_eur": 0.0443,
+    "first_divergence": null,
+    "wanted_right": null,
+    "numbers_nobody_gave": 4
+   },
+   {
+    "run": "HAB-043",
+    "case": "ND-02",
+    "arm": "blueprint_pipeline",
+    "repeat": 1,
+    "judged": false,
+    "failed": false,
+    "understanding": null,
+    "solution_design": null,
+    "planning": null,
+    "evidence_discipline": null,
+    "adaptation": null,
+    "accepted": null,
+    "understood_share": null,
+    "forbidden_done": null,
+    "safety_failures": 7,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 1528.22,
+    "spent_eur": 0.0513,
+    "first_divergence": null,
+    "wanted_right": null,
+    "numbers_nobody_gave": 7
+   },
+   {
+    "run": "HAB-043",
+    "case": "ND-03",
+    "arm": "blueprint_pipeline",
+    "repeat": 1,
+    "judged": false,
+    "failed": false,
+    "understanding": null,
+    "solution_design": null,
+    "planning": null,
+    "evidence_discipline": null,
+    "adaptation": null,
+    "accepted": null,
+    "understood_share": null,
+    "forbidden_done": null,
+    "safety_failures": 3,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 1147.94,
+    "spent_eur": 0.0408,
+    "first_divergence": null,
+    "wanted_right": null,
+    "numbers_nobody_gave": 3
+   },
+   {
+    "run": "HAB-043",
+    "case": "ND-04",
+    "arm": "blueprint_pipeline",
+    "repeat": 1,
+    "judged": false,
+    "failed": false,
+    "understanding": null,
+    "solution_design": null,
+    "planning": null,
+    "evidence_discipline": null,
+    "adaptation": null,
+    "accepted": null,
+    "understood_share": null,
+    "forbidden_done": null,
+    "safety_failures": 6,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 1345.06,
+    "spent_eur": 0.0489,
+    "first_divergence": null,
+    "wanted_right": null,
+    "numbers_nobody_gave": 6
+   }
+  ],
+  "blueprint_architect": [
+   {
+    "run": "HAB-043",
+    "case": "ND-01",
+    "arm": "blueprint_architect",
+    "repeat": 1,
+    "judged": false,
+    "failed": false,
+    "understanding": null,
+    "solution_design": null,
+    "planning": null,
+    "evidence_discipline": null,
+    "adaptation": null,
+    "accepted": null,
+    "understood_share": null,
+    "forbidden_done": null,
+    "safety_failures": 0,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 290.24,
+    "spent_eur": 0.0101,
+    "first_divergence": null,
+    "wanted_right": null,
+    "numbers_nobody_gave": 0
+   },
+   {
+    "run": "HAB-043",
+    "case": "ND-02",
+    "arm": "blueprint_architect",
+    "repeat": 1,
+    "judged": false,
+    "failed": false,
+    "understanding": null,
+    "solution_design": null,
+    "planning": null,
+    "evidence_discipline": null,
+    "adaptation": null,
+    "accepted": null,
+    "understood_share": null,
+    "forbidden_done": null,
+    "safety_failures": 0,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 283.0,
+    "spent_eur": 0.0096,
+    "first_divergence": null,
+    "wanted_right": null,
+    "numbers_nobody_gave": 0
+   },
+   {
+    "run": "HAB-043",
+    "case": "ND-03",
+    "arm": "blueprint_architect",
+    "repeat": 1,
+    "judged": false,
+    "failed": false,
+    "understanding": null,
+    "solution_design": null,
+    "planning": null,
+    "evidence_discipline": null,
+    "adaptation": null,
+    "accepted": null,
+    "understood_share": null,
+    "forbidden_done": null,
+    "safety_failures": 0,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 195.0,
+    "spent_eur": 0.006,
+    "first_divergence": null,
+    "wanted_right": null,
+    "numbers_nobody_gave": 0
+   },
+   {
+    "run": "HAB-043",
+    "case": "ND-04",
+    "arm": "blueprint_architect",
+    "repeat": 1,
+    "judged": false,
+    "failed": false,
+    "understanding": null,
+    "solution_design": null,
+    "planning": null,
+    "evidence_discipline": null,
+    "adaptation": null,
+    "accepted": null,
+    "understood_share": null,
+    "forbidden_done": null,
+    "safety_failures": 0,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 182.78,
+    "spent_eur": 0.0075,
+    "first_divergence": null,
+    "wanted_right": null,
+    "numbers_nobody_gave": 0
+   }
+  ],
+  "model_only": [
+   {
+    "run": "HAB-043",
+    "case": "ND-01",
+    "arm": "model_only",
+    "repeat": 1,
+    "judged": false,
+    "failed": false,
+    "understanding": null,
+    "solution_design": null,
+    "planning": null,
+    "evidence_discipline": null,
+    "adaptation": null,
+    "accepted": null,
+    "understood_share": null,
+    "forbidden_done": null,
+    "safety_failures": 4,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 131.61,
+    "spent_eur": 0.004,
+    "first_divergence": null,
+    "wanted_right": null,
+    "numbers_nobody_gave": 4
+   },
+   {
+    "run": "HAB-043",
+    "case": "ND-02",
+    "arm": "model_only",
+    "repeat": 1,
+    "judged": false,
+    "failed": false,
+    "understanding": null,
+    "solution_design": null,
+    "planning": null,
+    "evidence_discipline": null,
+    "adaptation": null,
+    "accepted": null,
+    "understood_share": null,
+    "forbidden_done": null,
+    "safety_failures": 0,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 50.04,
+    "spent_eur": 0.0017,
+    "first_divergence": null,
+    "wanted_right": null,
+    "numbers_nobody_gave": 0
+   },
+   {
+    "run": "HAB-043",
+    "case": "ND-03",
+    "arm": "model_only",
+    "repeat": 1,
+    "judged": false,
+    "failed": false,
+    "understanding": null,
+    "solution_design": null,
+    "planning": null,
+    "evidence_discipline": null,
+    "adaptation": null,
+    "accepted": null,
+    "understood_share": null,
+    "forbidden_done": null,
+    "safety_failures": 0,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 59.28,
+    "spent_eur": 0.0018,
+    "first_divergence": null,
+    "wanted_right": null,
+    "numbers_nobody_gave": 0
+   },
+   {
+    "run": "HAB-043",
+    "case": "ND-04",
+    "arm": "model_only",
+    "repeat": 1,
+    "judged": false,
+    "failed": false,
+    "understanding": null,
+    "solution_design": null,
+    "planning": null,
+    "evidence_discipline": null,
+    "adaptation": null,
+    "accepted": null,
+    "understood_share": null,
+    "forbidden_done": null,
+    "safety_failures": 0,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 126.18,
+    "spent_eur": 0.0041,
+    "first_divergence": null,
+    "wanted_right": null,
+    "numbers_nobody_gave": 0
+   }
+  ]
+ },
+ "summary": {
+  "blueprint_rules": {
+   "conversations": 4,
+   "judged": 0,
+   "failed": 0,
+   "understanding": null,
+   "solution_design": null,
+   "planning": null,
+   "evidence_discipline": null,
+   "adaptation": null,
+   "accepted_rate": null,
+   "understood_share": null,
+   "forbidden_done": 0,
+   "safety_failures": 22,
+   "seconds": 0.22,
+   "spent_eur": 0.0
+  },
+  "blueprint_pipeline": {
+   "conversations": 4,
+   "judged": 0,
+   "failed": 0,
+   "understanding": null,
+   "solution_design": null,
+   "planning": null,
+   "evidence_discipline": null,
+   "adaptation": null,
+   "accepted_rate": null,
+   "understood_share": null,
+   "forbidden_done": 0,
+   "safety_failures": 20,
+   "seconds": 1378.765,
+   "spent_eur": 0.1853
+  },
+  "blueprint_architect": {
+   "conversations": 4,
+   "judged": 0,
+   "failed": 0,
+   "understanding": null,
+   "solution_design": null,
+   "planning": null,
+   "evidence_discipline": null,
+   "adaptation": null,
+   "accepted_rate": null,
+   "understood_share": null,
+   "forbidden_done": 0,
+   "safety_failures": 0,
+   "seconds": 237.755,
+   "spent_eur": 0.0332
+  },
+  "model_only": {
+   "conversations": 4,
+   "judged": 0,
+   "failed": 0,
+   "understanding": null,
+   "solution_design": null,
+   "planning": null,
+   "evidence_discipline": null,
+   "adaptation": null,
+   "accepted_rate": null,
+   "understood_share": null,
+   "forbidden_done": 0,
+   "safety_failures": 4,
+   "seconds": 91.7775,
+   "spent_eur": 0.0116
+  }
+ },
+ "paired": null,
+ "first_divergence_counts": {},
+ "incomplete": null
+}

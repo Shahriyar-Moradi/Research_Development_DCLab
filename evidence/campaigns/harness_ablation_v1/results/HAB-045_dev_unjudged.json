@@ -1,0 +1,1790 @@
+{
+ "id": "HAB-045",
+ "split": "dev",
+ "set": "nodata",
+ "at": "2026-11-16T03:22:17+00:00",
+ "arms": [
+  "blueprint_rules",
+  "blueprint_pipeline",
+  "blueprint_architect",
+  "model_only"
+ ],
+ "repeats": 1,
+ "models": {
+  "arms": "qwen/qwen3.8-flash",
+  "judge": null,
+  "route_check": "qwen/qwen3.8-flash"
+ },
+ "spent_eur": 0.2321,
+ "cap_eur": 0.45,
+ "kept": "agent_runs/live_tests/2026-11-16-harness-ablation-HAB-045",
+ "manifest": {
+  "run_id": "HAB-045",
+  "at": "2026-11-16T03:22:17+00:00",
+  "arms": [
+   "blueprint_rules",
+   "blueprint_pipeline",
+   "blueprint_architect",
+   "model_only"
+  ],
+  "repeats": 1,
+  "cap_eur": 0.45,
+  "code": {
+   "commit": "cf89c92ecc80b4f92b54a257437731bd4ac7ebce",
+   "dirty": [],
+   "diff_sha256": null,
+   "untracked_sha256": null,
+   "untracked_files": 0
+  },
+  "models": {
+   "arms": "qwen/qwen3.8-flash",
+   "judge": null,
+   "route_check": "qwen/qwen3.8-flash"
+  },
+  "prompt_sha256": {
+   "ablation_model_only": "d76ca4c71ca2349a",
+   "ablation_model_only_short": "74c593495acb5f60",
+   "ablation_minimal_agent": "9bacaefe1c839f92",
+   "ablation_judge": "6ae9b4e558cb8e12",
+   "exam_plain": "6b4a893172133d54",
+   "case_agent": "04956cc04a4915d4",
+   "case_agent_think_first": "98a726e97accd7c0",
+   "route_check": "61027a2803db8856",
+   "no_data_architect": "51a5a690583338c2",
+   "no_data_critic": "b4d2e398b024a6ed"
+  },
+  "tool_schema_sha256": {
+   "open": "772a142db9c94f65",
+   "plain": "607296ffbd9ccef9",
+   "case": "96fcda10b0e3e919"
+  },
+  "flags": {
+   "DCLAB_CASE_AGENT": null,
+   "DCLAB_CASE_THINK_FIRST": null,
+   "DCLAB_ROUTE_MODEL": null,
+   "DCLAB_THINKING_EFFORT": "high",
+   "DCLAB_LLM_PROVIDER": "openrouter"
+  },
+  "cases_sha256": "aaecac397040a787606f6f789c1c5eb548c0386d58a45cce68109a2fa82f8e4c",
+  "set": "nodata",
+  "max_turns": 4,
+  "go_ahead": "Everything I know is in what I wrote. Choose what you judge best and go ahead.",
+  "label": "nodata-v2"
+ },
+ "capture": {
+  "exchanges": 85,
+  "ok": 85,
+  "whole": 85,
+  "with_thinking": 85,
+  "without_thinking": [],
+  "purposes": [
+   "ai_first",
+   "brief_checker",
+   "case_specialist",
+   "debate_judge",
+   "decomposer",
+   "exam_plain",
+   "feature_engineer",
+   "map_reviewer",
+   "no_data_architect",
+   "no_data_critic",
+   "problem_analyst",
+   "solution_challenger",
+   "solution_planner",
+   "synthetic_schema",
+   "understanding_critic"
+  ]
+ },
+ "label": "nodata-v2",
+ "note": "a pilot of eight cases: traces and reason codes, no claim that one arm is better",
+ "code": "one commit",
+ "conversations": [
+  {
+   "id": "ND-09",
+   "arm": "blueprint_rules",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "به دلیل محرمانگی اطلاعات بانکی نمی‌توانیم دیتا آپلود کنیم. می‌خواهیم تقلب تراکنش‌های کارت را در لحظه پرداخت تشخیص دهیم.",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "# DCLab No-Data Solution Blueprint (fraud)\n\n**Problem:** به دلیل محرمانگی اطلاعات بانکی نمی‌توانیم دیتا آپلود کنیم. می‌خواهیم تقلب تراکنش‌های کارت را در لحظه پرداخت تشخیص دهیم.\n**Data mode:** No-Data Solution Design\n**Harness mode:** `deterministic_floor` · Gates passed: `5/5`\n\n## 0. Deep Problem & Domain Understanding (Epistemic Provenance)\n- **Restatement:** Solve `fraud` decisioning for `transaction` at `At transaction/order authorization before payment capture or shipment release`, optimizing `pr_auc (Precision@Recallfloor) + Net Fraud Loss Prevented` to guide `Prioritize high-value fraud interventions under capacity/cost constraints`.\n- **Goal** (`DCLab default`): به دلیل محرمانگی اطلاعات بانکی نمی‌توانیم دیتا آپلود کنیم. می‌خواهیم تقلب تراکنش‌های کارت را در لحظه پرداخت تشخیص دهیم. — *DCLab default (nobody said it): Synthesized from your problem statement.*\n- **Decision Action** (`DCLab default`): Prioritize high-value fraud interventions under capacity/cost constraints — *DCLab default (nobody said it): Standard operational action for fraud decisions.*\n- **Decision Unit** (`DCLab default`): transaction — *DCLab default (nobody said it): One prediction per `transaction_id` grain.*\n- **Prediction Moment** (`DCLab default`): At transaction/order authorization before payment capture or shipment release — *DCLab default (nobody said it): Sets the strict point-in-time feature boundary to prevent look-ahead leakage.*\n- **Outcome And Horizon** (`DCLab default`): `is_fraud_confirmed` observed over Immediate transaction event + 30-day chargeback maturity window — *DCLab default (nobody said it): Defines when ground-truth labels mature without censor leakage.*\n- **Primary Metric** (`DCLab default`): pr_auc (Precision@Recallfloor) + Net Fraud Loss Prevented — *DCLab default (nobody said it): Matches class balance, asymmetric error costs, and operational ranking needs.*\n- **Alternative Problem Framings Considered:**\n  - `anomaly`: Unsupervised anomaly detection catches novel zero-day fraud patterns without label delay, but supervised rare-event classification achieves higher precision at fixed investigator capacity once confirmed chargeback labels arrive.\n  - `ranking`: Learning-to-rank optimizes the top-K investigator queue directly when review capacity is strictly capped per shift.\n\n## 1. Business Solution & Decision Economics\n- **Decision owner & action:** Operations / Analytics Lead — Prioritize high-value fraud interventions under capacity/cost constraints\n- **Day-0 non-ML baseline:** Scorecard heuristic using top 3 domain risk rules + randomized control holdout to measure baseline lift before ML.\n- **Read this first:** 5 of 5 inputs below are DCLab's placeholders (monthly volume, base rate, cost per action, value per caught case, share of actions that work), not facts about your business. Every figure computed from them is an illustration until you give your own numbers.\n- **Monthly volume:** 10000 (assumed by DCLab) · **Base rate:** 8.0% (assumed by DCLab)\n- **Cost per action:** 15.0 (assumed by DCLab) · **Value per caught case:** 180.0 (assumed by DCLab) · **Share of actions that work:** 35% (assumed by DCLab)\n- **Break-even precision:** 23.8% (an illustration: computed from assumed inputs)\n\n### ROI Scenarios (an illustration: computed from assumed inputs; the lifts are DCLab's assumptions)\n| Scenario | Precision | Flagged/mo | Gross Value | Cost | Net/mo |\n|---|---:|---:|---:|---:|---:|\n| Conservative (1.5x lift) | 12.0% | 1500 | 11340.0 | 22500.0 | -11160.0 |\n| Target ML (2.5x lift) | 20.0% | 1500 | 18900.0 | 22500.0 | -3600.0 |\n| Strong ML (3.5x lift) | 28.0% | 1500 | 26460.0 | 22500.0 | 3960.0 |\n\n## 2. Data Science Solution & Minimum Viable Data Spec\n- **Unit / Entity:** `transaction_id / account_id`\n- **Prediction Cutoff Time:** `tx_authorized_at`\n- **Label Horizon:** 30-60 days for chargeback/dispute settlement\n- **Target:** `is_fraud_confirmed`\n- **Tier-1 Day-1 Features:** account_id, amount, currency, merchant_category, channel, device_age_days, ip_country_mismatch, tx_count_1h\n- **Tier-2 High-Leverage Features:** velocity_ratio_24h_vs_30d, device_account_fanout_7d, merchant_historical_dispute_rate_asof\n- **Forbidden Post-Decision Columns:** manual_review_outcome, account_frozen_after_tx, chargeback_filed_at, refund_issued_flag\n- **Validation Split:** Out-of-time snapshot split PLUS entity-group isolation (no entity appears in both train and holdout).\n- **Metrics:** pr_auc, roc_auc, precision_at_top_k, brier_score\n- **Verified Fold-Safe Feature Programs (`dclab_core.features`):** `transaction_id_count (count)`, `transaction_id_day_count (count)`, `amount_entity_mean (mean)`, `amount_entity_deviation (deviation)`, `transaction_id_time_since_prev (since_previous)`, `amount_rolling3_mean (rolling_mean)`\n\n### Pre-Data Leakage Traps\n- **Strict as-of point-in-time join** (EXP-052): Compute every feature strictly using events <= tx_authorized_at.\n- **Ban post-decision columns** (LEAK-credit_card_fraud): Drop/audit post-cutoff fields before training: chargeback_filed_at, manual_review_outcome, account_frozen_after_tx, refund_issued_flag.\n- **Lock label maturity window** (EXP-051): Only assign negative labels after 30-60 days for chargeback/dispute settlement has elapsed, or censoring bias inflates false negatives.\n\n## 3. ML Solution, Multi-Model Debate & Pre-Data Task Plan\n- **Stage 1 Baseline:** L2-regularized Logistic Regression with missing-value indicators & target/frequency encoding inside CV folds.\n- **Stage 2 Primary:** LightGBM / CatBoost with class weighting (or focal objective), early stopping on validation PR-AUC.\n- **Stage 3 Decision Layer:** Isotonic / Platt probability calibration -> act when P(y=1) >= break-even 23.8% capped at top 15% capacity.\n- **What Evidence Would Change Algorithm Choice:** If the real data holds few positive outcomes or many missing values, prefer regularized logistic/linear models over deep trees.\n- **DCLab's rules' plan (no model debate ran):** Split: Out-of-time snapshot split PLUS entity-group isolation (no entity appears in both train and holdout). · Metric `pr_auc` · Families `dummy, logistic_regression, random_forest, gradient_boosting`\n- **TP-08 Selected Pre-Data Tasks:** time_split_check, grouped_split, leakage_probe, check_join_key, threshold_for_cost, baseline\n\n## 4. Next Options (When Ready)\n- Tell me missing economics or operational constraints to tighten these numbers.\n- If you want a **synthetic prototype**, answer the simulation questions so I can show the schema design for your approval first.\n- When real data is ready, upload/connect it — `Build project` remains unchanged whenever you attach data.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "answered",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    0.08
+   ],
+   "safety": {
+    "uncited": [
+     "30",
+     "30",
+     "60",
+     "30",
+     "60"
+    ],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0,
+    "upload_demanded": 0,
+    "sums_checked": 0
+   },
+   "notes": {
+    "family": "fraud",
+    "mode": "deterministic_floor",
+    "roles_called": [],
+    "gates_passed": {
+     "gate_1_epistemic_provenance": true,
+     "gate_2_number_grounding": true,
+     "gate_3_virtual_schema_and_features": true,
+     "gate_4_workflow_and_debate": true,
+     "gate_5_budget": true
+    },
+    "cost_eur": 0.0,
+    "assumed_inputs": [
+     "monthly volume",
+     "base rate",
+     "cost per action",
+     "value per caught case",
+     "share of actions that work"
+    ],
+    "fits": true,
+    "need": null,
+    "repaired": null,
+    "removed": 0,
+    "kind": null,
+    "findings": 0,
+    "errors": [],
+    "first_failed": [],
+    "still_failed": []
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": false,
+    "pending": true,
+    "problems": [
+     "not judged yet: the judge runs later on the kept conversation"
+    ]
+   },
+   "spent_eur": 0,
+   "judge_spent_eur": 0
+  },
+  {
+   "id": "ND-09",
+   "arm": "blueprint_pipeline",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "به دلیل محرمانگی اطلاعات بانکی نمی‌توانیم دیتا آپلود کنیم. می‌خواهیم تقلب تراکنش‌های کارت را در لحظه پرداخت تشخیص دهیم.",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "# DCLab No-Data Solution Blueprint (fraud)\n\n**Problem:** به دلیل محرمانگی اطلاعات بانکی نمی‌توانیم دیتا آپلود کنیم. می‌خواهیم تقلب تراکنش‌های کارت را در لحظه پرداخت تشخیص دهیم.\n**Data mode:** No-Data Solution Design\n**Harness mode:** `ai_harnessed` · Gates passed: `5/5`\n\n## 0. Deep Problem & Domain Understanding (Epistemic Provenance)\n- **Restatement:** Detect card transaction fraud at payment authorization using transaction features known at that moment.\n- **Goal** (`AI inferred`): Detect card transaction fraud at payment authorization using transaction features known at that moment. — *AI domain inference: Fraud is infrequent, costly, and time-sensitive.*\n- **Decision Action** (`AI inferred`): Allow, challenge, or block the transaction. — *AI domain inference: Fraud is infrequent, costly, and time-sensitive.*\n- **Decision Unit** (`AI inferred`): One transaction at authorization. — *AI domain inference: Fraud is infrequent, costly, and time-sensitive.*\n- **Prediction Moment** (`AI inferred`): At tx_authorized_at, before outcome is known. — *AI domain inference: Fraud is infrequent, costly, and time-sensitive.*\n- **Outcome And Horizon** (`AI inferred`): Whether the transaction is confirmed fraud. (After manual review, chargeback, or other confirmation, usually delayed.) — *AI domain inference: Fraud is infrequent, costly, and time-sensitive.*\n- **Primary Metric** (`AI inferred`): precision_recall_curve — *AI domain inference: Fraud is infrequent, costly, and time-sensitive.*\n- **Alternative Problem Framings Considered:**\n  - `classification`: Plain accuracy is misleading with extreme imbalance.\n  - `anomaly`: Labeled confirmation is available, so supervised scoring is preferable.\n\n## 1. Business Solution & Decision Economics\n- **Decision owner & action:** Operations / Analytics Lead — Allow, challenge, or block the transaction.\n- **Day-0 non-ML baseline:** Scorecard heuristic using top 3 domain risk rules + randomized control holdout to measure baseline lift before ML.\n- **Read this first:** 5 of 5 inputs below are DCLab's placeholders (monthly volume, base rate, cost per action, value per caught case, share of actions that work), not facts about your business. Every figure computed from them is an illustration until you give your own numbers.\n- **Monthly volume:** 10000 (assumed by DCLab) · **Base rate:** 8.0% (assumed by DCLab)\n- **Cost per action:** 15.0 (assumed by DCLab) · **Value per caught case:** 180.0 (assumed by DCLab) · **Share of actions that work:** 35% (assumed by DCLab)\n- **Break-even precision:** 23.8% (an illustration: computed from assumed inputs)\n- **Domain Expert (fact):** For this authorization-time task, only columns known at tx_authorized_at are safe as inputs; manual_review_outcome, account_frozen_after_tx, chargeback_filed_at, and refund_issued_flag are forbidden leakage features.\n- **Domain Expert (fact):** A Day-0 baseline should use deterministic rules on amount, merchant_category, currency, channel, device_age_days, ip_country_mismatch, tx_count_1h, tx_amount_24h, velocity_ratio_24h_vs_30d, device_account_fanout_7d, and merchant_historical_dispute_rate_asof to approve, decline, or review transactions.\n- **Domain Expert (fact):** The highest-leverage business lever is not the model itself but the authorization threshold policy: how many suspected fraud attempts are blocked, sent to review, or allowed through with step-up controls.\n\n### ROI Scenarios (an illustration: computed from assumed inputs; the lifts are DCLab's assumptions)\n| Scenario | Precision | Flagged/mo | Gross Value | Cost | Net/mo |\n|---|---:|---:|---:|---:|---:|\n| Conservative (1.5x lift) | 12.0% | 1500 | 11340.0 | 22500.0 | -11160.0 |\n| Target ML (2.5x lift) | 20.0% | 1500 | 18900.0 | 22500.0 | -3600.0 |\n| Strong ML (3.5x lift) | 28.0% | 1500 | 26460.0 | 22500.0 | 3960.0 |\n\n## 2. Data Science Solution & Minimum Viable Data Spec\n- **Unit / Entity:** `transaction_id / account_id`\n- **Prediction Cutoff Time:** `tx_authorized_at`\n- **Label Horizon:** 30-60 days for chargeback/dispute settlement\n- **Target:** `is_fraud_confirmed`\n- **Tier-1 Day-1 Features:** account_id, amount, merchant_category, currency, channel, device_age_days, ip_country_mismatch, tx_count_1h\n- **Tier-2 High-Leverage Features:** velocity_ratio_24h_vs_30d, device_account_fanout_7d, merchant_historical_dispute_rate_asof\n- **Forbidden Post-Decision Columns:** manual_review_outcome, account_frozen_after_tx, chargeback_filed_at, refund_issued_flag\n- **Validation Split:** Out-of-time snapshot split PLUS entity-group isolation (no entity appears in both train and holdout).\n- **Metrics:** pr_auc, roc_auc, precision_at_top_k, brier_score\n- **Verified Fold-Safe Feature Programs (`dclab_core.features`):** `transaction_id_count (count)`, `transaction_id_day_count (count)`, `amount_entity_mean (mean)`, `amount_entity_deviation (deviation)`, `transaction_id_time_since_prev (since_previous)`, `amount_rolling3_mean (rolling_mean)`\n\n### Pre-Data Leakage Traps\n- **Strict as-of point-in-time join** (EXP-052): Compute every feature strictly using events <= tx_authorized_at.\n- **Ban post-decision columns** (LEAK-credit_card_fraud): Drop/audit post-cutoff fields before training: chargeback_filed_at, manual_review_outcome, account_frozen_after_tx, refund_issued_flag.\n- **Lock label maturity window** (EXP-051): Only assign negative labels after 30-60 days for chargeback/dispute settlement has elapsed, or censoring bias inflates false negatives.\n- **Leak Suspect `chargeback_filed_at` (exclude):** Occurs after payment.\n- **Leak Suspect `manual_review_outcome` (exclude):** Post-decision proxy.\n- **Leak Suspect `account_frozen_after_tx` (exclude):** Result of detection.\n- **Leakage Auditor (fact):** is_fraud_confirmed is an outcome-like target and is not known at tx_authorized_at, so it must not be used as a model input feature.\n\n## 3. ML Solution, Multi-Model Debate & Pre-Data Task Plan\n- **Stage 1 Baseline:** L2-regularized Logistic Regression with missing-value indicators & target/frequency encoding inside CV folds.\n- **Stage 2 Primary:** LightGBM / CatBoost with class weighting (or focal objective), early stopping on validation PR-AUC.\n- **Stage 3 Decision Layer:** Isotonic / Platt probability calibration -> act when P(y=1) >= break-even 23.8% capped at top 15% capacity.\n- **What Evidence Would Change Algorithm Choice:** If labels are delayed or incomplete, switch to semi-supervised or anomaly scoring.\n- **Planner-Challenger-Judge Debate Verdict:** Split `group, group_column transaction_id, holdout locked first, used once, after the choice` · Metric `roc_auc` · Families `dummy, logistic_regression, random_forest, gradient_boosting`\n- **TP-08 Selected Pre-Data Tasks:** time_split_check, grouped_split, leakage_probe, check_join_key, threshold_for_cost, baseline\n\n## 4. Next Options (When Ready)\n- Tell me missing economics or operational constraints to tighten these numbers.\n- If you want a **synthetic prototype**, answer the simulation questions so I can show the schema design for your approval first.\n- When real data is ready, upload/connect it — `Build project` remains unchanged whenever you attach data.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "answered",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    1116.73
+   ],
+   "safety": {
+    "uncited": [
+     "30",
+     "60",
+     "30",
+     "60"
+    ],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0,
+    "upload_demanded": 0,
+    "sums_checked": 0
+   },
+   "notes": {
+    "family": "fraud",
+    "mode": "ai_harnessed",
+    "roles_called": [
+     "problem_analyst",
+     "brief_checker",
+     "ai_first",
+     "understanding_critic",
+     "feature_engineer",
+     "case_specialist:domain_expert",
+     "case_specialist:leakage_auditor",
+     "decomposer",
+     "map_reviewer",
+     "solution_router",
+     "solution_planner",
+     "solution_challenger",
+     "debate_judge"
+    ],
+    "gates_passed": {
+     "gate_1_epistemic_provenance": true,
+     "gate_2_number_grounding": true,
+     "gate_3_virtual_schema_and_features": true,
+     "gate_4_workflow_and_debate": true,
+     "gate_5_budget": true
+    },
+    "cost_eur": 0.036285,
+    "assumed_inputs": [
+     "monthly volume",
+     "base rate",
+     "cost per action",
+     "value per caught case",
+     "share of actions that work"
+    ],
+    "fits": true,
+    "need": null,
+    "repaired": null,
+    "removed": 0,
+    "kind": null,
+    "findings": 0,
+    "errors": [],
+    "first_failed": [],
+    "still_failed": []
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": false,
+    "pending": true,
+    "problems": [
+     "not judged yet: the judge runs later on the kept conversation"
+    ]
+   },
+   "spent_eur": 0.0363,
+   "judge_spent_eur": 0
+  },
+  {
+   "id": "ND-09",
+   "arm": "blueprint_architect",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "به دلیل محرمانگی اطلاعات بانکی نمی‌توانیم دیتا آپلود کنیم. می‌خواهیم تقلب تراکنش‌های کارت را در لحظه پرداخت تشخیص دهیم.",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "# A solution designed without data\n\n## The problem\nتصمیم اصلی این است که هر درخواست مجوز کارت، در همان لحظه پرداخت، به‌صورت خودکار به یکی از حالت‌های «تأیید»، «بازبینی انسانی» یا «رد» برود. تصمیم‌گیرنده‌ی واقعی، موتور ارزیابی ریسک پرداخت به همراه تیم عملیات تقلب است. واحد تصمیم‌گیری یک «درخواست مجوز تراکنش» است، نه کارت، مشتری یا روز.\n\nآنچه شما گفتید: تشخیص تقلب تراکنش‌های کارت به‌صورت لحظه‌ای در پرداخت را می‌خواهید و به دلیل محرمانگی اطلاعات بانکی، داده‌ای فرستاده نمی‌شود.  \nآنچه مشخص نیست: منبع برچسب نهایی تقلب، هزینه‌ی رد اشتباه، زیان هر تقلب تأییدشده، فیلدهای در دسترس در لحظه مجوز، تاخیر واقعی ثبت برچسب، و محدودیت‌های تأخیر سیستمی شما.\n\n## What needs care\n- لحظه‌ی تصمیم در مجوز است؛ پس فقط فیلدهایی می‌توانند به‌عنوان ورودی استفاده شوند که همان لحظه وجود دارند یا پیش از آن قابل محاسبه‌اند.\n- برچسب تقلب معمولاً بعد از مجوز و با تاخیر مشخص می‌شود؛ بنابراین مدل باید با داده‌هایی ارزیابی شود که برچسب آن‌ها به‌طور کامل رسیده است.\n- تراکنش‌های تقلبی معمولاً کم‌تعداد اما پرهزینه‌اند؛ دقت کلی alone گمراه‌کننده است و باید هزینه رد اشتباه و زیان تقلب به‌صورت صریح وارد شود.\n- رد اشتباه می‌تواند مشتری را از دست بدهد، پذیرنده را نارضایتی کند و هزینه جبران یا بازرسی ایجاد کند.\n- طراحی باید بدون فرستادن فایل یا داده‌ی خام انجام شود؛ فقط فیلدها، تعریف برچسب، و اعداد کسب‌وکاری لازم است.\n- قوانین شبکه، محدودیت‌های ریزش‌پذیری، دسترسی‌پذیر بودن دستگاه، و کدهای پذیرنده باید در لحظه‌ی تصمیم واقعاً در دسترس باشند.\n\n## Business solution\nاقدام بدون مدل: یک لایه‌ی تصمیم‌گیری ساده‌ی مبتنی بر قوانین روی همان جریان مجوز بگذارید. خروجی فقط سه حالت است: تأیید، بازبینی، رد.\n\nقانون ساده‌ی شروع: اگر مبلغ درخواستی فاصله‌ی غیرعادی با پروفایل تاریخی همان کارت/مشتری داشت، و کانال تراکنش بدون حضور کارت باشد، و کد دسته‌ی پذیرنده یا خود پذیرنده در فهرست پرریسک داخلی باشد، و تعداد تراکنش‌های اخیر کارت بالاتر از الگوی معمول همان کارت باشد، تراکنش را در همان لحظه مجوز به بازبینی ارسال کنید یا اگر مجموع این نشانه‌ها بسیار قوی بود، رد کنید. اعداد آستانه‌ها باید از پروفایل تاریخی خود شما و سطح ریسک‌پذیری تیم کسب‌وکار بیاید، نه از عدد پیشنهادی من.\n\nهزینه و سود با اعداد خودتان:\n- هزینه‌های این مسیر: کارمزد یا هزینه‌ی هر بازبینی انسانی، هزینه‌ی رد اشتباه هر تراکنش، اثر رضایت مشتری و پذیرنده، و هزینه‌ی بازرسی/جبران.\n- سود این مسیر: جلوگیری از زیان تقلب تأییدشده، کاهش تلفات ناشی از تراکنش‌های مجاز ولی تقلبی، و کاهش نیاز به فرآیندهای بعدی.\n- برای مقایسه، فقط از فرمول کلی استفاده کنید: سود خالص از تقلب = زیان تقلب‌هایی که مانع آن‌ها شده‌اید منهای هزینه‌های رد اشتباه و بازبینی‌ها. این‌ها را با اعداد داخلی خودتان پر کنید؛ من عدد یا نرخ واقعی شما را نمی‌دانم.\n\n## Data to record\n\n| column | what it is | known when | role |\n|---|---|---|---|\n| شناسه_تراکنش | شناسه‌ی یکتای هر درخواست مجوز | before | key |\n| زمان_رویداد | زمان دقیق ثبت درخواست مجوز | at | time |\n| نمایه_کارت | نمایه‌ی امنی از کارت برای الگویابی بدون شماره کامل | before | input |\n| شناسه_مشتری | شناسه‌ی مشتری یا حساب مرتبط | before | input |\n| شناسه_پذیرنده | شناسه‌ی پذیرنده | at | input |\n| کد_دسته_پذیرنده | کد دسته‌ی فعالیت پذیرنده | at | input |\n| مبلغ_درخواستی | مبلغ تراکنش | at | input |\n| ارز_تراکنش | ارز درخواست مجوز | at | input |\n| کانال_مجوز | کانال یا روش درخواست مجوز | at | input |\n| کارت_حاضر_است | نشانه‌ی حضور فیزیکی کارت | at | input |\n| کشور_تراکنش | کشور یا منطقه‌ی تراکنش در لحظه مجوز | at | input |\n| کشور_صادرکننده | کشور یا منطقه‌ی صادرکننده‌ی کارت | before | input |\n| اثر_دستگاه | نشانه‌ی دستگاه، مرورگر، یا محیط کاربر | at | input |\n| نشانه_مکانی | نشانه‌ی مکانی مجاز برای استفاده در ریسک | at | input |\n| سن_حساب_روز | سن حساب یا رابطه‌ی مشتری در لحظه مجوز | before | input |\n| فاصله_مبلغ_از_پروفایل_تاریخی | فاصله‌ی مبلغ فعلی از الگوی تاریخی همان کارت/مشتری | at | input |\n| تعداد_تراکنش_اخیر_همان_کارت | سرعت تراکنش‌های اخیر همان کارت | at | input |\n| برخورد_با_فهرست_پرریسک_داخلی | نتیجه‌ی بررسی در فهرست‌های پرریسک داخلی | at | input |\n| پرچم_قانون_ساده | خروجی قوانین ساده‌ی فعلی قبل از مدل | at | input |\n| برچسب_تقلب_تأییدشده | نتیجه‌ی نهایی تقلب یا نبود تقلب | after | label |\n| نشانگر_بازگشت_وجه | وضعیت بازگشت وجه یا اختلاف | after | not used |\n| علت_برچسب | منبع یا علت ثبت برچسب | after | not used |\n\n- هر ردیف در این جدول یک درخواست مجوز پرداخت کارت است که در لحظه‌ی ارزیابی ریسک ثبت می‌شود.  \n- لحظه‌ی تصمیم همان لحظه‌ای است که سیستم مجوز باید پاسخ دهد و قبل از انجام کامل عملیات پرداخت، تراکنش را تأیید، بازبینی، یا رد کند.  \n- برچسب تقلب به‌عنوان نتیجه‌ی تأییدشده‌ی تیم تقلب، بانک، شبکه، یا فرآیند اختلاف ثبت می‌شود؛ این برچسب بعد از تراکنش و پس از اتمام رسیدگی یا بازبینی معلوم می‌شود و مدت زمان رسیدن به آن به فرآیند واقعی شما بستگی دارد و فعلاً ناشناخته است.\n\n## Model\nمبنای ساده اول: از قوانین قابل‌توضیح استفاده کنید و سپس یک رگرسیون لجستیک ساده روی کمترین ویژگی‌های در دسترس در لحظه‌ی مجوز بسازید. این مبنای ساده خط پایه‌ای می‌سازد که می‌توان با اعداد خودتان سود و هزینه‌اش را سنجید.\n\nمدل اصلی: یک مدل درخت گرادیان تقویت‌شده یا مدل مشابه جعبه‌ای که برای ناهم‌وزنی شدید مناسب است. ورودی‌های آن فقط فیلدهای known before یا at باشند. ویژگی‌های بعد از تصمیم، مثل برچسب تقلب و بازگشت وجه، به‌عنوان label یا not used ثبت شوند و در لحظه‌ی پیش‌بینی به‌عنوان input استفاده نشوند.\n\nنحوه‌ی آزمون: داده را به‌صورت زمانی برش بزنید؛ یک دوره‌ی پیش از دوره‌های بعدی برای آموزش، و بعد دوره‌های بعدی برای اعتبارسنجی و آزمون نهایی. برش تصادفی برای ریسک لحظه‌ای مناسب نیست چون می‌تواند اطلاعات آینده را به گذشته بفرستد. معیار ارزیابی را روی ناهم‌وزنی تنظیم کنید: منحنی دقت-بازخوانی، بازخوانی در دقت‌های قابل‌قبول کسب‌وکار، و زیان مورد انتظار با هزینه‌های خودتان. اگر داده برای آموزش کافی یا برچسب‌ها کامل نبود، مدل را در حالت سایه اجرا کنید و فقط تصمیم پیشنهادی را ثبت کنید.\n\nتبدیل امتیاز به تصمیم: مدل یک امتیاز احتمالی از تقلب برای هر درخواست مجوز می‌دهد. با استفاده از هزینه‌ی رد اشتباه، هزینه‌ی هر بازبینی، و زیان هر تقلب تأییدشده، دو آستانه تعیین کنید: آستانه‌ی پایین برای تأیید، آستانه‌ی بالا برای رد، و ناحیه‌ی میانی برای بازبینی انسانی. بدون این اعداد، مدل می‌تواند اجرا شود ولی آستانه‌ها از نظر کسب‌وکار تأییدشده نیستند.\n\nKind: طبقه‌بندی باینری نظارتی با برچسب تأخیری و نامتوازنی کلاس‌ها در لحظه‌ی مجوز\n\n## Plan\n1. تصمیم لحظه‌ای را رسمی کنید.  \n   کاری: مشخص کنید ورودی، خروجی‌های تأیید/بازبینی/رد، و مسئول تغییر آستانه‌ها چه کسی است.  \n   نیاز: صاحب تصمیم کسب‌وکار و تیم مجوز پرداخت.  \n   تمام‌شدن: یک سند یک‌صفحه‌ای تصمیم‌گیری برای مجوز کارت موجود و تأییدشده باشد.\n\n2. اعداد هزینه و زیان خودتان را بیاورید.  \n   کاری: هزینه‌ی رد اشتباه، هزینه‌ی بازبینی، زیان هر تقلب تأییدشده، و اثر مشتری را مشخص کنید.  \n   نیاز: مالی، عملیات تقلب، پشتیبانی مشتری، و تیم کسب‌وکار.  \n   تمام‌شدن: جدول هزینه‌ها از اعداد خودتان تأیید شده و برای تنظیم آستانه قابل استفاده باشد.\n\n3. طرح داده‌ای را بدون داده‌ی خام تنظیم کنید.  \n   کاری: همان ستون‌های بالا را به مالک فنی و تیم حریم خصوصی بدهید تا فیلدهای در دسترس در لحظه مجوز را تأیید کنند.  \n   نیاز: فیلدهای مجوز، نمایه‌سازی امن، و فهرست ممنوعیت‌های حریم خصوصی.  \n   تمام‌شدن: داده‌دیکشنری نهایی به‌دست آید و مشخص شود کدام ستون before، at، یا after ثبت می‌شود.\n\n4. فرآیند برچسب‌گذاری را روشن کنید.  \n   کاری: تعریف تقلب تأییدشده، منابع تأیید، و نحوه‌ی ارتباط تراکنش با نتیجه‌ی نهایی را مشخص کنید.  \n   نیاز: تیم تقلب، بازبینی انسانی، بانک/شبکه یا فرآیند اختلاف.  \n   تمام‌شدن: هر تراکنش می‌تواند به یک برچسب تأییدشده یا در انتظار برچسب مرتبط شود و علت برچسب ثبت گردد.\n\n5. قوانین ساده را در حالت سایه اجرا کنید.  \n   کاری: قوانین اولیه را فقط به‌صورت پیشنهادی اجرا کنید و تصمیم واقعی مجوز را تغییر ندهید.  \n   نیاز: جریان مجوز، کدهای پرریسک، و پروفایل تاریخی کارت/مشتری.  \n   تمام‌شدن: لاگ روزانه‌ی پیشنهادها و مقایسه با تصمیم واقعی موجود باشد.\n\n6. پس از تکمیل برچسب‌ها، مبنای مدل را بسازید.  \n   کاری: رگرسیون لجستیک یا امتیاز ساده را روی داده‌های زمانی آموزش و آزمون کنید.  \n   نیاز: داده‌ی لاگ‌شده، برچسب‌های رسیده، و برش زمانی.  \n   تمام‌شدن: گزارش اعتبارسنجی با معیارهای دقت-بازخوانی و هزینه‌ی مورد انتظار تولید شود.\n\n7. مدل اصلی را بسازید و فقط اگر از مبنای ساده بهتر بود ارتقا دهید.  \n   کاری: مدل جعبه‌ای را با همان ورودی‌های before/at آزمایش کنید.  \n   نیاز: ویژگی‌های قابل‌محاسبه در لحظه مجوز و مقایسه‌ی منصفانه با مبنای ساده.  \n   تمام‌شدن: مدل نهایی از نظر هزینه‌ی کسب‌وکار، تأخیر فنی، و قابلیت توضیح پذیرفته شود.\n\n8. آستانه‌ها را با اعداد خودتان تنظیم و سپس مرحله‌ای منتشر کنید.  \n   کاری: ناحیه‌ی تأیید، بازبینی، و رد را به‌صورت کنترل‌شده به ترافیک واقعی اضافه کنید.  \n   نیاز: تأیید کسب‌وکار، پایش لحظه‌ای، و مسیر بازگشت به حالت سایه.  \n   تمام‌شدن: تصمیمات مدل، آستانه‌ها، و گزارش پایش به‌صورت زنده و قابل بازرسی ثبت شوند.\n\n## What only real data can settle\n- نرخ واقعی تقلب در جریان مجوز شما.  \n- میزان واقعی رد اشتباه و هزینه‌ی عملی آن برای مشتریان و پذیرنده‌ها.  \n- فاصله‌ی واقعی و قابل‌تفکیک بودن تقلب از رفتار عادی با فیلدهای موجود.  \n- تاخیر واقعی رسیدن به برچسب تقلب و اینکه چه منبعی برچسب نهایی را می‌سازد.  \n- آستانه‌های بهینه‌ی تأیید، بازبینی، و رد؛ این‌ها بدون هزینه‌ها و زیان‌های خودتان قابل تعیین نیست.  \n- عملکرد واقعی مدل روی ترافیک زمان‌شده، نه روی فرض‌های من.  \n- دسترسی‌پذیری واقعی فیلدها در لحظه‌ی مجوز و تأثیر تاخیر محاسبه‌ی مدل بر جریان پرداخت.  \n- اثر تغییر قوانین شبکه، فصلی‌های رفتاری، یا تغییر رفتار مجرمان بر ثبات مدل.\n\n## Questions for you\n1. منبع نهایی برچسب تقلب کدام است: تیم داخلی، بانک/شبکه، فرآیند بازگشت وجه، یا ترکیبی از چند منبع؛ و اگر بازگشت وجه تنها منبع باشد، آیا تراکنش‌های تقلبی بدون بازگشت وجه هم در دست دارید؟  \n2. برای هر تراکنش رد اشتباه چه هزینه‌ای از اعداد خودتان دارید و برای هر تقلب تأییدشده چه زیانی وارد می‌شود تا آستانه‌های مدل تعیین شود؟  \n3. در همان لحظه‌ی مجوز، کدام فیلدها واقعاً در دسترس‌اند و کدام نشانه‌های مکانی، دستگاهی، یا تاریخی به دلیل حریم خصوصی یا محدودیت فنی نمی‌توانند ورودی مدل باشند؟\n\n## Checks DCLab will run when real data arrives\n- `time_split_check` on `زمان_رویداد`: Declared time column\n- `grouped_split` on `شناسه_تراکنش`: Declared entity key\n- `baseline` on `roc_auc`: Baseline model\n\n## A second reader's findings\n- راهکار «بازبینی انسانی» را به‌عنوان یک پاسخ در همان لحظه‌ی مجوز کارت می‌گیرد؛ این معمولاً در جریان پرداخت نمی‌تواند هم‌زمان انجام شود؛ به‌جای آن فقط خروجی‌های مجاز در لحظه، مثل تأیید، رد، چالش احراز هویت، یا ثبت برای بازبینی پسینی را تعریف کنید.\n- فرمول سود، «تقلب‌هایی که مانع آن‌ها شده‌اید» را از داده‌های واقعی‌ای استخراج‌شدنی فرض می‌کند؛ بدون گروه کنترل یا آزمون مقایسه‌ای این ادعا قابل اثبات نیست؛ لذا با اجرا‌ی سایه و برچسب‌های رسیده، زیان و رد اشتباه را محلی برآورد کنید.\n- بعضی فیلدهای جدول، مثل اثر دستگاه، نشانه مکانی، فاصله از پروفایل تاریخی و برخورد با فهرست پرریسک، ممکن است در پیام مجوز موجود نباشند یا از رویدادهای آینده ساخته شوند؛ فقط فیلدهای با زمان/منبع مشخص و قطع زمانی قبل از تصمیم را نگه دارید و هر نشانه پس‌از‌رویداد را حذف یا با قطع زمانی محاسبه کنید.\n- راهکار از شما می‌خواهد هزینه‌ها و زیان‌های داخلی را بیاورید تا آستانه‌ها تنظیم شوند؛ این با شرط محرمانگی می‌تواند درخواست اشتراک داده باشد؛ محاسبه و تنظیم آستانه‌ها را محلی نگه دارید و فقط بازه‌ها یا وزن‌های غیرمحرمانه را مبنای تصمیم کنید.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "answered",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    464.24
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0,
+    "upload_demanded": 0,
+    "sums_checked": 0
+   },
+   "notes": {
+    "family": null,
+    "mode": "architect",
+    "roles_called": [
+     "architect",
+     "critic"
+    ],
+    "gates_passed": {
+     "need": true,
+     "parts": true,
+     "sums": true,
+     "numbers": true,
+     "data table": true,
+     "an outcome and an input": true,
+     "inputs known in time": true,
+     "label after the decision": true,
+     "plan": true,
+     "model": true,
+     "no upload asked": true,
+     "no data made": true
+    },
+    "cost_eur": 0.015873,
+    "assumed_inputs": [],
+    "fits": null,
+    "need": "full",
+    "repaired": false,
+    "removed": 0,
+    "kind": "طبقه‌بندی باینری نظارتی با برچسب تأخیری و نامتوازنی کلاس‌ها در لحظه‌ی مجوز",
+    "findings": 4,
+    "errors": [],
+    "first_failed": [],
+    "still_failed": []
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": false,
+    "pending": true,
+    "problems": [
+     "not judged yet: the judge runs later on the kept conversation"
+    ]
+   },
+   "spent_eur": 0.0159,
+   "judge_spent_eur": 0
+  },
+  {
+   "id": "ND-09",
+   "arm": "model_only",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "به دلیل محرمانگی اطلاعات بانکی نمی‌توانیم دیتا آپلود کنیم. می‌خواهیم تقلب تراکنش‌های کارت را در لحظه پرداخت تشخیص دهیم.",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "آنچه گفتید  \n- اطلاعات بانکی محرمانه است، بنابراین داده خام را نمی‌توانید بفرستید.  \n- نیاز شما تشخیص تقلب تراکنش‌های کارت در لحظه پرداخت است.  \n- جدولی همراه پیام نفرستادید؛ پس ستون‌ها، نوع ستون‌ها و شمار سطرها را نمی‌دانم و هیچ عدد آماری از شما نگرفته‌ام.  \n\nآنچه من فرض می‌کنم  \n- داخل بانک، به تاریخچه پرداخت، مشخصات کارت، مشتری، پذیرنده، دستگاه، زمان‌بندی و نتایج رسیدگی تقلب دسترسی دارید.  \n- نتیجه باید در موتور تصمیم پرداخت مصرف شود و به سقف زمان مجاز پاسخدهی پایبند بماند.  \n- تصمیم نهایی می‌تواند میان رد کردن، مجوز دادن، درخواست تأیید افزوده و ارجاع به بررسی انسانی باشد.  \n- اگر تقلب کم‌شمارش است، اما هزینه از دست دادن مشتری سالم و هزینه توقف تراکنش تقلبی هر دو مهم‌اند.  \n\nاین‌ها فرض‌اند و باید با شما نهایی شوند. برای ادامه، لازم نیست مقادیر حساس بفرستید؛ فقط نام ستون‌ها، نوع هر ستون، شمار سطرها و توصیف هدف تقلب کافی است.  \n\nمسئله تصمیم  \nمسئله اصلی، مدل‌سازی به‌تنهایی نیست؛ تصمیم‌گیری است. تصمیم این است: آیا این درخواست پرداخت کارت مجاز است، باید رد شود، یا باید با تأیید افزوده و بررسی انسانی پیش برود.  \n\nواحد تصمیم هر رویداد درخواست پرداخت یا احراز کارت است. لحظه مورد نیاز همان لحظه اخذ مجوز پرداخت است؛ یعنی پیش از قطعی‌شدن نتیجه برای مشتری و پذیرنده.  \n\nمصرف‌کننده‌های نتیجه: موتور پرداخت، واحد ریسک، تیم عملیات ضدتقلب، تحلیل‌گران کسب‌وکار و به‌طور غیرمستقیم مشتریان و پذیرندگان.  \n\nآنچه معلوم است: نیاز به تشخیص تقلب در پرداخت کارت، حساسیت داده‌ها، و لزوم تصمیم‌گیری در لحظه.  \n\nآنچه هنوز معلوم نیست: ساختار داده، وجود برچسب تقلب، تاریخچه تقلب‌های تشخیص‌داده‌شده، حجم و الگوی تراکنش‌ها، متغیرهای در دسترس در لحظه پرداخت، سقف تأخیر مجاز، تحمل بانک نسبت به اخطارهای نادرست، و ابزارهای تصمیم‌گیری فعلی.  \n\nرویکردها و هزینه و بازده هر رویکرد  \n\nبدون مدل و فقط با قوانین  \n- هزینه: توسعه سریع‌تر، نیاز کمتر به داده‌بندی، نگهداری ساده‌تر در ابتدا، اما بزرگ‌شدن پیچیده‌ی قوانین در طول زمان.  \n- داده لازم: سیاست‌های ریسک، فهرست‌های تقلب، شناخت مشتری، تاریخچه محدود تراکنش.  \n- بازده: تصمیم‌های قابل‌توضیح و فوری؛ خوب برای الگوهای قطعی و شناخته‌شده؛ معمولاً الگوهای تازه و پنهان را کم می‌بیند.  \n\nمدل آماری یا یادگیری نظارت‌شده  \n- هزینه: نیاز به برچسب تقلب، آماده‌سازی داده، مهندسی ویژگی، بازآموزی، پایش تغییر رفتار و مدیریت اخطارهای نادرست.  \n- داده لازم: تاریخچه پرداخت‌ها با نشان‌های تقلب یا سالم، ترجیحاً از تصمیم‌های واقعی و رسیدگی انسانی.  \n- بازده: احتمال یا امتیاز خطر برای هر درخواست، رتبه‌بندی موارد مشکوک، کاهش بار بررسی انسانی، بهبود کشف تقلب‌های شناخته‌شده.  \n\nمدل بدون برچسب یا ناسوپروایز/نابهنجاری  \n- هزینه: تنظیم آستانه‌ها، کالیبراسیون، احتمال اخطارهای زیاد، دشواری ارزیابی چون الگوهای تقلب ممکن است کم‌شمارش و نوسانی باشند.  \n- داده لازم: فقط ویژگی‌های تراکنش یا رفتار مشتری، بدون نیاز قطعی به برچسب تقلب.  \n- بازده: کمک به کشف رفتار تازه یا غیرعادی؛ مناسب برای مراحل نخست یا جایی که برچسب ضعیف است؛ اما توضیح‌پذیری و قطعیت کمتر دارد.  \n\nرویکرد ترکیبی  \n- هزینه: بالاتر؛ نیاز به موتور تصمیم، قوانین، مدل، صف بررسی انسانی و پایش مستمر.  \n- داده لازم: تاریخچه تراکنش، برچسب یا نشانه‌های تقلب، داده‌های مشتری و پذیرنده، ابزارهای عملیاتی.  \n- بازده: تعادل بهتر میان سرعت، قابل‌توضیح‌بودن، کشف الگوهای تازه و کاهش هزینه عملیاتی؛ معمول‌ترین ساختار برای ضدتقلب پرداخت در بانک‌ها.  \n\nانتخاب من  \nبا توجه به نیاز شما به تصمیم در لحظه پرداخت و محرمانه‌بودن داده، رویکرد ترکیبی و مرحله‌ای را انتخاب می‌کنم: ابتدا قوانین و فهرست‌های ریسک، سپس امتیازدهی مدل آماری روی همان داده، و در نهایت تصمیم‌گیری با سه وضعیت رد، تأیید افزوده/بررسی، و مجوز. اگر برچسب تقلب کافی نباشد، در بخش مدل‌سازی به‌جای نظارت‌شده از ناسوپروایز یا نیمه‌نظارت‌شده شروع می‌شود. هیچ دقت عددی از پیش نمی‌توان ادعا کرد، چون مقادیر و ساختار داده را ندیده‌ایم.  \n\nنقشه راه داخل محیط امن بانک  \nنخست، تصمیم و سیاست ریسک را تعریف کنید. نیازها: مالک کسب‌وکار، واحد ریسک، تیم پرداخت، و تعریف نتایج مجاز. خروجی: مشخص‌شدن اینکه هر درخواست چگونه رد، مجاز، تأیید افزوده یا بررسی انسانی می‌شود، و اینکه چه خط‌های قرمزی برای اخطارهای نادرست و تأخیر وجود دارد. بررسی: پذیرش رسمی این تعریف‌ها از سوی ذی‌نفعان.  \n\nسپس، بدون ارسال داده، ممیزی درون‌بانکی کنید. نیازها: دسترسی امن به جدول‌ها، کدگذاری ستون‌ها، منابع داده، تاریخچه تراکنش‌ها، فهرست تقلب‌ها، لاگ سیستم پرداخت و زیرساخت زمان‌پاسخ. خروجی: شماری از داده‌ها که بدون مقادیر حساس، فقط ساختار را توصیف کند؛ مانند نام ستون‌ها، نوع‌ها، شمار سطرها، بازه زمانی تاریخچه و موجودی برچسب‌ها. بررسی: تأیید اینکه داده‌ها برای تصمیم‌گیری در لحظه در دسترس هستند و متغیرهای آینده‌محور به‌صورت نشتی وارد مدل نمی‌شوند.  \n\nبعد، برچسب تقلب را تعریف کنید. نیازها: تراکنش‌های مشخصاً تقلبی، تراکنش‌های سالم، موارد نامشخص، بازخورد رسیدگی انسانی، برگشت وجه، گزارش مشتری و نتایج کسب‌وکار. خروجی: یک متغیر هدف قابل‌مدیریت، ترجیحاً نه صرفاً یک برچسب دوگانه ساده. بررسی: تکرارپذیری برچسب‌ها در زمان‌های مختلف و پرهیز از ترکیب نادرست تقلب‌های متفاوت.  \n\nبعد، ویژگی‌های قابل‌محاسبه در لحظه پرداخت را بسازید. نیازها: داده‌های تاریخچه تراکنش، رفتار مشتری، مشخصات کارت، پذیرنده، دستگاه، زمان، مبلغ، مکان، تراکم زمانی، تغییرات کانال، وضعیت اعتبارسنجی و فهرست‌های خطر. خروجی: ویژگی‌هایی که در لحظه درخواست پرداخت واقعاً قابل‌محاسبه‌اند، نه ویژگی‌هایی که بعد از پرداخت معلوم می‌شوند. بررسی: تأیید تیم فنی ریسک و تیم ریسک کسب‌وکار، و آزمون‌های نشت داده زمانی.  \n\nسپس، خط پایه بدون مدل را اجرا کنید. نیازها: قوانین سخت‌گیرانه، فهرست‌های سیاه، قوانین تراکم زمانی، قوانین مبلغ و کانال، و سیاست‌های تأیید افزوده. خروجی: تصمیم‌های پایه قابل‌توضیح و سریع. بررسی: شمارش اخطارهای قابل‌عمل، میزان تقلب‌های کشف‌شده، اخطارهای نادرست، تأخیر تصمیم و بار بررسی انسانی.  \n\nبعد، مدل امتیازدهی خطر را در داخل محیط امن بسازید. نیازها: داده‌ی تمیز، برچسب‌ها یا نشانه‌های ضعیف، تقسیم زمانی داده‌ها، ویژگی‌های لحظه‌ای و ابزار مدل‌سازی. خروجی: امتیاز یا احتمال تقلب برای هر درخواست پرداخت. بررسی: ارزیابی با تقسیم زمانی گذشته به آینده، نه تصادفی؛ و سنجش کیفیت تصمیم نهایی روی مواردی که واقعاً باید رد، تأیید افزوده یا مجاز می‌شدند.  \n\nبعد، قوانین و مدل را در موتور تصمیم ترکیب کنید. نیازها: اولویت‌بندی، آستانه‌های قابل‌تنظیم، صف بررسی انسانی، مدیریت موارد نامشخص و امکان خاموش‌کردن سریع هر قانون یا مدل. خروجی: تصمیم نهایی در لحظه پرداخت. بررسی: تست مقایسه‌ای، آزمون سایه و آزمون خلبان روی بخشی از ترافیک.  \n\nدر ادامه، در حالت سایه کار کنید. نیازها: اجرای موازی تصمیم جدید در کنار تصمیم فعلی، بدون تغییر نتیجه نهایی مشتری. خروجی: داده واقعی از تأخیر، اخطارها، الگوهای تازه و خطای بالقوه. بررسی: مقایسه پیامدهای تصمیم سایه با نتایج واقعی تقلب و شکایت مشتریان، بدون توقف تراکنش‌ها.  \n\nسپس، خلبان یا راه‌اندازی محدود را اجرا کنید. نیازها: محدودکردن به بخش‌هایی از ترافیک، پذیرنده، نوع کارت یا مشتری، و آمادگی تیم عملیاتی برای پاسخ به اخطارها. خروجی: تصمیم‌های واقعی با ریسک کنترل‌شده. بررسی: پایش مداوم تأخیر، اخطارهای نادرست، تقلب‌های از دست‌رفته، بار کاری تیم‌ها و تغییر رفتار مشتری.  \n\nدر نهایت، به‌صورت چرخه‌ای پایش کنید. نیازها: پایش کیفیت داده، پایش تغییر مدل، گزارش تقلب‌های تازه و بازخورد تیم‌های عملیاتی. خروجی: بازآموزی، به‌روزرسانی قوانین و تنظیم تصمیم‌ها. بررسی: تداوم کیفیت نتیجه در بازه‌های زمانی مختلف و کانال‌های مختلف.  \n\nچگونه نتیجه بررسی می‌شود  \nنتیجه را نباید فقط با معیارهای فنی سنجید. معیارهای اصلی: آیا تقلب‌های مهم کشف می‌شوند، آیا اخطارهای نادرست به‌اندازه‌ی قابل‌تحمل است، آیا زمان پاسخ به سقف سرویس می‌رسد، آیا تیم‌های بررسی انسانی می‌توانند اخطارها را پردازش کنند، و آیا الگوهای تازه و تغییر فصلی یا تغییر رفتار تقلب‌گران شناسایی می‌شوند. در مرحله آفلاین، از تقسیم زمانی داده‌ها استفاده کنید. در مرحله آنلاین، از آزمون سایه، خلبان، و مقایسه با سیاست فعلی بانک استفاده کنید.  \n\nچه زمانی می‌توان متوقف شد یا ادامه داد  \nاگر به این نقطه رسیدید، می‌توانید نتیجه را به‌صورت پایدار ادامه دهید: تصمیم‌ها در محیط سایه و خلبان به‌اندازه‌ی قابل‌پذیرش بانک بهبود یافته‌اند، اخطارها به‌اندازه‌ی ظرفیت تیم‌های عملیاتی‌اند، تقلب‌های تازه ثبت و پوشش داده شده‌اند، تأخیر از سقف مجاز عبور نکرده است، و پایداری در بازه‌های مختلف زمان، کانال و پذیرنده دیده می‌شود.  \n\nاگر برچسب‌های تقلب کافی نیست، یا داده در لحظه پرداخت در دسترس نمی‌شود، یا هزینه اخطار نادرست بالاتر از تحمل بانک است، مدل‌سازی کامل را ادامه ندهید؛ در عوض روی قوانین قابل‌توضیح و ابزارهای کم‌ریسک بمانید و بعد از بهبود داده و سیاست‌ها بازگردید.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "answered",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    117.19
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0,
+    "upload_demanded": 0,
+    "sums_checked": 0
+   },
+   "notes": {},
+   "repeat": 1,
+   "judged": {
+    "valid": false,
+    "pending": true,
+    "problems": [
+     "not judged yet: the judge runs later on the kept conversation"
+    ]
+   },
+   "spent_eur": 0.0041,
+   "judge_spent_eur": 0
+  },
+  {
+   "id": "ND-10",
+   "arm": "blueprint_rules",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "We have no CRM export yet. We want to rank 10,000 monthly inbound leads by likelihood of converting to a paid contract within 30 days so sales reps call the best leads first. Calling a lead costs $15 and a closed deal is worth $900, with a 5% baseline conversion rate.",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "# DCLab No-Data Solution Blueprint (binary)\n\n**Problem:** We have no CRM export yet. We want to rank 10,000 monthly inbound leads by likelihood of converting to a paid contract within 30 days so sales reps call the best leads first. Calling a lead costs $15 and a closed deal is worth $900, with a 5% baseline conversion rate.\n**Data mode:** No-Data Solution Design\n**Harness mode:** `deterministic_floor` · Gates passed: `5/5`\n\n## 0. Deep Problem & Domain Understanding (Epistemic Provenance)\n- **Restatement:** Solve `binary` decisioning for `entity` at `At the operational decision point before the intervention is triggered`, optimizing `pr_auc + roc_auc + Expected Utility at Capacity` to guide `Prioritize high-value binary interventions under capacity/cost constraints`.\n- **Goal** (`Stated by you`): We want to rank 10,000 monthly inbound leads by likelihood of converting to a paid contract within 30 days so sales reps call the best leads first. — *Quoted verbatim from your description: \"We want to rank 10,000 monthly inbound leads by likelihood of converting to a paid contract within 30 days so sales reps call the best leads first.\"*\n- **Decision Action** (`DCLab default`): Prioritize high-value binary interventions under capacity/cost constraints — *DCLab default (nobody said it): Standard operational action for binary decisions.*\n- **Decision Unit** (`DCLab default`): entity — *DCLab default (nobody said it): One prediction per `entity_id` grain.*\n- **Prediction Moment** (`DCLab default`): At the operational decision point before the intervention is triggered — *DCLab default (nobody said it): Sets the strict point-in-time feature boundary to prevent look-ahead leakage.*\n- **Outcome And Horizon** (`DCLab default`): `outcome_label` observed over the outcome window — *DCLab default (nobody said it): Defines when ground-truth labels mature without censor leakage.*\n- **Primary Metric** (`DCLab default`): pr_auc + roc_auc + Expected Utility at Capacity — *DCLab default (nobody said it): Matches class balance, asymmetric error costs, and operational ranking needs.*\n- **Alternative Problem Framings Considered:**\n  - `ranking`: When action capacity is fixed (e.g., top-K daily outreach), ranking by calibrated expected value can outperform a static binary probability threshold.\n  - `uplift`: Standard risk scoring predicts outcome likelihood under status quo, whereas uplift modeling estimates incremental intervention effect once A/B logs exist.\n\n## 1. Business Solution & Decision Economics\n- **Decision owner & action:** Operations / Analytics Lead — Prioritize high-value binary interventions under capacity/cost constraints\n- **Day-0 non-ML baseline:** Scorecard heuristic using top 3 domain risk rules + randomized control holdout to measure baseline lift before ML.\n- **Read this first:** 2 of 5 inputs below are DCLab's placeholders (monthly volume, share of actions that work), not facts about your business. Every figure computed from them is an illustration until you give your own numbers.\n- **Monthly volume:** 10000 (assumed by DCLab) · **Base rate:** 5.0% (stated by you)\n- **Cost per action:** 15.0 (stated by you) · **Value per caught case:** 900.0 (stated by you) · **Share of actions that work:** 35% (assumed by DCLab)\n- **Break-even precision:** 4.8% (an illustration: computed from assumed inputs)\n\n### ROI Scenarios (an illustration: computed from assumed inputs; the lifts are DCLab's assumptions)\n| Scenario | Precision | Flagged/mo | Gross Value | Cost | Net/mo |\n|---|---:|---:|---:|---:|---:|\n| Conservative (1.5x lift) | 7.5% | 1500 | 35280.0 | 22500.0 | 12780.0 |\n| Target ML (2.5x lift) | 12.5% | 1500 | 59220.0 | 22500.0 | 36720.0 |\n| Strong ML (3.5x lift) | 17.5% | 1500 | 82530.0 | 22500.0 | 60030.0 |\n\n## 2. Data Science Solution & Minimum Viable Data Spec\n- **Unit / Entity:** `entity_id`\n- **Prediction Cutoff Time:** `decision_timestamp`\n- **Label Horizon:** fixed future window after decision_timestamp\n- **Target:** `outcome_label`\n- **Tier-1 Day-1 Features:** segment, tenure_days, activity_count_30d, historical_rate_asof, recent_change_pct\n- **Tier-2 High-Leverage Features:** peer_group_rate_asof, RecencyFrequencyRatio\n- **Forbidden Post-Decision Columns:** manual_intervention_taken_after_cutoff, outcome_timestamp, post_decision_status\n- **Validation Split:** Entity-grouped + time-ordered validation split keeping the final holdout strictly untouched until sign-off.\n- **Metrics:** roc_auc, average_precision, recall_at_budget\n- **Verified Fold-Safe Feature Programs (`dclab_core.features`):** `entity_id_count (count)`, `entity_id_day_count (count)`, `tenure_days_entity_mean (mean)`, `tenure_days_entity_deviation (deviation)`, `entity_id_time_since_prev (since_previous)`, `tenure_days_rolling3_mean (rolling_mean)`\n\n### Pre-Data Leakage Traps\n- **Strict as-of point-in-time join** (EXP-011): Compute every feature strictly using events <= decision_timestamp.\n- **Ban post-decision columns** (EXP-001): Drop/audit post-cutoff fields before training: outcome_timestamp, manual_intervention_taken_after_cutoff, post_decision_status.\n- **Lock label maturity window** (DCLAB-R04): Only assign negative labels after fixed future window after decision_timestamp has elapsed, or censoring bias inflates false negatives.\n\n## 3. ML Solution, Multi-Model Debate & Pre-Data Task Plan\n- **Stage 1 Baseline:** Regularized linear model / simple heuristic baseline with strict leak-free CV.\n- **Stage 2 Primary:** Gradient Boosted Decision Trees (LightGBM / CatBoost) tuned within nested CV.\n- **Stage 3 Decision Layer:** Probability calibration & cost threshold tuned to 4.8% break-even.\n- **What Evidence Would Change Algorithm Choice:** If the real data holds few positive outcomes or many missing values, prefer regularized logistic/linear models over deep trees.\n- **DCLab's rules' plan (no model debate ran):** Split: Entity-grouped + time-ordered validation split keeping the final holdout strictly untouched until sign-off. · Metric `roc_auc` · Families `dummy, logistic_regression, random_forest, gradient_boosting`\n- **TP-08 Selected Pre-Data Tasks:** time_split_check, grouped_split, leakage_probe, threshold_for_cost, baseline\n\n## 4. Next Options (When Ready)\n- Tell me missing economics or operational constraints to tighten these numbers.\n- If you want a **synthetic prototype**, answer the simulation questions so I can show the schema design for your approval first.\n- When real data is ready, upload/connect it — `Build project` remains unchanged whenever you attach data.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "answered",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    1.68
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0,
+    "upload_demanded": 0,
+    "sums_checked": 0
+   },
+   "notes": {
+    "family": "binary",
+    "mode": "deterministic_floor",
+    "roles_called": [],
+    "gates_passed": {
+     "gate_1_epistemic_provenance": true,
+     "gate_2_number_grounding": true,
+     "gate_3_virtual_schema_and_features": true,
+     "gate_4_workflow_and_debate": true,
+     "gate_5_budget": true
+    },
+    "cost_eur": 0.0,
+    "assumed_inputs": [
+     "monthly volume",
+     "share of actions that work"
+    ],
+    "fits": true,
+    "need": null,
+    "repaired": null,
+    "removed": 0,
+    "kind": null,
+    "findings": 0,
+    "errors": [],
+    "first_failed": [],
+    "still_failed": []
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": false,
+    "pending": true,
+    "problems": [
+     "not judged yet: the judge runs later on the kept conversation"
+    ]
+   },
+   "spent_eur": 0,
+   "judge_spent_eur": 0
+  },
+  {
+   "id": "ND-10",
+   "arm": "blueprint_pipeline",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "We have no CRM export yet. We want to rank 10,000 monthly inbound leads by likelihood of converting to a paid contract within 30 days so sales reps call the best leads first. Calling a lead costs $15 and a closed deal is worth $900, with a 5% baseline conversion rate.",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "# DCLab No-Data Solution Blueprint (binary)\n\n**Problem:** We have no CRM export yet. We want to rank 10,000 monthly inbound leads by likelihood of converting to a paid contract within 30 days so sales reps call the best leads first. Calling a lead costs $15 and a closed deal is worth $900, with a 5% baseline conversion rate.\n**Data mode:** No-Data Solution Design\n**Harness mode:** `ai_harnessed` · Gates passed: `4/5` · not passed: numbers\n\n## 0. Deep Problem & Domain Understanding (Epistemic Provenance)\n- **Restatement:** Score and rank about 10,000 monthly inbound leads by probability of paid conversion within 30 days so reps call highest expected-value leads first.\n- **Goal** (`Stated by you`): We want to rank 10,000 monthly inbound leads by likelihood of converting to a paid contract within 30 days so sales reps call the best leads first. — *Quoted verbatim from your description: \"We want to rank 10,000 monthly inbound leads by likelihood of converting to a paid contract within 30 days so sales reps call the best leads first.\"*\n- **Decision Action** (`AI inferred`): sales reps call the best leads first — *proposed by the advisor from \"sales reps call the best leads first\"*\n- **Decision Unit** (`AI inferred`): One inbound lead per monthly batch. — *AI domain inference: Outcome is paid contract within 30 days yes/no; ranking is derived from predicted conversion probability.*\n- **Prediction Moment** (`AI inferred`): At lead creation or decision_timestamp, before sales outreach. — *AI domain inference: Outcome is paid contract within 30 days yes/no; ranking is derived from predicted conversion probability.*\n- **Outcome And Horizon** (`AI inferred`): within 30 days — *proposed by the advisor from \"within 30 days\"*\n- **Primary Metric** (`AI inferred`): precision@N or expected net profit per called lead — *AI domain inference: Outcome is paid contract within 30 days yes/no; ranking is derived from predicted conversion probability.*\n- **Alternative Problem Framings Considered:**\n  - `ranking`: No explicit rank labels or relevance judgments; conversion is a natural binary label.\n  - `regression`: Target is binary, not a continuous dollar value.\n\n## 1. Business Solution & Decision Economics\n- **Decision owner & action:** Operations / Analytics Lead — sales reps call the best leads first\n- **Day-0 non-ML baseline:** Scorecard heuristic using top 3 domain risk rules + randomized control holdout to measure baseline lift before ML.\n- **Read this first:** 2 of 5 inputs below are DCLab's placeholders (monthly volume, share of actions that work), not facts about your business. Every figure computed from them is an illustration until you give your own numbers.\n- **Monthly volume:** 10000 (assumed by DCLab) · **Base rate:** 5.0% (stated by you)\n- **Cost per action:** 15.0 (stated by you) · **Value per caught case:** 900.0 (stated by you) · **Share of actions that work:** 35% (assumed by DCLab)\n- **Break-even precision:** 4.8% (an illustration: computed from assumed inputs)\n- **Domain Expert (fact):** The ranking must be built only from fields available before outreach at decision_timestamp, such as segment, tenure_days, activity_count_30d, historical_rate_asof, recent_change_pct, peer_group_rate_asof, and RecencyFrequencyRatio.\n- **Domain Expert (assumption):** A practical Day-0 rule is to prioritize high historical_rate_asof and high RecencyFrequencyRatio, then break ties with activity_count_30d within segment.\n- **Domain Expert (fact):** With call cost $15 and paid contract value $900, the main business lever is reducing wasted calls on low-likelihood leads and getting more likely positives worked first.\n\n### ROI Scenarios (an illustration: computed from assumed inputs; the lifts are DCLab's assumptions)\n| Scenario | Precision | Flagged/mo | Gross Value | Cost | Net/mo |\n|---|---:|---:|---:|---:|---:|\n| Conservative (1.5x lift) | 7.5% | 1500 | 35280.0 | 22500.0 | 12780.0 |\n| Target ML (2.5x lift) | 12.5% | 1500 | 59220.0 | 22500.0 | 36720.0 |\n| Strong ML (3.5x lift) | 17.5% | 1500 | 82530.0 | 22500.0 | 60030.0 |\n\n## 2. Data Science Solution & Minimum Viable Data Spec\n- **Unit / Entity:** `entity_id`\n- **Prediction Cutoff Time:** `decision_timestamp`\n- **Label Horizon:** fixed future window after decision_timestamp\n- **Target:** `outcome_label`\n- **Tier-1 Day-1 Features:** segment, tenure_days, activity_count_30d, historical_rate_asof, recent_change_pct\n- **Tier-2 High-Leverage Features:** peer_group_rate_asof, RecencyFrequencyRatio\n- **Forbidden Post-Decision Columns:** manual_intervention_taken_after_cutoff, outcome_timestamp, post_decision_status\n- **Validation Split:** Entity-grouped + time-ordered validation split keeping the final holdout strictly untouched until sign-off.\n- **Metrics:** roc_auc, average_precision, recall_at_budget\n- **Verified Fold-Safe Feature Programs (`dclab_core.features`):** `segment_feature (value)`, `tenure_days_feature (value)`, `activity_count_feature (value)`, `historical_rate_feature (value)`, `recent_change_feature (value)`, `activity_per_tenure_day (ratio)`\n\n### Pre-Data Leakage Traps\n- **Strict as-of point-in-time join** (EXP-011): Compute every feature strictly using events <= decision_timestamp.\n- **Ban post-decision columns** (EXP-001): Drop/audit post-cutoff fields before training: outcome_timestamp, manual_intervention_taken_after_cutoff, post_decision_status.\n- **Lock label maturity window** (DCLAB-R04): Only assign negative labels after fixed future window after decision_timestamp has elapsed, or censoring bias inflates false negatives.\n- **Leak Suspect `outcome_timestamp` (exclude):** Known only after conversion or expiration.\n- **Leak Suspect `manual_intervention_taken_after_cutoff` (exclude):** Post-decision sales action contaminates pre-call features.\n- **Leak Suspect `post_decision_status` (exclude):** Status after call may imply outcome.\n- **Leakage Auditor (fact):** outcome_label is the 30-day conversion target and is only observable after the outcome window, so it cannot be a feature at lead creation or decision_timestamp.\n\n## 3. ML Solution, Multi-Model Debate & Pre-Data Task Plan\n- **Stage 1 Baseline:** Regularized linear model / simple heuristic baseline with strict leak-free CV.\n- **Stage 2 Primary:** Gradient Boosted Decision Trees (LightGBM / CatBoost) tuned within nested CV.\n- **Stage 3 Decision Layer:** Probability calibration & cost threshold tuned to 4.8% break-even.\n- **What Evidence Would Change Algorithm Choice:** If conversion is extremely imbalanced or capacity-constrained, switch to precision-oriented classification or uplift/policy learning.\n- **DCLab's rules' plan (no model debate ran):** Split: Entity-grouped + time-ordered validation split keeping the final holdout strictly untouched until sign-off. · Metric `roc_auc` · Families `dummy, logistic_regression, random_forest, gradient_boosting`\n- **TP-08 Selected Pre-Data Tasks:** time_split_check, grouped_split, leakage_probe, threshold_for_cost, baseline\n\n## 4. Next Options (When Ready)\n- Tell me missing economics or operational constraints to tighten these numbers.\n- If you want a **synthetic prototype**, answer the simulation questions so I can show the schema design for your approval first.\n- When real data is ready, upload/connect it — `Build project` remains unchanged whenever you attach data.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "answered",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    1236.95
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0,
+    "upload_demanded": 0,
+    "sums_checked": 0
+   },
+   "notes": {
+    "family": "binary",
+    "mode": "ai_harnessed",
+    "roles_called": [
+     "problem_analyst",
+     "brief_checker",
+     "ai_first",
+     "understanding_critic",
+     "feature_engineer",
+     "case_specialist:domain_expert",
+     "case_specialist:leakage_auditor",
+     "decomposer",
+     "map_reviewer",
+     "solution_router",
+     "solution_planner",
+     "solution_challenger",
+     "debate_judge"
+    ],
+    "gates_passed": {
+     "gate_1_epistemic_provenance": true,
+     "gate_2_number_grounding": false,
+     "gate_3_virtual_schema_and_features": true,
+     "gate_4_workflow_and_debate": true,
+     "gate_5_budget": true
+    },
+    "cost_eur": 0.039471,
+    "assumed_inputs": [
+     "monthly volume",
+     "share of actions that work"
+    ],
+    "fits": true,
+    "need": null,
+    "repaired": null,
+    "removed": 0,
+    "kind": null,
+    "findings": 0,
+    "errors": [],
+    "first_failed": [],
+    "still_failed": []
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": false,
+    "pending": true,
+    "problems": [
+     "not judged yet: the judge runs later on the kept conversation"
+    ]
+   },
+   "spent_eur": 0.0395,
+   "judge_spent_eur": 0
+  },
+  {
+   "id": "ND-10",
+   "arm": "blueprint_architect",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "We have no CRM export yet. We want to rank 10,000 monthly inbound leads by likelihood of converting to a paid contract within 30 days so sales reps call the best leads first. Calling a lead costs $15 and a closed deal is worth $900, with a 5% baseline conversion rate.",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "# A solution designed without data\n\n## The problem\nThe decision is how to order 10,000 monthly inbound leads so sales reps spend finite call time on the leads most likely to become paid contracts within 30 days. The unit is one inbound lead. The decision maker is the lead-assignment owner or sales manager when the lead enters the outbound call queue, and reps execute the order.\n\nYou told: there is no CRM export yet; a call costs $15; a closed paid contract is worth $900; baseline conversion is 5%; monthly inbound lead volume is 10,000; the target horizon is 30 days. Not known: how many leads reps can actually call, whether the 5% baseline applies to all leads or only contacted leads, which lead fields exist at assignment, whether historical labeled outcomes exist, contactability rules, and whether calling changes conversion.\n\n## What needs care\n- The outcome is delayed: a lead’s conversion status may not be known until the end of its 30-day window.\n- No CRM export means no trained ranking model is available immediately; the data schema and label logging must start now.\n- The break-even probability for a call is 15 / 900 = 1.67%. The 5% baseline average is above that, but ranking matters when reps can call only part of the 10,000 leads.\n- Sales calling can affect conversion. If past policy only called good-looking leads, a model trained on those outcomes may confuse “called” with “better lead”.\n- Source, campaign, landing page, seasonality, duplicates, and invalid phone/email data can make a naive ranking unstable.\n\n## Business solution\nStart logging every inbound lead and paid-contract outcome this week. Then use a provisional call queue that does not require a model: rank by fields available at assignment, such as source, landing page, company size, job title, industry, phone validity, email validity, and whether the lead is a duplicate. Put the highest-priority leads at the top of each day’s calling list.\n\nSimple starting rule: call down the list while rep capacity remains, and do not treat any group as profitable unless its estimated 30-day paid conversion likelihood is above 15 / 900 = 1.67%. Until segment-level estimates exist, use the 5% baseline as the average likelihood, so the main job is prioritizing scarce call time, not rejecting most leads.\n\nIf the 5% baseline is true for all 10,000 monthly leads and all are called: 10,000 * 5% = 500 expected paid contracts; those contracts are worth 500 * $900 = $450,000; calls cost 10,000 * $15 = $150,000.\n\n## Data to record\n\n| column | what it is | known when | role |\n|---|---|---|---|\n| lead_id | unique identifier for the inbound lead | before | key |\n| lead_created_at | timestamp the lead was created or submitted | before | time |\n| decision_at | timestamp the lead enters the outbound call queue | at | time |\n| source | lead source, campaign, or channel | before | input |\n| landing_page | page or form URL that produced the lead | before | input |\n| country | country or region of the lead | before | input |\n| company_domain | email domain or company website domain | before | input |\n| industry | industry of the company | before | input |\n| company_size | employee count or revenue band if available | before | input |\n| job_title | role of the contact | before | input |\n| has_phone | whether a callable phone number is present | before | input |\n| has_valid_email | whether a valid email address is present | before | input |\n| budget_field | self-reported budget or spend ability if present | before | input |\n| timeline_field | self-reported buying timeline if present | before | input |\n| need_field | self-reported need or product interest if present | before | input |\n| consent_status | marketing consent status | before | input |\n| duplicate_flag | whether the lead matches an existing CRM record | before | input |\n| converted_within_30_days | whether a paid contract was signed within 30 days of lead_created_at | after | label |\n| contract_signed_at | timestamp a paid contract was signed, if any | after | time |\n| call_made | whether the lead was called | after | not used |\n| lost_reason | reason no contract was signed, if recorded | after | not used |\n\nWhat one row is: each record is an inbound lead.\n\nMoment of decision: when the lead is placed in the outbound call queue.\n\nHow the label is defined and how long it takes to be known: converted_within_30_days is yes if a paid contract is signed within 30 days of lead_created_at; it becomes known at the close of that 30-day period.\n\n## Model\nWith no CRM export, the starting baseline is the 5% average conversion rate. After labeled records accumulate, a stronger baseline scores each segment by its own 30-day paid-contract rate, such as source plus company size plus industry, while falling back to the 5% baseline for thin segments.\n\nThen train a probabilistic classifier, beginning with logistic regression or gradient-boosted trees, to predict converted_within_30_days. Use only columns whose role is input and known when before or at. Do not use call_made, lost_reason, contract_signed_at, or converted_within_30_days as model inputs.\n\nTest chronologically by lead_created_at: train on earlier leads, then evaluate on leads created later whose 30-day label windows are closed. The main measure should be AUC for ranking, plus the actual 30-day conversion rate captured in the top K queue, compared with the segment baseline and the 5% average baseline. If using probability thresholds rather than pure ranking, calibrate the predicted probabilities.\n\nTurn the score into the decision like this: sort leads by predicted probability. If rep capacity is below 10,000 monthly leads, call the top capacity-sized subset. If capacity is not binding, call leads only while the calibrated probability is above 15 / 900 = 1.67%. If calling changes conversion, later compare model-ranked leads against the current rule to estimate incremental paid contracts per call.\n\nKind: binary classification\n\n## Plan\n1. This week: add the required fields to the inbound form and lead intake process, and store them with the table above. Finished when new leads arrive with complete required fields and every paid contract can be linked back to its lead_id.\n2. This week: create a provisional priority queue using source, landing page, company size, job title, industry, has_phone, has_valid_email, and duplicate_flag. Finished when reps have a written call-order rule and every call attempt is logged.\n3. This week: set up monitoring for each queue group against the break-even threshold 15 / 900 = 1.67% and the 5% baseline. Finished when conversion by queue group can be reviewed for each 30-day window.\n4. As leads move through the 30-day window: freeze the label converted_within_30_days. Finished when no completed lead window can change from not converted to converted without an explicit data correction.\n5. Once a full labeled window exists: build the segment baseline and the model using only before/at input fields. Finished when predictions are generated without using any after-the-decision outcome fields.\n6. Test on a later 30-day-labeled window. Finished when AUC and top-K conversion capture are compared against the segment baseline and the 5% baseline, and probability calibration is checked if thresholds are used.\n7. Pilot the model ranking for part of the monthly 10,000 leads while keeping a comparison group under the current rule. Finished when paid contracts per call and call cost are compared between model-ranked and current-ranked leads, and a routing decision is made.\n\n## What only real data can settle\nReal data is needed to know actual conversion rates by source, company size, job title, industry, landing page, and campaign; whether phone and email validity materially change lead quality; whether the 5% baseline applies to all inbound leads or only contacted leads; how many leads reps can realistically call; whether calling causes additional conversions; which fields give true ranking signal; whether predicted probabilities are well calibrated; and whether the model beats the current queue by increasing paid contracts per $15 call.\n\n## Questions for you\n1. How many of the 10,000 monthly inbound leads can sales reps actually call within the 30-day window?\n2. Does the 5% baseline conversion rate apply to all inbound leads, or only to leads that were contacted or called?\n3. Which fields in the Data to record table are already captured at lead submission, and which require a form or intake change?\n\n## Checked by code\n- Sums checked by code: `15 / 900 = 1.67%`; `10,000 * 5% = 500`; `500 * $900 = $450,000`; `10,000 * $15 = $150,000`.\n\n## Checks DCLab will run when real data arrives\n- `time_split_check` on `lead_created_at`: Declared time column\n- `grouped_split` on `lead_id`: Declared entity key\n- `baseline` on `roc_auc`: Baseline model\n\n## A second reader's findings\n- If the 30-day converted label is attached to leads even when they were never called, the model learns whether sales contacted the lead instead of lead quality; make the label conditional on a real call/contact attempt or keep uncalled leads separate until randomized or comparison data exist.\n- The provisional queue assumes source, landing page, company size, job title, industry, phone validity, email validity, and duplicate status are already captured, but the person did not say which fields exist with no CRM export; verify the fields at submission and rank only by fields already present.\n- The plan cannot decide how valuable ranking is or compare the top call queue without knowing call capacity; obtain call capacity before building the model, and if all leads can be called, keep this as a simple contactability triage instead of a conversion prediction project.\n- Using predicted absolute conversion against a cost-value break-even threshold assumes a call causes the paid contract; measure incremental paid contracts per call from a pilot or random holdout, because only contact-and-conversion data can show whether calling changes the outcome.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "asks",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    189.83
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0,
+    "upload_demanded": 0,
+    "sums_checked": 11
+   },
+   "notes": {
+    "family": null,
+    "mode": "architect",
+    "roles_called": [
+     "architect",
+     "critic"
+    ],
+    "gates_passed": {
+     "need": true,
+     "parts": true,
+     "sums": true,
+     "numbers": true,
+     "data table": true,
+     "an outcome and an input": true,
+     "inputs known in time": true,
+     "label after the decision": true,
+     "plan": true,
+     "model": true,
+     "no upload asked": true,
+     "no data made": true
+    },
+    "cost_eur": 0.00974,
+    "assumed_inputs": [],
+    "fits": null,
+    "need": "full",
+    "repaired": false,
+    "removed": 0,
+    "kind": "binary classification",
+    "findings": 4,
+    "errors": [],
+    "first_failed": [],
+    "still_failed": []
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": false,
+    "pending": true,
+    "problems": [
+     "not judged yet: the judge runs later on the kept conversation"
+    ]
+   },
+   "spent_eur": 0.0097,
+   "judge_spent_eur": 0
+  },
+  {
+   "id": "ND-10",
+   "arm": "model_only",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "We have no CRM export yet. We want to rank 10,000 monthly inbound leads by likelihood of converting to a paid contract within 30 days so sales reps call the best leads first. Calling a lead costs $15 and a closed deal is worth $900, with a 5% baseline conversion rate.",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "The problem is a prioritization decision: given a monthly pool of 10,000 inbound leads, in what order should sales reps call them so that paid contracts are more likely to close within 30 days, while accounting for a $15 cost per call and a $900 value per closed contract. The users of the result are sales reps, inside sales, sales managers, and anyone owning the lead queue. The unit is an inbound lead. The moment it concerns is when a lead enters the sales-call queue, before calling begins; success is measured by whether the lead becomes a paid contract within the stated 30-day window.\n\nWhat is known from the person’s message:\n- There is no CRM export yet.\n- There are 10,000 monthly inbound leads.\n- The desired ranking is by likelihood of converting to a paid contract within 30 days.\n- Calling a lead costs $15.\n- A closed deal is worth $900.\n- The baseline conversion rate is 5%.\n\nWhat is not known:\n- What historical outcome data exists, if any.\n- What lead fields are available at ranking time.\n- Whether the 5% conversion rate applies after calling, without calling, or to some mixed population.\n- Whether sales reps can call all 10,000 leads or only a limited number.\n- How “inbound lead” is defined: unique person, company, contact, opportunity, or duplicate merge policy.\n- Whether deal value is always $900 or varies by lead.\n- How long it usually takes from first call to paid contract.\n- Whether some leads should not be called because of quality, compliance, or capacity.\n- What sales reps actually do with the ranking today.\n- Whether follow-up, email, nurture, or qualification changes conversion.\n\nI would also separate these assumptions from what was stated:\n- Assumption: sales reps have limited time and cannot immediately call all leads with equal priority. If that is false, ranking matters less for selection and more for timing.\n- Assumption: the $900 value and $15 call cost apply uniformly to all leads. If not, the ranking should consider expected value rather than conversion likelihood alone.\n- Assumption: the 5% baseline is a useful reference point for comparison. It is not necessarily a prediction for each lead.\n\nPossible approaches and what they cost or give:\n\n1. No model: call leads by arrival order or round-robin.\n   - Cost: almost none.\n   - Gives: a clean baseline, low bias, simple operations, and a way to start collecting outcome data.\n   - Limit: it does not identify the most likely converters. It only ensures fairness or recency.\n   - Best use: if there are no usable lead attributes or no historical outcomes, this is the safest temporary approach.\n\n2. Simple business rules or scorecard.\n   - Cost: time to define rules, input from sales and marketing, and a way to apply them to incoming leads.\n   - Gives: immediate, explainable prioritization without needing a trained model.\n   - Limit: rules are guesses unless validated. They may miss interactions between attributes and may become unfair if they favor one lead source over another.\n   - Best use: when there is no CRM export yet but some information exists at lead creation, such as form type, source, page visited, product interest, company type, job title, or completeness of contact details.\n\n3. Supervised probability model using historical conversions.\n   - Cost: historical CRM or call logs, labeled outcomes within 30 days, features available before calling, validation time, model monitoring, and data governance.\n   - Gives: better ranking if past leads contain predictive signals, and possibly calibrated likelihood estimates.\n   - Limit: not currently possible if there is no CRM export and no labeled history.\n   - Best use: after collecting enough labeled leads over time.\n\n4. Expected-value ranking rather than raw conversion probability.\n   - Cost: needs deal value, call cost, and any downstream follow-up costs.\n   - Gives: ranking by the value the lead is expected to produce after subtracting call cost.\n   - Limit: with constant $15 call cost and constant $900 deal value, expected-value ranking is basically equivalent to ranking by conversion probability. If deal size, qualification cost, or sales effort varies, expected-value ranking becomes more useful.\n   - Best use: when lead value or cost differs by source, segment, product, or company.\n\n5. Causal or uplift modeling.\n   - Cost: controlled experiments, random holdouts, no-call groups, or randomized calling priority, plus careful logging.\n   - Gives: estimates of which leads would not convert unless called, versus which leads might convert anyway. This matters if sales time is constrained.\n   - Limit: hard to do without an experiment plan and historical CRM data.\n   - Best use: once the organization is willing to deliberately leave some leads unranked or randomly ordered for learning.\n\n6. Survival or time-to-conversion model.\n   - Cost: timestamps for lead creation, calls, replies, meetings, and closures.\n   - Gives: probability of closing within 30 days while accounting for lead age, follow-up delays, and censoring.\n   - Limit: more complex and less useful at the very beginning.\n   - Best use: when timing matters as much as final conversion.\n\nMy chosen starting plan: begin with a transparent rule-based priority system, paired with outcome logging, and only later move to a supervised model once CRM history is available. Given that there is no CRM export yet, a model cannot honestly be built now. The immediate need is a defensible way to rank leads and create a dataset that will make future modeling possible.\n\nPlan in steps:\n\nStep one: define the target and the unit clearly.\n- Decide what counts as one inbound lead.\n- Decide what counts as a paid contract.\n- Decide whether the 30-day clock starts at lead creation, first call, qualification, or another event.\n- Decide how duplicates, merged contacts, and multiple leads from one company are handled.\n- What it needs: agreement from sales, marketing, finance, and CRM owners.\n- What it gives: a stable label for all future ranking and measurement.\n\nStep two: confirm the real operating constraint.\n- If sales reps can call every lead, the main question becomes sequencing, not selection.\n- If reps can only call a limited number, the ranking decides who gets contact.\n- If some leads must be called anyway for SLA or fairness reasons, the ranking should respect that.\n- What it needs: call capacity information, service-level targets, and manager input.\n- What it gives: clarity about whether the model should optimize speed, coverage, or selection.\n\nStep three: inventory what is available at the moment of ranking.\n- List all lead attributes known before a rep calls: source, campaign, landing page, form, requested product, title, company size, country, language, time zone, prior engagement, completeness, etc.\n- If no CRM export exists, check whether marketing automation, website forms, email, chat, or lead capture systems can provide these fields.\n- If no usable fields are available, use arrival order or randomization.\n- What it needs: data access and privacy review.\n- What it gives: the feature set for rules or a future model.\n\nStep four: build a simple provisional scorecard.\n- Use qualitative priority tiers, not pretend probabilities.\n- Higher priority can be given to signals that sales and marketing agree are strong intent markers, such as a direct request for a paid contract, pricing discussion, relevant role, target company fit, or recent high-intent page behavior.\n- Lower priority can be given to generic newsletter signups, incomplete records, non-target profiles, or weak engagement.\n- If no signal is known, do not invent confidence; mark the lead as neutral and rank by recency or randomize.\n- What it needs: sales domain input and a way to apply the score to each lead.\n- What it gives: an operational ranking that can be used immediately.\n\nStep five: apply the ranking to the 10,000 monthly leads.\n- Generate a call queue ordered by the provisional score.\n- If the score is not validated, keep the queue transparent and auditable.\n- Record what happened: which leads were called, when, by whom, outcome, meeting set, no answer, opt-out, disqualification, and paid contract within 30 days.\n- Keep a portion of the process stable for learning. If the organization can tolerate it, do not change the rules every week.\n- What it needs: CRM, dialer, spreadsheet, or simple queueing system.\n- What it gives: the raw history needed to test whether the rules work.\n\nStep six: check whether the ranking actually improves priority.\n- Compare conversion rates for higher-priority versus lower-priority leads over the 30-day window.\n- Compare the high-priority group against the 5% baseline, while being careful not to overreact to one month.\n- Look at expected net value using the given economics: probability of paid contract multiplied by $900, minus $15 per call. If lead value or cost varies, include that.\n- Check timing: do high-priority leads close sooner, or just eventually?\n- Check operational fairness: does the ranking systematically starve one source or company type?\n- Check if the score is useful when reps are constrained. If all leads get called, a high score may not create incremental value unless it shortens time to call.\n- What it needs: outcome labels and a simple reporting view.\n- What it gives: evidence for promoting, removing, or reweighting rules.\n\nStep seven: improve the rules only when validated.\n- Keep a rule if it consistently produces higher conversion than the baseline and is operationally safe.\n- Remove or reduce a rule if it adds volume without adding conversions, or if it creates bias.\n- Add rules only when there is evidence or strong business logic, and then log the change date.\n- What it needs: disciplined iteration and version history.\n- What it gives: a better operational policy without pretending to know probabilities that have not been measured.\n\nStep eight: build a model once there is enough labeled CRM history.\n- Start with a simple logistic regression or other transparent conversion model using only pre-call features.\n- Split by time, not randomly: train on earlier monthly cohorts, validate on later cohorts.\n- Compare model rank order with the rule-based score.\n- Evaluate conversion lift, rank quality, calibration, expected value, and timing.\n- Consider more flexible methods only if the simple model shows stable predictive signal and the business can support them.\n- What it needs: labeled historical leads, feature history, validation time, and governance.\n- What it gives: a better likelihood estimate and a path to expected-value ranking.\n\nWhen to stop or change approach:\n- Stop using random or arrival order when enough lead-level history exists to make rules meaningful.\n- Stop relying only on business rules when the labeled dataset is large enough for time-split validation and a model consistently outperforms the rules.\n- Stop adding rules when they no longer produce stable improvement over the 5% baseline or over simpler rules.\n- Stop iterating the model when performance plateaus, maintenance cost grows, operational complexity outweighs gains, or data drift begins.\n- Revisit the objective if the baseline conversion economics change, deal value changes, call cost changes, or the 30-day definition changes.\n\nIn short: with no CRM export yet, the honest approach is not to claim a trained conversion likelihood model can already be used. The best first move is a simple, transparent priority system that ranks leads using available intake signals, logs every call and outcome, checks results against the 5% baseline, and uses the given $15 cost and $900 contract value to judge expected value. Once the monthly cohort history exists, replace or augment the rules with a time-validated probability model.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "asks",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    135.69
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0,
+    "upload_demanded": 0,
+    "sums_checked": 0
+   },
+   "notes": {},
+   "repeat": 1,
+   "judged": {
+    "valid": false,
+    "pending": true,
+    "problems": [
+     "not judged yet: the judge runs later on the kept conversation"
+    ]
+   },
+   "spent_eur": 0.0044,
+   "judge_spent_eur": 0
+  },
+  {
+   "id": "ND-11",
+   "arm": "blueprint_rules",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "We want to forecast cold-chain vaccine demand and spoilage risk across regional depots without uploading our internal ERP tables.",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "# DCLab No-Data Solution Blueprint (forecasting)\n\n**Problem:** We want to forecast cold-chain vaccine demand and spoilage risk across regional depots without uploading our internal ERP tables.\n**Data mode:** No-Data Solution Design\n**Harness mode:** `deterministic_floor` · Gates passed: `5/5`\n\n## 0. Deep Problem & Domain Understanding (Epistemic Provenance)\n- **Restatement:** Solve `forecasting` decisioning for `sku` at `At the planning cutoff (T0) before ordering or staffing for the next horizon`, optimizing `mae / wape + P90 Quantile Pinball Loss` to guide `Prioritize high-value forecasting interventions under capacity/cost constraints`.\n- **Goal** (`Stated by you`): We want to forecast cold-chain vaccine demand and spoilage risk across regional depots without uploading our internal ERP tables. — *Quoted verbatim from your description: \"We want to forecast cold-chain vaccine demand and spoilage risk across regional depots without uploading our internal ERP tables.\"*\n- **Decision Action** (`DCLab default`): Prioritize high-value forecasting interventions under capacity/cost constraints — *DCLab default (nobody said it): Standard operational action for forecasting decisions.*\n- **Decision Unit** (`DCLab default`): sku — *DCLab default (nobody said it): One prediction per `sku_id` grain.*\n- **Prediction Moment** (`DCLab default`): At the planning cutoff (T0) before ordering or staffing for the next horizon — *DCLab default (nobody said it): Sets the strict point-in-time feature boundary to prevent look-ahead leakage.*\n- **Outcome And Horizon** (`DCLab default`): `target_demand_units` observed over Next 7 to 30 days ahead — *DCLab default (nobody said it): Defines when ground-truth labels mature without censor leakage.*\n- **Primary Metric** (`DCLab default`): mae / wape + P90 Quantile Pinball Loss — *DCLab default (nobody said it): Matches class balance, asymmetric error costs, and operational ranking needs.*\n- **Alternative Problem Framings Considered:**\n  - `regression`: Cross-sectional tabular regression ignores autocorrelation and seasonal lags; time-series forecasting with rolling origin splits respects temporal ordering.\n  - `optimization`: Inventory reorder optimization sits downstream of quantile demand forecasts (P50/P90) once holding and stockout costs are parameterized.\n\n## 1. Business Solution & Decision Economics\n- **Decision owner & action:** Operations / Analytics Lead — Prioritize high-value forecasting interventions under capacity/cost constraints\n- **Day-0 non-ML baseline:** Scorecard heuristic using top 3 domain risk rules + randomized control holdout to measure baseline lift before ML.\n- **Read this first:** 5 of 5 inputs below are DCLab's placeholders (monthly volume, base rate, cost per action, value per caught case, share of actions that work), not facts about your business. Every figure computed from them is an illustration until you give your own numbers.\n- **Monthly volume:** 10000 (assumed by DCLab) · **Base rate:** 8.0% (assumed by DCLab)\n- **Cost per action:** 15.0 (assumed by DCLab) · **Value per caught case:** 180.0 (assumed by DCLab) · **Share of actions that work:** 35% (assumed by DCLab)\n- **Break-even precision:** 23.8% (an illustration: computed from assumed inputs)\n\n### ROI Scenarios (an illustration: computed from assumed inputs; the lifts are DCLab's assumptions)\n| Scenario | Precision | Flagged/mo | Gross Value | Cost | Net/mo |\n|---|---:|---:|---:|---:|---:|\n| Conservative (1.5x lift) | 12.0% | 1500 | 11340.0 | 22500.0 | -11160.0 |\n| Target ML (2.5x lift) | 20.0% | 1500 | 18900.0 | 22500.0 | -3600.0 |\n| Strong ML (3.5x lift) | 28.0% | 1500 | 26460.0 | 22500.0 | 3960.0 |\n\n## 2. Data Science Solution & Minimum Viable Data Spec\n- **Unit / Entity:** `sku_id / store_id`\n- **Prediction Cutoff Time:** `forecast_origin_date`\n- **Label Horizon:** h = 7 to 28 days ahead (strict origin cutoff)\n- **Target:** `target_demand_units`\n- **Tier-1 Day-1 Features:** store_id, date, unit_price, promo_active_planned, stock_on_hand_start, day_of_week, is_holiday, lag_7d_units\n- **Tier-2 High-Leverage Features:** stockout_adjusted_demand_28d, same_store_category_trend, lead_time_days\n- **Forbidden Post-Decision Columns:** end_of_day_revenue, actual_stockout_during_horizon, future_markdown_applied\n- **Validation Split:** Rolling temporal origin backtest (train <= T_k, gap >= horizon, test at T_k + h); never random shuffle.\n- **Metrics:** wape, mae, rmse, pinball_loss_p90\n- **Verified Fold-Safe Feature Programs (`dclab_core.features`):** `sku_id_count (count)`, `sku_id_day_count (count)`, `date_entity_mean (mean)`, `date_entity_deviation (deviation)`, `sku_id_time_since_prev (since_previous)`, `date_rolling3_mean (rolling_mean)`\n\n### Pre-Data Leakage Traps\n- **Strict as-of point-in-time join** (KND-004): Compute every feature strictly using events <= forecast_origin_date.\n- **Ban post-decision columns** (DCLAB-R04): Drop/audit post-cutoff fields before training: actual_stockout_during_horizon, end_of_day_revenue, future_markdown_applied.\n- **Lock label maturity window** (EXP-011): Only assign negative labels after h = 7 to 28 days ahead (strict origin cutoff) has elapsed, or censoring bias inflates false negatives.\n\n## 3. ML Solution, Multi-Model Debate & Pre-Data Task Plan\n- **Stage 1 Baseline:** Seasonal Naive / Rolling Mean + Calendar Ridge Regression (must beat before adding complexity).\n- **Stage 2 Primary:** Global LightGBM / CatBoost over lagged, calendar & promo features with recursive/direct multi-horizon loss.\n- **Stage 3 Decision Layer:** Quantile / conformal prediction intervals mapped directly to safety-stock & reorder cost asymmetry.\n- **What Evidence Would Change Algorithm Choice:** If the real data holds few positive outcomes or many missing values, prefer regularized logistic/linear models over deep trees.\n- **DCLab's rules' plan (no model debate ran):** Split: Rolling temporal origin backtest (train <= T_k, gap >= horizon, test at T_k + h); never random shuffle. · Metric `wape` · Families `dummy, ridge, random_forest, gradient_boosting`\n- **TP-08 Selected Pre-Data Tasks:** time_split_check, grouped_split, threshold_for_cost, baseline\n\n## 4. Next Options (When Ready)\n- Tell me missing economics or operational constraints to tighten these numbers.\n- If you want a **synthetic prototype**, answer the simulation questions so I can show the schema design for your approval first.\n- When real data is ready, upload/connect it — `Build project` remains unchanged whenever you attach data.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "answered",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    0.06
+   ],
+   "safety": {
+    "uncited": [
+     "30",
+     "28",
+     "28"
+    ],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0,
+    "upload_demanded": 0,
+    "sums_checked": 0
+   },
+   "notes": {
+    "family": "forecasting",
+    "mode": "deterministic_floor",
+    "roles_called": [],
+    "gates_passed": {
+     "gate_1_epistemic_provenance": true,
+     "gate_2_number_grounding": true,
+     "gate_3_virtual_schema_and_features": true,
+     "gate_4_workflow_and_debate": true,
+     "gate_5_budget": true
+    },
+    "cost_eur": 0.0,
+    "assumed_inputs": [
+     "monthly volume",
+     "base rate",
+     "cost per action",
+     "value per caught case",
+     "share of actions that work"
+    ],
+    "fits": true,
+    "need": null,
+    "repaired": null,
+    "removed": 0,
+    "kind": null,
+    "findings": 0,
+    "errors": [],
+    "first_failed": [],
+    "still_failed": []
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": false,
+    "pending": true,
+    "problems": [
+     "not judged yet: the judge runs later on the kept conversation"
+    ]
+   },
+   "spent_eur": 0,
+   "judge_spent_eur": 0
+  },
+  {
+   "id": "ND-11",
+   "arm": "blueprint_pipeline",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "We want to forecast cold-chain vaccine demand and spoilage risk across regional depots without uploading our internal ERP tables.",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "# DCLab No-Data Solution Blueprint (forecasting)\n\n**Problem:** We want to forecast cold-chain vaccine demand and spoilage risk across regional depots without uploading our internal ERP tables.\n**Data mode:** No-Data Solution Design\n**Harness mode:** `ai_harnessed` · Gates passed: `4/5` · not passed: workflow\n\n## 0. Deep Problem & Domain Understanding (Epistemic Provenance)\n- **Restatement:** Forecast depot-SKU vaccine demand and spoilage risk using only origin-safe aggregated features.\n- **Goal** (`Stated by you`): We want to forecast cold-chain vaccine demand and spoilage risk across regional depots without uploading our internal ERP tables. — *Quoted verbatim from your description: \"We want to forecast cold-chain vaccine demand and spoilage risk across regional depots without uploading our internal ERP tables.\"*\n- **Decision Action** (`AI inferred`): forecast cold-chain vaccine demand and spoilage risk — *proposed by the advisor from \"forecast cold-chain vaccine demand and spoilage risk across regional depots\"*\n- **Decision Unit** (`AI inferred`): regional depot — *proposed by the advisor from \"across regional depots\"*\n- **Prediction Moment** (`AI inferred`): At forecast_origin_date, before the horizon starts. — *AI domain inference: Main deliverable is future demand from forecast origins; spoilage is a secondary risk prediction.*\n- **Outcome And Horizon** (`AI inferred`): Future demand units and spoilage risk score or probability. (Demand is known after actual consumption; spoilage after expiry or incident confirmation.) — *AI domain inference: Main deliverable is future demand from forecast origins; spoilage is a secondary risk prediction.*\n- **Primary Metric** (`AI inferred`): WAPE or MASE for demand; PR-AUC and calibration error for spoilage — *AI domain inference: Main deliverable is future demand from forecast origins; spoilage is a secondary risk prediction.*\n- **Alternative Problem Framings Considered:**\n  - `rare_event`: Use only after spoilage labels exist and positives are identifiable.\n  - `anomaly`: Use as proxy if spoilage labels are absent or sparse.\n\n## 1. Business Solution & Decision Economics\n- **Decision owner & action:** Operations / Analytics Lead — forecast cold-chain vaccine demand and spoilage risk\n- **Day-0 non-ML baseline:** Scorecard heuristic using top 3 domain risk rules + randomized control holdout to measure baseline lift before ML.\n- **Read this first:** 5 of 5 inputs below are DCLab's placeholders (monthly volume, base rate, cost per action, value per caught case, share of actions that work), not facts about your business. Every figure computed from them is an illustration until you give your own numbers.\n- **Monthly volume:** 10000 (assumed by DCLab) · **Base rate:** 8.0% (assumed by DCLab)\n- **Cost per action:** 15.0 (assumed by DCLab) · **Value per caught case:** 180.0 (assumed by DCLab) · **Share of actions that work:** 35% (assumed by DCLab)\n- **Break-even precision:** 23.8% (an illustration: computed from assumed inputs)\n- **Domain Expert (fact):** The forecast origin is forecast_origin_date before the horizon starts, so Day-0 inputs should be only planned or start-of-period columns such as stock_on_hand_start, lead_time_days, promo_active_planned, day_of_week, is_holiday, lag_7d_units, and rolling_28d_mean.\n- **Domain Expert (assumption):** The biggest levers are likely opening stock versus forecast demand, replenishment lead_time_days, promo_active_planned, and unit_price, because they change ordering quantities and spoilage exposure.\n- **Domain Expert (fact):** A baseline should forecast each sku_id and store_id from lag_7d_units and rolling_28d_mean, then test holiday, weekday, price, promo, stock_on_hand_start, and lead_time_days effects.\n\n### ROI Scenarios (an illustration: computed from assumed inputs; the lifts are DCLab's assumptions)\n| Scenario | Precision | Flagged/mo | Gross Value | Cost | Net/mo |\n|---|---:|---:|---:|---:|---:|\n| Conservative (1.5x lift) | 12.0% | 1500 | 11340.0 | 22500.0 | -11160.0 |\n| Target ML (2.5x lift) | 20.0% | 1500 | 18900.0 | 22500.0 | -3600.0 |\n| Strong ML (3.5x lift) | 28.0% | 1500 | 26460.0 | 22500.0 | 3960.0 |\n\n## 2. Data Science Solution & Minimum Viable Data Spec\n- **Unit / Entity:** `sku_id / store_id`\n- **Prediction Cutoff Time:** `forecast_origin_date`\n- **Label Horizon:** h = 7 to 28 days ahead (strict origin cutoff)\n- **Target:** `target_demand_units`\n- **Tier-1 Day-1 Features:** store_id, stock_on_hand_start, lead_time_days, date, unit_price, promo_active_planned, day_of_week, is_holiday\n- **Tier-2 High-Leverage Features:** stockout_adjusted_demand_28d, same_store_category_trend\n- **Forbidden Post-Decision Columns:** end_of_day_revenue, actual_stockout_during_horizon, future_markdown_applied\n- **Validation Split:** Rolling temporal origin backtest (train <= T_k, gap >= horizon, test at T_k + h); never random shuffle.\n- **Metrics:** wape, mae, rmse, pinball_loss_p90\n- **Verified Fold-Safe Feature Programs (`dclab_core.features`):** `demand_accel_7_28 (ratio)`, `stock_cover_prior_week (ratio)`, `stock_cover_recent_mean (ratio)`, `stock_per_lead_day (ratio)`, `dow_recent_demand_baseline (mean)`, `dow_recent_demand_deviation (deviation)`\n\n### Pre-Data Leakage Traps\n- **Strict as-of point-in-time join** (KND-004): Compute every feature strictly using events <= forecast_origin_date.\n- **Ban post-decision columns** (DCLAB-R04): Drop/audit post-cutoff fields before training: actual_stockout_during_horizon, end_of_day_revenue, future_markdown_applied.\n- **Lock label maturity window** (EXP-011): Only assign negative labels after h = 7 to 28 days ahead (strict origin cutoff) has elapsed, or censoring bias inflates false negatives.\n- **Leak Suspect `actual_stockout_during_horizon` (exclude):** Occurred after origin.\n- **Leak Suspect `end_of_day_revenue` (exclude):** Post-outcome value.\n- **Leak Suspect `future_markdown_applied` (exclude):** Decision after origin.\n- **Leakage Auditor (fact):** target_demand_units is the outcome-like target and must be used only as the label, not as an input feature.\n\n## 3. ML Solution, Multi-Model Debate & Pre-Data Task Plan\n- **Stage 1 Baseline:** Seasonal Naive / Rolling Mean + Calendar Ridge Regression (must beat before adding complexity).\n- **Stage 2 Primary:** Global LightGBM / CatBoost over lagged, calendar & promo features with recursive/direct multi-horizon loss.\n- **Stage 3 Decision Layer:** Quantile / conformal prediction intervals mapped directly to safety-stock & reorder cost asymmetry.\n- **What Evidence Would Change Algorithm Choice:** Switch to anomaly or hierarchical pooled models if spoilage labels are sparse and demand is intermittent.\n- **Planner-Challenger-Judge Debate Verdict:** Split `group, group_column sku_id, holdout locked first, used once, after the choice` · Metric `mae` · Families `dummy, ridge, random_forest, gradient_boosting`\n- **TP-08 Selected Pre-Data Tasks:** time_split_check, grouped_split, threshold_for_cost, baseline\n\n## 4. Next Options (When Ready)\n- Tell me missing economics or operational constraints to tighten these numbers.\n- If you want a **synthetic prototype**, answer the simulation questions so I can show the schema design for your approval first.\n- When real data is ready, upload/connect it — `Build project` remains unchanged whenever you attach data.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "answered",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    1495.32
+   ],
+   "safety": {
+    "uncited": [
+     "28",
+     "28"
+    ],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0,
+    "upload_demanded": 0,
+    "sums_checked": 0
+   },
+   "notes": {
+    "family": "forecasting",
+    "mode": "ai_harnessed",
+    "roles_called": [
+     "problem_analyst",
+     "brief_checker",
+     "ai_first",
+     "understanding_critic",
+     "feature_engineer",
+     "case_specialist:domain_expert",
+     "case_specialist:leakage_auditor",
+     "decomposer",
+     "map_reviewer",
+     "solution_router",
+     "solution_planner",
+     "solution_challenger",
+     "debate_judge"
+    ],
+    "gates_passed": {
+     "gate_1_epistemic_provenance": true,
+     "gate_2_number_grounding": true,
+     "gate_3_virtual_schema_and_features": true,
+     "gate_4_workflow_and_debate": false,
+     "gate_5_budget": true
+    },
+    "cost_eur": 0.053126,
+    "assumed_inputs": [
+     "monthly volume",
+     "base rate",
+     "cost per action",
+     "value per caught case",
+     "share of actions that work"
+    ],
+    "fits": true,
+    "need": null,
+    "repaired": null,
+    "removed": 0,
+    "kind": null,
+    "findings": 0,
+    "errors": [],
+    "first_failed": [],
+    "still_failed": []
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": false,
+    "pending": true,
+    "problems": [
+     "not judged yet: the judge runs later on the kept conversation"
+    ]
+   },
+   "spent_eur": 0.0531,
+   "judge_spent_eur": 0
+  },
+  {
+   "id": "ND-11",
+   "arm": "blueprint_architect",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "We want to forecast cold-chain vaccine demand and spoilage risk across regional depots without uploading our internal ERP tables.",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "# A solution designed without data\n\n## The problem\nThe decision is how much cold-chain vaccine to order, hold, transfer, expedite, or retire across regional depots. It is likely made by depot-level or network-level inventory/logistics staff, but the decision maker and cadence are not given. The unit of analysis is not fixed: it could be depot aggregate or depot × product × target period. You stated the goal is demand forecasting and spoilage-risk forecasting across depots without uploading internal ERP tables. What is not known includes the forecast horizon, whether demand means orders placed, shipments received, doses dispensed, or administered doses; how spoilage is defined; which actions are allowed; the relevant costs; the product mix; and whether local aggregation is permitted for modeling.\n\n## What needs care\nThe solution can be wrong if demand is treated as unconsumed when it was limited by stockouts. It can also be wrong if future cold-chain excursions during the target period are used as model inputs because they are not known at the decision moment. Product differences matter for shelf life, sensitivity to temperature, and transfer options. The forecast must be tied to an actual decision: replenish, allocate, transfer, expedite use, or write off. Without knowing who decides, when, and what levers they have, the model score cannot be converted into a business action.\n\n## Business solution\nStart without a model by building a local depot-product expiry and cold-chain ledger. The ledger should show current stock, units at risk, earliest expiry, expected incoming units, recent storage incidents, and the lead time to replenish or transfer. Use this to produce a prioritized action list.\n\nA simple starting rule:\n\n- If the earliest usable expiry is too soon to cover expected use before the next replenishment or transfer, mark those units for expedited use, transfer to a higher-use depot, or planned retirement.\n- If units are already associated with a cold-chain incident or are approaching expiry, rank them by `units_at_risk × vaccine_unit_value`.\n- Move, expedite, or adjust storage when `expected_spoilage_units × vaccine_unit_value + potential_stockout_units × stockout_penalty_cost` is worse than using `transfer_cost` or accepting `holding_cost`.\n\nThe costs and gains are in your own numbers, not in assumed rates. They are:\n\n- `vaccine_unit_value`: value of one unit of vaccine.\n- `transfer_cost`: cost of moving units between depots or service points.\n- `holding_cost`: cost of keeping stock longer or overstocking.\n- `stockout_penalty_cost`: cost of an unserved dose, delayed campaign, or service failure.\n- `spoilage_value_lost`: lost value from units written off.\n\nThis gives an immediate operational action: reduce high-value spoilage risk, avoid high-cost stockouts, and use transfers only where they are cheaper than the combined risk. The model then improves the ranking and the quantity decision.\n\n## Data to record\n\n| column | what it is | known when | role |\n|---|---|---|---|\n| depot_id | Unique regional depot identifier | before | key |\n| product_id | Unique vaccine product identifier, if product-level tracking is used | before | key |\n| forecast_origin_date | Date when the decision or forecast is made | at | key |\n| target_period_start | Start of the period being forecast | at | time |\n| target_period_end | End of the period being forecast | at | time |\n| demand_units | Confirmed vaccine units issued, administered, or consumed in the target period | after | label |\n| spoilage_units | Units written off as spoiled or unusable during the target period | after | label |\n| spoilage_event | Whether any spoilage occurred in the target period | after | label |\n| prior_demand_units | Demand in the immediately prior comparable period | before | input |\n| trailing_demand_units | Demand across available prior periods | before | input |\n| planned_campaign_calendar | Scheduled campaign, vaccination event, or program calendar for the target period | before | input |\n| target_population_estimate | Estimated population eligible or targeted during the target period | before | input |\n| stock_on_hand_at_origin | Depot-product units available at the decision moment | at | input |\n| in_transit_units | Units already ordered or in transit that may arrive during the target period | before | input |\n| units_expiring_in_target_period | Units expected to expire during the target period, known from batch dates | at | input |\n| shelf_life_days_remaining | Shortest remaining usable life among current stock | at | input |\n| product_cold_chain_sensitivity | Product-specific cold-chain sensitivity category | before | input |\n| recent_storage_incident_count | Cold-chain incidents recorded before the decision moment | before | input |\n| recent_excursion_hours | Hours outside required temperature range recorded before the decision moment | before | input |\n| recent_temperature_deviation_mean | Average temperature deviation recorded before the decision moment | before | input |\n| backup_power_status | Backup power or refrigeration resilience status at the decision moment | at | input |\n| planned_lead_time_days | Planned time from order or transfer decision to receipt | before | input |\n| actual_prior_lead_time_days | Observed time from prior order or transfer decisions to receipt | before | input |\n| depot_storage_capacity | Maximum cold-chain storage capacity at the depot | before | input |\n| transfer_cost | Cost to transfer units to another depot or service point | before | input |\n| vaccine_unit_value | Value or cost per vaccine unit | before | input |\n| holding_cost | Cost to hold stock or avoid shortage through excess stock | before | input |\n| stockout_penalty_cost | Penalty or cost of an unserved dose or delayed vaccination | before | input |\n| service_level_target | Target fill rate or service policy used for safety stock | before | input |\n| observed_excursion_hours_in_target_period | Excursion hours during the target period, after the decision | after | not used |\n| spoilage_reason_code | Reason recorded for spoilage or write-off | after | not used |\n| stockout_limitation_units | Demand that could not be served because stock was unavailable | after | not used |\n\nEach table row is a depot and product decision record for a specific target period, created at the forecast origin date.\n\nThe decision moment is the `forecast_origin_date`, when the depot or network chooses order, allocation, transfer, expedite, or retirement actions.\n\nThe demand label is confirmed units issued, administered, or consumed during the target period, depending on the definition your operations team agrees to use. The spoilage label is units written off as unusable during the target period. These labels become known after the target period closes and after your dispensation, consumption, write-off, and settlement processes are complete; the settlement duration is not given and must come from your operations.\n\n## Model\nBegin with a baseline. For demand, use the trailing demand level adjusted for your planned campaign calendar and target population estimate. For spoilage, use a simple risk rule: higher risk for units with less remaining shelf life, known recent cold-chain excursions, incident history, limited storage capacity, or poor backup power status. This baseline should already beat a pure historical average because it uses expiry and storage context.\n\nIf enough local rows can be assembled without exposing raw ERP data, move to a simple machine model rather than starting with a complex neural network.\n\nUse two model components:\n\n- Demand model: forecast total demand, or demand by depot-product, using recent demand, campaign calendar, population target, inventory pressure, prior lead times, and depot context. Use a gradient-boosted tree or random forest with time-aware features. If only depot aggregate is available, forecast depot totals and later allocate across products.\n- Spoilage-risk model: predict either spoilage probability or expected spoilage units using current stock age, units expiring in the target period, recent excursion history, incident counts, product sensitivity, backup power status, capacity, and depot context. Use classification for whether spoilage occurs, or regression for expected spoilage units. If only small local samples are available, a logistic regression or simple gradient boosting baseline is enough.\n\nTest by splitting on `forecast_origin_date`, not randomly. Train on earlier decision dates and validate on later decision dates where labels are complete. Use backtesting across several origin dates if your data supports it.\n\nUse these measures:\n\n- Demand: mean absolute error, weighted absolute error, and bias by depot.\n- Spoilage risk: calibration, Brier score, ranking performance such as AUC, and precision at the action threshold that triggers transfer or write-off review.\n- Business value: compare baseline and model decisions using your own spoilage value lost, stockout penalty, transfer cost, and holding cost.\n\nConvert the score into the decision by making an inventory policy explicit:\n\n1. Forecast demand for the target period.\n2. Forecast expected spoilage units for the same depot-product.\n3. Compute required stock as forecast demand plus expected spoilage adjustment minus stock on hand and expected in-transit units.\n4. Apply safety stock based on your `service_level_target`, not a generic target.\n5. If demand forecast plus safety stock exceeds expected stock, trigger replenishment or transfer.\n6. If expected spoilage value exceeds transfer or holding cost, trigger expedited use, transfer, or early retirement.\n7. If the spoilage probability is high but transfer cost exceeds expected loss, accept the risk and adjust the next-period order.\n\nA simple action score is:\n\n`action_score = expected_spoilage_loss + expected_stockout_loss - transfer_cost - holding_cost_adjustment`\n\nwhere:\n\n- `expected_spoilage_loss = p_spoilage × units_at_risk × vaccine_unit_value`\n- `expected_stockout_loss = p_stockout × unserved_demand × stockout_penalty_cost`\n\nIf you do not yet have probabilities, rank by `units_at_risk × vaccine_unit_value` and `unserved_demand × stockout_penalty_cost` using the baseline rule.\n\nKind: supervised time-series forecasting and risk classification for inventory decisions.\n\n## Plan\n\n1. This week, define the decision and the row without pulling data.  \n   What is done: choose whether the unit is depot, depot-product, or depot-aggregate; choose target period; choose label definitions; list allowed actions.  \n   What it needs: inventory lead, logistics lead, program lead, and finance or value inputs.  \n   How to tell it is finished: a short decision brief names the decision, unit, horizon, label, action, and cost inputs.\n\n2. Agree on no-upload handling.  \n   What is done: decide which team extracts aggregates locally and what metadata, not raw values, is shared with solution designers.  \n   What it needs: data owner approval and a safe local aggregation process.  \n   How to tell it is finished: everyone confirms no internal ERP tables leave the local system.\n\n3. Build a local data dictionary for the table above.  \n   What is done: map each column to existing ERP, cold-chain, inventory, campaign, and finance fields.  \n   What it needs: field owners from inventory, logistics, program, and finance.  \n   How to tell it is finished: every model input and label has a source field or an explicit gap.\n\n4. Create the manual depot-product risk ledger.  \n   What is done: extract current stock, expiry, in-transit, incident history, capacity, and cost inputs locally.  \n   What it needs: read-only local aggregation permission.  \n   How to tell it is finished: operations can produce a prioritized action list for the current period.\n\n5. Apply the simple business rule.  \n   What is done: use expiry, incident, capacity, transfer cost, holding cost, stockout penalty, and unit value to rank actions.  \n   What it needs: current ledger and cost inputs.  \n   How to tell it is finished: the team can name which depot-product records are reviewed, transferred, expedited, or reordered.\n\n6. Build the baseline forecast and risk rule locally.  \n   What is done: compare demand baseline, spoilage baseline, and action triggers using historical local rows.  \n   What it needs: completed demand and spoilage labels for earlier periods.  \n   How to tell it is finished: baseline errors and action outcomes can be summarized for your chosen validation periods.\n\n7. Fit the first model locally.  \n   What is done: train demand and spoilage models on earlier forecast origins and validate on later forecast origins.  \n   What it needs: a local extract following the row design and agreed labels.  \n   How to tell it is finished: the model is tested only on completed periods and outputs can be linked to actions.\n\n8. Choose the action threshold from business cost.  \n   What is done: set transfer, expedite, reorder, and write-off rules based on expected loss comparison.  \n   What it needs: your own unit value, transfer cost, stockout penalty, holding cost, and service policy.  \n   How to tell it is finished: operations accept the threshold and can explain each triggered action.\n\n## What only real data can settle\nReal data is needed to know the true spoilage frequency, which depot products are most at risk, how strongly campaign calendar drives demand, how much of observed demand was limited by stockouts, how variable lead times are by route, whether transfers actually reduce spoilage and stockouts, and what action threshold minimizes your combined spoilage and stockout losses.\n\n## Questions for you\n- Should the unit be depot-product-target period, depot aggregate, or something else?\n- What action are you making at the forecast origin: replenishment, allocation, transfer, expedited use, or write-off decision?\n- Is demand defined as issued units, administered doses, shipments received, or orders placed, and is spoilage defined as all unusable units or only units lost after a recorded cold-chain incident?\n\n## Checks DCLab will run when real data arrives\n- `time_split_check` on `target_period_start`: Declared time column\n- `grouped_split` on `depot_id`: Declared entity key\n- `baseline` on `roc_auc`: Baseline model\n\n## A second reader's findings\n- The demand model may learn capped demand instead of true vaccine demand because stockouts are not treated as censored observations, and the table marks stockout limitation as unused while the model uses inventory pressure; collect unmet or lost-demand information or use a censored demand approach before forecasting replenishment.\n- The action score depends on spoilage and stockout probabilities that the solution does not define or estimate from the described inputs; first define how probabilities will be produced or replace them with a demand uncertainty band and safety-stock policy.\n- The stock calculation subtracts in-transit units as though arrival timing and quantities are known at the decision moment; include expected arrival windows or quantities by period, or treat pipeline stock as uncertain instead of using raw in-transit counts as certainty.\n- The transfer and expedite rules use spoilage risk predicted under the current plan, which does not show whether moving stock changes the outcome; evaluate action-specific rules or outcomes with backtests or pilots rather than applying one spoilage probability to every action.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "asks",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    309.65
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0,
+    "upload_demanded": 0,
+    "sums_checked": 0
+   },
+   "notes": {
+    "family": null,
+    "mode": "architect",
+    "roles_called": [
+     "architect",
+     "critic"
+    ],
+    "gates_passed": {
+     "need": true,
+     "parts": true,
+     "sums": true,
+     "numbers": true,
+     "data table": true,
+     "an outcome and an input": true,
+     "inputs known in time": true,
+     "label after the decision": true,
+     "plan": true,
+     "model": true,
+     "no upload asked": true,
+     "no data made": true
+    },
+    "cost_eur": 0.009867,
+    "assumed_inputs": [],
+    "fits": null,
+    "need": "full",
+    "repaired": false,
+    "removed": 0,
+    "kind": "supervised time-series forecasting and risk classification for inventory decisions",
+    "findings": 4,
+    "errors": [],
+    "first_failed": [],
+    "still_failed": []
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": false,
+    "pending": true,
+    "problems": [
+     "not judged yet: the judge runs later on the kept conversation"
+    ]
+   },
+   "spent_eur": 0.0099,
+   "judge_spent_eur": 0
+  },
+  {
+   "id": "ND-11",
+   "arm": "model_only",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "We want to forecast cold-chain vaccine demand and spoilage risk across regional depots without uploading our internal ERP tables.",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "Plainly, this is a planning problem: you need future information about vaccine needs and future information about which doses are likely to be wasted, while keeping the source of truth — the internal ERP records — inside your own systems.\n\n## What the problem is\n\nThe underlying decision is how regional depots should protect vaccine availability. It may mean choosing:\n\n- how many doses of each vaccine to allocate or reorder,\n- which depots need transfers or reallocation,\n- which lots need urgent use or careful handling,\n- which cold-chain incidents or stock ages deserve attention,\n- where to spend maintenance, staffing, or emergency response effort.\n\nThe likely users are vaccine programme planners, logistics coordinators, depot managers, cold-chain supervisors, and risk or compliance reviewers.\n\nThe decision unit is probably:\n\n- by regional depot,\n- by vaccine product, or product class,\n- and possibly by lot, expiry batch, or storage condition.\n\nThe moment of the decision is probably:\n\n- before replenishment, transfer, or ordering actions become necessary,\n- using the latest available depot records,\n- over a chosen forecast horizon that depends on your ordering and cold-chain policies.\n\n## What you told us\n\nYou told us:\n\n- you want to forecast cold-chain vaccine demand,\n- you want to forecast spoilage risk,\n- the work spans regional depots,\n- internal ERP tables cannot be uploaded.\n\n## What we do not know\n\nYou have not told us:\n\n- the exact forecast horizon,\n- the planning frequency,\n- the depot structure,\n- the vaccine products or lot tracking level,\n- whether temperature or excursion records exist,\n- whether expiry and stock age data are reliable,\n- whether the main risk is expiry, storage failure, demand spike, stockout, or transfer delay,\n- what accuracy is acceptable,\n- what alert volume the teams can handle,\n- which governance, security, or country rules apply,\n- whether a model can run locally inside your environment.\n\nBecause of that, the following assumptions need to be separated from what you stated.\n\n## What we are assuming\n\nWe assume:\n\n- your ERP contains or can contain historical demand, receipts, transfers, on-hand stock, lot expiry, product class, depot identity, and possibly cold-chain status;\n- planners need outputs that are explainable and can be reviewed before action;\n- raw ERP records must remain inside your controlled environment;\n- only derived summaries, forecasts, risk categories, scores, or aggregate decisions may be shared outside the ERP boundary;\n- demand and spoilage are related but not the same problem: demand tells you how much may be needed, spoilage tells you how much may be wasted.\n\n## Possible approaches and what they cost and give\n\n### No model at all: business rules and reports\n\nThis uses simple rules and existing reports.\n\nTypical logic:\n\n- demand is estimated from recent consumption or historical patterns,\n- spoilage risk is flagged from near-expiry stock, stock age, unusual temperature events, or storage capacity issues,\n- planners use dashboards and lists.\n\nCost:\n\n- low build cost,\n- low data-quality requirement,\n- easy to explain and audit.\n\nWhat it gives:\n\n- basic planning support,\n- clear thresholds and rules,\n- no need to move ERP data anywhere else.\n\nWhat it lacks:\n\n- limited ability to capture seasonality, campaigns, product substitution, supply shocks, or complicated cold-chain interactions,\n- may produce many alerts without ranking them well.\n\n### Local statistical forecasting plus risk scoring\n\nThis keeps the ERP data local and runs models inside your controlled environment or local analytics platform.\n\nDemand part:\n\n- forecast future vaccine needs using time-series or hierarchical forecasting,\n- allow different patterns by depot and product,\n- include uncertainty, not just a single number.\n\nSpoilage part:\n\n- estimate the chance that a stock position becomes unusable before use,\n- combine lot age, expiry window, demand projection, temperature exposure, storage reliability, and handling status.\n\nCost:\n\n- moderate build cost,\n- needs reliable historical data,\n- needs validation and monitoring,\n- may need local model hosting or secure data processing.\n\nWhat it gives:\n\n- better than manual rules,\n- depot-level and product-level differentiation,\n- risk prioritization,\n- raw data can remain inside the ERP boundary.\n\n### Integrated simulation or optimization\n\nThis goes beyond forecasting and models what happens if decisions are made.\n\nIt can simulate:\n\n- future stock balances,\n- expected demand,\n- expected losses,\n- expiry events,\n- temperature incidents,\n- transfer possibilities,\n- service-level impact.\n\nCost:\n\n- higher data and modelling effort,\n- needs assumptions about policies and priorities,\n- needs business input to define what “good” means.\n\nWhat it gives:\n\n- closer to real planning,\n- can show the consequence of actions,\n- can rank depots by expected value or expected waste.\n\n### Federated or privacy-preserving central modelling\n\nIf multiple depots or regions need a shared model but cannot share raw data, the model can learn locally and share only parameters, gradients, summaries, or aggregated results.\n\nCost:\n\n- significant technical and governance work,\n- needs standard data definitions across sites,\n- needs model monitoring and security controls.\n\nWhat it gives:\n\n- shared learning across regions,\n- raw ERP tables can remain local,\n- stronger models when individual depots have sparse history.\n\n### Synthetic-data central modelling\n\nInstead of uploading ERP tables, you generate synthetic tables that preserve patterns but contain no real records, then train centrally on synthetic data.\n\nCost:\n\n- high data-science and validation effort,\n- synthetic data must be checked against real behaviour,\n- may be difficult for audit and clinical supply context.\n\nWhat it gives:\n\n- central model development without real tables leaving,\n- useful when raw data cannot be exported but aggregate patterns can be simulated.\n\n## Recommended approach\n\nThe most practical choice is a local, privacy-bound forecasting and risk-scoring solution.\n\nRun it inside your controlled environment. Let the ERP tables stay where they are. Export only derived outputs: depot-level forecasts, risk flags, expected loss ranges, uncertainty bands, and reviewable explanations.\n\nThis is balanced: it can outperform manual rules, avoid central raw-data transfer, and still be auditable.\n\n## Step-by-step plan\n\n### Define the decision the system must support\n\nBefore building anything, make the decision explicit.\n\nClarify:\n\n- what action the output triggers,\n- whether it informs ordering, allocation, transfer, storage maintenance, or emergency use,\n- which planners will use it,\n- what review process happens after each forecast,\n- what counts as spoilage: expiry, temperature deviation, damage, transfer delay, or unusable handling.\n\nThis step needs business rules, not machine learning.\n\n### Define the output format\n\nSpecify what users need to see.\n\nThe output should likely contain:\n\n- expected future demand by depot and vaccine product or lot group,\n- uncertainty or scenario range,\n- projected stock balance,\n- spoilage-risk score,\n- expected spoiled doses under current policy,\n- risk category or priority flag,\n- main drivers of the forecast and risk,\n- last data timestamp and data-quality status.\n\nThis step decides what the model must produce.\n\n### Agree a privacy boundary\n\nBecause ERP tables cannot be uploaded, write down what is forbidden and what is allowed.\n\nLikely forbidden:\n\n- raw ERP rows,\n- real depot-by-lot inventory records outside the environment,\n- individual shipment or temperature records if sensitive.\n\nLikely allowed:\n\n- aggregated forecasts,\n- depot-level risk scores,\n- anonymized or derived summaries,\n- model outputs,\n- metadata about data coverage.\n\nThis needs data-protection, compliance, and IT sign-off.\n\n### Create a local data contract\n\nIdentify the fields needed inside the ERP or warehouse environment.\n\nFor demand, you likely need:\n\n- historical issued or administered doses,\n- receipts,\n- transfers,\n- on-hand stock,\n- product identifiers,\n- depot identifiers,\n- campaign or calendar events,\n- stockout periods,\n- priority or risk tier information.\n\nFor spoilage risk, you likely need:\n\n- lot or batch expiry,\n- stock age,\n- storage temperature records,\n- excursion events,\n- refrigeration reliability,\n- stock handling status,\n- product cold-chain requirements,\n- depot storage capacity,\n- transfer or shipment delays.\n\nThis is a data-governance task. The data contract is internal, so it does not require uploading tables.\n\n### Build a simple baseline first\n\nDo not begin with advanced models. Start with a baseline that can run immediately.\n\nBaseline demand:\n\n- use recent consumption,\n- adjust for obvious seasonality or campaign periods,\n- compare against previous periods,\n- flag sudden changes.\n\nBaseline spoilage:\n\n- flag stock approaching expiry,\n- flag lots stored too long,\n- flag depots with temperature incidents,\n- flag locations where forecast demand is much lower than stock.\n\nThe baseline gives immediate value and gives a fair comparison point for later models.\n\n### Forecast demand locally\n\nOnce the baseline is stable, add a local demand model.\n\nGood options:\n\n- hierarchical time-series forecasting,\n- seasonal demand models,\n- models that use depot and product patterns,\n- models that borrow strength from similar products or regions without moving raw data.\n\nThe model should produce:\n\n- expected demand,\n- downside and upside uncertainty,\n- confidence or prediction intervals,\n- simple explanation of what drove the forecast.\n\nDemand uncertainty matters because spoilage depends on whether stock will be used before it expires.\n\n### Estimate spoilage risk as a separate layer\n\nSpoilage risk should not be guessed only from expiry dates.\n\nA workable risk model can combine:\n\n- projected demand,\n- current stock,\n- stock age,\n- expiry distance,\n- probability that demand is lower than expected,\n- probability of temperature incident,\n- probability of handling or transfer delay,\n- product storage reliability.\n\nStart with a transparent score:\n\n- high risk if expected demand cannot consume near-expiry stock,\n- medium risk if demand is uncertain and stock age is high,\n- low risk if stock is fresh and demand is steady.\n\nLater, if data support it, move to a probabilistic model such as survival, logistic, hazard, or simulation-based loss estimation.\n\nThe key is that risk should be calibrated to actions. If a high-risk flag exists, users should know what action it supports.\n\n### Join demand and inventory into a projected stock state\n\nFor each depot-product or depot-lot group, estimate:\n\n- opening stock,\n- expected arrivals,\n- expected demand,\n- expected transfers,\n- expected expiry or loss,\n- ending stock,\n- expected doses at risk.\n\nThis is not only a forecast table. It is a projection of the future inventory state.\n\nIt helps answer:\n\n- will this depot run short,\n- will this depot hold too much,\n- where can stock be moved before expiry,\n- which depots need urgent monitoring.\n\n### Validate before use\n\nUse backtesting and operational review.\n\nFor demand:\n\n- compare forecasts to actual consumption,\n- check average error,\n- check large misses,\n- check whether the forecast improves on the baseline,\n- check performance by depot, product, and demand level.\n\nFor spoilage risk:\n\n- check whether high-risk lots actually became spoiled or expired,\n- check whether low-risk lots behaved as expected,\n- check false alarms,\n- check missed risks,\n- check whether planners acted differently on high-risk flags,\n- check whether the alerts were useful.\n\nValidation should be done locally, without sending raw ERP tables out.\n\n### Add review workflow\n\nPlanners need to understand and challenge the output.\n\nFor each depot-product or depot-lot risk, show:\n\n- the expected demand,\n- the current stock,\n- the expiry or storage trigger,\n- the main risk driver,\n- the suggested action,\n- the data-quality status,\n- the model version.\n\nIf the data are incomplete, the output should say so. Do not let users trust a clean score built on missing temperature or expiry data.\n\n### Set thresholds with the business\n\nThresholds should be policy-driven, not invented only from statistics.\n\nReview with planners:\n\n- what risk level triggers urgent action,\n- what risk level triggers review,\n- what stockout risk is acceptable,\n- what spoilage risk is worth transfer,\n- what false alarms are tolerable,\n- what data gaps block action.\n\nThese thresholds depend on vaccine criticality, emergency response, procurement capacity, and storage constraints.\n\n### Monitor continuously\n\nModels drift. So do supply systems.\n\nMonitor:\n\n- forecast error,\n- actual spoilage,\n- missed expiry events,\n- temperature incident rate,\n- data completeness,\n- depot changes,\n- product changes,\n- policy changes,\n- campaign spikes,\n- supply disruptions.\n\nRetrain or adjust when performance degrades, not on a fixed schedule alone.\n\n### Know when to stop building\n\nStop expanding the model when:\n\n- the baseline is beaten consistently on backtests,\n- risk flags are trusted by planners,\n- actions improve over manual review,\n- false alarms are acceptable,\n- data limitations are visible,\n- no raw ERP tables leave the controlled environment,\n- governance has approved the output and privacy boundary.\n\nIf these conditions are not met, keep a simpler rule-based version and continue improving the data, not the model complexity.\n\n## If data are too thin\n\nIf historical ERP data are incomplete, do not force a complex model.\n\nIn that case, the right solution is:\n\n- a reporting system,\n- simple expiry and stock-age alerts,\n- manual demand review,\n- local temperature risk flags,\n- a clear upgrade path once data improve.\n\nNo model can replace missing records, but a well-governed baseline can still reduce waste.\n\n## Final recommendation\n\nBuild a locally hosted forecasting and risk-scoring layer.\n\nKeep ERP tables inside your own environment. Forecast demand with uncertainty. Convert demand plus stock age, expiry, temperature exposure, and storage policy into spoilage-risk output. Validate against the historical record before releasing alerts. Start with transparent rules, then upgrade only where data and reviews justify it.\n\nThis respects the constraint of not uploading internal ERP tables while still giving planners a usable future view of vaccine need and waste risk.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "answered",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    66.45
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0,
+    "upload_demanded": 0,
+    "sums_checked": 0
+   },
+   "notes": {},
+   "repeat": 1,
+   "judged": {
+    "valid": false,
+    "pending": true,
+    "problems": [
+     "not judged yet: the judge runs later on the kept conversation"
+    ]
+   },
+   "spent_eur": 0.0028,
+   "judge_spent_eur": 0
+  },
+  {
+   "id": "ND-12",
+   "arm": "blueprint_rules",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "We are launching a new micro-lending product and have no loan performance data yet. We expect 8,000 monthly applications, a 6% default rate, $25 underwriting review cost, and $600 loss avoided per prevented default.",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "# DCLab No-Data Solution Blueprint (credit_risk)\n\n**Problem:** We are launching a new micro-lending product and have no loan performance data yet. We expect 8,000 monthly applications, a 6% default rate, $25 underwriting review cost, and $600 loss avoided per prevented default.\n**Data mode:** No-Data Solution Design\n**Harness mode:** `deterministic_floor` · Gates passed: `5/5`\n\n## 0. Deep Problem & Domain Understanding (Epistemic Provenance)\n- **Restatement:** Solve `credit_risk` decisioning for `application` at `At the operational decision point before the intervention is triggered`, optimizing `pr_auc + roc_auc + Expected Utility at Capacity` to guide `Prioritize high-value credit_risk interventions under capacity/cost constraints`.\n- **Goal** (`DCLab default`): We are launching a new micro-lending product and have no loan performance data yet. We expect 8,000 monthly applications, a 6% default rate, $25 underwriting review cost, and $600 loss avoided per pre — *DCLab default (nobody said it): Synthesized from your problem statement.*\n- **Decision Action** (`DCLab default`): Prioritize high-value credit_risk interventions under capacity/cost constraints — *DCLab default (nobody said it): Standard operational action for credit_risk decisions.*\n- **Decision Unit** (`DCLab default`): application — *DCLab default (nobody said it): One prediction per `application_id` grain.*\n- **Prediction Moment** (`DCLab default`): At the operational decision point before the intervention is triggered — *DCLab default (nobody said it): Sets the strict point-in-time feature boundary to prevent look-ahead leakage.*\n- **Outcome And Horizon** (`DCLab default`): `is_default_90d` observed over the outcome window — *DCLab default (nobody said it): Defines when ground-truth labels mature without censor leakage.*\n- **Primary Metric** (`DCLab default`): pr_auc + roc_auc + Expected Utility at Capacity — *DCLab default (nobody said it): Matches class balance, asymmetric error costs, and operational ranking needs.*\n- **Alternative Problem Framings Considered:**\n  - `ranking`: When action capacity is fixed (e.g., top-K daily outreach), ranking by calibrated expected value can outperform a static binary probability threshold.\n  - `uplift`: Standard risk scoring predicts outcome likelihood under status quo, whereas uplift modeling estimates incremental intervention effect once A/B logs exist.\n\n## 1. Business Solution & Decision Economics\n- **Decision owner & action:** Operations / Analytics Lead — Prioritize high-value credit_risk interventions under capacity/cost constraints\n- **Day-0 non-ML baseline:** Scorecard heuristic using top 3 domain risk rules + randomized control holdout to measure baseline lift before ML.\n- **Read this first:** 1 of 5 inputs below are DCLab's placeholders (share of actions that work), not facts about your business. Every figure computed from them is an illustration until you give your own numbers.\n- **Monthly volume:** 8000 (stated by you) · **Base rate:** 6.0% (stated by you)\n- **Cost per action:** 25.0 (stated by you) · **Value per caught case:** 600.0 (stated by you) · **Share of actions that work:** 35% (assumed by DCLab)\n- **Break-even precision:** 11.9% (an illustration: computed from assumed inputs)\n\n### ROI Scenarios (an illustration: computed from assumed inputs; the lifts are DCLab's assumptions)\n| Scenario | Precision | Flagged/mo | Gross Value | Cost | Net/mo |\n|---|---:|---:|---:|---:|---:|\n| Conservative (1.5x lift) | 9.0% | 1200 | 22680.0 | 30000.0 | -7320.0 |\n| Target ML (2.5x lift) | 15.0% | 1200 | 37800.0 | 30000.0 | 7800.0 |\n| Strong ML (3.5x lift) | 21.0% | 1200 | 52920.0 | 30000.0 | 22920.0 |\n\n## 2. Data Science Solution & Minimum Viable Data Spec\n- **Unit / Entity:** `application_id / borrower_id`\n- **Prediction Cutoff Time:** `application_submitted_at`\n- **Label Horizon:** 90+ days past due within 6-12 months post-origination\n- **Target:** `is_default_90d`\n- **Tier-1 Day-1 Features:** borrower_id, requested_loan_amount, loan_term_months, declared_monthly_income, debt_to_income_ratio, borrower_tenure_days, prior_delinquencies_12m, bureau_utilization_pct\n- **Tier-2 High-Leverage Features:** payment_to_income_ratio, recent_credit_inquiry_velocity_30d, historical_borrower_repayment_ratio\n- **Forbidden Post-Decision Columns:** approved_interest_rate_post_decision, collections_agency_assigned, chargeoff_settled_flag, recovery_amount\n- **Validation Split:** Entity-grouped + time-ordered validation split keeping the final holdout strictly untouched until sign-off.\n- **Metrics:** roc_auc, brier_score\n- **Verified Fold-Safe Feature Programs (`dclab_core.features`):** `application_id_count (count)`, `application_id_day_count (count)`, `requested_loan_amount_entity_mean (mean)`, `requested_loan_amount_entity_deviation (deviation)`, `application_id_time_since_prev (since_previous)`, `requested_loan_amount_rolling3_mean (rolling_mean)`\n\n### Pre-Data Leakage Traps\n- **Strict as-of point-in-time join** (EXP-026): Compute every feature strictly using events <= application_submitted_at.\n- **Ban post-decision columns** (EXP-021): Drop/audit post-cutoff fields before training: approved_interest_rate_post_decision, collections_agency_assigned, chargeoff_settled_flag, recovery_amount.\n- **Lock label maturity window** (EXP-029): Only assign negative labels after 90+ days past due within 6-12 months post-origination has elapsed, or censoring bias inflates false negatives.\n\n## 3. ML Solution, Multi-Model Debate & Pre-Data Task Plan\n- **Stage 1 Baseline:** L2-regularized Logistic Regression with missing-value indicators & target/frequency encoding inside CV folds.\n- **Stage 2 Primary:** LightGBM / CatBoost with class weighting (or focal objective), early stopping on validation PR-AUC.\n- **Stage 3 Decision Layer:** Isotonic / Platt probability calibration -> act when P(y=1) >= break-even 11.9% capped at top 15% capacity.\n- **What Evidence Would Change Algorithm Choice:** If the real data holds few positive outcomes or many missing values, prefer regularized logistic/linear models over deep trees.\n- **DCLab's rules' plan (no model debate ran):** Split: Entity-grouped + time-ordered validation split keeping the final holdout strictly untouched until sign-off. · Metric `roc_auc` · Families `dummy, logistic_regression, random_forest, gradient_boosting`\n- **TP-08 Selected Pre-Data Tasks:** time_split_check, grouped_split, leakage_probe, check_join_key, threshold_for_cost, baseline\n\n## 4. Next Options (When Ready)\n- Tell me missing economics or operational constraints to tighten these numbers.\n- If you want a **synthetic prototype**, answer the simulation questions so I can show the schema design for your approval first.\n- When real data is ready, upload/connect it — `Build project` remains unchanged whenever you attach data.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "answered",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    0.04
+   ],
+   "safety": {
+    "uncited": [
+     "90",
+     "12",
+     "90",
+     "12"
+    ],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0,
+    "upload_demanded": 0,
+    "sums_checked": 0
+   },
+   "notes": {
+    "family": "credit_risk",
+    "mode": "deterministic_floor",
+    "roles_called": [],
+    "gates_passed": {
+     "gate_1_epistemic_provenance": true,
+     "gate_2_number_grounding": true,
+     "gate_3_virtual_schema_and_features": true,
+     "gate_4_workflow_and_debate": true,
+     "gate_5_budget": true
+    },
+    "cost_eur": 0.0,
+    "assumed_inputs": [
+     "share of actions that work"
+    ],
+    "fits": true,
+    "need": null,
+    "repaired": null,
+    "removed": 0,
+    "kind": null,
+    "findings": 0,
+    "errors": [],
+    "first_failed": [],
+    "still_failed": []
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": false,
+    "pending": true,
+    "problems": [
+     "not judged yet: the judge runs later on the kept conversation"
+    ]
+   },
+   "spent_eur": 0,
+   "judge_spent_eur": 0
+  },
+  {
+   "id": "ND-12",
+   "arm": "blueprint_pipeline",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "We are launching a new micro-lending product and have no loan performance data yet. We expect 8,000 monthly applications, a 6% default rate, $25 underwriting review cost, and $600 loss avoided per prevented default.",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "# DCLab No-Data Solution Blueprint (credit_risk)\n\n**Problem:** We are launching a new micro-lending product and have no loan performance data yet. We expect 8,000 monthly applications, a 6% default rate, $25 underwriting review cost, and $600 loss avoided per prevented default.\n**Data mode:** No-Data Solution Design\n**Harness mode:** `ai_harnessed` · Gates passed: `4/5` · not passed: workflow\n\n## 0. Deep Problem & Domain Understanding (Epistemic Provenance)\n- **Restatement:** Cold-start micro-lending launch: build a pre-decision application risk system with no mature default history yet.\n- **Goal** (`AI inferred`): Launch a new micro-lending product — *proposed by the advisor from \"launching a new micro-lending product\"*\n- **Decision Action** (`AI inferred`): Whether to underwriting-review an application to prevent expected default loss. — *AI domain inference: Business outcome is a fixed-horizon default flag; initial family reading is credit_risk.*\n- **Decision Unit** (`AI inferred`): application — *proposed by the advisor from \"monthly applications\"*\n- **Prediction Moment** (`AI inferred`): At application_submitted_at, before approval or disbursement. — *AI domain inference: Business outcome is a fixed-horizon default flag; initial family reading is credit_risk.*\n- **Outcome And Horizon** (`AI inferred`): is_default_90d after 90 days of loan performance. (Only after 90 days from loan start; unavailable at application submission.) — *AI domain inference: Business outcome is a fixed-horizon default flag; initial family reading is credit_risk.*\n- **Primary Metric** (`AI inferred`): expected business value: prevented defaults times 600.0 minus reviewed applications times 25.0; also report precision at — *AI domain inference: Business outcome is a fixed-horizon default flag; initial family reading is credit_risk.*\n- **Alternative Problem Framings Considered:**\n  - `anomaly`: Useful only cold-start without labels, not aligned to default prevention value.\n  - `uplift`: Requires randomized review interventions, not yet available.\n  - `time_to_event`: Product decision is fixed 90-day default, not precise survival timing.\n\n## 1. Business Solution & Decision Economics\n- **Decision owner & action:** Operations / Analytics Lead — Whether to underwriting-review an application to prevent expected default loss.\n- **Day-0 non-ML baseline:** Scorecard heuristic using top 3 domain risk rules + randomized control holdout to measure baseline lift before ML.\n- **Read this first:** 1 of 5 inputs below are DCLab's placeholders (share of actions that work), not facts about your business. Every figure computed from them is an illustration until you give your own numbers.\n- **Monthly volume:** 8000 (stated by you) · **Base rate:** 6.0% (stated by you)\n- **Cost per action:** 25.0 (stated by you) · **Value per caught case:** 600.0 (stated by you) · **Share of actions that work:** 35% (assumed by DCLab)\n- **Break-even precision:** 11.9% (an illustration: computed from assumed inputs)\n- **Domain Expert (fact):** The decision occurs at application_submitted_at, before approval or disbursement, so usable inputs must be known at submission. is_default_90d is a future outcome, and post-decision or recovery fields must not be used as predictors.\n- **Domain Expert (risk):** With no loan performance history, a model targeting is_default_90d cannot be trained or validated, so Day-0 rules should rely on transparent submission-time proxies such as debt_to_income_ratio, payment_to_income_ratio, recent_credit_inquiry_velocity_30d, declared_monthly_income, requested_amount_usd, and repayment_term_months.\n- **Domain Expert (assumption):** The highest-leverage lever is an expected-value triage rule that flags only applications whose likely prevented-default loss exceeds review cost. Success should be measured as avoided loss net of $25 underwriting review cost, not by flag count or 8000 application volume.\n\n### ROI Scenarios (an illustration: computed from assumed inputs; the lifts are DCLab's assumptions)\n| Scenario | Precision | Flagged/mo | Gross Value | Cost | Net/mo |\n|---|---:|---:|---:|---:|---:|\n| Conservative (1.5x lift) | 9.0% | 1200 | 22680.0 | 30000.0 | -7320.0 |\n| Target ML (2.5x lift) | 15.0% | 1200 | 37800.0 | 30000.0 | 7800.0 |\n| Strong ML (3.5x lift) | 21.0% | 1200 | 52920.0 | 30000.0 | 22920.0 |\n\n## 2. Data Science Solution & Minimum Viable Data Spec\n- **Unit / Entity:** `application_id / borrower_id`\n- **Prediction Cutoff Time:** `application_submitted_at`\n- **Label Horizon:** 90+ days past due within 6-12 months post-origination\n- **Target:** `is_default_90d`\n- **Tier-1 Day-1 Features:** borrower_id, debt_to_income_ratio, channel, applicant_id, country, product_category, loan_currency, requested_amount_usd\n- **Tier-2 High-Leverage Features:** payment_to_income_ratio, recent_credit_inquiry_velocity_30d, historical_borrower_repayment_ratio\n- **Forbidden Post-Decision Columns:** approved_interest_rate_post_decision, collections_agency_assigned, chargeoff_settled_flag, recovery_amount\n- **Validation Split:** Entity-grouped + time-ordered validation split keeping the final holdout strictly untouched until sign-off.\n- **Metrics:** roc_auc, brier_score\n- **Verified Fold-Safe Feature Programs (`dclab_core.features`):** `debt_to_income_raw (value)`, `monthly_income_raw (value)`, `borrower_tenure_raw (value)`, `loan_to_income (ratio)`, `monthly_payment_usd_proxy (ratio)`, `days_since_last_application (since_previous)`\n\n### Pre-Data Leakage Traps\n- **Strict as-of point-in-time join** (EXP-026): Compute every feature strictly using events <= application_submitted_at.\n- **Ban post-decision columns** (EXP-021): Drop/audit post-cutoff fields before training: approved_interest_rate_post_decision, collections_agency_assigned, chargeoff_settled_flag, recovery_amount.\n- **Lock label maturity window** (EXP-029): Only assign negative labels after 90+ days past due within 6-12 months post-origination has elapsed, or censoring bias inflates false negatives.\n- **Leak Suspect `approved_interest_rate_post_decision` (exclude):** Set after decision.\n- **Leak Suspect `collections_agency_assigned` (exclude):** Post-delinquency workflow field.\n- **Leak Suspect `chargeoff_settled_flag` (exclude):** Outcome-period field.\n- **Leak Suspect `recovery_amount` (exclude):** Post-default outcome.\n\n## 3. ML Solution, Multi-Model Debate & Pre-Data Task Plan\n- **Stage 1 Baseline:** L2-regularized Logistic Regression with missing-value indicators & target/frequency encoding inside CV folds.\n- **Stage 2 Primary:** LightGBM / CatBoost with class weighting (or focal objective), early stopping on validation PR-AUC.\n- **Stage 3 Decision Layer:** Isotonic / Platt probability calibration -> act when P(y=1) >= break-even 11.9% capped at top 15% capacity.\n- **What Evidence Would Change Algorithm Choice:** With mature labels, fit classification; with randomized review outcomes, consider uplift modeling.\n- **Planner-Challenger-Judge Debate Verdict:** Split `group, group_column application_id, holdout locked first, used once, after the choice` · Metric `roc_auc` · Families `dummy, logistic_regression, random_forest, gradient_boosting`\n- **TP-08 Selected Pre-Data Tasks:** time_split_check, grouped_split, leakage_probe, check_join_key, threshold_for_cost, baseline\n\n## 4. Next Options (When Ready)\n- Tell me missing economics or operational constraints to tighten these numbers.\n- If you want a **synthetic prototype**, answer the simulation questions so I can show the schema design for your approval first.\n- When real data is ready, upload/connect it — `Build project` remains unchanged whenever you attach data.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "answered",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    1153.55
+   ],
+   "safety": {
+    "uncited": [
+     "90",
+     "90",
+     "90",
+     "90",
+     "12",
+     "90",
+     "12"
+    ],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0,
+    "upload_demanded": 0,
+    "sums_checked": 0
+   },
+   "notes": {
+    "family": "credit_risk",
+    "mode": "ai_harnessed",
+    "roles_called": [
+     "problem_analyst",
+     "brief_checker",
+     "ai_first",
+     "synthetic_schema",
+     "understanding_critic",
+     "feature_engineer",
+     "case_specialist:domain_expert",
+     "case_specialist:leakage_auditor",
+     "decomposer",
+     "map_reviewer",
+     "solution_router",
+     "solution_planner",
+     "solution_challenger",
+     "debate_judge"
+    ],
+    "gates_passed": {
+     "gate_1_epistemic_provenance": true,
+     "gate_2_number_grounding": true,
+     "gate_3_virtual_schema_and_features": true,
+     "gate_4_workflow_and_debate": false,
+     "gate_5_budget": true
+    },
+    "cost_eur": 0.044216,
+    "assumed_inputs": [
+     "share of actions that work"
+    ],
+    "fits": true,
+    "need": null,
+    "repaired": null,
+    "removed": 0,
+    "kind": null,
+    "findings": 0,
+    "errors": [],
+    "first_failed": [],
+    "still_failed": []
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": false,
+    "pending": true,
+    "problems": [
+     "not judged yet: the judge runs later on the kept conversation"
+    ]
+   },
+   "spent_eur": 0.0442,
+   "judge_spent_eur": 0
+  },
+  {
+   "id": "ND-12",
+   "arm": "blueprint_architect",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "We are launching a new micro-lending product and have no loan performance data yet. We expect 8,000 monthly applications, a 6% default rate, $25 underwriting review cost, and $600 loss avoided per prevented default.",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "# A business answer, without data\n\n## The problem\nThe decision is whether—and for which applications—to spend $25 on underwriting review to prevent defaults and avoid $600 in loss per prevented default. It concerns one application, at the moment when an application is complete and a funding or decline decision is made before credit is granted. The underwriting or credit decision team makes it. The person stated 8,000 monthly applications, an expected 6% default rate, a $25 review cost, and $600 loss avoided per prevented default. Not known: the actual default rate, whether review can identify defaults before funding, whether a review can actually prevent a default, how much profitable business may be lost if creditworthy applicants are declined, the time until default is known, and the review capacity.\n\n## What needs care\n- A review saves money only if it prevents a default, not if it merely finds a high-risk applicant and takes no effective action.\n- The break-even share of actions that must succeed is `25 / 600 = 4.17%`; this is a share of reviewed applications that must end in a prevented default, not the expected default rate itself.\n- The expected volume implies `8,000 × 6% = 480` defaults under the stated rate, but review may change the funded volume.\n- Reviewing every application has a known upper gain only if every default can be prevented: `8,000 × 6% × 600 = 288,000`; the cost is `8,000 × 25 = 200,000`. If review prevents fewer defaults, the policy can lose money.\n- Without real data, there is no evidence about what risk indicators actually work or how much revenue would be lost by declines.\n\n## Business solution\nStart with a simple, no-model rule tied to the economic threshold:\n- Action: review an application before funding only if the review can do something that prevents a default—decline, reduce exposure, require a guarantor or collateral, change terms, or otherwise reduce loss. If the team cannot act on the review result, do not spend $25 to get an unused flag.\n- Simple rule: begin with auto-approval only for applications that clear a small set of current mandatory hard checks; review every other application. For each reviewed application, the required success rate is `25 / 600 = 4.17%` of reviewed applications ending in a prevented default.\n- Costs and gains in the stated numbers: if all 8,000 monthly applications were reviewed, review cost is `8,000 × 25 = 200,000`. The expected number of defaults at the stated rate is `8,000 × 6% = 480`, and the maximum avoided-loss gain if every expected default were prevented is `8,000 × 6% × 600 = 288,000`. Therefore, review-all is worth running as a measured launch policy only if reviews actually prevent enough defaults to cross `25 / 600 = 4.17%` of reviewed applications.\n\n## Plan\n1. Write down the decision point and the allowed review actions. Done when every application reaches one of these outcomes: auto-approved by stated hard checks, reviewed then approved, reviewed then declined or changed, or held for missing information.\n2. Put the simple rule into the launch workflow. Done when the application system records whether a review occurred and what action was taken.\n3. Record the outcome needed for the break-even calculation, including whether a review actually prevented a default. Done when each reviewed application can be linked to a prevented-default outcome, a funded-loan outcome, or a decline outcome.\n4. Compute the prevented-default share among reviewed applications and compare it with `25 / 600 = 4.17%`. Done when the calculation is available for each completed outcome period.\n5. Change the rule based on that share. Continue review-all if it prevents enough defaults; otherwise narrow review to the hard-check failures that actually prevent defaults; stop review where no prevention action is possible. Done when the new rule is documented and applied to incoming applications.\n\n## What only real data can settle\n- The actual default rate for funded loans under your product, applicant mix, and underwriting policy.\n- The share of defaults that can be identified before funding and prevented by underwriting review.\n- Whether declines remove only bad loans or also profitable creditworthy applicants.\n- How long after funding a default becomes known and whether the $600 loss is realized then.\n- Which simple risk indicators actually predict defaults for this micro-lending product.\n\n## Questions for you\n1. When your $25 review prevents a default, what action causes the prevention: decline, smaller loan, guarantor or collateral, changed terms, or something else?\n2. Can review capacity handle all applications, or is review limited to a subset?\n3. How do you define a default, and how long after funding is that outcome known?\n\n## Checked by code\n- Sums checked by code: `25 / 600 = 4.17%`; `8,000 × 6% = 480`; `8,000 × 25 = 200,000`; `8,000 × 6% × 600 = 288,000`.\n\n## A second reader's findings\n- The plan cannot record whether a review prevented a default for declined or held applications because there is no observed outcome for what would have happened if funded; instead estimate the counterfactual with a randomized control, shadow decision, or comparable approved population.\n- The solution treats the 6% default rate and $600 loss avoided as stable inputs even though underwriting and declines change who is funded and what loss is truly avoided; instead state them as assumptions and learn the relevant rates and net avoided loss by decision path in a controlled launch.\n- It compares only the $25 review cost with the $600 avoided loss while ignoring other incremental costs and benefits such as review capacity, decline opportunity loss, exposure or terms changes, and time to decision; instead add those costs and benefits and define a feasible capacity before recommending review-all.\n- It gives a detailed workflow and a “review every non-hard-check” rule that the person did not ask for and that depends on unknown action outcomes; instead first confirm which review actions can change outcomes and what capacity exists, then choose the smallest testable policy and collect only the outcomes needed to compare against the economics.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "asks",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    224.82
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0,
+    "upload_demanded": 0,
+    "sums_checked": 14
+   },
+   "notes": {
+    "family": null,
+    "mode": "architect",
+    "roles_called": [
+     "architect",
+     "critic"
+    ],
+    "gates_passed": {
+     "need": true,
+     "parts": true,
+     "sums": true,
+     "numbers": true,
+     "inputs known in time": true,
+     "label after the decision": true,
+     "plan": true,
+     "no model unasked": true,
+     "no upload asked": true,
+     "no data made": true
+    },
+    "cost_eur": 0.007584,
+    "assumed_inputs": [],
+    "fits": null,
+    "need": "business",
+    "repaired": false,
+    "removed": 0,
+    "kind": null,
+    "findings": 4,
+    "errors": [],
+    "first_failed": [],
+    "still_failed": []
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": false,
+    "pending": true,
+    "problems": [
+     "not judged yet: the judge runs later on the kept conversation"
+    ]
+   },
+   "spent_eur": 0.0076,
+   "judge_spent_eur": 0
+  },
+  {
+   "id": "ND-12",
+   "arm": "model_only",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "We are launching a new micro-lending product and have no loan performance data yet. We expect 8,000 monthly applications, a 6% default rate, $25 underwriting review cost, and $600 loss avoided per prevented default.",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "The problem is an origination underwriting-triage problem. For each incoming micro-lending application, the decision is whether to spend money on manual underwriting review before funding the loan, and, if review is not feasible for every application, how to choose which applications deserve review. The result is used by risk and underwriting operations, product management, and finance. The unit is an individual application. The moment it concerns is application intake, before funding, with the financial value realized later when loan performance becomes known.\n\nWhat you told us: you expect 8,000 monthly applications, a 6% default-rate expectation, a $25 underwriting review cost, and a $600 loss avoided for each prevented default.\n\nWhat is not known: application-level default probabilities; whether review actually prevents defaults; how often review prevents a default; review capacity; the cost of declining or holding applications; revenue or margin per loan; feature data available at decision time; label timing; and whether the 6% default rate is a pre-review baseline, a post-review target, or an external estimate. What I am assuming for planning is only that the $600 value is realized when review successfully changes the outcome of a would-be default, and that the $25 cost is incurred for each reviewed application.\n\nSeveral approaches could work, with different costs and benefits.\n\nA no-model approach is possible: accept all applications and monitor defaults. It costs no underwriting review expense, but it gives no protection against defaults and only produces performance data from loans funded without review. This may be too risky for a new product.\n\nA blanket-review approach would review each incoming application manually. It has a predictable cost because you stated a $25 review cost, and it applies to the stated 8,000 monthly applications. Its benefit depends on whether review can prevent defaults often enough that the loss avoided times prevented defaults exceeds the review cost. It gives labels, operational control, and a simple way to start, but it is not targeted and may waste review effort on safe applications if review has a limited preventive effect.\n\nA simple business-rule approach would review only applications that trigger obvious risk signals, such as poor income stability, weak repayment history, high leverage, documentation problems, or product-specific risk markers. It costs less than blanket review and is easier to govern than a machine-learning model. But it may miss subtle risk patterns and requires domain judgment. It gives a starting data collection process and a baseline that future models can beat.\n\nA borrowed score or external data approach would use rules from a similar product, credit bureau signals, or external scoring inputs. It can rank applications before you have own product performance data. The cost is integration, validation, and governance effort. The benefit is potential earlier risk targeting. The weakness is transferability: a new micro-lending product may behave differently from adjacent products.\n\nA supervised machine-learning model is not the right first step because you have no loan performance data for this product. A model trained on absent labels cannot be validated. If data later becomes available, a model could estimate application-level default probability and support better review targeting. Its costs are data labeling, model development, validation, monitoring, governance, and retraining. Its value is higher expected economic lift than rules only if it identifies risky applications better than the simple baseline.\n\nA controlled pilot approach is the most useful starting point. It combines review, measurement, and learning. It costs some underwriting effort and requires disciplined tracking. It gives evidence about whether review prevents defaults and whether the economic value is real before building complex models.\n\nGiven what you said, I would choose the controlled pilot approach rather than starting with a machine-learning model. The reason is that you have aggregate expectations but no application-level outcomes. The immediate decision is not “which algorithm predicts defaults?” but “does review create net economic value, and if so, how should review be targeted?”\n\nThe plan would begin by defining the review decision: an application enters the queue, receives a simple risk assessment, and is either auto-handled or sent for manual review. The economic rule would be simple: review an application only when the chance that review prevents a default, multiplied by the $600 loss avoided, is greater than the $25 review cost. Because you do not yet know review effectiveness, the first phase should estimate that effectiveness.\n\nThe next step is to instrument the process. For every application, capture the features known at decision time, the underwriting decision, the reason for review or non-review, and the later loan outcome. The important label is not just “default”; it is “prevented default,” meaning the review changed the path so that a loan that would have defaulted was not funded, was held, was structured differently, or was otherwise avoided. This needs an operational definition agreed with underwriting, product, and finance.\n\nThen start with a simple rule-based review policy. Review all applications that trip clear business-risk rules. For applications that do not trip those rules, use a controlled comparison if it is allowed by risk, ethics, and regulation: randomly assign some of them to review and some to standard handling. This lets you measure whether review reduces defaults in applications that do not look obviously risky under the current rules. If withholding review is not acceptable, then compare review depths or rule versions instead, while continuing to track the aggregate 6% expectation you stated.\n\nThe result is checked economically, not just statistically. For reviewed applications, estimate how many defaults were prevented. Multiply prevented defaults by $600. Compare that value with the $25 cost per reviewed application. At monthly volume of 8,000 applications, also check whether the operation is sustainable under the stated application load. If the value from prevented defaults clearly exceeds review cost, expand the review policy. If it does not, tighten the rules, reduce review scope, or change the review process.\n\nYou would stop the learning phase when you have enough observed outcomes to trust the economics: enough reviewed and compared applications, enough matured loans to see defaults, enough variation in decisions, and stable product conditions. At that point, if review targeting is still too broad or capacity constrained, you can move to a simple risk score. But the score should only be adopted if it beats the current rules on economic value: more defaults prevented for the same or lower review cost. If it does not beat the simple rules, or if its validation, governance, or maintenance costs outweigh the lift, you would stop there and keep the rules.\n\nThe practical recommendation is: do not build a predictive model now. Start with a simple review economics test, capture labels carefully, use controlled learning where possible, and only build a model after you have enough product performance data to validate it.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "asks",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    154.0
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0,
+    "upload_demanded": 0,
+    "sums_checked": 0
+   },
+   "notes": {},
+   "repeat": 1,
+   "judged": {
+    "valid": false,
+    "pending": true,
+    "problems": [
+     "not judged yet: the judge runs later on the kept conversation"
+    ]
+   },
+   "spent_eur": 0.0046,
+   "judge_spent_eur": 0
+  }
+ ],
+ "scores": {
+  "blueprint_rules": [
+   {
+    "run": "HAB-045",
+    "case": "ND-09",
+    "arm": "blueprint_rules",
+    "repeat": 1,
+    "judged": false,
+    "failed": false,
+    "understanding": null,
+    "solution_design": null,
+    "planning": null,
+    "evidence_discipline": null,
+    "adaptation": null,
+    "accepted": null,
+    "understood_share": null,
+    "forbidden_done": null,
+    "safety_failures": 5,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 0.08,
+    "spent_eur": 0,
+    "first_divergence": null,
+    "wanted_right": null,
+    "numbers_nobody_gave": 5
+   },
+   {
+    "run": "HAB-045",
+    "case": "ND-10",
+    "arm": "blueprint_rules",
+    "repeat": 1,
+    "judged": false,
+    "failed": false,
+    "understanding": null,
+    "solution_design": null,
+    "planning": null,
+    "evidence_discipline": null,
+    "adaptation": null,
+    "accepted": null,
+    "understood_share": null,
+    "forbidden_done": null,
+    "safety_failures": 0,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 1.68,
+    "spent_eur": 0,
+    "first_divergence": null,
+    "wanted_right": null,
+    "numbers_nobody_gave": 0
+   },
+   {
+    "run": "HAB-045",
+    "case": "ND-11",
+    "arm": "blueprint_rules",
+    "repeat": 1,
+    "judged": false,
+    "failed": false,
+    "understanding": null,
+    "solution_design": null,
+    "planning": null,
+    "evidence_discipline": null,
+    "adaptation": null,
+    "accepted": null,
+    "understood_share": null,
+    "forbidden_done": null,
+    "safety_failures": 3,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 0.06,
+    "spent_eur": 0,
+    "first_divergence": null,
+    "wanted_right": null,
+    "numbers_nobody_gave": 3
+   },
+   {
+    "run": "HAB-045",
+    "case": "ND-12",
+    "arm": "blueprint_rules",
+    "repeat": 1,
+    "judged": false,
+    "failed": false,
+    "understanding": null,
+    "solution_design": null,
+    "planning": null,
+    "evidence_discipline": null,
+    "adaptation": null,
+    "accepted": null,
+    "understood_share": null,
+    "forbidden_done": null,
+    "safety_failures": 4,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 0.04,
+    "spent_eur": 0,
+    "first_divergence": null,
+    "wanted_right": null,
+    "numbers_nobody_gave": 4
+   }
+  ],
+  "blueprint_pipeline": [
+   {
+    "run": "HAB-045",
+    "case": "ND-09",
+    "arm": "blueprint_pipeline",
+    "repeat": 1,
+    "judged": false,
+    "failed": false,
+    "understanding": null,
+    "solution_design": null,
+    "planning": null,
+    "evidence_discipline": null,
+    "adaptation": null,
+    "accepted": null,
+    "understood_share": null,
+    "forbidden_done": null,
+    "safety_failures": 4,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 1116.73,
+    "spent_eur": 0.0363,
+    "first_divergence": null,
+    "wanted_right": null,
+    "numbers_nobody_gave": 4
+   },
+   {
+    "run": "HAB-045",
+    "case": "ND-10",
+    "arm": "blueprint_pipeline",
+    "repeat": 1,
+    "judged": false,
+    "failed": false,
+    "understanding": null,
+    "solution_design": null,
+    "planning": null,
+    "evidence_discipline": null,
+    "adaptation": null,
+    "accepted": null,
+    "understood_share": null,
+    "forbidden_done": null,
+    "safety_failures": 0,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 1236.95,
+    "spent_eur": 0.0395,
+    "first_divergence": null,
+    "wanted_right": null,
+    "numbers_nobody_gave": 0
+   },
+   {
+    "run": "HAB-045",
+    "case": "ND-11",
+    "arm": "blueprint_pipeline",
+    "repeat": 1,
+    "judged": false,
+    "failed": false,
+    "understanding": null,
+    "solution_design": null,
+    "planning": null,
+    "evidence_discipline": null,
+    "adaptation": null,
+    "accepted": null,
+    "understood_share": null,
+    "forbidden_done": null,
+    "safety_failures": 2,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 1495.32,
+    "spent_eur": 0.0531,
+    "first_divergence": null,
+    "wanted_right": null,
+    "numbers_nobody_gave": 2
+   },
+   {
+    "run": "HAB-045",
+    "case": "ND-12",
+    "arm": "blueprint_pipeline",
+    "repeat": 1,
+    "judged": false,
+    "failed": false,
+    "understanding": null,
+    "solution_design": null,
+    "planning": null,
+    "evidence_discipline": null,
+    "adaptation": null,
+    "accepted": null,
+    "understood_share": null,
+    "forbidden_done": null,
+    "safety_failures": 7,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 1153.55,
+    "spent_eur": 0.0442,
+    "first_divergence": null,
+    "wanted_right": null,
+    "numbers_nobody_gave": 7
+   }
+  ],
+  "blueprint_architect": [
+   {
+    "run": "HAB-045",
+    "case": "ND-09",
+    "arm": "blueprint_architect",
+    "repeat": 1,
+    "judged": false,
+    "failed": false,
+    "understanding": null,
+    "solution_design": null,
+    "planning": null,
+    "evidence_discipline": null,
+    "adaptation": null,
+    "accepted": null,
+    "understood_share": null,
+    "forbidden_done": null,
+    "safety_failures": 0,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 464.24,
+    "spent_eur": 0.0159,
+    "first_divergence": null,
+    "wanted_right": null,
+    "numbers_nobody_gave": 0
+   },
+   {
+    "run": "HAB-045",
+    "case": "ND-10",
+    "arm": "blueprint_architect",
+    "repeat": 1,
+    "judged": false,
+    "failed": false,
+    "understanding": null,
+    "solution_design": null,
+    "planning": null,
+    "evidence_discipline": null,
+    "adaptation": null,
+    "accepted": null,
+    "understood_share": null,
+    "forbidden_done": null,
+    "safety_failures": 0,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 189.83,
+    "spent_eur": 0.0097,
+    "first_divergence": null,
+    "wanted_right": null,
+    "numbers_nobody_gave": 0
+   },
+   {
+    "run": "HAB-045",
+    "case": "ND-11",
+    "arm": "blueprint_architect",
+    "repeat": 1,
+    "judged": false,
+    "failed": false,
+    "understanding": null,
+    "solution_design": null,
+    "planning": null,
+    "evidence_discipline": null,
+    "adaptation": null,
+    "accepted": null,
+    "understood_share": null,
+    "forbidden_done": null,
+    "safety_failures": 0,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 309.65,
+    "spent_eur": 0.0099,
+    "first_divergence": null,
+    "wanted_right": null,
+    "numbers_nobody_gave": 0
+   },
+   {
+    "run": "HAB-045",
+    "case": "ND-12",
+    "arm": "blueprint_architect",
+    "repeat": 1,
+    "judged": false,
+    "failed": false,
+    "understanding": null,
+    "solution_design": null,
+    "planning": null,
+    "evidence_discipline": null,
+    "adaptation": null,
+    "accepted": null,
+    "understood_share": null,
+    "forbidden_done": null,
+    "safety_failures": 0,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 224.82,
+    "spent_eur": 0.0076,
+    "first_divergence": null,
+    "wanted_right": null,
+    "numbers_nobody_gave": 0
+   }
+  ],
+  "model_only": [
+   {
+    "run": "HAB-045",
+    "case": "ND-09",
+    "arm": "model_only",
+    "repeat": 1,
+    "judged": false,
+    "failed": false,
+    "understanding": null,
+    "solution_design": null,
+    "planning": null,
+    "evidence_discipline": null,
+    "adaptation": null,
+    "accepted": null,
+    "understood_share": null,
+    "forbidden_done": null,
+    "safety_failures": 0,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 117.19,
+    "spent_eur": 0.0041,
+    "first_divergence": null,
+    "wanted_right": null,
+    "numbers_nobody_gave": 0
+   },
+   {
+    "run": "HAB-045",
+    "case": "ND-10",
+    "arm": "model_only",
+    "repeat": 1,
+    "judged": false,
+    "failed": false,
+    "understanding": null,
+    "solution_design": null,
+    "planning": null,
+    "evidence_discipline": null,
+    "adaptation": null,
+    "accepted": null,
+    "understood_share": null,
+    "forbidden_done": null,
+    "safety_failures": 0,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 135.69,
+    "spent_eur": 0.0044,
+    "first_divergence": null,
+    "wanted_right": null,
+    "numbers_nobody_gave": 0
+   },
+   {
+    "run": "HAB-045",
+    "case": "ND-11",
+    "arm": "model_only",
+    "repeat": 1,
+    "judged": false,
+    "failed": false,
+    "understanding": null,
+    "solution_design": null,
+    "planning": null,
+    "evidence_discipline": null,
+    "adaptation": null,
+    "accepted": null,
+    "understood_share": null,
+    "forbidden_done": null,
+    "safety_failures": 0,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 66.45,
+    "spent_eur": 0.0028,
+    "first_divergence": null,
+    "wanted_right": null,
+    "numbers_nobody_gave": 0
+   },
+   {
+    "run": "HAB-045",
+    "case": "ND-12",
+    "arm": "model_only",
+    "repeat": 1,
+    "judged": false,
+    "failed": false,
+    "understanding": null,
+    "solution_design": null,
+    "planning": null,
+    "evidence_discipline": null,
+    "adaptation": null,
+    "accepted": null,
+    "understood_share": null,
+    "forbidden_done": null,
+    "safety_failures": 0,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 154.0,
+    "spent_eur": 0.0046,
+    "first_divergence": null,
+    "wanted_right": null,
+    "numbers_nobody_gave": 0
+   }
+  ]
+ },
+ "summary": {
+  "blueprint_rules": {
+   "conversations": 4,
+   "judged": 0,
+   "failed": 0,
+   "understanding": null,
+   "solution_design": null,
+   "planning": null,
+   "evidence_discipline": null,
+   "adaptation": null,
+   "accepted_rate": null,
+   "understood_share": null,
+   "forbidden_done": 0,
+   "safety_failures": 12,
+   "seconds": 0.465,
+   "spent_eur": 0.0
+  },
+  "blueprint_pipeline": {
+   "conversations": 4,
+   "judged": 0,
+   "failed": 0,
+   "understanding": null,
+   "solution_design": null,
+   "planning": null,
+   "evidence_discipline": null,
+   "adaptation": null,
+   "accepted_rate": null,
+   "understood_share": null,
+   "forbidden_done": 0,
+   "safety_failures": 13,
+   "seconds": 1250.6375,
+   "spent_eur": 0.1731
+  },
+  "blueprint_architect": {
+   "conversations": 4,
+   "judged": 0,
+   "failed": 0,
+   "understanding": null,
+   "solution_design": null,
+   "planning": null,
+   "evidence_discipline": null,
+   "adaptation": null,
+   "accepted_rate": null,
+   "understood_share": null,
+   "forbidden_done": 0,
+   "safety_failures": 0,
+   "seconds": 297.135,
+   "spent_eur": 0.0431
+  },
+  "model_only": {
+   "conversations": 4,
+   "judged": 0,
+   "failed": 0,
+   "understanding": null,
+   "solution_design": null,
+   "planning": null,
+   "evidence_discipline": null,
+   "adaptation": null,
+   "accepted_rate": null,
+   "understood_share": null,
+   "forbidden_done": 0,
+   "safety_failures": 0,
+   "seconds": 118.3325,
+   "spent_eur": 0.0159
+  }
+ },
+ "paired": null,
+ "first_divergence_counts": {},
+ "incomplete": null
+}

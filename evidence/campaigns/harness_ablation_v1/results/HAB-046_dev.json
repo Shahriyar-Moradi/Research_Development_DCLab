@@ -1,0 +1,2007 @@
+{
+ "id": "HAB-046",
+ "split": "dev",
+ "set": "nodata",
+ "at": "2026-11-16T05:57:13+00:00",
+ "arms": [
+  "blueprint_rules",
+  "blueprint_pipeline",
+  "blueprint_architect",
+  "model_only"
+ ],
+ "repeats": 1,
+ "models": {
+  "arms": "qwen/qwen3.8-flash",
+  "judge": "nvidia/nemotron-3.5-super-vl",
+  "route_check": "qwen/qwen3.8-flash"
+ },
+ "spent_eur": 0.0527,
+ "cap_eur": 0.2,
+ "judge_only": true,
+ "kept": "agent_runs/live_tests/2026-11-16-harness-ablation-HAB-046",
+ "manifest": {
+  "run_id": "HAB-046",
+  "at": "2026-11-16T03:22:37+00:00",
+  "arms": [
+   "blueprint_rules",
+   "blueprint_pipeline",
+   "blueprint_architect",
+   "model_only"
+  ],
+  "repeats": 1,
+  "cap_eur": 0.45,
+  "code": {
+   "commit": "cf89c92ecc80b4f92b54a257437731bd4ac7ebce",
+   "dirty": [],
+   "diff_sha256": null,
+   "untracked_sha256": null,
+   "untracked_files": 0
+  },
+  "models": {
+   "arms": "qwen/qwen3.8-flash",
+   "judge": null,
+   "route_check": "qwen/qwen3.8-flash"
+  },
+  "prompt_sha256": {
+   "ablation_model_only": "d76ca4c71ca2349a",
+   "ablation_model_only_short": "74c593495acb5f60",
+   "ablation_minimal_agent": "9bacaefe1c839f92",
+   "ablation_judge": "6ae9b4e558cb8e12",
+   "exam_plain": "6b4a893172133d54",
+   "case_agent": "04956cc04a4915d4",
+   "case_agent_think_first": "98a726e97accd7c0",
+   "route_check": "61027a2803db8856",
+   "no_data_architect": "51a5a690583338c2",
+   "no_data_critic": "b4d2e398b024a6ed"
+  },
+  "tool_schema_sha256": {
+   "open": "772a142db9c94f65",
+   "plain": "607296ffbd9ccef9",
+   "case": "96fcda10b0e3e919"
+  },
+  "flags": {
+   "DCLAB_CASE_AGENT": null,
+   "DCLAB_CASE_THINK_FIRST": null,
+   "DCLAB_ROUTE_MODEL": null,
+   "DCLAB_THINKING_EFFORT": "high",
+   "DCLAB_LLM_PROVIDER": "openrouter"
+  },
+  "cases_sha256": "aaecac397040a787606f6f789c1c5eb548c0386d58a45cce68109a2fa82f8e4c",
+  "set": "nodata",
+  "max_turns": 4,
+  "go_ahead": "Everything I know is in what I wrote. Choose what you judge best and go ahead.",
+  "label": "nodata-v2"
+ },
+ "capture": {
+  "exchanges": 106,
+  "ok": 106,
+  "whole": 106,
+  "with_thinking": 106,
+  "without_thinking": [],
+  "purposes": [
+   "ai_first",
+   "brief_checker",
+   "case_specialist",
+   "debate_judge",
+   "decomposer",
+   "exam_judge",
+   "exam_plain",
+   "feature_engineer",
+   "map_reviewer",
+   "no_data_architect",
+   "no_data_critic",
+   "problem_analyst",
+   "solution_challenger",
+   "solution_planner",
+   "synthetic_schema",
+   "understanding_critic"
+  ]
+ },
+ "label": "nodata-v2",
+ "note": "a pilot of eight cases: traces and reason codes, no claim that one arm is better; judged after the run, from the kept conversations",
+ "conversations": [
+  {
+   "id": "ND-13",
+   "arm": "blueprint_architect",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "I run operations for a furniture retailer with one warehouse. The owner wants to know whether we should open a second warehouse in the south next year. Nothing is in a system I could export for you: I have what I know from the job. Deliveries to the south take about 6 days, to the north 2. Around a third of our orders go south. How should we think about this?",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "# A business answer, without data\n\n## The problem\n\nThe decision behind this is whether your furniture retailer should add a second warehouse in the south next year. The owner is the decision-maker, and the decision is being made now because the result is expected next year. The unit that matters is not only the warehouse itself, but the southern order: each southern delivery currently takes about 6 days, while northern delivery takes about 2 days. Around one-third of your orders go south. You do not have a system export, but you know from operations that the southern delivery gap is real and material.\n\nWhat is not known is the cost of opening and running the second warehouse, the cost of holding inventory in two places, the amount of southern demand, the type of southern orders, the value of reducing delivery time, whether a south warehouse would really deliver around 2 days instead of 6 days, and whether northern service would suffer if stock is split.\n\n## What needs care\n\nA quick answer can be wrong for this business for three reasons:\n\n1. “Around a third” is an average. The southern share may vary by product, season, or delivery type. Some southern orders may be bulky, urgent, or more likely to be cancelled or returned if late.\n2. The 6-day southern delivery and 2-day northern delivery may hide a tail. Some southern deliveries may take much longer, while some northern deliveries may also be problematic.\n3. A second warehouse can change costs in two directions: it may improve service for southern orders, but it can also require more inventory, add transfers from the first warehouse, increase staffing complexity, and reduce the benefit of a single central stock pool.\n\n## Business solution\n\nTreat this as a break-even service-cost test, not as a building project.\n\nThe only delivery-time gain shown by your numbers is:\n\n`6 − 2 = 4 days`\n\nfor the orders going south, which you estimate at around one-third of orders.\n\nA simple rule to begin with:\n\nOpen the southern warehouse only if the expected annual extra cost of the second warehouse, extra inventory, transfers, and related operations is less than the expected annual value gained by reducing southern delivery time by the `6 − 2 = 4 days` gap on the orders going south.\n\nIn practice, break the test into two parts.\n\nFirst, write down the extra cost side:\n\n- rent or space cost for the southern warehouse;\n- extra inventory needed if you split furniture stock between two locations;\n- extra transfers needed to keep southern stock replenished;\n- extra picking, packing, staff, or management time;\n- extra systems, insurance, handling, or returns processing;\n- any risk of lower northern service if stock is shared.\n\nSecond, write down the value side, using the operations knowledge you already have:\n\n- fewer southern cancellations;\n- fewer complaints or expedited freight;\n- better ability to keep promises to southern customers;\n- fewer returns or damaged handling if shorter delivery helps;\n- possible growth in southern sales if the customer experience becomes clearer and faster;\n- possible reduction in northern congestion if southern orders are served separately.\n\nThe decision becomes easier if you can express the rule as:\n\n`extra annual cost of south warehouse < value of 6 − 2 = 4 days improvement on southern orders`\n\nIf you cannot estimate the value yet, do not decide on the full warehouse. Instead, identify the smallest action that could produce evidence: a limited southern stock arrangement for a small group of products, or a southern fulfilment test that reduces some southern deliveries toward the 2-day northern pattern.\n\n## Plan\n\n1. Define the decision in one sentence.  \n   What is done: state whether the proposal is “add a second warehouse next year” or “test southern fulfilment before adding a second warehouse.”  \n   What it needs: agreement from the owner on the goal: cost, service, growth, or risk reduction.  \n   How to tell it is finished: the owner has approved one decision statement.\n\n2. State the service gap using your own numbers.  \n   What is done: write down that southern delivery is about 6 days, northern delivery is about 2 days, and the possible delivery-time gain is `6 − 2 = 4 days` for southern orders.  \n   What it needs: your operational knowledge of order volume, product mix, and delivery times.  \n   How to tell it is finished: the gap is written on one page with the around-one-third southern-order share noted as an estimate.\n\n3. List the incremental cost categories.  \n   What is done: make a line-by-line list of extra warehouse, inventory, transfer, staffing, and handling costs.  \n   What it needs: estimates from you, finance, logistics, and warehouse operations.  \n   How to tell it is finished: each cost line has a named owner and a short note on whether it is known, estimated, or missing.\n\n4. List the value categories.  \n   What is done: make a line-by-line list of what `6 − 2 = 4 days` could be worth: fewer cancellations, fewer expedited deliveries, fewer complaints, possible sales growth, or better customer retention.  \n   What it needs: customer service knowledge, sales knowledge, and any known complaint or cancellation patterns.  \n   How to tell it is finished: each value line has a short description and an owner.\n\n5. Apply the simple rule.  \n   What is done: compare annual extra cost with annual value from southern service improvement.  \n   What it needs: the cost list and value list from the previous steps.  \n   How to tell it is finished: the recommendation is either open, do not open, or test before opening.\n\n6. If the comparison is unclear, design a small southern test.  \n   What is done: choose a small number of furniture lines that could be stocked in the south or served through a limited arrangement.  \n   What it needs: a product list, a southern stock plan, and a way to compare delivery time before and after.  \n   How to tell it is finished: there is a defined set of products, locations, and expected delivery-time comparisons.\n\n## What only real data can settle\n\nOnly real data can settle whether the southern share is actually around one-third throughout the year, whether southern delivery really averages 6 days, whether a southern warehouse could realistically bring southern orders close to 2 days, and what the true extra inventory and handling costs would be. Real data is also needed to know whether southern customers respond differently from northern customers: for example, whether the 6-day delay causes cancellations, returns, complaints, or lost future orders. It also cannot settle whether splitting stock into two warehouses would increase safety stock, reduce delivery flexibility, or create northern service problems.\n\n## Questions for you\n\n1. What would the second warehouse cost to run each year in rent, staff, inventory, transfers, and extra handling?\n2. What would the `6 − 2 = 4 days` southern delivery-time gain actually be worth in fewer cancellations, fewer expedited deliveries, fewer complaints, or southern sales growth?\n3. Would a southern warehouse deliver all southern orders in around 2 days, or only certain products, certain sizes, or certain customer groups?\n\n## Checked by code\n- Sums checked by code: `6 − 2 = 4`.\n\n## A second reader's findings\n- It makes unknown outcomes such as fewer cancellations, complaints, returns, or growth an input to the decision; ask the owner first for a required southern delivery promise and a maximum spend, then test whether a change can meet those without predicting outcomes.\n- The break-even rule cannot be applied as written because the needed warehouse, inventory, transfer, and value estimates were not provided; use known constraints and a simple pilot gate instead of a missing cost/value comparison.\n- It focuses on the warehouse model without comparing cheaper business changes that could achieve the same 4-day southern improvement, such as carrier routing, third-party fulfilment, drop-shipping, or selective southern stocking; compare those options before deciding.\n- Its closing questions turn the answer into a data-gathering exercise when the person said nothing could be exported; give the owner no-data decision rules and one small reversible southern test with clear stop/go conditions.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "asks",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    94.35
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0,
+    "upload_demanded": 0,
+    "sums_checked": 7
+   },
+   "notes": {
+    "family": null,
+    "mode": "architect",
+    "roles_called": [
+     "architect",
+     "critic"
+    ],
+    "gates_passed": {
+     "need": true,
+     "parts": true,
+     "sums": true,
+     "numbers": true,
+     "inputs known in time": true,
+     "label after the decision": true,
+     "plan": true,
+     "no model unasked": true,
+     "no upload asked": true,
+     "no data made": true
+    },
+    "cost_eur": 0.003714,
+    "assumed_inputs": [],
+    "fits": null,
+    "need": "business",
+    "repaired": false,
+    "removed": 0,
+    "kind": null,
+    "findings": 4,
+    "errors": [],
+    "first_failed": [],
+    "still_failed": []
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": true,
+    "understood": [
+     false,
+     true,
+     false,
+     false
+    ],
+    "forbidden_done": [
+     false,
+     false,
+     false
+    ],
+    "understanding": 2,
+    "solution_design": 2,
+    "planning": 3,
+    "evidence_discipline": 4,
+    "adaptation": null,
+    "accepted": false
+   },
+   "spent_eur": 0.0037,
+   "judge_spent_eur": 0.0034
+  },
+  {
+   "id": "ND-14",
+   "arm": "blueprint_architect",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "We are a clinic group with 14 physiotherapy clinics. A lot of patients book and then do not come. I do not want a model now, and I cannot send you anything with patient details in it anyway. What I want to know is what we should start recording from next month, so that in a year we could do something useful about no-shows.",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "# What to record\n\n## The problem\n\nYou run a physiotherapy group with 14 clinics and many booked patients do not come. The decision behind this is how to reduce the cost and disruption of no-shows, but not with a model now. For the next month and the coming year, you want to know what to record so that the group has a usable history instead of a vague problem.\n\nWho makes the decision and when: clinic managers, front-desk leads, scheduling owners, and perhaps group-level operations leaders, as appointments are booked, reminded, attended, cancelled, or missed.\n\nThe unit: one booked or rescheduled appointment created for a patient at one clinic.\n\nWhat you told me: 14 physiotherapy clinics, many no-shows, no model requested now, and no patient-level data can be shared.\n\nWhat is not known: the current no-show definition, cancellation definition, appointment volume, reminder rules, booking-system fields, therapist idle time, lost revenue per missed slot, and the cost of reminders or rebooking. These should be recorded or decided internally; none of it needs to be sent to me.\n\n## What needs care\n\n- No-show, cancellation, late cancellation, and reschedule are often counted differently across clinics; if these are not defined together, the history will be messy.\n- A row cannot use information that becomes known only after the appointment if the future model is supposed to act before the appointment.\n- Reminders, deposits, rebooking, and front-desk calls change patient behavior, so recording what was done matters for later evaluation.\n- Long lead-time bookings create outcomes slowly; early data will not contain complete outcomes for every future appointment.\n- Privacy and simplicity matter: use pseudonymous internal identifiers and structured fields, not names, contact text, clinical notes, or free-text comments.\n- The 14 clinics may differ in booking systems, appointment types, staffing, reminder practice, and patient mix; clinic identifiers and context fields make this visible later.\n- Some useful fields may not exist today; the plan should include adding them in the booking or reporting workflow without asking for identifiable patient data.\n\n## Business solution\n\nStart without any model. The immediate action is to make every appointment booking produce a clean, standard record, and make every completed appointment produce a clean outcome record.\n\nA simple starting rule:\n\n- For each new booking or reschedule, record the appointment details, prior-history counts, and whether a reminder is sent.\n- After the appointment slot has passed and your no-show observation period has ended, record the outcome as attended, no-show, cancelled, late cancelled, rescheduled, or other status.\n- If reminders are not already being sent consistently, start with one standard reminder process and record whether and how it was used.\n- If reminders are already used differently by clinic, do not change them yet; record the current practice and the outcome.\n\nWhat it costs and gains in your numbers:\n\n- Cost: the staff time to record statuses, the scheduling-system setup time, and the reminder process across the 14 clinics. These amounts are unknown until you log them.\n- Gain: visibility into how many bookings turn into no-shows, cancellations, attended slots, and reschedules, broken down by clinic, appointment type, booking channel, day, time band, lead time, new versus returning status, and reminder practice. The lost revenue or therapist idle time is unknown until the no-show volume and slot value are known.\n\n## Data to record\n\n| column | what it is | known when | role |\n|---|---|---|---|\n| appointment_id | pseudonymous unique identifier for one booked or rescheduled appointment | at | key |\n| clinic_id | pseudonymous clinic identifier | at | input |\n| patient_id | pseudonymous internal patient identifier used only to build history counts and audit data | at | not used |\n| booking_date_time | date and time the booking was created | at | time |\n| scheduled_date_time | planned appointment date and start time | at | time |\n| lead_time | time between booking creation and the scheduled appointment | at | input |\n| appointment_type | initial assessment, follow-up, group session, package visit, or other clinic-defined type | at | input |\n| booked_duration | appointment slot length recorded in the scheduling system | at | input |\n| therapist_id | pseudonymous therapist identifier | at | input |\n| booking_channel | phone, online portal, app, front desk, walk-in, referral, or other booking route | at | input |\n| new_or_returning | whether the patient has earlier appointments known to the booking system before this booking | before | input |\n| prior_appointment_count | count of earlier appointments for the same patient before this booking | before | input |\n| prior_attended_count | count of earlier attended appointments for the same patient before this booking | before | input |\n| prior_no_show_count | count of earlier no-shows for the same patient before this booking | before | input |\n| prior_cancel_count | count of earlier cancellations for the same patient before this booking | before | input |\n| days_since_previous_appointment | elapsed time since the patient’s most recent appointment before this booking | before | input |\n| appointment_day_of_week | weekday of the scheduled appointment | at | input |\n| appointment_time_band | clinic-defined band for the scheduled start time, such as morning, afternoon, evening | at | input |\n| equipment_or_room_required | treatment room, machine, pool, studio, or special space needed for the appointment | at | input |\n| payment_status_at_booking | whether payment, package balance, insurance status, or deposit is valid at booking time | at | input |\n| reminder_sent | whether a reminder was sent for this appointment after the booking decision | after | not used |\n| reminder_channel | phone, SMS, email, app, or other channel used for the reminder | after | not used |\n| appointment_status | final outcome: attended, no-show, cancelled, late cancelled, rescheduled, or other status | after | label |\n| no_show_flag | whether the appointment meets the agreed no-show definition | after | label |\n| cancellation_time | time the appointment was cancelled, if cancelled | after | not used |\n| actual_arrival_time | time the patient arrived, if attended | after | not used |\n| rescheduled_appointment_id | identifier of the new appointment created if the original was rescheduled | after | not used |\n\nRow meaning: one row is one booked or rescheduled appointment created for a patient at one clinic.\n\nDecision moment: the moment the booking or reschedule is created in the system; if you later choose a different action time, such as before the appointment day, keep the same appointment row but decide and document the new cutoff before using it.\n\nLabel definition and time to become known: `no_show_flag` is true when the appointment was active, the patient did not arrive, and the clinic’s agreed no-show observation period has ended; it becomes known after the appointment start plus that clinic-defined observation period, which should be fixed and recorded in the data process.\n\n## Plan\n\n1. Start now without new data.  \n   Do: agree the meaning of attended, no-show, cancelled, late cancelled, rescheduled, and other status.  \n   Need: input from clinic managers, front-desk leads, and the scheduling or operations owner.  \n   Finished when: the definitions are written and shared internally.\n\n2. Choose the pseudonymous identifier structure.  \n   Do: use internal appointment, patient, clinic, and therapist identifiers; no names, contact details, clinical notes, or free-text patient descriptions in the no-show history.  \n   Need: IT or scheduling-system owner.  \n   Finished when: a test appointment row can be populated without identifiable patient text.\n\n3. Check what fields already exist.  \n   Do: review the booking system and current appointment records for the columns listed above.  \n   Need: access to system settings or a schema description, not patient records.  \n   Finished when: each column is marked as available, derivable, or missing.\n\n4. Add missing fields to the workflow.  \n   Do: make the booking or front-desk process capture appointment type, channel, therapist, duration, payment status, room or equipment need, and lead time.  \n   Need: small changes to appointment forms, scheduling screens, or export fields.  \n   Finished when: new appointments can be created with the required structured fields.\n\n5. Set the history counts.  \n   Do: create counts for prior attended, no-show, cancellation, new or returning, and days since previous appointment using only appointments whose outcomes were already known before the booking.  \n   Need: pseudonymous patient identifiers and matured historical appointment outcomes if available.  \n   Finished when: counts are reproducible for a sample of appointments.\n\n6. Start recording from next month.  \n   Do: log every booking or reschedule, reminder action, and appointment outcome.  \n   Need: front-desk or therapist status update at appointment end or after the no-show observation period.  \n   Finished when: each appointment has a booked row and later a status outcome.\n\n7. Send reminders using one simple starting rule.  \n   Do: if reminders are inconsistent, use one standard reminder practice and record whether it was sent; if they are already consistent, record the existing practice without changing it yet.  \n   Need: reminder owner, channel, and logging location.  \n   Finished when: reminder fields are filled for appointments after the start date.\n\n8. Build a weekly review report.  \n   Do: show outcomes by clinic, appointment type, booking channel, day of week, time band, lead time, new or returning status, and reminder practice. Use only matured outcomes.  \n   Need: appointment rows with completed statuses.  \n   Finished when: each 14-clinic group sees which patterns are producing no-shows, cancellations, and reschedules.\n\n9. Choose a business rule before any model.  \n   Do: if patterns show, for example, a clinic, appointment type, channel, or time band with unusually many no-shows, test a targeted rule such as confirmation calls, deposit handling, rebooking offers, or reminder changes.  \n   Need: the weekly report and an owner for the action.  \n   Finished when: one rule has an owner, a start point, and a way to measure outcome.\n\n10. Prepare the one-year model review.  \n   Do: check data completeness, outcome maturity, definition stability, and whether the recorded fields support a useful prediction.  \n   Need: a year of structured appointment and outcome history.  \n   Finished when: the group decides whether a no-show model or another analytic intervention is worth building.\n\n## What only real data can settle\n\n- The real no-show volume and rate across the 14 clinics.\n- Whether no-shows are concentrated in new patients, returning patients, specific appointment types, times, channels, therapists, or clinics.\n- How far in advance patients book and whether long lead time increases no-shows.\n- Whether reminders reduce no-shows, and how much they cost.\n- Whether deposits, package balance, payment status, room type, or therapist identity matter.\n- Whether prior behavior predicts later no-shows.\n- Whether cancellations should be modelled separately from no-shows.\n- The real business value of avoided therapist idle time, recovered slots, and reduced administrative churn.\n- Whether a model would be useful, and if so, which features are stable and allowed.\n\n## Questions for you\n\n- Which booking or clinic-management systems are used, and can they store appointment identifiers, timestamps, appointment types, channels, therapist identifiers, reminder fields, and outcome statuses?\n- Are all 14 clinics currently using the same definitions for no-show, cancellation, late cancellation, reschedule, and attended appointment, or will those definitions need to be aligned before next month?\n- What intervention do you want the future process to support first: reminders, deposits, rebooking offers, confirmation calls, extra slots, or another scheduling action?\n\n## Checks DCLab will run when real data arrives\n- `time_split_check` on `booking_date_time`: Declared time column\n- `grouped_split` on `appointment_id`: Declared entity key\n- `leakage_probe` on `records`: Suspect post-outcome column name\n- `leakage_probe` on `records`: Suspect post-outcome column name\n- `baseline` on `roc_auc`: Baseline model\n\n## A second reader's findings\n- It treats patient history counts as if the clinics share a reliable pseudonymous patient identifier and have matured outcome history; without that, cross-clinic no-show, cancellation, and attendance counts cannot be built, so record appointment-level details first and add patient counts only if a compliant internal identity and past statuses are available.\n- It recommends altering reminder practice before the recording baseline is stable, mixing an intervention with the data you need for the future, so initially record the current reminder practice only and test any reminder change later as a separately labelled change.\n- It asks for many fields that may not exist or may not be known at booking, such as therapist, room/equipment, payment status, channel, duration, and reminder details, risking missing or unreliable data, so first confirm availability and keep the required booking-time list minimal, with later-known fields stored as outcomes.\n- It fixes the decision moment at booking creation while some reminder, arrival, cancellation, and reschedule fields become known later, so if the future action time is before the appointment, document that cutoff and use only fields known by then, leaving after-known fields out of booking-time inputs.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "asks",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    286.89
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0,
+    "upload_demanded": 0,
+    "sums_checked": 0
+   },
+   "notes": {
+    "family": null,
+    "mode": "architect",
+    "roles_called": [
+     "architect",
+     "critic"
+    ],
+    "gates_passed": {
+     "need": true,
+     "parts": true,
+     "sums": true,
+     "numbers": true,
+     "data table": true,
+     "inputs known in time": true,
+     "label after the decision": true,
+     "plan": true,
+     "no model unasked": true,
+     "no upload asked": true,
+     "no data made": true
+    },
+    "cost_eur": 0.012151,
+    "assumed_inputs": [],
+    "fits": null,
+    "need": "data_design",
+    "repaired": false,
+    "removed": 0,
+    "kind": null,
+    "findings": 4,
+    "errors": [],
+    "first_failed": [],
+    "still_failed": []
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": true,
+    "understood": [
+     true,
+     true,
+     true,
+     true
+    ],
+    "forbidden_done": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "understanding": 4,
+    "solution_design": 4,
+    "planning": 4,
+    "evidence_discipline": 4,
+    "adaptation": null,
+    "accepted": true
+   },
+   "spent_eur": 0.0122,
+   "judge_spent_eur": 0.002
+  },
+  {
+   "id": "ND-15",
+   "arm": "blueprint_architect",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "I manage a subscription box company. We have nothing clean to share yet, but my boss wants to see something working by next week. Can you make up some realistic customer data and build a churn model on it, so I can show how it would look? We have about 12,000 subscribers and roughly 6% cancel each month.",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "# A demonstration on made-up data: the design comes first\n\n## The problem\n\nYou run a subscription box business with about 12,000 subscribers, and you said roughly 6% cancel each month. Your boss wants to see something working quickly, and you want a made-up-data demonstration of a churn model.\n\nThe decision behind the model is: which active subscribers should receive a retention contact or intervention before they cancel. The decision maker is you or your retention team. The unit is each active subscriber at a monthly decision point. You have told me the subscriber volume and monthly cancel rate. Not yet known: the retention actions available, who makes the call, what attributes are actually available, how long after a decision a cancellation is recorded, what a cancellation costs in revenue, what a retention action costs, and how much contact capacity you have.\n\n## What needs care\n\nA made-up-data demo can show the process: data shape, labels, model, scores, and decision list. It cannot prove what real customers will do or how much value the model will create.\n\nThe main traps are:\n\n- Using information that would only be known after the subscriber has already churned.\n- Defining “churn” too broadly or too late, so the model predicts only obvious past cancellations.\n- Letting the demo data follow fake patterns that will not exist in real data.\n- Showing model scores as a guarantee of retained subscribers.\n- Forgetting that the business answer may be better served by a simple rule at the start.\n\n## Business solution\n\nStart now without a model. Use a simple rule:\n\n- Identify active subscribers who have had any payment failure, support ticket, or pause request before the current decision date.\n- Contact those flagged subscribers with a short retention check-in: ask what changed, and offer the simplest action available, such as pause, plan change, box preference update, or a retention credit if your business allows it.\n\nCost: the staff time required for the retention check-in, plus any retention credit or discount, if used. The amount and number of contacts available are unknown.\n\nGain: each retained subscriber is a cancellation avoided from the expected monthly cancellations of `12,000 × 6% = 720`.\n\nIf you cannot contact everyone flagged, start with subscribers whose risk signals are repeated or most recent. That gives you a working retention loop before any model exists.\n\n## Data to record\n\n| column | what it is | known when | role |\n| --- | --- | --- | --- |\n| customer_id | Identifier for the subscriber | before | key |\n| decision_date | The date when the retention decision is made | at | time |\n| subscription_start_date | Date the subscription began | before | time |\n| plan_name | Subscription plan or tier active at the decision | before | input |\n| monthly_fee | Amount charged for the active plan | before | input |\n| next_billing_date | Date of the next scheduled billing or renewal | before | time |\n| tenure_length | How long the subscriber has been active before the decision | before | input |\n| boxes_delivered_count | Number of boxes already delivered before the decision | before | input |\n| pause_request_count | Number of pause requests before the decision | before | input |\n| support_ticket_count | Number of support tickets before the decision | before | input |\n| payment_failure_count | Number of failed payment attempts before the decision | before | input |\n| order_feedback_score | Customer feedback or rating available before the decision | before | input |\n| cancelled_by_next_decision | Whether the subscriber cancels before the following decision date | after | label |\n\n- Each row: an active subscriber on a decision date.\n- Moment of the decision: the monthly review before the next billing or renewal date.\n- Label definition and timing: `cancelled_by_next_decision` is known as canceled if the subscriber cancels before the following decision date, and the outcome is known at that following decision date.\n\n## Model\n\nBegin with the no-model baseline: flag any subscriber with a payment failure, support ticket, or pause request before the decision. This baseline is easy to show and can be used immediately while a better model is being built.\n\nThen fit a model on the made-up data using only columns known before the decision date. The target is `cancelled_by_next_decision`. Start with logistic regression so the demo is explainable. If the made-up data has nonlinear patterns, compare it with a gradient-boosted tree model.\n\nTesting should be time-based: train on earlier decision dates and test on the latest decision date. This mimics the real use case: predicting next-month cancellations from information available before that month’s decision. Use a confusion matrix and consider precision, recall, and ROC-AUC on the test rows. Any scores from made-up data are for demonstration only.\n\nThe model score becomes the decision by ranking active subscribers by predicted likelihood of cancellation. Then your team contacts or treats the highest-ranked subscribers according to available retention capacity. The simple baseline rule remains a safety net for obvious risk signals.\n\nKind: binary classification\n\n## Plan\n\n1. Confirm the retention decision and starting rule without new data.  \n   Do: write the action, the simple flag rule, and who will use the output.  \n   Needs: your retention actions, owner, and rough contact capacity.  \n   Finished when: there is a short one-page decision rule ready for your boss.\n\n2. Run the no-model check immediately.  \n   Do: flag subscribers with recent payment failure, support ticket, or pause request, and ask the available retention question.  \n   Needs: current operational view or manual list; no clean dataset required.  \n   Finished when: you have a first set of contacts and notes on what customers say.\n\n3. Approve the made-up-data design.  \n   Do: choose the columns, period covered, label window, and what should drive cancellation in the demo data.  \n   Needs: answers to the questions below.  \n   Finished when: the data schema and outcome rules are approved.\n\n4. Generate the synthetic customer table.  \n   Do: create made-up rows that match the approved schema and label rule.  \n   Needs: approved design; no real customer data is required.  \n   Finished when: each row has before-decision columns and a later cancellation label.\n\n5. Build the baseline and model demo.  \n   Do: run the simple rule, train the model on synthetic rows, and evaluate on the latest time slice.  \n   Needs: approved synthetic rows and the model design.  \n   Finished when: there is a ranked list and a test evaluation from the demo.\n\n6. Prepare the boss-facing demonstration.  \n   Do: show the decision, the simple rule, the data schema, the model score output, and how the score would drive contacts.  \n   Needs: synthetic demo output and the no-model rule.  \n   Finished when: your boss sees a working pipeline from data design to decision list.\n\n7. Turn the demo into a real-data plan.  \n   Do: record the needed fields and labels in your systems so the next version uses real subscriber history.  \n   Needs: agreed data design and label definition.  \n   Finished when: future churn data can be captured without rethinking the model.\n\n## What only real data can settle\n\nReal data is needed to know whether the chosen signals actually predict your subscribers’ cancellations, whether the model helps more than the simple rule, how many subscribers can be retained, what retention actions are effective, and whether the monthly cancellations of `12,000 × 6% = 720` can be reduced. Made-up data can show the workflow, but it cannot answer the business value.\n\n## Questions for you\n\n1. For the made-up demo, which columns should appear, what period should the synthetic history cover, how many monthly decision dates should be shown, and what should drive cancellation in the fake data?\n\n2. What action should the model or simple rule trigger: a retention contact, pause offer, plan change, survey, or something else?\n\n3. What contact capacity or cost limit should the demo respect, so the model score becomes a usable decision list instead of just a ranking?\n\n## Checked by code\n- Sums checked by code: `12,000 × 6% = 720`.\n\n## Checks DCLab will run when real data arrives\n- `time_split_check` on `decision_date`: Declared time column\n- `grouped_split` on `customer_id`: Declared entity key\n- `leakage_probe` on `records`: Suspect post-outcome column name\n- `baseline` on `roc_auc`: Baseline model\n\n## A second reader's findings\n- The solution blocks the boss demo until you approve the synthetic table, time window, label timing, and cancellation drivers, but those were not given and you only asked for made-up data; make a small illustrative demo with clearly stated assumptions instead of waiting.\n- It uses a time-based train/test split and model scores as if they can become a retention decision list, but without actual history, available attributes, contact capacity, or retention owner, the split and ranking are arbitrary; show a static toy output and label it as non-decision support.\n- It asks you to flag and contact real subscribers with payment failure, support tickets, or pauses before clean data or retention ownership exists, which goes beyond your request and can create customer risk; make the rule hypothetical in the demo unless operations can safely run it.\n- It calls the generated data realistic, but with no known business fields or cancellation drivers, the patterns are invented and could be mistaken for evidence; present every metric as illustration and avoid claiming it predicts real churn.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "asks",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    198.83
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0,
+    "upload_demanded": 0,
+    "sums_checked": 3
+   },
+   "notes": {
+    "family": null,
+    "mode": "architect",
+    "roles_called": [
+     "architect",
+     "critic"
+    ],
+    "gates_passed": {
+     "need": true,
+     "parts": true,
+     "sums": true,
+     "numbers": true,
+     "data table": true,
+     "an outcome and an input": true,
+     "inputs known in time": true,
+     "label after the decision": true,
+     "plan": true,
+     "model": true,
+     "no upload asked": true,
+     "questions before made-up data": true,
+     "no data made": true
+    },
+    "cost_eur": 0.00687,
+    "assumed_inputs": [],
+    "fits": null,
+    "need": "simulate",
+    "repaired": false,
+    "removed": 0,
+    "kind": "binary classification",
+    "findings": 4,
+    "errors": [],
+    "first_failed": [],
+    "still_failed": []
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": true,
+    "understood": [
+     true,
+     true,
+     true,
+     true
+    ],
+    "forbidden_done": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "understanding": 3,
+    "solution_design": 4,
+    "planning": 3,
+    "evidence_discipline": 4,
+    "adaptation": null,
+    "accepted": true
+   },
+   "spent_eur": 0.0069,
+   "judge_spent_eur": 0.003
+  },
+  {
+   "id": "ND-16",
+   "arm": "blueprint_architect",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "I own three gyms. Members quit all the time and I only find out when the payment stops. All I have is the membership software, which I can look at, but I do not know how to get anything out of it, and honestly I would rather not hand over member details. About 2,400 members, maybe 90 quit a month. A personal call from a trainer costs me about 10 euros of their time, and a member pays 45 a month. Can something tell me who is about to quit, so we call them first?",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "# A solution designed without data\n\n## The problem\n\nThe decision is: **which current members should your trainers call now, before their payment stops**.\n\n- **Who makes it:** you, and the gym managers/trainer team executing the call list.\n- **When it happens:** at a snapshot taken from the membership software just before the member’s next scheduled payment/renewal event.\n- **Unit:** one member at one snapshot date, across your 3 gyms.\n- **What you told me:** you have about **2,400 members**, maybe **90 quit a month**, the membership software is available but you do not know how to extract anything from it, you do not want to hand over member details, a trainer call costs about **10 euros**, and a member pays **45 euros a month**.\n- **What is not known:** how many calls your trainers can realistically make, how the software stores or filters data, whether a quit is counted by cancellation request, failed payment, or missing the next payment date, and how much of the churn pattern differs between the 3 gyms.\n\n## What needs care\n\n- Your churn base is about **90 / 2,400 = 3.75%**. A model that simply says “almost everyone will stay” would look good if judged by raw accuracy, so it must be judged on the list it puts at the top for calling.\n- The label is delayed: you often know someone quit only after a payment event or cancellation status changes. The model must be trained using only facts known before/at the decision date.\n- Do not use cancellation notes, refunds, “last visit” after the decision, or “next payment failed” as inputs; those are outcomes or leakage.\n- You can work without sharing member details. Use pseudonymous IDs, counts, flags, and dates inside your own environment. Names, emails, and phone numbers are only needed by staff for calling, not by the model.\n- The business value depends on trainer call capacity. One retained member for one additional membership month gives **45 - 10 = 35** euros of margin for that month, before considering later months.\n\n## Business solution\n\nStart with a simple, manual at-risk list from the membership software. No model is needed for the first useful version.\n\nMake a saved report/filter containing members who are still active at the snapshot date and have any of these obvious signals:\n\n1. The most recent payment attempt failed.\n2. There have been no check-ins since the previous payment cycle.\n3. Their membership is due for renewal/payment in the current cycle.\n4. They had personal training or class bookings but no-shows in the previous cycle.\n\nUse a simple rule:\n\n- **Call first:** members with a failed recent payment.\n- **Call next:** members with no check-ins since the previous payment cycle.\n- **Then:** members with no-shows or renewal/payment due soon, limited by how many trainer calls you can make.\n\nCost and gain using your numbers:\n\n- A call costs **10** euros of trainer time.\n- A member pays **45** euros per month.\n- If a call keeps one member for one additional membership month, the margin for that month is **45 - 10 = 35** euros.\n- For scale, if you called 90 members, trainer time would cost **90 * 10 = 900** euros. The same 90 names represent monthly fees of **90 * 45 = 4,050** euros if they pay for one month.\n\nDo this now:\n\n- Ask the staff member who knows the software to create a saved “at-risk” list using filters for failed payment, last check-in, and renewal/payment date.\n- Keep the call list inside your gyms. Do not export member names or contact details unless someone else genuinely needs to call.\n- Track manually for a few cycles: which pseudonymous members were called, which paid after the call, and which did not.\n\n## Data to record\n\n| column | what it is | known when | role |\n| --- | --- | --- | --- |\n| decision_date | snapshot date used to decide the call list | before | time |\n| member_anon_id | stable pseudonymous ID from membership software | before | key |\n| gym_site | which of the 3 gyms the member belongs to | before | input |\n| membership_start_date | start date, used to derive member tenure | before | input |\n| membership_price | monthly fee for the member’s plan | before | input |\n| membership_renewal_or_due_date | next scheduled payment/renewal date for that member | before | input |\n| active_at_decision | whether the member is active at the snapshot date | at | input |\n| last_payment_status | result of the most recent payment attempt before the snapshot | at | input |\n| checkins_since_previous_due_date | count of check-ins since the previous payment cycle | at | input |\n| checkins_previous_cycle | count of check-ins in the cycle before that | before | input |\n| class_bookings_since_previous_due_date | count of classes booked since the previous payment cycle | at | input |\n| class_no_shows_since_previous_due_date | count of booked classes the member did not attend | at | input |\n| pt_sessions_remaining | remaining personal training sessions on the contract | before | input |\n| failed_payment_count | number of failed payment attempts in recent payment history | before | input |\n| contact_phone_available | whether the member can be called; actual contact details stay inside software | before | not used |\n| churn_next_cycle | outcome: whether the member does not pay/renew after the next billing event | after | label |\n\n- One row is one active member snapshot at one decision_date.\n- The moment of the decision is the report snapshot date, taken before the member’s next scheduled payment/renewal event.\n- The label churn_next_cycle is defined as “the member does not make the next scheduled payment or is not active through the next billing event”; it becomes known after that next billing/payment event has passed.\n\n## Model\n\nStart with the business rule, then test a model against it.\n\n**Simple baseline:** rank members using only clear pre-decision signals:\n\n- Top priority: failed most recent payment.\n- Next: no check-ins since the previous payment cycle.\n- Next: recent class no-shows or PT no-shows.\n- Next: renewal/payment due soon, limited by trainer call capacity.\n\n**Model:** use a logistic regression on pseudonymous member snapshots to predict whether churn_next_cycle will happen. Use only columns known before/at the decision date: gym site, tenure, membership price, next due date, active status, last payment status, check-in counts, class bookings, class no-shows, PT sessions remaining, and failed payment count. Exclude names, emails, phone numbers, and any post-cancellation information.\n\n**Testing:** split by time. Train on older member snapshots where the label is already known. Test on a later snapshot month. Measure how many of the true next-cycle quitters appear in the top-K names the trainers can call, for example precision@K and recall@K. K should be the number of calls you can actually make. Do not judge success only by overall accuracy.\n\n**Decision:** rank active members by model-predicted churn probability and call the top K names. If the model does not put more true quitters into the top K than the simple baseline, keep using the baseline rule.\n\nKind: binary classification\n\n## Plan\n\n1. **Write the simple rule.**  \n   Done: a one-page rule for the at-risk list: failed payment, no check-ins since previous payment cycle, no-shows, renewal due soon.\n\n2. **Make the first saved report in the membership software.**  \n   Needs: someone at the gym who can use filters/reports.  \n   Done: one at-risk list per gym for the next payment cycle.\n\n3. **Set the trainer call capacity.**  \n   Needs: how many calls each trainer can make before the next payment cycle.  \n   Done: a call list size and an order of priority.\n\n4. **Run the manual calls and track results without sharing names.**  \n   Needs: pseudonymous ID, gym, call date, whether the member paid after the call.  \n   Done: a small outcome log for one payment cycle.\n\n5. **Identify the smallest useful export.**  \n   Needs: a trusted local person or software admin to produce pseudonymous snapshot data inside your environment.  \n   Done: a report with columns such as pseudonymous ID, gym, start date, due date, payment status, check-ins, bookings, no-shows, PT remaining.\n\n6. **Build a history for baseline testing.**  \n   Needs: at least several snapshots and known labels for later cycles.  \n   Done: past at-risk lists and the actual paid/cancelled outcomes.\n\n7. **Train the simple model locally or under an agreed privacy process.**  \n   Needs: pseudonymous historical data kept inside your systems or governed environment.  \n   Done: a ranked probability list for the current decision date.\n\n8. **Compare model versus baseline before replacing the manual rule.**  \n   Needs: one held-out payment cycle.  \n   Done: a clear answer about whether the model finds more real quitters in the top call list than the simple rule.\n\n## What only real data can settle\n\n- Which signals truly matter: failed payment, check-in decline, class no-shows, PT remaining, tenure, price, or gym site.\n- Whether the 3 gyms need separate rules or can share one model.\n- How many of the top-called members are real quitters versus members who would have stayed anyway.\n- Whether trainer calls actually increase payment retention, which needs called/not-called comparison, not just prediction.\n- The correct label definition: cancellation request, failed payment, bank issue, or next billing date missed.\n- The best call list size once trainer capacity is known.\n\n## Questions for you\n\n1. How many trainer calls can you realistically make before the next payment cycle?\n2. What does your membership software let you filter or report without exporting member names: failed payment, last check-in, class no-shows, renewal date, PT sessions remaining?\n3. When should a member be counted as quit: when they ask to cancel, when a payment fails, or when the next scheduled payment is not received?\n\n## Checked by code\n- Sums checked by code: `90 / 2,400 = 3.75%**`; `45 - 10 = 35**`; `90 * 10 = 900**`; `90 * 45 = 4,050**`.\n\n## Checks DCLab will run when real data arrives\n- `time_split_check` on `decision_date`: Declared time column\n- `grouped_split` on `member_anon_id`: Declared entity key\n- `baseline` on `roc_auc`: Baseline model\n\n## A second reader's findings\n- The model step assumes your membership software can produce pseudonymous columns such as failed payment, check-ins, renewal date, and PT remaining, then train a logistic regression, but you said you do not know how to get anything out of it; first make only the saved reports or filters the software already supports, and build no model until those fields can be created locally without member details.\n- The call value is treated as a retained month of membership, but whether a trainer call actually stops someone from quitting is not known; judge the list by how many true next-cycle leavers it finds within your call capacity, and measure retention with a called-versus-uncalled comparison before assuming calls save money.\n- The decision and label timing may not be workable as written, because “most recent payment failed” or “not active” can leak outcome information if known only after the next billing event; set the snapshot strictly before the payment/renewal decision point and record only statuses visible at that moment, then define the quit label consistently after the billing event has passed.\n- The solution asks for many columns and steps you did not request; keep the first deliverable to one staff-made at-risk call list with simple priority rules and a small outcome log, and add only fields that are easy to report in your existing membership software.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "asks",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    208.6
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0,
+    "upload_demanded": 0,
+    "sums_checked": 9
+   },
+   "notes": {
+    "family": null,
+    "mode": "architect",
+    "roles_called": [
+     "architect",
+     "critic"
+    ],
+    "gates_passed": {
+     "need": true,
+     "parts": true,
+     "sums": true,
+     "numbers": true,
+     "data table": true,
+     "an outcome and an input": true,
+     "inputs known in time": true,
+     "label after the decision": true,
+     "plan": true,
+     "model": true,
+     "no upload asked": true,
+     "no data made": true
+    },
+    "cost_eur": 0.007326,
+    "assumed_inputs": [],
+    "fits": null,
+    "need": "full",
+    "repaired": false,
+    "removed": 0,
+    "kind": "binary classification",
+    "findings": 4,
+    "errors": [],
+    "first_failed": [],
+    "still_failed": []
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": true,
+    "understood": [
+     true,
+     true,
+     true,
+     true
+    ],
+    "forbidden_done": [
+     false,
+     true,
+     false
+    ],
+    "understanding": 3,
+    "solution_design": 3,
+    "planning": 3,
+    "evidence_discipline": 4,
+    "adaptation": null,
+    "accepted": false
+   },
+   "spent_eur": 0.0073,
+   "judge_spent_eur": 0.0033
+  },
+  {
+   "id": "ND-13",
+   "arm": "blueprint_pipeline",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "I run operations for a furniture retailer with one warehouse. The owner wants to know whether we should open a second warehouse in the south next year. Nothing is in a system I could export for you: I have what I know from the job. Deliveries to the south take about 6 days, to the north 2. Around a third of our orders go south. How should we think about this?",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "# DCLab No-Data Solution Blueprint (regression)\n\n**Problem:** I run operations for a furniture retailer with one warehouse. The owner wants to know whether we should open a second warehouse in the south next year. Nothing is in a system I could export for you: I have what I know from the job. Deliveries to the south take about 6 days, to the north 2. Around a third of our orders go south. How should we think about this?\n**Data mode:** No-Data Solution Design\n**Harness mode:** `ai_harnessed` · Gates passed: `4/5` · not passed: workflow\n\n## 0. Deep Problem & Domain Understanding (Epistemic Provenance)\n- **Restatement:** Estimate whether opening a southern warehouse next year improves service and net operating economics enough to justify it.\n- **Goal** (`AI inferred`): Decide whether to open a second warehouse in the south next year — *proposed by the advisor from \"The owner wants to know whether we should open a second warehouse in the south next year.\"*\n- **Decision Action** (`AI inferred`): Open the second warehouse or keep the single warehouse. — *AI domain inference: Orders and costs are separate entities; the second warehouse has no historical outcome.*\n- **Decision Unit** (`AI inferred`): One next-year fulfillment plan under current versus simulated southern warehouse. — *AI domain inference: Orders and costs are separate entities; the second warehouse has no historical outcome.*\n- **Prediction Moment** (`AI inferred`): During planning before the warehouse opens, using only known demand, costs, and assumptions. — *AI domain inference: Orders and costs are separate entities; the second warehouse has no historical outcome.*\n- **Outcome And Horizon** (`Stated by you`): next year — *Quoted verbatim from your description: \"next year\"*\n- **Primary Metric** (`AI inferred`): Decision regret plus MAE for south demand, cost per order, and average delivery days. — *AI domain inference: Orders and costs are separate entities; the second warehouse has no historical outcome.*\n- **Alternative Problem Framings Considered:**\n  - `regression`: Forecasts demand or cost but does not alone estimate the unobserved effect of a new warehouse.\n\n## 1. Business Solution & Decision Economics\n- **Decision owner & action:** Operations / Analytics Lead — Open the second warehouse or keep the single warehouse.\n- **Day-0 non-ML baseline:** Scorecard heuristic using top 3 domain risk rules + randomized control holdout to measure baseline lift before ML.\n- **Read this first:** 5 of 5 inputs below are DCLab's placeholders (monthly volume, base rate, cost per action, value per caught case, share of actions that work), not facts about your business. Every figure computed from them is an illustration until you give your own numbers.\n- **Monthly volume:** 10000 (assumed by DCLab) · **Base rate:** 8.0% (assumed by DCLab)\n- **Cost per action:** 15.0 (assumed by DCLab) · **Value per caught case:** 180.0 (assumed by DCLab) · **Share of actions that work:** 35% (assumed by DCLab)\n- **Break-even precision:** 23.8% (an illustration: computed from assumed inputs)\n- **Domain Expert (fact):** The main lever is service time, not total order volume: the case says south deliveries take about 6 days versus north about 2 days, with about one third of orders going south, so the warehouse should be evaluated by whether it shortens planned_south_lead_days and changes south customer behavior.\n- **Domain Expert (fact):** A clean Day-0 baseline should split order_events by customer_region and compare promise_delivery_days, actual_delivery_days_historical, and units only after excluding scenario_id scenarios, so current north/south cost-to-serve is observable before adding a hypothetical warehouse.\n- **Domain Expert (risk):** A south warehouse can change total demand through shorter lead time, so a model that only reallocates today's annual_order_volume and south_order_share_pct will miss orders that would have been lost under current 6-day lead times.\n\n### ROI Scenarios (an illustration: computed from assumed inputs; the lifts are DCLab's assumptions)\n| Scenario | Precision | Flagged/mo | Gross Value | Cost | Net/mo |\n|---|---:|---:|---:|---:|---:|\n| Conservative (1.5x lift) | 12.0% | 1500 | 11340.0 | 22500.0 | -11160.0 |\n| Target ML (2.5x lift) | 20.0% | 1500 | 18900.0 | 22500.0 | -3600.0 |\n| Strong ML (3.5x lift) | 28.0% | 1500 | 26460.0 | 22500.0 | 3960.0 |\n\n## 2. Data Science Solution & Minimum Viable Data Spec\n- **Unit / Entity:** `record_id`\n- **Prediction Cutoff Time:** `decision_timestamp`\n- **Label Horizon:** at decision time / fixed outcome window\n- **Target:** `target_value`\n- **Tier-1 Day-1 Features:** customer_region, units, promise_delivery_days, actual_delivery_days_historical, scenario_id, annual_order_volume, south_order_share_pct, current_south_lead_days\n- **Tier-2 High-Leverage Features:** rolling_peer_benchmark_asof, recency_days, frequency_90d\n- **Forbidden Post-Decision Columns:** actual_discount_granted_post_hoc, settlement_fee_after_outcome, post_event_adjustment\n- **Validation Split:** Time-ordered split (or entity-grouped CV if no timestamp exists) with outlier-robust residual checks.\n- **Metrics:** mae, rmse, r2\n- **Verified Fold-Safe Feature Programs (`dclab_core.features`):** `order_id_count (count)`, `order_id_day_count (count)`, `units_entity_mean (mean)`, `units_entity_deviation (deviation)`, `order_id_time_since_prev (since_previous)`, `units_rolling3_mean (rolling_mean)`\n\n### Pre-Data Leakage Traps\n- **Strict as-of point-in-time join** (PIK-003): Compute every feature strictly using events <= decision_timestamp.\n- **Ban post-decision columns** (EXP-014): Drop/audit post-cutoff fields before training: settlement_fee_after_outcome, actual_discount_granted_post_hoc, post_event_adjustment.\n- **Lock label maturity window** (DCLAB-R04): Only assign negative labels after at decision time / fixed outcome window has elapsed, or censoring bias inflates false negatives.\n- **Leak Suspect `actual_delivery_days_historical` (review):** Actual delivery time is unknown at future planning time.\n- **Leakage Auditor (risk):** target_value is outcome-like and decision_timestamp appears to record the decision itself, so they can only be known after the planning decision and must not be used as pre-decision features.\n- **Leakage Auditor (risk):** scenario_id may encode whether the second warehouse was chosen or which future plan was selected, leaking the outcome if it is created at or after the decision moment.\n- **Leakage Auditor (risk):** planned_south_lead_days can be legitimate only if it was frozen before the decision; if it is generated after choosing to open, it leaks the post-decision plan.\n\n## 3. ML Solution, Multi-Model Debate & Pre-Data Task Plan\n- **Stage 1 Baseline:** Median/Segment baseline -> Ridge / Huber Regression.\n- **Stage 2 Primary:** Gradient Boosted Trees (LightGBM / CatBoost) with Huber or Tweedie loss for skewed targets.\n- **Stage 3 Decision Layer:** Residual quantile bands + segment error audit before automated downstream pricing/SLA action.\n- **What Evidence Would Change Algorithm Choice:** Pilot data, a real second warehouse, or detailed cost exports would allow stronger causal or supervised models.\n- **DCLab's rules' plan (no model debate ran):** Split: Time-ordered split (or entity-grouped CV if no timestamp exists) with outlier-robust residual checks. · Metric `mae` · Families `dummy, ridge, random_forest, gradient_boosting`\n- **TP-08 Selected Pre-Data Tasks:** time_split_check, grouped_split, threshold_for_cost, baseline\n\n## 4. Next Options (When Ready)\n- Tell me missing economics or operational constraints to tighten these numbers.\n- If you want a **synthetic prototype**, answer the simulation questions so I can show the schema design for your approval first.\n- When real data is ready, upload/connect it — `Build project` remains unchanged whenever you attach data.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "asks",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    1722.54
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0,
+    "upload_demanded": 0,
+    "sums_checked": 0
+   },
+   "notes": {
+    "family": "regression",
+    "mode": "ai_harnessed",
+    "roles_called": [
+     "problem_analyst",
+     "brief_checker",
+     "ai_first",
+     "synthetic_schema",
+     "understanding_critic",
+     "feature_engineer",
+     "case_specialist:domain_expert",
+     "case_specialist:leakage_auditor",
+     "decomposer",
+     "map_reviewer",
+     "solution_router",
+     "solution_planner",
+     "solution_challenger",
+     "debate_judge"
+    ],
+    "gates_passed": {
+     "gate_1_epistemic_provenance": true,
+     "gate_2_number_grounding": true,
+     "gate_3_virtual_schema_and_features": true,
+     "gate_4_workflow_and_debate": false,
+     "gate_5_budget": true
+    },
+    "cost_eur": 0.055795,
+    "assumed_inputs": [
+     "monthly volume",
+     "base rate",
+     "cost per action",
+     "value per caught case",
+     "share of actions that work"
+    ],
+    "fits": true,
+    "need": null,
+    "repaired": null,
+    "removed": 0,
+    "kind": null,
+    "findings": 0,
+    "errors": [],
+    "first_failed": [],
+    "still_failed": []
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": true,
+    "understood": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "forbidden_done": [
+     true,
+     true,
+     true
+    ],
+    "understanding": 0,
+    "solution_design": 0,
+    "planning": 0,
+    "evidence_discipline": 0,
+    "adaptation": null,
+    "accepted": false
+   },
+   "spent_eur": 0.0558,
+   "judge_spent_eur": 0.0019
+  },
+  {
+   "id": "ND-14",
+   "arm": "blueprint_pipeline",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "We are a clinic group with 14 physiotherapy clinics. A lot of patients book and then do not come. I do not want a model now, and I cannot send you anything with patient details in it anyway. What I want to know is what we should start recording from next month, so that in a year we could do something useful about no-shows.",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "# DCLab No-Data Solution Blueprint (regression)\n\n**Problem:** We are a clinic group with 14 physiotherapy clinics. A lot of patients book and then do not come. I do not want a model now, and I cannot send you anything with patient details in it anyway. What I want to know is what we should start recording from next month, so that in a year we could do something useful about no-shows.\n**Data mode:** No-Data Solution Design\n**Harness mode:** `ai_harnessed` · Gates passed: `5/5`\n\n## 0. Deep Problem & Domain Understanding (Epistemic Provenance)\n- **Restatement:** Clinic group needs a privacy-safe recording plan so future bookings can predict no-shows without patient identifiers.\n- **Goal** (`Stated by you`): What I want to know is what we should start recording from next month, so that in a year we could do something useful about no-shows. — *Quoted verbatim from your description: \"What I want to know is what we should start recording from next month, so that in a year we could do something useful about no-shows.\"*\n- **Decision Action** (`AI inferred`): allocate appointments and choose reminders/interventions — *AI domain inference: actionable prediction is per future booking*\n- **Decision Unit** (`AI inferred`): one booking decision — *AI domain inference: actionable prediction is per future booking*\n- **Prediction Moment** (`AI inferred`): when booking is created — *AI domain inference: actionable prediction is per future booking*\n- **Outcome And Horizon** (`Stated by you`): next month — *Quoted verbatim from your description: \"next month\"*\n- **Primary Metric** (`AI inferred`): AUC and precision_at_intervention — *AI domain inference: actionable prediction is per future booking*\n- **Alternative Problem Framings Considered:**\n  - `regression`: count or rate prediction is less useful than booking risk\n  - `segmentation`: segments support actions but not booking-level risk\n\n## 1. Business Solution & Decision Economics\n- **Decision owner & action:** Operations / Analytics Lead — allocate appointments and choose reminders/interventions\n- **Day-0 non-ML baseline:** Scorecard heuristic using top 3 domain risk rules + randomized control holdout to measure baseline lift before ML.\n- **Read this first:** 5 of 5 inputs below are DCLab's placeholders (monthly volume, base rate, cost per action, value per caught case, share of actions that work), not facts about your business. Every figure computed from them is an illustration until you give your own numbers.\n- **Monthly volume:** 10000 (assumed by DCLab) · **Base rate:** 8.0% (assumed by DCLab)\n- **Cost per action:** 15.0 (assumed by DCLab) · **Value per caught case:** 180.0 (assumed by DCLab) · **Share of actions that work:** 35% (assumed by DCLab)\n- **Break-even precision:** 23.8% (an illustration: computed from assumed inputs)\n- **Domain Expert (fact):** The Day-0 recording target should be one booking decision row at decision_timestamp, capturing booking_id, no_show, clinic_id, therapist_id, appointment_type, treatment_modality, channel, booking_channel, appointment_slot, segment, baseline_size_metric, and historical_avg_value_asof.\n- **Domain Expert (risk):** If the group records only arrived patients, it will lose the booked denominator needed later to separate true no-shows from cancellations, reschedules, or data gaps.\n- **Domain Expert (risk):** Post-event fields such as actual_discount_granted_post_hoc, settlement_fee_after_outcome, and post_event_adjustment must not enter the booking-created snapshot; they leak outcomes and distort future work.\n\n### ROI Scenarios (an illustration: computed from assumed inputs; the lifts are DCLab's assumptions)\n| Scenario | Precision | Flagged/mo | Gross Value | Cost | Net/mo |\n|---|---:|---:|---:|---:|---:|\n| Conservative (1.5x lift) | 12.0% | 1500 | 11340.0 | 22500.0 | -11160.0 |\n| Target ML (2.5x lift) | 20.0% | 1500 | 18900.0 | 22500.0 | -3600.0 |\n| Strong ML (3.5x lift) | 28.0% | 1500 | 26460.0 | 22500.0 | 3960.0 |\n\n## 2. Data Science Solution & Minimum Viable Data Spec\n- **Unit / Entity:** `record_id`\n- **Prediction Cutoff Time:** `decision_timestamp`\n- **Label Horizon:** at decision time / fixed outcome window\n- **Target:** `target_value`\n- **Tier-1 Day-1 Features:** clinic_id, channel, appointment_slot, patient_id, therapist_id, appointment_type, treatment_modality, referral_source\n- **Tier-2 High-Leverage Features:** rolling_peer_benchmark_asof, recency_days, frequency_90d\n- **Forbidden Post-Decision Columns:** actual_discount_granted_post_hoc, settlement_fee_after_outcome, post_event_adjustment\n- **Validation Split:** Time-ordered split (or entity-grouped CV if no timestamp exists) with outlier-robust residual checks.\n- **Metrics:** mae, rmse, r2\n- **Verified Fold-Safe Feature Programs (`dclab_core.features`):** `booking_id_count (count)`, `booking_id_day_count (count)`, `appointment_slot_entity_mean (mean)`, `appointment_slot_entity_deviation (deviation)`, `booking_id_time_since_prev (since_previous)`, `appointment_slot_rolling3_mean (rolling_mean)`\n\n### Pre-Data Leakage Traps\n- **Strict as-of point-in-time join** (PIK-003): Compute every feature strictly using events <= decision_timestamp.\n- **Ban post-decision columns** (EXP-014): Drop/audit post-cutoff fields before training: settlement_fee_after_outcome, actual_discount_granted_post_hoc, post_event_adjustment.\n- **Lock label maturity window** (DCLAB-R04): Only assign negative labels after at decision time / fixed outcome window has elapsed, or censoring bias inflates false negatives.\n- **Leak Suspect `no_show` (review):** only known after appointment\n- **Leakage Auditor (fact):** no_show is the outcome label and is unavailable at the booking-creation prediction moment.\n- **Leakage Auditor (risk):** actual_discount_granted_post_hoc, settlement_fee_after_outcome, and post_event_adjustment would leak post-booking or post-outcome information.\n- **Leakage Auditor (risk):** therapist_id, appointment_slot, appointment_type, and referral_source can leak if any are assigned, changed, or recorded after the booking is created.\n\n## 3. ML Solution, Multi-Model Debate & Pre-Data Task Plan\n- **Stage 1 Baseline:** Median/Segment baseline -> Ridge / Huber Regression.\n- **Stage 2 Primary:** Gradient Boosted Trees (LightGBM / CatBoost) with Huber or Tweedie loss for skewed targets.\n- **Stage 3 Decision Layer:** Residual quantile bands + segment error audit before automated downstream pricing/SLA action.\n- **What Evidence Would Change Algorithm Choice:** sparse labels, unstable definitions, or strong time effects\n- **Planner-Challenger-Judge Debate Verdict:** Split `group, group_column booking_id` · Metric `mae` · Families `dummy, ridge, random_forest, gradient_boosting`\n- **TP-08 Selected Pre-Data Tasks:** time_split_check, grouped_split, threshold_for_cost, baseline\n\n## 4. Next Options (When Ready)\n- Tell me missing economics or operational constraints to tighten these numbers.\n- If you want a **synthetic prototype**, answer the simulation questions so I can show the schema design for your approval first.\n- When real data is ready, upload/connect it — `Build project` remains unchanged whenever you attach data.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "answered",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    1189.37
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0,
+    "upload_demanded": 0,
+    "sums_checked": 0
+   },
+   "notes": {
+    "family": "regression",
+    "mode": "ai_harnessed",
+    "roles_called": [
+     "problem_analyst",
+     "brief_checker",
+     "ai_first",
+     "synthetic_schema",
+     "understanding_critic",
+     "feature_engineer",
+     "case_specialist:domain_expert",
+     "case_specialist:leakage_auditor",
+     "decomposer",
+     "map_reviewer",
+     "solution_router",
+     "solution_planner",
+     "solution_challenger",
+     "debate_judge"
+    ],
+    "gates_passed": {
+     "gate_1_epistemic_provenance": true,
+     "gate_2_number_grounding": true,
+     "gate_3_virtual_schema_and_features": true,
+     "gate_4_workflow_and_debate": true,
+     "gate_5_budget": true
+    },
+    "cost_eur": 0.042968,
+    "assumed_inputs": [
+     "monthly volume",
+     "base rate",
+     "cost per action",
+     "value per caught case",
+     "share of actions that work"
+    ],
+    "fits": true,
+    "need": null,
+    "repaired": null,
+    "removed": 0,
+    "kind": null,
+    "findings": 0,
+    "errors": [],
+    "first_failed": [],
+    "still_failed": []
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": true,
+    "understood": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "forbidden_done": [
+     true,
+     false,
+     false,
+     false
+    ],
+    "understanding": 2,
+    "solution_design": 1,
+    "planning": 1,
+    "evidence_discipline": 3,
+    "adaptation": null,
+    "accepted": false
+   },
+   "spent_eur": 0.043,
+   "judge_spent_eur": 0.0049
+  },
+  {
+   "id": "ND-15",
+   "arm": "blueprint_pipeline",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "I manage a subscription box company. We have nothing clean to share yet, but my boss wants to see something working by next week. Can you make up some realistic customer data and build a churn model on it, so I can show how it would look? We have about 12,000 subscribers and roughly 6% cancel each month.",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "# DCLab No-Data Solution Blueprint (churn)\n\n**Problem:** I manage a subscription box company. We have nothing clean to share yet, but my boss wants to see something working by next week. Can you make up some realistic customer data and build a churn model on it, so I can show how it would look? We have about 12,000 subscribers and roughly 6% cancel each month.\n**Data mode:** No-Data Solution Design\n**Harness mode:** `ai_harnessed` · Gates passed: `4/5` · not passed: numbers\n\n## 0. Deep Problem & Domain Understanding (Epistemic Provenance)\n- **Restatement:** Build a leakage-safe churn demo model on synthetic subscription-box customer snapshots for about 12,000 subscribers with a 0.06 monthly churn base rate.\n- **Goal** (`Stated by you`): Can you make up some realistic customer data and build a churn model on it, so I can show how it would look? — *Quoted verbatim from your description: \"Can you make up some realistic customer data and build a churn model on it, so I can show how it would look?\"*\n- **Decision Action** (`AI inferred`): rank subscribers by next-30-day churn risk for retention outreach — *AI domain inference: predict next-30-day cancel yes/no from as-of customer features*\n- **Decision Unit** (`AI inferred`): subscriber — *proposed by the advisor from \"12,000 subscribers\"*\n- **Prediction Moment** (`AI inferred`): at snapshot_date, using only history available through that date — *AI domain inference: predict next-30-day cancel yes/no from as-of customer features*\n- **Outcome And Horizon** (`Stated by you`): next week — *Quoted verbatim from your description: \"next week\"*\n- **Primary Metric** (`AI inferred`): PR AUC with precision and recall at unknown retention capacity — *AI domain inference: predict next-30-day cancel yes/no from as-of customer features*\n- **Alternative Problem Framings Considered:**\n  - `rare_event`: base_rate 0.06 is imbalanced but not rare enough to require anomaly framing\n  - `segmentation`: the need is prediction and ranking, not grouping\n\n## 1. Business Solution & Decision Economics\n- **Decision owner & action:** Operations / Analytics Lead — rank subscribers by next-30-day churn risk for retention outreach\n- **Day-0 non-ML baseline:** Scorecard heuristic using top 3 domain risk rules + randomized control holdout to measure baseline lift before ML.\n- **Read this first:** 3 of 5 inputs below are DCLab's placeholders (cost per action, value per caught case, share of actions that work), not facts about your business. Every figure computed from them is an illustration until you give your own numbers.\n- **Monthly volume:** 12000 (stated by you) · **Base rate:** 6.0% (stated by you)\n- **Cost per action:** 15.0 (assumed by DCLab) · **Value per caught case:** 180.0 (assumed by DCLab) · **Share of actions that work:** 35% (assumed by DCLab)\n- **Break-even precision:** 23.8% (an illustration: computed from assumed inputs)\n- **Domain Expert (fact):** The stated baseline is 12,000 subscribers with roughly 6% monthly churn, so any demo model should first be compared against that 6% cancellation rate.\n- **Domain Expert (risk):** A churn model built on synthetic data can look realistic and may be mistaken for actionable evidence until clean customer_snapshots data exists.\n- **Domain Expert (question):** Which retention lever should the demo prioritize first: reducing payment_failures_90d, responding to support_tickets_30d, tuning discount_rate or is_promo_plan offers, or changing plan_tier and billing_cycle terms?\n\n### ROI Scenarios (an illustration: computed from assumed inputs; the lifts are DCLab's assumptions)\n| Scenario | Precision | Flagged/mo | Gross Value | Cost | Net/mo |\n|---|---:|---:|---:|---:|---:|\n| Conservative (1.5x lift) | 9.0% | 1800 | 10206.0 | 27000.0 | -16794.0 |\n| Target ML (2.5x lift) | 15.0% | 1800 | 17010.0 | 27000.0 | -9990.0 |\n| Strong ML (3.5x lift) | 21.0% | 1800 | 23814.0 | 27000.0 | -3186.0 |\n\n## 2. Data Science Solution & Minimum Viable Data Spec\n- **Unit / Entity:** `customer_id`\n- **Prediction Cutoff Time:** `snapshot_date (e.g. monthly billing cutoff / T-30d)`\n- **Label Horizon:** next 30 days after snapshot_date (exclude immature accounts)\n- **Target:** `churned_within_30d`\n- **Tier-1 Day-1 Features:** plan_tier, tenure_months, support_tickets_30d, plan_type, billing_cycle, monthly_amount, discount_rate, is_promo_plan\n- **Tier-2 High-Leverage Features:** nps_last_response, seat_utilization_pct\n- **Forbidden Post-Decision Columns:** cancellation_reason, account_closed_flag, retention_offer_accepted_after_snapshot, final_invoice_date\n- **Validation Split:** Out-of-time snapshot split PLUS entity-group isolation (no entity appears in both train and holdout).\n- **Metrics:** pr_auc, roc_auc, precision_at_top_k, brier_score\n- **Verified Fold-Safe Feature Programs (`dclab_core.features`):** `customer_id_count (count)`, `customer_id_day_count (count)`, `tenure_months_entity_mean (mean)`, `tenure_months_entity_deviation (deviation)`, `customer_id_time_since_prev (since_previous)`, `tenure_months_rolling3_mean (rolling_mean)`\n\n### Pre-Data Leakage Traps\n- **Strict as-of point-in-time join** (DATASET-telco_churn): Compute every feature strictly using events <= snapshot_date (e.g. monthly billing cutoff / T-30d).\n- **Ban post-decision columns** (KND-001): Drop/audit post-cutoff fields before training: cancellation_reason, final_invoice_date, retention_offer_accepted_after_snapshot, account_closed_flag.\n- **Lock label maturity window** (PIT-004): Only assign negative labels after next 30 days after snapshot_date (exclude immature accounts) has elapsed, or censoring bias inflates false negatives.\n- **Leak Suspect `cancellation_reason` (exclude):** written after the cancellation event\n- **Leak Suspect `retention_offer_accepted_after_snapshot` (exclude):** outcome-informed intervention after prediction moment\n- **Leakage Auditor (fact):** churned_within_30d is the target outcome and can reveal the answer if it is used as a feature or copied into a predictor rather than kept only as the label.\n- **Leakage Auditor (risk):** support_tickets_30d, active_days_last_30d, usage_trend_30d_vs_90d, and payment_failures_90d could leak post-snapshot events unless their date windows are proven to end exactly at snapshot_date.\n\n## 3. ML Solution, Multi-Model Debate & Pre-Data Task Plan\n- **Stage 1 Baseline:** L2-regularized Logistic Regression with missing-value indicators & target/frequency encoding inside CV folds.\n- **Stage 2 Primary:** LightGBM / CatBoost with class weighting (or focal objective), early stopping on validation PR-AUC.\n- **Stage 3 Decision Layer:** Isotonic / Platt probability calibration -> act when P(y=1) >= break-even 23.8% capped at top 15% capacity.\n- **What Evidence Would Change Algorithm Choice:** if leakage-free validation shows stable non-linear gains\n- **Planner-Challenger-Judge Debate Verdict:** Split `group, group_column customer_id` · Metric `roc_auc` · Families `dummy, logistic_regression, random_forest, gradient_boosting`\n- **TP-08 Selected Pre-Data Tasks:** time_split_check, grouped_split, check_join_key, threshold_for_cost, baseline\n\n## 4. Next Options (When Ready)\n- Tell me missing economics or operational constraints to tighten these numbers.\n- If you want a **synthetic prototype**, answer the simulation questions so I can show the schema design for your approval first.\n- When real data is ready, upload/connect it — `Build project` remains unchanged whenever you attach data.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "asks",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    1162.44
+   ],
+   "safety": {
+    "uncited": [
+     "30",
+     "30",
+     "30",
+     "30",
+     "30",
+     "30",
+     "30",
+     "30",
+     "30"
+    ],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0,
+    "upload_demanded": 0,
+    "sums_checked": 0
+   },
+   "notes": {
+    "family": "churn",
+    "mode": "ai_harnessed",
+    "roles_called": [
+     "problem_analyst",
+     "brief_checker",
+     "ai_first",
+     "synthetic_schema",
+     "understanding_critic",
+     "feature_engineer",
+     "case_specialist:domain_expert",
+     "case_specialist:leakage_auditor",
+     "decomposer",
+     "map_reviewer",
+     "solution_router",
+     "solution_planner",
+     "solution_challenger",
+     "debate_judge"
+    ],
+    "gates_passed": {
+     "gate_1_epistemic_provenance": true,
+     "gate_2_number_grounding": false,
+     "gate_3_virtual_schema_and_features": true,
+     "gate_4_workflow_and_debate": true,
+     "gate_5_budget": true
+    },
+    "cost_eur": 0.044218,
+    "assumed_inputs": [
+     "cost per action",
+     "value per caught case",
+     "share of actions that work"
+    ],
+    "fits": true,
+    "need": null,
+    "repaired": null,
+    "removed": 0,
+    "kind": null,
+    "findings": 0,
+    "errors": [],
+    "first_failed": [],
+    "still_failed": []
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": true,
+    "understood": [
+     true,
+     false,
+     true,
+     false
+    ],
+    "forbidden_done": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "understanding": 3,
+    "solution_design": 3,
+    "planning": 2,
+    "evidence_discipline": 4,
+    "adaptation": null,
+    "accepted": false
+   },
+   "spent_eur": 0.0442,
+   "judge_spent_eur": 0.004
+  },
+  {
+   "id": "ND-16",
+   "arm": "blueprint_pipeline",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "I own three gyms. Members quit all the time and I only find out when the payment stops. All I have is the membership software, which I can look at, but I do not know how to get anything out of it, and honestly I would rather not hand over member details. About 2,400 members, maybe 90 quit a month. A personal call from a trainer costs me about 10 euros of their time, and a member pays 45 a month. Can something tell me who is about to quit, so we call them first?",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "# DCLab No-Data Solution Blueprint (regression)\n\n**Problem:** I own three gyms. Members quit all the time and I only find out when the payment stops. All I have is the membership software, which I can look at, but I do not know how to get anything out of it, and honestly I would rather not hand over member details. About 2,400 members, maybe 90 quit a month. A personal call from a trainer costs me about 10 euros of their time, and a member pays 45 a month. Can something tell me who is about to quit, so we call them first?\n**Data mode:** No-Data Solution Design\n**Harness mode:** `ai_harnessed` · Gates passed: `5/5`\n\n## 0. Deep Problem & Domain Understanding (Epistemic Provenance)\n- **Restatement:** Predict which gym members will stop paying or cancel at the next monthly snapshot so trainers can call them before payment stops.\n- **Goal** (`Stated by you`): Members quit all the time and I only find out when the payment stops. — *Quoted verbatim from your description: \"Members quit all the time and I only find out when the payment stops.\"*\n- **Decision Action** (`AI inferred`): Call them first — *proposed by the advisor from \"so we call them first\"*\n- **Decision Unit** (`AI inferred`): member — *proposed by the advisor from \"2,400 members\"*\n- **Prediction Moment** (`AI inferred`): At the monthly snapshot, using only data recorded before that moment. — *AI domain inference: The target is a future yes-no stop-payment event, not a numeric amount.*\n- **Outcome And Horizon** (`AI inferred`): Churn or payment stop at the next month. (Known after the next-month payment or cancellation result arrives.) — *AI domain inference: The target is a future yes-no stop-payment event, not a numeric amount.*\n- **Primary Metric** (`DCLab default`): rmse + mae — *DCLab default (nobody said it): Matches class balance, asymmetric error costs, and operational ranking needs.*\n- **Alternative Problem Framings Considered:**\n  - `regression`: Regression predicts value amount, but the needed action is who is about to quit.\n  - `time_to_event`: Useful if exact cancellation timestamps exist, but action cadence is monthly.\n\n## 1. Business Solution & Decision Economics\n- **Decision owner & action:** Operations / Analytics Lead — Call them first\n- **Day-0 non-ML baseline:** Scorecard heuristic using top 3 domain risk rules + randomized control holdout to measure baseline lift before ML.\n- **Read this first:** 4 of 5 inputs below are DCLab's placeholders (monthly volume, base rate, value per caught case, share of actions that work), not facts about your business. Every figure computed from them is an illustration until you give your own numbers.\n- **Monthly volume:** 10000 (assumed by DCLab) · **Base rate:** 8.0% (assumed by DCLab)\n- **Cost per action:** 10.0 (stated by you) · **Value per caught case:** 180.0 (assumed by DCLab) · **Share of actions that work:** 35% (assumed by DCLab)\n- **Break-even precision:** 15.9% (an illustration: computed from assumed inputs)\n- **Domain Expert (fact):** The highest-leverage decision is to rank members at each snapshot_month for a personal call before churn_next_month happens, targeting members whose expected lost payment exceeds the 10-euro call cost.\n- **Domain Expert (fact):** Day-0 baseline: use visits_previous_month, failed_payments_previous_month, recency_days, frequency_90d, membership_type, segment, and gym_key, because all are available at the snapshot and can separate lapsing members from payment-failure risk.\n- **Domain Expert (risk):** Calling too many members is an operational trap: trainer time is limited, so success must be measured by retained members per call hour, not by model accuracy.\n\n### ROI Scenarios (an illustration: computed from assumed inputs; the lifts are DCLab's assumptions)\n| Scenario | Precision | Flagged/mo | Gross Value | Cost | Net/mo |\n|---|---:|---:|---:|---:|---:|\n| Conservative (1.5x lift) | 12.0% | 1500 | 11340.0 | 15000.0 | -3660.0 |\n| Target ML (2.5x lift) | 20.0% | 1500 | 18900.0 | 15000.0 | 3900.0 |\n| Strong ML (3.5x lift) | 28.0% | 1500 | 26460.0 | 15000.0 | 11460.0 |\n\n## 2. Data Science Solution & Minimum Viable Data Spec\n- **Unit / Entity:** `record_id`\n- **Prediction Cutoff Time:** `decision_timestamp`\n- **Label Horizon:** at decision time / fixed outcome window\n- **Target:** `target_value`\n- **Tier-1 Day-1 Features:** gym_key, membership_type, visits_previous_month, failed_payments_previous_month, snapshot_date, member_id, gym_id, membership_plan\n- **Tier-2 High-Leverage Features:** rolling_peer_benchmark_asof, recency_days, frequency_90d\n- **Forbidden Post-Decision Columns:** actual_discount_granted_post_hoc, post_event_adjustment, final_status, days_to_payment_stop_after_snapshot, retention_offer_after_snapshot, settlement_fee_after_outcome\n- **Validation Split:** Time-ordered split (or entity-grouped CV if no timestamp exists) with outlier-robust residual checks.\n- **Metrics:** mae, rmse, r2\n- **Verified Fold-Safe Feature Programs (`dclab_core.features`):** `member_key_count (count)`, `member_key_day_count (count)`, `gym_key_entity_mean (mean)`, `gym_key_entity_deviation (deviation)`, `member_key_time_since_prev (since_previous)`, `gym_key_rolling3_mean (rolling_mean)`\n\n### Pre-Data Leakage Traps\n- **Strict as-of point-in-time join** (PIK-003): Compute every feature strictly using events <= decision_timestamp.\n- **Ban post-decision columns** (EXP-014): Drop/audit post-cutoff fields before training: settlement_fee_after_outcome, actual_discount_granted_post_hoc, post_event_adjustment.\n- **Lock label maturity window** (DCLAB-R04): Only assign negative labels after at decision time / fixed outcome window has elapsed, or censoring bias inflates false negatives.\n- **Leak Suspect `final_status` (exclude):** Status may be set after payment stops.\n- **Leak Suspect `days_to_payment_stop_after_snapshot` (exclude):** Computed after outcome.\n- **Leak Suspect `retention_offer_after_snapshot` (exclude):** Offer may happen after churn signal.\n- **Leakage Auditor (fact):** churn_next_month is the outcome label for the member-month snapshot, so it is knowable only after the next month and must not be used as an input feature.\n\n## 3. ML Solution, Multi-Model Debate & Pre-Data Task Plan\n- **Stage 1 Baseline:** Median/Segment baseline -> Ridge / Huber Regression.\n- **Stage 2 Primary:** Gradient Boosted Trees (LightGBM / CatBoost) with Huber or Tweedie loss for skewed targets.\n- **Stage 3 Decision Layer:** Residual quantile bands + segment error audit before automated downstream pricing/SLA action.\n- **What Evidence Would Change Algorithm Choice:** If the real data holds few positive outcomes or many missing values, prefer regularized logistic/linear models over deep trees.\n- **DCLab's rules' plan (no model debate ran):** Split: Time-ordered split (or entity-grouped CV if no timestamp exists) with outlier-robust residual checks. · Metric `mae` · Families `dummy, ridge, random_forest, gradient_boosting`\n- **TP-08 Selected Pre-Data Tasks:** time_split_check, grouped_split, threshold_for_cost, baseline\n\n## 4. Next Options (When Ready)\n- Tell me missing economics or operational constraints to tighten these numbers.\n- If you want a **synthetic prototype**, answer the simulation questions so I can show the schema design for your approval first.\n- When real data is ready, upload/connect it — `Build project` remains unchanged whenever you attach data.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "asks",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    1511.5
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0,
+    "upload_demanded": 0,
+    "sums_checked": 0
+   },
+   "notes": {
+    "family": "regression",
+    "mode": "ai_harnessed",
+    "roles_called": [
+     "problem_analyst",
+     "brief_checker",
+     "ai_first",
+     "synthetic_schema",
+     "understanding_critic",
+     "feature_engineer",
+     "case_specialist:domain_expert",
+     "case_specialist:leakage_auditor",
+     "decomposer",
+     "map_reviewer",
+     "solution_router",
+     "solution_planner",
+     "solution_challenger",
+     "debate_judge"
+    ],
+    "gates_passed": {
+     "gate_1_epistemic_provenance": true,
+     "gate_2_number_grounding": true,
+     "gate_3_virtual_schema_and_features": true,
+     "gate_4_workflow_and_debate": true,
+     "gate_5_budget": true
+    },
+    "cost_eur": 0.054509,
+    "assumed_inputs": [
+     "monthly volume",
+     "base rate",
+     "value per caught case",
+     "share of actions that work"
+    ],
+    "fits": true,
+    "need": null,
+    "repaired": null,
+    "removed": 0,
+    "kind": null,
+    "findings": 0,
+    "errors": [],
+    "first_failed": [],
+    "still_failed": []
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": true,
+    "understood": [
+     true,
+     true,
+     true,
+     true
+    ],
+    "forbidden_done": [
+     true,
+     false,
+     false
+    ],
+    "understanding": 4,
+    "solution_design": 3,
+    "planning": 2,
+    "evidence_discipline": 3,
+    "adaptation": null,
+    "accepted": false
+   },
+   "spent_eur": 0.0545,
+   "judge_spent_eur": 0.0105
+  },
+  {
+   "id": "ND-13",
+   "arm": "blueprint_rules",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "I run operations for a furniture retailer with one warehouse. The owner wants to know whether we should open a second warehouse in the south next year. Nothing is in a system I could export for you: I have what I know from the job. Deliveries to the south take about 6 days, to the north 2. Around a third of our orders go south. How should we think about this?",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "# DCLab No-Data Solution Blueprint (regression)\n\n**Problem:** I run operations for a furniture retailer with one warehouse. The owner wants to know whether we should open a second warehouse in the south next year. Nothing is in a system I could export for you: I have what I know from the job. Deliveries to the south take about 6 days, to the north 2. Around a third of our orders go south. How should we think about this?\n**Data mode:** No-Data Solution Design\n**Harness mode:** `deterministic_floor` · Gates passed: `5/5`\n\n## 0. Deep Problem & Domain Understanding (Epistemic Provenance)\n- **Restatement:** Solve `regression` decisioning for `record` at `At the operational quote/intake timestamp when entity attributes are locked`, optimizing `rmse + mae` to guide `Prioritize high-value regression interventions under capacity/cost constraints`.\n- **Goal** (`DCLab default`): I run operations for a furniture retailer with one warehouse. The owner wants to know whether we should open a second warehouse in the south next year. Nothing is in a system I could export for you: I — *DCLab default (nobody said it): Synthesized from your problem statement.*\n- **Decision Action** (`DCLab default`): Prioritize high-value regression interventions under capacity/cost constraints — *DCLab default (nobody said it): Standard operational action for regression decisions.*\n- **Decision Unit** (`DCLab default`): record — *DCLab default (nobody said it): One prediction per `record_id` grain.*\n- **Prediction Moment** (`DCLab default`): At the operational quote/intake timestamp when entity attributes are locked — *DCLab default (nobody said it): Sets the strict point-in-time feature boundary to prevent look-ahead leakage.*\n- **Outcome And Horizon** (`Stated by you`): next year — *Quoted verbatim from your description: \"next year\"*\n- **Primary Metric** (`DCLab default`): rmse + mae — *DCLab default (nobody said it): Matches class balance, asymmetric error costs, and operational ranking needs.*\n- **Alternative Problem Framings Considered:**\n  - `classification`: Discretizing a continuous outcome into buckets loses magnitude sensitivity unless the business action only triggers above a single hard SLA threshold.\n  - `ranking`: If only relative priority order matters rather than calibrated unit values, pairwise ranking is less sensitive to extreme tail outliers.\n\n## 1. Business Solution & Decision Economics\n- **Decision owner & action:** Operations / Analytics Lead — Prioritize high-value regression interventions under capacity/cost constraints\n- **Day-0 non-ML baseline:** Scorecard heuristic using top 3 domain risk rules + randomized control holdout to measure baseline lift before ML.\n- **Read this first:** 5 of 5 inputs below are DCLab's placeholders (monthly volume, base rate, cost per action, value per caught case, share of actions that work), not facts about your business. Every figure computed from them is an illustration until you give your own numbers.\n- **Monthly volume:** 10000 (assumed by DCLab) · **Base rate:** 8.0% (assumed by DCLab)\n- **Cost per action:** 15.0 (assumed by DCLab) · **Value per caught case:** 180.0 (assumed by DCLab) · **Share of actions that work:** 35% (assumed by DCLab)\n- **Break-even precision:** 23.8% (an illustration: computed from assumed inputs)\n\n### ROI Scenarios (an illustration: computed from assumed inputs; the lifts are DCLab's assumptions)\n| Scenario | Precision | Flagged/mo | Gross Value | Cost | Net/mo |\n|---|---:|---:|---:|---:|---:|\n| Conservative (1.5x lift) | 12.0% | 1500 | 11340.0 | 22500.0 | -11160.0 |\n| Target ML (2.5x lift) | 20.0% | 1500 | 18900.0 | 22500.0 | -3600.0 |\n| Strong ML (3.5x lift) | 28.0% | 1500 | 26460.0 | 22500.0 | 3960.0 |\n\n## 2. Data Science Solution & Minimum Viable Data Spec\n- **Unit / Entity:** `record_id`\n- **Prediction Cutoff Time:** `decision_timestamp`\n- **Label Horizon:** at decision time / fixed outcome window\n- **Target:** `target_value`\n- **Tier-1 Day-1 Features:** segment, baseline_size_metric, historical_avg_value_asof, channel, region, season_index\n- **Tier-2 High-Leverage Features:** rolling_peer_benchmark_asof, recency_days, frequency_90d\n- **Forbidden Post-Decision Columns:** actual_discount_granted_post_hoc, settlement_fee_after_outcome, post_event_adjustment\n- **Validation Split:** Time-ordered split (or entity-grouped CV if no timestamp exists) with outlier-robust residual checks.\n- **Metrics:** mae, rmse, r2\n- **Verified Fold-Safe Feature Programs (`dclab_core.features`):** `record_id_count (count)`, `record_id_day_count (count)`, `baseline_size_metric_entity_mean (mean)`, `baseline_size_metric_entity_deviation (deviation)`, `record_id_time_since_prev (since_previous)`, `baseline_size_metric_rolling3_mean (rolling_mean)`\n\n### Pre-Data Leakage Traps\n- **Strict as-of point-in-time join** (PIK-003): Compute every feature strictly using events <= decision_timestamp.\n- **Ban post-decision columns** (EXP-014): Drop/audit post-cutoff fields before training: settlement_fee_after_outcome, actual_discount_granted_post_hoc, post_event_adjustment.\n- **Lock label maturity window** (DCLAB-R04): Only assign negative labels after at decision time / fixed outcome window has elapsed, or censoring bias inflates false negatives.\n\n## 3. ML Solution, Multi-Model Debate & Pre-Data Task Plan\n- **Stage 1 Baseline:** Median/Segment baseline -> Ridge / Huber Regression.\n- **Stage 2 Primary:** Gradient Boosted Trees (LightGBM / CatBoost) with Huber or Tweedie loss for skewed targets.\n- **Stage 3 Decision Layer:** Residual quantile bands + segment error audit before automated downstream pricing/SLA action.\n- **What Evidence Would Change Algorithm Choice:** If the real data holds few positive outcomes or many missing values, prefer regularized logistic/linear models over deep trees.\n- **DCLab's rules' plan (no model debate ran):** Split: Time-ordered split (or entity-grouped CV if no timestamp exists) with outlier-robust residual checks. · Metric `mae` · Families `dummy, ridge, random_forest, gradient_boosting`\n- **TP-08 Selected Pre-Data Tasks:** time_split_check, grouped_split, threshold_for_cost, baseline\n\n## 4. Next Options (When Ready)\n- Tell me missing economics or operational constraints to tighten these numbers.\n- If you want a **synthetic prototype**, answer the simulation questions so I can show the schema design for your approval first.\n- When real data is ready, upload/connect it — `Build project` remains unchanged whenever you attach data.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "asks",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    0.49
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0,
+    "upload_demanded": 0,
+    "sums_checked": 0
+   },
+   "notes": {
+    "family": "regression",
+    "mode": "deterministic_floor",
+    "roles_called": [],
+    "gates_passed": {
+     "gate_1_epistemic_provenance": true,
+     "gate_2_number_grounding": true,
+     "gate_3_virtual_schema_and_features": true,
+     "gate_4_workflow_and_debate": true,
+     "gate_5_budget": true
+    },
+    "cost_eur": 0.0,
+    "assumed_inputs": [
+     "monthly volume",
+     "base rate",
+     "cost per action",
+     "value per caught case",
+     "share of actions that work"
+    ],
+    "fits": true,
+    "need": null,
+    "repaired": null,
+    "removed": 0,
+    "kind": null,
+    "findings": 0,
+    "errors": [],
+    "first_failed": [],
+    "still_failed": []
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": true,
+    "understood": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "forbidden_done": [
+     true,
+     true,
+     false
+    ],
+    "understanding": 0,
+    "solution_design": 0,
+    "planning": 0,
+    "evidence_discipline": 0,
+    "adaptation": null,
+    "accepted": false
+   },
+   "spent_eur": 0,
+   "judge_spent_eur": 0.0011
+  },
+  {
+   "id": "ND-14",
+   "arm": "blueprint_rules",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "We are a clinic group with 14 physiotherapy clinics. A lot of patients book and then do not come. I do not want a model now, and I cannot send you anything with patient details in it anyway. What I want to know is what we should start recording from next month, so that in a year we could do something useful about no-shows.",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "# DCLab No-Data Solution Blueprint (regression)\n\n**Problem:** We are a clinic group with 14 physiotherapy clinics. A lot of patients book and then do not come. I do not want a model now, and I cannot send you anything with patient details in it anyway. What I want to know is what we should start recording from next month, so that in a year we could do something useful about no-shows.\n**Data mode:** No-Data Solution Design\n**Harness mode:** `deterministic_floor` · Gates passed: `5/5`\n\n## 0. Deep Problem & Domain Understanding (Epistemic Provenance)\n- **Restatement:** Solve `regression` decisioning for `record` at `At the operational quote/intake timestamp when entity attributes are locked`, optimizing `rmse + mae` to guide `Prioritize high-value regression interventions under capacity/cost constraints`.\n- **Goal** (`Stated by you`): What I want to know is what we should start recording from next month, so that in a year we could do something useful about no-shows. — *Quoted verbatim from your description: \"What I want to know is what we should start recording from next month, so that in a year we could do something useful about no-shows.\"*\n- **Decision Action** (`DCLab default`): Prioritize high-value regression interventions under capacity/cost constraints — *DCLab default (nobody said it): Standard operational action for regression decisions.*\n- **Decision Unit** (`DCLab default`): record — *DCLab default (nobody said it): One prediction per `record_id` grain.*\n- **Prediction Moment** (`DCLab default`): At the operational quote/intake timestamp when entity attributes are locked — *DCLab default (nobody said it): Sets the strict point-in-time feature boundary to prevent look-ahead leakage.*\n- **Outcome And Horizon** (`Stated by you`): next month — *Quoted verbatim from your description: \"next month\"*\n- **Primary Metric** (`DCLab default`): rmse + mae — *DCLab default (nobody said it): Matches class balance, asymmetric error costs, and operational ranking needs.*\n- **Alternative Problem Framings Considered:**\n  - `classification`: Discretizing a continuous outcome into buckets loses magnitude sensitivity unless the business action only triggers above a single hard SLA threshold.\n  - `ranking`: If only relative priority order matters rather than calibrated unit values, pairwise ranking is less sensitive to extreme tail outliers.\n\n## 1. Business Solution & Decision Economics\n- **Decision owner & action:** Operations / Analytics Lead — Prioritize high-value regression interventions under capacity/cost constraints\n- **Day-0 non-ML baseline:** Scorecard heuristic using top 3 domain risk rules + randomized control holdout to measure baseline lift before ML.\n- **Read this first:** 5 of 5 inputs below are DCLab's placeholders (monthly volume, base rate, cost per action, value per caught case, share of actions that work), not facts about your business. Every figure computed from them is an illustration until you give your own numbers.\n- **Monthly volume:** 10000 (assumed by DCLab) · **Base rate:** 8.0% (assumed by DCLab)\n- **Cost per action:** 15.0 (assumed by DCLab) · **Value per caught case:** 180.0 (assumed by DCLab) · **Share of actions that work:** 35% (assumed by DCLab)\n- **Break-even precision:** 23.8% (an illustration: computed from assumed inputs)\n\n### ROI Scenarios (an illustration: computed from assumed inputs; the lifts are DCLab's assumptions)\n| Scenario | Precision | Flagged/mo | Gross Value | Cost | Net/mo |\n|---|---:|---:|---:|---:|---:|\n| Conservative (1.5x lift) | 12.0% | 1500 | 11340.0 | 22500.0 | -11160.0 |\n| Target ML (2.5x lift) | 20.0% | 1500 | 18900.0 | 22500.0 | -3600.0 |\n| Strong ML (3.5x lift) | 28.0% | 1500 | 26460.0 | 22500.0 | 3960.0 |\n\n## 2. Data Science Solution & Minimum Viable Data Spec\n- **Unit / Entity:** `record_id`\n- **Prediction Cutoff Time:** `decision_timestamp`\n- **Label Horizon:** at decision time / fixed outcome window\n- **Target:** `target_value`\n- **Tier-1 Day-1 Features:** segment, baseline_size_metric, historical_avg_value_asof, channel, region, season_index\n- **Tier-2 High-Leverage Features:** rolling_peer_benchmark_asof, recency_days, frequency_90d\n- **Forbidden Post-Decision Columns:** actual_discount_granted_post_hoc, settlement_fee_after_outcome, post_event_adjustment\n- **Validation Split:** Time-ordered split (or entity-grouped CV if no timestamp exists) with outlier-robust residual checks.\n- **Metrics:** mae, rmse, r2\n- **Verified Fold-Safe Feature Programs (`dclab_core.features`):** `record_id_count (count)`, `record_id_day_count (count)`, `baseline_size_metric_entity_mean (mean)`, `baseline_size_metric_entity_deviation (deviation)`, `record_id_time_since_prev (since_previous)`, `baseline_size_metric_rolling3_mean (rolling_mean)`\n\n### Pre-Data Leakage Traps\n- **Strict as-of point-in-time join** (PIK-003): Compute every feature strictly using events <= decision_timestamp.\n- **Ban post-decision columns** (EXP-014): Drop/audit post-cutoff fields before training: settlement_fee_after_outcome, actual_discount_granted_post_hoc, post_event_adjustment.\n- **Lock label maturity window** (DCLAB-R04): Only assign negative labels after at decision time / fixed outcome window has elapsed, or censoring bias inflates false negatives.\n\n## 3. ML Solution, Multi-Model Debate & Pre-Data Task Plan\n- **Stage 1 Baseline:** Median/Segment baseline -> Ridge / Huber Regression.\n- **Stage 2 Primary:** Gradient Boosted Trees (LightGBM / CatBoost) with Huber or Tweedie loss for skewed targets.\n- **Stage 3 Decision Layer:** Residual quantile bands + segment error audit before automated downstream pricing/SLA action.\n- **What Evidence Would Change Algorithm Choice:** If the real data holds few positive outcomes or many missing values, prefer regularized logistic/linear models over deep trees.\n- **DCLab's rules' plan (no model debate ran):** Split: Time-ordered split (or entity-grouped CV if no timestamp exists) with outlier-robust residual checks. · Metric `mae` · Families `dummy, ridge, random_forest, gradient_boosting`\n- **TP-08 Selected Pre-Data Tasks:** time_split_check, grouped_split, threshold_for_cost, baseline\n\n## 4. Next Options (When Ready)\n- Tell me missing economics or operational constraints to tighten these numbers.\n- If you want a **synthetic prototype**, answer the simulation questions so I can show the schema design for your approval first.\n- When real data is ready, upload/connect it — `Build project` remains unchanged whenever you attach data.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "answered",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    0.11
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0,
+    "upload_demanded": 0,
+    "sums_checked": 0
+   },
+   "notes": {
+    "family": "regression",
+    "mode": "deterministic_floor",
+    "roles_called": [],
+    "gates_passed": {
+     "gate_1_epistemic_provenance": true,
+     "gate_2_number_grounding": true,
+     "gate_3_virtual_schema_and_features": true,
+     "gate_4_workflow_and_debate": true,
+     "gate_5_budget": true
+    },
+    "cost_eur": 0.0,
+    "assumed_inputs": [
+     "monthly volume",
+     "base rate",
+     "cost per action",
+     "value per caught case",
+     "share of actions that work"
+    ],
+    "fits": true,
+    "need": null,
+    "repaired": null,
+    "removed": 0,
+    "kind": null,
+    "findings": 0,
+    "errors": [],
+    "first_failed": [],
+    "still_failed": []
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": true,
+    "understood": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "forbidden_done": [
+     true,
+     false,
+     false,
+     false
+    ],
+    "understanding": 0,
+    "solution_design": 0,
+    "planning": 0,
+    "evidence_discipline": 2,
+    "adaptation": null,
+    "accepted": false
+   },
+   "spent_eur": 0,
+   "judge_spent_eur": 0.0028
+  },
+  {
+   "id": "ND-15",
+   "arm": "blueprint_rules",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "I manage a subscription box company. We have nothing clean to share yet, but my boss wants to see something working by next week. Can you make up some realistic customer data and build a churn model on it, so I can show how it would look? We have about 12,000 subscribers and roughly 6% cancel each month.",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "# DCLab No-Data Solution Blueprint (churn)\n\n**Problem:** I manage a subscription box company. We have nothing clean to share yet, but my boss wants to see something working by next week. Can you make up some realistic customer data and build a churn model on it, so I can show how it would look? We have about 12,000 subscribers and roughly 6% cancel each month.\n**Data mode:** No-Data Solution Design\n**Harness mode:** `deterministic_floor` · Gates passed: `5/5`\n\n## 0. Deep Problem & Domain Understanding (Epistemic Provenance)\n- **Restatement:** Solve `churn` decisioning for `customer` at `End of active billing/usage cycle before the retention outreach window opens`, optimizing `pr_auc (Precision-Recall AUC) + Top-K Net Retention Gain` to guide `Prioritize high-value churn interventions under capacity/cost constraints`.\n- **Goal** (`Stated by you`): Can you make up some realistic customer data and build a churn model on it, so I can show how it would look? — *Quoted verbatim from your description: \"Can you make up some realistic customer data and build a churn model on it, so I can show how it would look?\"*\n- **Decision Action** (`DCLab default`): Prioritize high-value churn interventions under capacity/cost constraints — *DCLab default (nobody said it): Standard operational action for churn decisions.*\n- **Decision Unit** (`DCLab default`): customer — *DCLab default (nobody said it): One prediction per `customer_id` grain.*\n- **Prediction Moment** (`DCLab default`): End of active billing/usage cycle before the retention outreach window opens — *DCLab default (nobody said it): Sets the strict point-in-time feature boundary to prevent look-ahead leakage.*\n- **Outcome And Horizon** (`Stated by you`): next week — *Quoted verbatim from your description: \"next week\"*\n- **Primary Metric** (`DCLab default`): pr_auc (Precision-Recall AUC) + Top-K Net Retention Gain — *DCLab default (nobody said it): Matches class balance, asymmetric error costs, and operational ranking needs.*\n- **Alternative Problem Framings Considered:**\n  - `survival`: Time-to-event (hazard) modeling is stronger if exact tenure censorship and variable horizons matter, whereas a fixed 30-day binary window is simpler for monthly retention campaigns.\n  - `uplift`: Uplift (persuadability) modeling directly targets customers whose churn probability drops when given an offer, once randomized treatment/control retention logs are collected.\n\n## 1. Business Solution & Decision Economics\n- **Decision owner & action:** Operations / Analytics Lead — Prioritize high-value churn interventions under capacity/cost constraints\n- **Day-0 non-ML baseline:** Scorecard heuristic using top 3 domain risk rules + randomized control holdout to measure baseline lift before ML.\n- **Read this first:** 3 of 5 inputs below are DCLab's placeholders (cost per action, value per caught case, share of actions that work), not facts about your business. Every figure computed from them is an illustration until you give your own numbers.\n- **Monthly volume:** 12000 (stated by you) · **Base rate:** 6.0% (stated by you)\n- **Cost per action:** 15.0 (assumed by DCLab) · **Value per caught case:** 180.0 (assumed by DCLab) · **Share of actions that work:** 35% (assumed by DCLab)\n- **Break-even precision:** 23.8% (an illustration: computed from assumed inputs)\n\n### ROI Scenarios (an illustration: computed from assumed inputs; the lifts are DCLab's assumptions)\n| Scenario | Precision | Flagged/mo | Gross Value | Cost | Net/mo |\n|---|---:|---:|---:|---:|---:|\n| Conservative (1.5x lift) | 9.0% | 1800 | 10206.0 | 27000.0 | -16794.0 |\n| Target ML (2.5x lift) | 15.0% | 1800 | 17010.0 | 27000.0 | -9990.0 |\n| Strong ML (3.5x lift) | 21.0% | 1800 | 23814.0 | 27000.0 | -3186.0 |\n\n## 2. Data Science Solution & Minimum Viable Data Spec\n- **Unit / Entity:** `customer_id`\n- **Prediction Cutoff Time:** `snapshot_date (e.g. monthly billing cutoff / T-30d)`\n- **Label Horizon:** next 30 days after snapshot_date (exclude immature accounts)\n- **Target:** `churned_within_30d`\n- **Tier-1 Day-1 Features:** plan_tier, monthly_fee, tenure_months, active_days_last_30d, usage_trend_30d_vs_90d, support_tickets_30d, payment_failures_90d, contract_days_remaining\n- **Tier-2 High-Leverage Features:** nps_last_response, seat_utilization_pct\n- **Forbidden Post-Decision Columns:** cancellation_reason, account_closed_flag, retention_offer_accepted_after_snapshot, final_invoice_date\n- **Validation Split:** Out-of-time snapshot split PLUS entity-group isolation (no entity appears in both train and holdout).\n- **Metrics:** pr_auc, roc_auc, precision_at_top_k, brier_score\n- **Verified Fold-Safe Feature Programs (`dclab_core.features`):** `customer_id_count (count)`, `customer_id_day_count (count)`, `monthly_fee_entity_mean (mean)`, `monthly_fee_entity_deviation (deviation)`, `customer_id_time_since_prev (since_previous)`, `monthly_fee_rolling3_mean (rolling_mean)`\n\n### Pre-Data Leakage Traps\n- **Strict as-of point-in-time join** (DATASET-telco_churn): Compute every feature strictly using events <= snapshot_date (e.g. monthly billing cutoff / T-30d).\n- **Ban post-decision columns** (KND-001): Drop/audit post-cutoff fields before training: cancellation_reason, final_invoice_date, retention_offer_accepted_after_snapshot, account_closed_flag.\n- **Lock label maturity window** (PIT-004): Only assign negative labels after next 30 days after snapshot_date (exclude immature accounts) has elapsed, or censoring bias inflates false negatives.\n\n## 3. ML Solution, Multi-Model Debate & Pre-Data Task Plan\n- **Stage 1 Baseline:** L2-regularized Logistic Regression with missing-value indicators & target/frequency encoding inside CV folds.\n- **Stage 2 Primary:** LightGBM / CatBoost with class weighting (or focal objective), early stopping on validation PR-AUC.\n- **Stage 3 Decision Layer:** Isotonic / Platt probability calibration -> act when P(y=1) >= break-even 23.8% capped at top 15% capacity.\n- **What Evidence Would Change Algorithm Choice:** If the real data holds few positive outcomes or many missing values, prefer regularized logistic/linear models over deep trees.\n- **DCLab's rules' plan (no model debate ran):** Split: Out-of-time snapshot split PLUS entity-group isolation (no entity appears in both train and holdout). · Metric `pr_auc` · Families `dummy, logistic_regression, random_forest, gradient_boosting`\n- **TP-08 Selected Pre-Data Tasks:** time_split_check, grouped_split, check_join_key, threshold_for_cost, baseline\n\n## 4. Next Options (When Ready)\n- Tell me missing economics or operational constraints to tighten these numbers.\n- If you want a **synthetic prototype**, answer the simulation questions so I can show the schema design for your approval first.\n- When real data is ready, upload/connect it — `Build project` remains unchanged whenever you attach data.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "asks",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    0.05
+   ],
+   "safety": {
+    "uncited": [
+     "30",
+     "30",
+     "30",
+     "30",
+     "30"
+    ],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0,
+    "upload_demanded": 0,
+    "sums_checked": 0
+   },
+   "notes": {
+    "family": "churn",
+    "mode": "deterministic_floor",
+    "roles_called": [],
+    "gates_passed": {
+     "gate_1_epistemic_provenance": true,
+     "gate_2_number_grounding": true,
+     "gate_3_virtual_schema_and_features": true,
+     "gate_4_workflow_and_debate": true,
+     "gate_5_budget": true
+    },
+    "cost_eur": 0.0,
+    "assumed_inputs": [
+     "cost per action",
+     "value per caught case",
+     "share of actions that work"
+    ],
+    "fits": true,
+    "need": null,
+    "repaired": null,
+    "removed": 0,
+    "kind": null,
+    "findings": 0,
+    "errors": [],
+    "first_failed": [],
+    "still_failed": []
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": true,
+    "understood": [
+     true,
+     false,
+     true,
+     true
+    ],
+    "forbidden_done": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "understanding": 2,
+    "solution_design": 2,
+    "planning": 2,
+    "evidence_discipline": 3,
+    "adaptation": null,
+    "accepted": false
+   },
+   "spent_eur": 0,
+   "judge_spent_eur": 0.0037
+  },
+  {
+   "id": "ND-16",
+   "arm": "blueprint_rules",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "I own three gyms. Members quit all the time and I only find out when the payment stops. All I have is the membership software, which I can look at, but I do not know how to get anything out of it, and honestly I would rather not hand over member details. About 2,400 members, maybe 90 quit a month. A personal call from a trainer costs me about 10 euros of their time, and a member pays 45 a month. Can something tell me who is about to quit, so we call them first?",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "# DCLab No-Data Solution Blueprint (regression)\n\n**Problem:** I own three gyms. Members quit all the time and I only find out when the payment stops. All I have is the membership software, which I can look at, but I do not know how to get anything out of it, and honestly I would rather not hand over member details. About 2,400 members, maybe 90 quit a month. A personal call from a trainer costs me about 10 euros of their time, and a member pays 45 a month. Can something tell me who is about to quit, so we call them first?\n**Data mode:** No-Data Solution Design\n**Harness mode:** `deterministic_floor` · Gates passed: `5/5`\n\n## 0. Deep Problem & Domain Understanding (Epistemic Provenance)\n- **Restatement:** Solve `regression` decisioning for `record` at `At the operational quote/intake timestamp when entity attributes are locked`, optimizing `rmse + mae` to guide `Prioritize high-value regression interventions under capacity/cost constraints`.\n- **Goal** (`Stated by you`): Members quit all the time and I only find out when the payment stops. — *Quoted verbatim from your description: \"Members quit all the time and I only find out when the payment stops.\"*\n- **Decision Action** (`DCLab default`): Prioritize high-value regression interventions under capacity/cost constraints — *DCLab default (nobody said it): Standard operational action for regression decisions.*\n- **Decision Unit** (`DCLab default`): record — *DCLab default (nobody said it): One prediction per `record_id` grain.*\n- **Prediction Moment** (`DCLab default`): At the operational quote/intake timestamp when entity attributes are locked — *DCLab default (nobody said it): Sets the strict point-in-time feature boundary to prevent look-ahead leakage.*\n- **Outcome And Horizon** (`DCLab default`): `target_value` observed over Immediate event completion or cycle duration — *DCLab default (nobody said it): Defines when ground-truth labels mature without censor leakage.*\n- **Primary Metric** (`DCLab default`): rmse + mae — *DCLab default (nobody said it): Matches class balance, asymmetric error costs, and operational ranking needs.*\n- **Alternative Problem Framings Considered:**\n  - `classification`: Discretizing a continuous outcome into buckets loses magnitude sensitivity unless the business action only triggers above a single hard SLA threshold.\n  - `ranking`: If only relative priority order matters rather than calibrated unit values, pairwise ranking is less sensitive to extreme tail outliers.\n\n## 1. Business Solution & Decision Economics\n- **Decision owner & action:** Operations / Analytics Lead — Prioritize high-value regression interventions under capacity/cost constraints\n- **Day-0 non-ML baseline:** Scorecard heuristic using top 3 domain risk rules + randomized control holdout to measure baseline lift before ML.\n- **Read this first:** 4 of 5 inputs below are DCLab's placeholders (monthly volume, base rate, value per caught case, share of actions that work), not facts about your business. Every figure computed from them is an illustration until you give your own numbers.\n- **Monthly volume:** 10000 (assumed by DCLab) · **Base rate:** 8.0% (assumed by DCLab)\n- **Cost per action:** 10.0 (stated by you) · **Value per caught case:** 180.0 (assumed by DCLab) · **Share of actions that work:** 35% (assumed by DCLab)\n- **Break-even precision:** 15.9% (an illustration: computed from assumed inputs)\n\n### ROI Scenarios (an illustration: computed from assumed inputs; the lifts are DCLab's assumptions)\n| Scenario | Precision | Flagged/mo | Gross Value | Cost | Net/mo |\n|---|---:|---:|---:|---:|---:|\n| Conservative (1.5x lift) | 12.0% | 1500 | 11340.0 | 15000.0 | -3660.0 |\n| Target ML (2.5x lift) | 20.0% | 1500 | 18900.0 | 15000.0 | 3900.0 |\n| Strong ML (3.5x lift) | 28.0% | 1500 | 26460.0 | 15000.0 | 11460.0 |\n\n## 2. Data Science Solution & Minimum Viable Data Spec\n- **Unit / Entity:** `record_id`\n- **Prediction Cutoff Time:** `decision_timestamp`\n- **Label Horizon:** at decision time / fixed outcome window\n- **Target:** `target_value`\n- **Tier-1 Day-1 Features:** segment, baseline_size_metric, historical_avg_value_asof, channel, region, season_index\n- **Tier-2 High-Leverage Features:** rolling_peer_benchmark_asof, recency_days, frequency_90d\n- **Forbidden Post-Decision Columns:** actual_discount_granted_post_hoc, settlement_fee_after_outcome, post_event_adjustment\n- **Validation Split:** Time-ordered split (or entity-grouped CV if no timestamp exists) with outlier-robust residual checks.\n- **Metrics:** mae, rmse, r2\n- **Verified Fold-Safe Feature Programs (`dclab_core.features`):** `record_id_count (count)`, `record_id_day_count (count)`, `baseline_size_metric_entity_mean (mean)`, `baseline_size_metric_entity_deviation (deviation)`, `record_id_time_since_prev (since_previous)`, `baseline_size_metric_rolling3_mean (rolling_mean)`\n\n### Pre-Data Leakage Traps\n- **Strict as-of point-in-time join** (PIK-003): Compute every feature strictly using events <= decision_timestamp.\n- **Ban post-decision columns** (EXP-014): Drop/audit post-cutoff fields before training: settlement_fee_after_outcome, actual_discount_granted_post_hoc, post_event_adjustment.\n- **Lock label maturity window** (DCLAB-R04): Only assign negative labels after at decision time / fixed outcome window has elapsed, or censoring bias inflates false negatives.\n\n## 3. ML Solution, Multi-Model Debate & Pre-Data Task Plan\n- **Stage 1 Baseline:** Median/Segment baseline -> Ridge / Huber Regression.\n- **Stage 2 Primary:** Gradient Boosted Trees (LightGBM / CatBoost) with Huber or Tweedie loss for skewed targets.\n- **Stage 3 Decision Layer:** Residual quantile bands + segment error audit before automated downstream pricing/SLA action.\n- **What Evidence Would Change Algorithm Choice:** If the real data holds few positive outcomes or many missing values, prefer regularized logistic/linear models over deep trees.\n- **DCLab's rules' plan (no model debate ran):** Split: Time-ordered split (or entity-grouped CV if no timestamp exists) with outlier-robust residual checks. · Metric `mae` · Families `dummy, ridge, random_forest, gradient_boosting`\n- **TP-08 Selected Pre-Data Tasks:** time_split_check, grouped_split, threshold_for_cost, baseline\n\n## 4. Next Options (When Ready)\n- Tell me missing economics or operational constraints to tighten these numbers.\n- If you want a **synthetic prototype**, answer the simulation questions so I can show the schema design for your approval first.\n- When real data is ready, upload/connect it — `Build project` remains unchanged whenever you attach data.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "asks",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    0.07
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0,
+    "upload_demanded": 0,
+    "sums_checked": 0
+   },
+   "notes": {
+    "family": "regression",
+    "mode": "deterministic_floor",
+    "roles_called": [],
+    "gates_passed": {
+     "gate_1_epistemic_provenance": true,
+     "gate_2_number_grounding": true,
+     "gate_3_virtual_schema_and_features": true,
+     "gate_4_workflow_and_debate": true,
+     "gate_5_budget": true
+    },
+    "cost_eur": 0.0,
+    "assumed_inputs": [
+     "monthly volume",
+     "base rate",
+     "value per caught case",
+     "share of actions that work"
+    ],
+    "fits": true,
+    "need": null,
+    "repaired": null,
+    "removed": 0,
+    "kind": null,
+    "findings": 0,
+    "errors": [],
+    "first_failed": [],
+    "still_failed": []
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": true,
+    "understood": [
+     true,
+     true,
+     false,
+     false
+    ],
+    "forbidden_done": [
+     true,
+     false,
+     false
+    ],
+    "understanding": 1,
+    "solution_design": 1,
+    "planning": 1,
+    "evidence_discipline": 2,
+    "adaptation": null,
+    "accepted": false
+   },
+   "spent_eur": 0,
+   "judge_spent_eur": 0.0021
+  },
+  {
+   "id": "ND-13",
+   "arm": "model_only",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "I run operations for a furniture retailer with one warehouse. The owner wants to know whether we should open a second warehouse in the south next year. Nothing is in a system I could export for you: I have what I know from the job. Deliveries to the south take about 6 days, to the north 2. Around a third of our orders go south. How should we think about this?",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "## What the decision is\n\nYou and the owner are deciding whether to commit next year’s money and operating capacity to a second warehouse in the south.\n\nThe problem is not just “is south delivery too slow?” The problem is a tradeoff:\n\n- With the current setup, south deliveries take about 6 days, while north deliveries take about 2 days.\n- Around a third of orders go south.\n- A southern warehouse may shorten south delivery time, but it also adds cost, complexity, and likely inventory duplication.\n- The owner needs to know whether the service improvement and any resulting sales or saved costs are worth the extra burden of running another warehouse.\n\n**Who uses the result:** the owner for the capital decision; you and operations for execution if the decision is yes.  \n**Unit of the decision:** order deliveries over next year, measured by delivery time, service risk, and annual cost/value.  \n**Moment it concerns:** whether to open before committing next year.\n\n## What is known from what you told me\n\nKnown:\n\n- There is one warehouse now.\n- Deliveries to the south take about 6 days.\n- Deliveries to the north take about 2 days.\n- Around a third of orders go south.\n- The choice under consideration is opening a second warehouse in the south next year.\n\nNot known:\n\n- Total order volume or revenue.\n- Gross margin per order or per product.\n- Current warehouse cost.\n- Cost of a second warehouse: space, staff, equipment, inventory, management attention.\n- Delivery cost difference between one-warehouse and two-warehouse operation.\n- Customer expectation for south delivery speed.\n- Whether slow south delivery actually causes lost sales, returns, or dissatisfaction.\n- Whether north service would suffer if inventory is split between two warehouses.\n- How stable the south order share is.\n- Product mix, storage constraints, supplier lead times, and seasonality.\n\n## How to think about it\n\nBecause nothing is exported from a system, the practical approach is to make a rough but honest decision estimate from what you already know, and then check whether the answer depends too much on the unknown parts.\n\n### Approach 1: No model, owner judgment\n\nYou ask the owner directly whether a 6-day south delivery is acceptable for the customer experience and whether they are willing to carry a second warehouse.\n\n- Cost: almost nothing.\n- Gives: a quick strategic direction.\n- Risk: it can miss the financial burden and may overreact to loud complaints without seeing whether service is actually causing lost business.\n\n### Approach 2: Service-gap check\n\nCompare the current south lead time with the service promise and customer behavior.\n\nAsk:\n\n- What delivery speed do customers expect?\n- Do south customers complain, return, buy less, or choose competitors?\n- Is 2-day north service the target for south?\n- Does furniture purchasing depend heavily on speed, or does customers care more about price, assortment, and reliability?\n\n- Cost: low to medium.\n- Gives: clarity on whether the 6-day south lead time is a real business problem.\n- Risk: it does not tell whether fixing it is worth the cost.\n\n### Approach 3: Simple annual estimate of the two futures\n\nCompare “one warehouse” versus “one warehouse plus south warehouse” using rough estimates from job knowledge.\n\nFor each option, estimate:\n\n- South share of orders: currently around a third.\n- South delivery time: currently about 6 days.\n- North delivery time: currently about 2 days.\n- Service effect if south warehouse is added.\n- Sales or cost avoided because of faster south delivery.\n- Extra warehouse and inventory cost.\n- Possible extra delivery cost or possible savings.\n- Risk to north availability if inventory is split.\n- Management and system complexity.\n\n- Cost: medium.\n- Gives: a comparable view of money and service.\n- Risk: it relies on estimates, so it must show uncertainty rather than pretending to be precise.\n\n### Approach 4: Break-even and sensitivity thinking\n\nAsk what has to be true for the second warehouse to make sense.\n\nFor example:\n\n- If south share is already around a third, but service improvement produces little extra value, the answer may be no.\n- If south share is around a third and that region is strategically important for growth, the answer may be yes.\n- If second-warehouse cost is very high relative to the value of faster south delivery, the answer may be no.\n- If a southern stock point could solve most of the problem at lower cost than a full warehouse, that may be a better first step.\n\n- Cost: medium.\n- Gives: confidence in the decision and a way to see what unknown matters most.\n- Risk: still needs rough estimates.\n\n### Approach 5: Test a smaller alternative first\n\nInstead of deciding immediately whether to open a full second warehouse, test whether a cheaper southern arrangement can help.\n\nOptions include:\n\n- A smaller southern stock point.\n- Third-party storage or fulfillment in the south.\n- Faster carriers for south orders.\n- Direct-from-supplier south delivery.\n- Splitting only high-turnover furniture into the south.\n- Pre-positioning stock for seasonal or predictable south demand.\n\n- Cost: medium to high, but lower than a full commitment.\n- Gives: real operating evidence.\n- Risk: takes time, and may not match the scale needed if the south becomes a major volume region.\n\n## Recommended way to proceed\n\nUse a simple annual estimate plus a sensitivity check. Since you have no system data, this gives the owner a real decision without pretending to have precise numbers.\n\nThe goal is to answer:\n\n> Would opening a second warehouse in the south next year create enough better service, or saved lost sales, or improved delivery economics to justify the added warehouse and inventory burden?\n\n## Plan in steps\n\n### Step 1: Write down the owner’s real question\n\nDo not start with “where should we put the warehouse?” Start with:\n\n> Should we commit next year to operating a second warehouse in the south?\n\nAlso clarify what would change the answer. For example:\n\n- If south customers are already tolerating 6 days and buying normally, the urgent case is weaker.\n- If south orders are growing, or customers explicitly expect faster delivery, the case is stronger.\n- If second-warehouse costs would dominate, the answer may be no even with better service.\n\nWhat you need:\n\n- Owner’s tolerance for slow south delivery.\n- Owner’s appetite for capital and complexity.\n- Whether south is viewed as a growth area or just a cost area.\n\n### Step 2: Separate south and north demand from memory\n\nYou already know south is around a third of orders. Check whether that is stable.\n\nAsk:\n\n- Has south been around a third for months, or is it changing?\n- Does south grow seasonally?\n- Are south orders large furniture pieces, smaller items, or mixed?\n- Are north and south customer types similar?\n- Are there nearby areas that would also benefit from a south warehouse?\n\nWhat you need:\n\n- A rough mental map of order volume by region.\n- Whether “south” means one main customer area or several.\n- Whether the southern warehouse could serve more than the current “about a third” region.\n\nWhat not to overstate:\n\n- Do not turn “around a third” into a precise forecast unless you have support.\n\n### Step 3: Define the service improvement target\n\nWith one warehouse, south delivery is about 6 days and north is about 2 days.\n\nAsk:\n\n- Is the desired south lead time closer to the current north 2 days?\n- Would 3 days, 4 days, or 5 days be good enough?\n- Does speed matter for furniture, or does reliability matter more?\n- Are customers willing to wait because furniture is considered slow delivery?\n- Are there product categories where speed is decisive?\n\nWhat you need:\n\n- The service promise, or the service level customers expect.\n- The difference between “we can make it faster” and “customers care enough to change buying behavior.”\n\nWhat to keep separate:\n\n- You told me current delivery times. I assume the second warehouse could reduce south time toward a faster standard, but how much reduction is unknown.\n\n### Step 4: Estimate what better south service might be worth\n\nThis is where many owners skip too quickly. Faster delivery may create value, but only if customers respond.\n\nAsk:\n\n- Do we lose sales when south customers see long delivery?\n- Do they add to cart and leave?\n- Do they call and complain?\n- Do returns increase when delivery takes too long?\n- Do repeat customers prefer us over competitors because of speed?\n- Would faster south delivery attract new customers?\n- Would it increase order value?\n- Would it reduce cancellation?\n- Would it allow us to keep promises and reduce support cost?\n\nWhat you need:\n\n- A rough judgment of whether south speed affects sales or cost.\n- Examples from customer feedback, returns, complaints, or lost-sale conversations.\n- Comparison with competitors, if known.\n\nWhat to avoid:\n\n- Do not assume “all south orders would grow” unless evidence supports it.\n- Do not assume “all slow south orders are lost” unless evidence supports it.\n\n### Step 5: Estimate what the second warehouse would cost\n\nFurniture is often bulky, storage-heavy, and inventory-sensitive. A second warehouse may require:\n\n- Space in the south.\n- Staff in the south.\n- More inventory held in the south.\n- More inventory held overall because stock is split.\n- Management attention and systems work.\n- Possibly more transportation from suppliers.\n- Possibly higher risk of excess or slow-moving stock.\n- Possibly higher cost if south warehouse capacity is underused.\n\nEstimate roughly:\n\n- Fixed warehouse cost next year.\n- Labor cost.\n- Inventory carrying cost.\n- Space utilization.\n- Additional delivery or transfer cost.\n- Any expected savings compared with current south delivery.\n\nWhat you need:\n\n- Your operations experience with warehouse running cost.\n- Furniture inventory turn and storage intensity.\n- Whether the current warehouse is already tight or easy to operate.\n- Whether southern warehouse space is expensive and available.\n\n### Step 6: Consider the effect on north service\n\nA second warehouse can help south but hurt north if stock is moved away.\n\nAsk:\n\n- Would current stock be shifted from north to south?\n- Would north stockouts increase?\n- Would some furniture now sit in two places instead of one?\n- Would replenishment become harder?\n- Would north orders sometimes wait because the needed item is only in the south?\n- Would inventory decisions become more complex?\n\nWhat you need:\n\n- A view of whether the current warehouse can easily serve both regions.\n- Whether south and north demand are similar.\n- Whether product mix requires duplicate stock.\n\n### Step 7: Compare simple futures\n\nCreate a small written comparison, not a model.\n\nOption A: Keep one warehouse\n\n- North service: about 2 days.\n- South service: about 6 days.\n- Cost: current warehouse cost.\n- Risk: south customers may be unhappy if speed matters.\n- Benefit: lower complexity, one inventory position.\n\nOption B: Open second warehouse in south\n\n- South service: likely faster than 6 days, possibly nearer to 2 days, depending on setup.\n- North service: may remain about 2 days, or may worsen if stock is split poorly.\n- Cost: higher warehouse and inventory burden.\n- Benefit: better south customer experience, possibly growth or less loss.\n- Risk: added fixed cost, duplicated inventory, complexity, possible underuse.\n\nOption C: Try a lighter southern solution first\n\n- South service: possibly better, depending on arrangement.\n- Cost: may be lower than full warehouse.\n- Benefit: tests demand before committing.\n- Risk: may not scale or may still require inventory splitting.\n\nWhat you need:\n\n- Rough estimates, not exact numbers.\n- Clear labeling: known, assumed, guessed.\n\n### Step 8: Ask what answer would be true under uncertainty\n\nInstead of needing exact data, test whether the conclusion is fragile.\n\nAsk:\n\n- If second-warehouse costs are higher than expected, does the decision still hold?\n- If south service improvement creates less sales value than hoped, does the decision still hold?\n- If north service suffers more than expected, does the decision still hold?\n- If south demand grows beyond the current share, does the decision become easier?\n- If south demand stays around a third, is that enough?\n\nA good result for the owner would be a statement like:\n\n> Even if our estimates are imperfect, the second warehouse appears justified because the south service gain is likely large relative to cost.\n\nOr:\n\n> The second warehouse appears risky because the current south demand share and possible benefit may not cover the added fixed burden.\n\nOr:\n\n> We cannot decide until we test a smaller southern arrangement and see how customers respond.\n\n## How to check the result\n\nThe result should be checked in three ways.\n\n### 1. Does it fit the facts you have?\n\nYou know:\n\n- South delivery takes about 6 days.\n- North delivery takes about 2 days.\n- South is about one-third of orders.\n\nA reasonable conclusion should explain:\n\n- Whether the gap between 6 and 2 days is meaningful.\n- Whether the share of south orders is large enough to justify a separate warehouse.\n- Whether a cheaper option could close much of the gap.\n\n### 2. Does it hold if the owner’s assumptions change?\n\nIf the owner assumes:\n\n- South demand grows, then the warehouse may become more attractive.\n- South demand stays flat, then the warehouse may be less attractive.\n- Customer tolerance for 6 days is high, then urgency falls.\n- Customer tolerance is low and complaints are real, urgency rises.\n- Second warehouse cost is low, yes is easier.\n- Second warehouse cost is high, no becomes stronger.\n- North stockouts increase if inventory splits, risk rises.\n\nIf the conclusion flips depending on one big assumption, that tells you what to measure next.\n\n### 3. Can operations execute it?\n\nEven if the estimate looks good, ask:\n\n- Can staff run two warehouses?\n- Can systems handle inventory allocation?\n- Can suppliers deliver efficiently?\n- Can south warehouse space be secured next year?\n- Can slow-moving furniture be managed across two locations?\n- Can returns and transfers be handled without hurting service?\n\nIf execution is hard, a smaller pilot or phased approach may be wiser.\n\n## When to stop the analysis\n\nStop and decide when one of these happens:\n\n- The answer is clear enough with your current knowledge.\n  - For example, if customers are already tolerant of 6-day south delivery and a second warehouse would be expensive, the answer is probably no.\n  - If south is strategically important, customers clearly value speed, and the added cost is modest, the answer is probably yes.\n\n- The answer depends mostly on one missing estimate.\n  - Then measure that estimate directly: complaints, cancellations, competitor lead times, warehouse rent, labor, or inventory needs.\n\n- A smaller test can give better evidence.\n  - If you can test south demand with a temporary southern stock point, third-party storage, faster carrier, or limited product set, that may be a better path than debating a full warehouse.\n\n- The owner needs a decision before next year’s planning.\n  - Then make the rough estimate, mark the assumptions, and proceed with a plan that can be adjusted.\n\n## What to keep apart: known versus assumed\n\nKnown from you:\n\n- One warehouse today.\n- South deliveries take about 6 days.\n- North deliveries take about 2 days.\n- About a third of orders go south.\n- The owner wants to know whether to open a southern warehouse next year.\n\nMy working assumptions:\n\n- The current one-third south share is broadly representative of demand.\n- A southern warehouse would reduce south delivery time, but the exact new time is unknown.\n- Splitting warehouse operations may increase inventory burden.\n- The main value of a second warehouse would be better south service, possibly fewer lost sales, and maybe improved competitiveness.\n- The main risk is added cost and complexity without enough customer response.\n\nThe missing facts that matter most:\n\n- Whether faster south delivery would actually increase sales or reduce losses.\n- What the second warehouse would cost to operate.\n- Whether north service would be protected.\n- Whether a lighter southern arrangement could deliver most of the benefit.\n\n## Practical bottom line\n\nThe right way to think about this is not “south is slower, so we need a warehouse.” It is:\n\n> How much is the south delivery time costing or preventing, and would a second warehouse create enough value to cover its cost without harming the rest of the operation?\n\nStart with a rough annual comparison of one warehouse versus two warehouses. Use the facts you know: south is around a third of orders, south delivery takes about 6 days, north takes about 2 days. Then ask whether the service improvement and possible saved or gained orders are likely to be large enough compared with added warehouse, inventory, and management burden.\n\nIf the answer is obvious, move forward. If it is unclear, do not try to invent precision. Choose a low-cost test: a southern stock point, third-party fulfillment, faster carriers, or a limited product assortment. That will give you real evidence before you commit to a full second warehouse.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "asks",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    88.52
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0,
+    "upload_demanded": 0,
+    "sums_checked": 0
+   },
+   "notes": {},
+   "repeat": 1,
+   "judged": {
+    "valid": true,
+    "understood": [
+     true,
+     true,
+     true,
+     true
+    ],
+    "forbidden_done": [
+     false,
+     false,
+     false
+    ],
+    "understanding": 4,
+    "solution_design": 4,
+    "planning": 4,
+    "evidence_discipline": 4,
+    "adaptation": null,
+    "accepted": true
+   },
+   "spent_eur": 0.0035,
+   "judge_spent_eur": 0.0013
+  },
+  {
+   "id": "ND-14",
+   "arm": "model_only",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "We are a clinic group with 14 physiotherapy clinics. A lot of patients book and then do not come. I do not want a model now, and I cannot send you anything with patient details in it anyway. What I want to know is what we should start recording from next month, so that in a year we could do something useful about no-shows.",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "The problem is not only “some booked appointments are missed.” The real problem is that your clinics do not currently have a consistent, appointment-level record that links what was booked, how it was booked, what happened before the appointment, and what happened at the appointment, in a way that your teams can use to make decisions.\n\nThe decision your data should support is how to reduce avoidable missed visits, improve scheduling, make better use of therapist capacity, decide where to put reminders or front-desk effort, and identify patients or appointment types that may need extra support so that missed care does not become a clinical problem.\n\nThe people who will use the result are clinic managers, front-desk and scheduling teams, operations leads, and possibly clinical leads. The unit you should record is one appointment or one booking episode. If a patient reschedules, the original booking and the new appointment should be linked. The moment it concerns is both the time the appointment is booked and the time the appointment slot actually ends, because that is when the outcome becomes known.\n\nWhat you told me is clear: you are a group of 14 physiotherapy clinics, many patients book and then do not come, you do not want a model now, and you cannot share anything with patient details. What I am assuming is that you have some appointment records already, or can create them locally, and that you need practical data collection rather than a research project. What you have not told me is the current no-show rate, which clinics are affected, which appointment types are missed, what causes matter, what reminders already exist, what cancellation rules exist, or how patient status is recorded today.\n\nThere are several approaches.\n\nThe simplest approach is no model at all: start with an appointment register and an operational report that shows appointments, outcomes, cancellations, no-shows, and data quality. This is low cost, fast to use, and improves visibility. It does not prove causes, but it prevents decisions from being based on impressions.\n\nAnother approach is segmented analysis without prediction. This means comparing clinics, appointment types, booking channels, lead time, reminder status, new versus returning appointments, and other operational features. This gives clues about where problems occur and what may be fixable. It still does not prove causation.\n\nA third approach is a predictive model for no-show risk. This can help prioritise outreach, but it should come later. It is more expensive, depends on stable data, and can be misleading if definitions are unclear. It also needs careful privacy governance.\n\nA fourth approach is to test changes and measure them. For example, compare whether a different reminder message, reminder channel, or scheduling rule changes outcomes. This is the most useful way to know what actually works, but it requires discipline and a control process.\n\nI would choose the first approach for now, with a clear path toward the second later: start recording the right appointment-level data and use it for a simple management report. Do not build a model yet. The aim for the year is to have a reliable operational picture first, and only then consider prediction or testing.\n\nFrom next month, you should record appointment-level data only, with no names, addresses, dates of birth, phone numbers, or free-text clinical notes in the analysis dataset. Keep any patient identifier inside your own system if you need it locally, but do not share identifiable data.\n\nAt minimum, record these fields for every appointment.\n\nAppointment identity:\n- A local appointment identifier.\n- A booking identifier if a booking can contain more than one appointment.\n- A pseudonymous local patient identifier if your system supports it, only for internal linking, not for sharing.\n- Clinic identifier.\n- Practitioner or room or resource identifier, if capacity matters.\n- Date and start time.\n- Appointment duration or planned end time.\n\nAppointment type:\n- Initial assessment, follow-up, group session, telehealth, or other category.\n- In-person or remote.\n- New versus returning appointment category, without recording clinical details.\n- Referral source or channel if relevant.\n- Payer or funding category if relevant, but no sensitive personal information.\n\nBooking information:\n- Date and time the appointment was booked.\n- Booking channel: online, phone, in person, referral, or other.\n- How far ahead the appointment was booked.\n- Whether the appointment came from a cancellation, waitlist, rebooking, or direct booking.\n- Whether it is part of a package or series of visits.\n\nCommunication before the appointment:\n- Whether a reminder was planned.\n- Whether a reminder was actually attempted.\n- Reminder channel: SMS, phone, letter, app, email, or other.\n- Whether the patient responded to the reminder.\n- Whether the reminder was received, if that can be known reliably.\n- Do not record the content of conversations unless it is strictly necessary.\n\nAppointment outcome:\nUse a fixed list of outcome categories so staff do not create free-text versions every time.\n- Attended.\n- Attended late, if that is operationally meaningful.\n- Attended but did not receive the service, for example if the therapist was unavailable.\n- Cancelled by patient, if there was notice.\n- Cancelled by clinic.\n- Rescheduled, with link to the new appointment.\n- No-show, meaning the patient did not attend and no valid cancellation was recorded.\n- Unconfirmed or ambiguous, only if needed temporarily.\n- Blocked by clinic or external disruption.\n- Other, with controlled reason code, not patient narrative.\n\nOutcome details:\n- Time the outcome was known.\n- Who recorded it.\n- Reason code if known, such as patient reported illness, transport problem, misunderstanding, work conflict, financial barrier, language barrier, scheduling error, or reminder failure. Use operational reason codes, not detailed patient stories.\n- Any follow-up action taken, such as phone call, reschedule offer, reminder, or escalation.\n\nOperational context:\n- Whether the appointment was a high-dependency or vulnerable follow-up, only if that matters to your care pathway and is recorded under your governance rules.\n- Whether interpreter or accessibility support was required, but do not record the patient’s personal identity or sensitive details in shared extracts.\n- Whether transport or social support was arranged, if your clinic already handles that.\n\nData quality:\n- Whether the record is complete.\n- Whether the outcome status is final or provisional.\n- Whether the appointment was matched to the correct clinic calendar.\n\nDo not start by collecting everything that might be interesting later. Collect only fields that will appear in a report or support a decision. If no report or process needs a field, do not make staff record it now.\n\nThe next step is to make the data usable. Build a simple monthly operational report for each clinic. The report should show appointments scheduled, appointments completed, no-shows, cancellations, reschedules, missing statuses, and reminder coverage. Break this down by clinic, appointment type, booking channel, and outcome category. Do not add complex charts or scores yet. The report should answer: which appointments are being missed, how often, which teams see them, and where the data is incomplete.\n\nTo check whether the result is useful, compare the report with the actual appointment calendar for a sample of days or weeks. Staff should confirm that statuses match what really happened. Also check that no-shows are not being recorded as cancellations, cancellations are not being left blank, and reschedules are not being double-counted. If a clinic has many unknown outcomes, the first problem is data discipline, not modelling.\n\nSet review points rather than fixed targets. At each review, ask whether the definition of “no-show” is stable, whether the fields are being completed, whether the report is used by managers, and whether the pattern makes sense across clinics. If the data is too sparse, stop expanding the model ambition and fix the collection process. If the data becomes reliable and repeated decisions depend on it, then move from reporting to segmented analysis.\n\nWhen to stop or change course: stop recording extra fields if they are not used in reports or operations. Stop considering prediction if the basic outcome status is still unreliable. Do not build a no-show model unless the appointment data is complete for the relevant period, the definition is stable, the clinics agree on outcome categories, and the analysis is tied to an action. By the time you reach the one-year point, the useful output may still be a management dashboard, not a model.\n\nThe core idea is this: start with a clean appointment outcome register, pseudonymous and internally held, with fixed status codes, reminder tracking, booking context, and a monthly report. That is the foundation. It lets you understand the problem before trying to predict it.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "answered",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    79.46
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0,
+    "upload_demanded": 0,
+    "sums_checked": 0
+   },
+   "notes": {},
+   "repeat": 1,
+   "judged": {
+    "valid": true,
+    "understood": [
+     true,
+     false,
+     true,
+     true
+    ],
+    "forbidden_done": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "understanding": 3,
+    "solution_design": 4,
+    "planning": 4,
+    "evidence_discipline": 4,
+    "adaptation": null,
+    "accepted": true
+   },
+   "spent_eur": 0.0024,
+   "judge_spent_eur": 0.0026
+  },
+  {
+   "id": "ND-15",
+   "arm": "model_only",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "I manage a subscription box company. We have nothing clean to share yet, but my boss wants to see something working by next week. Can you make up some realistic customer data and build a churn model on it, so I can show how it would look? We have about 12,000 subscribers and roughly 6% cancel each month.",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "Yes — but only as a clearly labelled mock demo. Made-up data can show how a churn workflow would look. It cannot show which real subscribers are at risk, how confident the estimate is, or whether a retention action would change the outcome. If you use this for your boss, put “synthetic demo” everywhere and do not present it as a live forecast.\n\n**What the problem is**\n\nThe real decision is not just predicting cancellations. It is deciding who to contact, who gets an offer, who needs a product change, and when to act. The result would be used by you, your boss, marketing, and retention.\n\nThe unit is an active subscription belonging to a subscriber. The moment is a monthly decision point: what happens to this subscription during the coming month.\n\nKnown from you: about 12,000 subscribers and roughly 6% cancel each month.\n\nNot known: real customer attributes, cancellation reasons, voluntary versus failed-payment churn, product mix, payment behaviour, support or delivery problems, email activity, whether the churn rate is stable, and which actions reduce cancellations.\n\n**Approaches that could solve it**\n\nWithout a model: show cancellation summaries by segment. Cost: low. Gives: a credible business view, but no ranked list.\n\nRule scorecard: assign points to assumed risk signals. Cost: very low. Gives: an easy explanation, but the weights are guesses.\n\nMock machine-learning model: create synthetic subscriber records and fit a simple logistic model. Cost: low for a demo. Gives: probabilities, drivers, and a ranking, but only for fake customers.\n\nReal-data pilot: use even incomplete real extracts and fit a simple model. Cost: higher and may delay. Gives: the first credible forecast.\n\nTime-to-cancel model: predict when a subscriber may churn, not just whether. Cost: higher. Gives: better timing for outreach, but needs dated records.\n\n**Chosen approach for your deadline**\n\nUse a mock churn model because you have no clean data but need to show something working. This approach gives the boss a visible end-to-end story while staying honest that the inputs are synthetic.\n\n**Plan**\n\n1. Label the deliverable as a synthetic demo, not a real customer forecast.\n\n2. Define the target: cancellation in the coming month for an active subscription.\n\n3. Create the subscriber frame: for the roughly 12,000 subscribers, create fake identifiers and a monthly record.\n\n4. Add assumed customer fields. These are assumptions, not observed facts: subscription age, payment status, recent support contact, delivery complaint, discount status, product category, recent order activity, and email engagement.\n\n5. Generate synthetic feature values so some subscribers look riskier under those assumed fields.\n\n6. Generate churn labels. Keep the overall cancellation rate at the roughly 6% monthly rate you gave, and make cancellation more likely when the assumed risky fields appear.\n\n7. Fit a simple transparent model, such as logistic regression, using only information available before the churn decision.\n\n8. Produce the demo output: a table with synthetic subscriber identifiers, churn probability, risk band, likely reasons, and recommended retention action. Add a simple chart showing that higher scores contain more simulated cancellations.\n\n9. Check the demo. Confirm that no post-cancellation information is used, that the synthetic churn rate still matches the stated monthly rate, that high scores sort more simulated cancellations than low scores, and that the boss can interpret the explanation.\n\n10. Stop when the boss sees the end-to-end mock workflow and agrees that the fields, scoring, and presentation could support a real pilot. Then replace the synthetic inputs with real data extracts and rebuild the same pipeline with actual customer behaviour.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "answered",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    118.56
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0,
+    "upload_demanded": 0,
+    "sums_checked": 0
+   },
+   "notes": {},
+   "repeat": 1,
+   "judged": {
+    "valid": true,
+    "understood": [
+     true,
+     false,
+     true,
+     true
+    ],
+    "forbidden_done": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "understanding": 3,
+    "solution_design": 3,
+    "planning": 3,
+    "evidence_discipline": 4,
+    "adaptation": null,
+    "accepted": true
+   },
+   "spent_eur": 0.0042,
+   "judge_spent_eur": 0.0029
+  },
+  {
+   "id": "ND-16",
+   "arm": "model_only",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "I own three gyms. Members quit all the time and I only find out when the payment stops. All I have is the membership software, which I can look at, but I do not know how to get anything out of it, and honestly I would rather not hand over member details. About 2,400 members, maybe 90 quit a month. A personal call from a trainer costs me about 10 euros of their time, and a member pays 45 a month. Can something tell me who is about to quit, so we call them first?",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "Yes. What you need is an early-warning list: a short list of members who are at higher risk of stopping payment soon, so a trainer can call them before the payment actually fails. The key is to keep it inside your own environment if possible, because you do not want to hand over member details.\n\n## The problem, in decision terms\n\nThe decision is: **Which members should we call now?**\n\nWho uses the result: **You, the front-desk staff, and the trainers who make the calls.**\n\nUnit: **One member, in one billing cycle.**\n\nMoment it concerns: **The point just before the next payment is due, not after payment has already stopped.**\n\nSo the target should be something like: **“Will this member fail to pay, or formally cancel, before the next payment run?”**\n\n### What you told me\n\n- You own three gyms.\n- You have about 2,400 members.\n- About 90 members quit per month.\n- A personal trainer call costs you about 10 euros of trainer time.\n- A member pays 45 euros per month.\n- You can see the membership software but do not know how to extract data.\n- You do not want to hand over member details.\n\n### What I do not know, or am assuming\n\n- I assume your membership software has at least some combination of: payment dates, failed payments, cancellation requests, contract status, member tenure, and possibly visit or attendance records.\n- I do not know whether it records attendance, direct-debit failures, card expiry, no-show visits, contract renewals, or member comments.\n- I do not know whether your trainers have enough time to call every risky member, or how many calls they can realistically make each month.\n- I do not know whether a personal call actually helps keep members, or how much. That must be measured.\n\n## Possible approaches\n\n### 1. No learned model: use a simple red-flag list\n\nThis means you do not train an algorithm. You build rules from what you can already see in the membership software.\n\nExamples of red flags might be:\n\n- A cancellation request has been made but not completed.\n- A payment attempt has failed.\n- A payment method is about to fail or has already failed once.\n- A member has not attended for a long time.\n- A new member has joined but barely visited.\n- A contract is ending soon and there has been no renewal action.\n\nCost:\n\n- Low software cost.\n- Some staff time to create filters, reports, or a simple spreadsheet.\n- Trainer time for calls.\n\nWhat it gives:\n\n- A list you can understand and use immediately.\n- No need to expose personal data outside your gym.\n- A way to test whether early contact actually changes behavior.\n\nLimitations:\n\n- It may only catch late signs.\n- It depends on what your software records.\n- It may still produce false alarms: calling members who would have stayed anyway.\n\n### 2. A simple local model inside your own system\n\nThis means you export member records to a secure local spreadsheet or database, replace names with member numbers, and build a simple risk score using patterns in past data.\n\nYou might use things like:\n\n- Gym location.\n- How long the member has been a member.\n- Payment failures.\n- Attendance gaps.\n- No-show visits.\n- Contract type.\n- Recent cancellation requests.\n\nCost:\n\n- More work than simple rules.\n- Needs someone to extract and organize data.\n- Needs testing and maintenance.\n- Needs careful privacy handling.\n\nWhat it gives:\n\n- A ranked list of likely churners.\n- Possibly earlier warnings than obvious red flags.\n- A better estimate of who is worth calling.\n\nLimitations:\n\n- If your software does not have good behavioral data, the model will be weak.\n- It may be overkill before you prove that early calls are worthwhile.\n\n### 3. An external service or membership-tool churn app\n\nThis means sending data, or giving vendor access, to a third-party service.\n\nCost:\n\n- Subscription or setup fees.\n- Risk to your privacy preference.\n- Less control over data.\n\nWhat it gives:\n\n- Possibly quick setup if your software supports it.\n- Ready-made dashboards or predictions.\n\nWhy I would not choose this first:\n\n- You said you do not want to hand over member details.\n- You do not yet need a black-box system. You first need a simple, controlled way to test the idea.\n\n## The approach I would choose\n\nI would start with **a privacy-safe red-flag early-warning list**, not a full machine-learning project.\n\nWhy?\n\n- You can begin with the membership software you already have.\n- You do not need to send member details outside.\n- You can test whether calling people before payment stops actually helps.\n- If the red-flag list works but is too blunt, you can later upgrade to a simple local model using the same data.\n\n## Plan to build it\n\n### Step 1: Define what “quitting” means\n\nPick one clear definition so you can measure it consistently.\n\nA practical definition could be:\n\n**“Member does not pay by the next billing date, or requests cancellation before the next billing date.”**\n\nIf formal cancellation and payment failure are different, decide whether one or both count as “about to quit.”\n\n### Step 2: Make a list of possible warning signs\n\nLook at your membership software and write down what information is available. You do not need to export everything at first.\n\nUseful fields may include:\n\n- Member number.\n- Gym.\n- Date joined.\n- Contract type.\n- Next payment date.\n- Payment failed or not.\n- Card or direct debit status.\n- Cancellation requested or not.\n- Last visit date.\n- Number of visits recently.\n- Any notes about complaints, injury, relocation, or paused membership.\n\nIf your software has attendance data, that is usually one of the strongest signs. If it does not, start with payment and cancellation signals.\n\n### Step 3: Keep the data inside your control\n\nDo not upload member names, contact details, or payment information to outside tools unless you have decided that is acceptable.\n\nInstead:\n\n- Use the software’s built-in reports if they exist.\n- Export only a short list to a spreadsheet on your own computer.\n- Replace member names with member numbers if anyone helps you analyze it.\n- Keep the spreadsheet private.\n\nYou may ask your membership-software vendor to show you how to create a report, but you do not need to send raw member data anywhere just to make a simple list.\n\n### Step 4: Create a simple risk score\n\nMake the first version very simple. It does not need to be a statistical model.\n\nExample structure:\n\n**Automatic top-priority call list:**\n\n- Member has requested cancellation but not completed it.\n- Payment failed once or twice.\n- Payment method is expiring or has failed before.\n\n**Medium priority:**\n\n- Member has not visited for a long time.\n- Attendance dropped sharply.\n- Contract is ending soon with no renewal.\n\n**Lower priority but still useful:**\n\n- New member who has barely visited.\n- Member has paused membership or asked about pause options.\n- Member has complained or asked to downgrade.\n\nYou can count flags:\n\n- Each flag gives one point.\n- Members with more points appear higher on the call list.\n\nOr you can make some flags automatic and others weighted, depending on your judgement.\n\n### Step 5: Build a list before each payment run\n\nRun the list at the same time each billing cycle, before payments are taken.\n\nBecause you have three gyms, either:\n\n- Make one list and sort by gym, or\n- Make a separate list for each gym.\n\nA separate list by gym may be better because trainer time and member behavior may differ by location.\n\nThen set a call capacity. You should not try to call everyone. Use trainer time where it is likely to save revenue.\n\nYour numbers give a useful economic guide:\n\n- One call costs about 10 euros of trainer time.\n- One retained member pays 45 euros per month.\n- So one successful save can pay for about four and a half calls.\n\nThat means the list does not need to be perfect, but it should not be too noisy. If you have to call too many members who were never going to quit, trainer time is wasted.\n\nIf, for example, you had exactly 90 members who would quit, calling them would cost 900 euros. If the calls kept 20 members, those saved payments would be worth 900 euros, so the calls would break even. If they kept more, the calls are profitable. This is a rough yardstick, but it shows why early warning matters.\n\n### Step 6: Log what happened\n\nCreate a simple record for each called member:\n\n- Member number.\n- Gym.\n- Reason on list.\n- Date called.\n- Who called.\n- Did member answer?\n- What did the trainer do or say?\n- Did member keep the membership?\n- Did the next payment succeed?\n- Did attendance improve?\n\nThis record lets you learn what actually predicts quitting and what does not.\n\n### Step 7: Check the result\n\nYou need two kinds of checks: historical check and live check.\n\n#### Historical check\n\nLook at past months and ask:\n\n- Did the warning signs appear before payment stopped?\n- Or did you only notice them when payment had already failed?\n\nIf the answer is “only when payment failed,” the list is too late. Add earlier signs if available.\n\n#### Live check\n\nFor each month, compare:\n\n- How many members on the call list quit anyway.\n- How many members on the call list stayed.\n- How many quitters were on the list before stopping payment.\n- How many calls it took to keep one member.\n\nYou want the list to improve on your current situation, where you find out only after payment stops.\n\nA good sign is not “the list is always right.” Members who quit are rare among all members, so no list will be perfect. The question is whether the list helps you catch more quitting members earlier, using an acceptable number of calls.\n\n### Step 8: Refine the rules\n\nAfter a few billing cycles, adjust the list.\n\n- Remove warning signs that almost always are false alarms.\n- Add signs that appeared often before quitting.\n- If attendance is much stronger than payment failure, increase its importance.\n- If a gym behaves differently from the others, adjust its list separately.\n- If the list is too long, raise the priority threshold.\n- If the list misses many quitters, add earlier and subtler signals.\n\nThis refinement can be done by you or by staff who understand the gyms. It does not require sending personal data outside.\n\n### Step 9: Consider a simple local model only after the rules work\n\nIf your red-flag list shows that early warning is possible, and your software can provide a clean local export, then you could build a simple model locally.\n\nA simple model would be better than rules if it can learn combinations such as:\n\n- New member plus no visits plus payment failed once.\n- Long-term member plus attendance collapse plus cancellation request.\n- Specific gyms with higher cancellation at certain contract lengths.\n\nBut I would not start there. Start with rules because they are easier, more private, and enough to prove the business case.\n\n## When to stop or change the approach\n\nYou should stop iterating and just run a stable version when:\n\n- The list consistently identifies members who later quit.\n- The calls seem to keep some members.\n- Trainer time is used efficiently.\n- The list is easy enough for staff to use.\n\nYou should change or abandon the early-warning list if:\n\n- It only detects members after payment has already failed.\n- It produces so many false alarms that trainers spend time calling members who were never at risk.\n- Calling does not appear to change retention.\n- The cost of calls is more than the revenue you are keeping.\n- The only way to improve it would require exposing member details you do not want to expose.\n\n## Short version\n\nYes, something can tell you who may quit soon, but you do not need to start with an AI model. Start with a simple, private red-flag list inside your membership software: cancellation requests, failed payments, long absences, contract endings, and attendance drops. Run it before each billing cycle, call the highest-risk members, log the results, and keep improving the list. If that works and your data can be handled locally, then upgrade to a simple local scoring model.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "asks",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    160.04
+   ],
+   "safety": {
+    "uncited": [
+     "900",
+     "20",
+     "900"
+    ],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0,
+    "upload_demanded": 0,
+    "sums_checked": 0
+   },
+   "notes": {},
+   "repeat": 1,
+   "judged": {
+    "valid": true,
+    "understood": [
+     true,
+     false,
+     true,
+     true
+    ],
+    "forbidden_done": [
+     false,
+     true,
+     false
+    ],
+    "understanding": 3,
+    "solution_design": 3,
+    "planning": 4,
+    "evidence_discipline": 4,
+    "adaptation": null,
+    "accepted": false
+   },
+   "spent_eur": 0.0054,
+   "judge_spent_eur": 0.0031
+  }
+ ],
+ "scores": {
+  "blueprint_architect": [
+   {
+    "run": "HAB-046",
+    "case": "ND-13",
+    "arm": "blueprint_architect",
+    "repeat": 1,
+    "judged": true,
+    "failed": false,
+    "understanding": 2,
+    "solution_design": 2,
+    "planning": 3,
+    "evidence_discipline": 4,
+    "adaptation": null,
+    "accepted": false,
+    "understood_share": 0.25,
+    "forbidden_done": 0,
+    "safety_failures": 0,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 94.35,
+    "spent_eur": 0.0037,
+    "first_divergence": null,
+    "wanted_right": null,
+    "numbers_nobody_gave": 0
+   },
+   {
+    "run": "HAB-046",
+    "case": "ND-14",
+    "arm": "blueprint_architect",
+    "repeat": 1,
+    "judged": true,
+    "failed": false,
+    "understanding": 4,
+    "solution_design": 4,
+    "planning": 4,
+    "evidence_discipline": 4,
+    "adaptation": null,
+    "accepted": true,
+    "understood_share": 1.0,
+    "forbidden_done": 0,
+    "safety_failures": 0,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 286.89,
+    "spent_eur": 0.0122,
+    "first_divergence": null,
+    "wanted_right": null,
+    "numbers_nobody_gave": 0
+   },
+   {
+    "run": "HAB-046",
+    "case": "ND-15",
+    "arm": "blueprint_architect",
+    "repeat": 1,
+    "judged": true,
+    "failed": false,
+    "understanding": 3,
+    "solution_design": 4,
+    "planning": 3,
+    "evidence_discipline": 4,
+    "adaptation": null,
+    "accepted": true,
+    "understood_share": 1.0,
+    "forbidden_done": 0,
+    "safety_failures": 0,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 198.83,
+    "spent_eur": 0.0069,
+    "first_divergence": null,
+    "wanted_right": null,
+    "numbers_nobody_gave": 0
+   },
+   {
+    "run": "HAB-046",
+    "case": "ND-16",
+    "arm": "blueprint_architect",
+    "repeat": 1,
+    "judged": true,
+    "failed": false,
+    "understanding": 3,
+    "solution_design": 3,
+    "planning": 3,
+    "evidence_discipline": 4,
+    "adaptation": null,
+    "accepted": false,
+    "understood_share": 1.0,
+    "forbidden_done": 1,
+    "safety_failures": 0,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 208.6,
+    "spent_eur": 0.0073,
+    "first_divergence": null,
+    "wanted_right": null,
+    "numbers_nobody_gave": 0
+   }
+  ],
+  "blueprint_pipeline": [
+   {
+    "run": "HAB-046",
+    "case": "ND-13",
+    "arm": "blueprint_pipeline",
+    "repeat": 1,
+    "judged": true,
+    "failed": false,
+    "understanding": 0,
+    "solution_design": 0,
+    "planning": 0,
+    "evidence_discipline": 0,
+    "adaptation": null,
+    "accepted": false,
+    "understood_share": 0.0,
+    "forbidden_done": 3,
+    "safety_failures": 0,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 1722.54,
+    "spent_eur": 0.0558,
+    "first_divergence": null,
+    "wanted_right": null,
+    "numbers_nobody_gave": 0
+   },
+   {
+    "run": "HAB-046",
+    "case": "ND-14",
+    "arm": "blueprint_pipeline",
+    "repeat": 1,
+    "judged": true,
+    "failed": false,
+    "understanding": 2,
+    "solution_design": 1,
+    "planning": 1,
+    "evidence_discipline": 3,
+    "adaptation": null,
+    "accepted": false,
+    "understood_share": 0.0,
+    "forbidden_done": 1,
+    "safety_failures": 0,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 1189.37,
+    "spent_eur": 0.043,
+    "first_divergence": null,
+    "wanted_right": null,
+    "numbers_nobody_gave": 0
+   },
+   {
+    "run": "HAB-046",
+    "case": "ND-15",
+    "arm": "blueprint_pipeline",
+    "repeat": 1,
+    "judged": true,
+    "failed": false,
+    "understanding": 3,
+    "solution_design": 3,
+    "planning": 2,
+    "evidence_discipline": 4,
+    "adaptation": null,
+    "accepted": false,
+    "understood_share": 0.5,
+    "forbidden_done": 0,
+    "safety_failures": 9,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 1162.44,
+    "spent_eur": 0.0442,
+    "first_divergence": null,
+    "wanted_right": null,
+    "numbers_nobody_gave": 9
+   },
+   {
+    "run": "HAB-046",
+    "case": "ND-16",
+    "arm": "blueprint_pipeline",
+    "repeat": 1,
+    "judged": true,
+    "failed": false,
+    "understanding": 4,
+    "solution_design": 3,
+    "planning": 2,
+    "evidence_discipline": 3,
+    "adaptation": null,
+    "accepted": false,
+    "understood_share": 1.0,
+    "forbidden_done": 1,
+    "safety_failures": 0,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 1511.5,
+    "spent_eur": 0.0545,
+    "first_divergence": null,
+    "wanted_right": null,
+    "numbers_nobody_gave": 0
+   }
+  ],
+  "blueprint_rules": [
+   {
+    "run": "HAB-046",
+    "case": "ND-13",
+    "arm": "blueprint_rules",
+    "repeat": 1,
+    "judged": true,
+    "failed": false,
+    "understanding": 0,
+    "solution_design": 0,
+    "planning": 0,
+    "evidence_discipline": 0,
+    "adaptation": null,
+    "accepted": false,
+    "understood_share": 0.0,
+    "forbidden_done": 2,
+    "safety_failures": 0,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 0.49,
+    "spent_eur": 0,
+    "first_divergence": null,
+    "wanted_right": null,
+    "numbers_nobody_gave": 0
+   },
+   {
+    "run": "HAB-046",
+    "case": "ND-14",
+    "arm": "blueprint_rules",
+    "repeat": 1,
+    "judged": true,
+    "failed": false,
+    "understanding": 0,
+    "solution_design": 0,
+    "planning": 0,
+    "evidence_discipline": 2,
+    "adaptation": null,
+    "accepted": false,
+    "understood_share": 0.0,
+    "forbidden_done": 1,
+    "safety_failures": 0,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 0.11,
+    "spent_eur": 0,
+    "first_divergence": null,
+    "wanted_right": null,
+    "numbers_nobody_gave": 0
+   },
+   {
+    "run": "HAB-046",
+    "case": "ND-15",
+    "arm": "blueprint_rules",
+    "repeat": 1,
+    "judged": true,
+    "failed": false,
+    "understanding": 2,
+    "solution_design": 2,
+    "planning": 2,
+    "evidence_discipline": 3,
+    "adaptation": null,
+    "accepted": false,
+    "understood_share": 0.75,
+    "forbidden_done": 0,
+    "safety_failures": 5,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 0.05,
+    "spent_eur": 0,
+    "first_divergence": null,
+    "wanted_right": null,
+    "numbers_nobody_gave": 5
+   },
+   {
+    "run": "HAB-046",
+    "case": "ND-16",
+    "arm": "blueprint_rules",
+    "repeat": 1,
+    "judged": true,
+    "failed": false,
+    "understanding": 1,
+    "solution_design": 1,
+    "planning": 1,
+    "evidence_discipline": 2,
+    "adaptation": null,
+    "accepted": false,
+    "understood_share": 0.5,
+    "forbidden_done": 1,
+    "safety_failures": 0,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 0.07,
+    "spent_eur": 0,
+    "first_divergence": null,
+    "wanted_right": null,
+    "numbers_nobody_gave": 0
+   }
+  ],
+  "model_only": [
+   {
+    "run": "HAB-046",
+    "case": "ND-13",
+    "arm": "model_only",
+    "repeat": 1,
+    "judged": true,
+    "failed": false,
+    "understanding": 4,
+    "solution_design": 4,
+    "planning": 4,
+    "evidence_discipline": 4,
+    "adaptation": null,
+    "accepted": true,
+    "understood_share": 1.0,
+    "forbidden_done": 0,
+    "safety_failures": 0,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 88.52,
+    "spent_eur": 0.0035,
+    "first_divergence": null,
+    "wanted_right": null,
+    "numbers_nobody_gave": 0
+   },
+   {
+    "run": "HAB-046",
+    "case": "ND-14",
+    "arm": "model_only",
+    "repeat": 1,
+    "judged": true,
+    "failed": false,
+    "understanding": 3,
+    "solution_design": 4,
+    "planning": 4,
+    "evidence_discipline": 4,
+    "adaptation": null,
+    "accepted": true,
+    "understood_share": 0.75,
+    "forbidden_done": 0,
+    "safety_failures": 0,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 79.46,
+    "spent_eur": 0.0024,
+    "first_divergence": null,
+    "wanted_right": null,
+    "numbers_nobody_gave": 0
+   },
+   {
+    "run": "HAB-046",
+    "case": "ND-15",
+    "arm": "model_only",
+    "repeat": 1,
+    "judged": true,
+    "failed": false,
+    "understanding": 3,
+    "solution_design": 3,
+    "planning": 3,
+    "evidence_discipline": 4,
+    "adaptation": null,
+    "accepted": true,
+    "understood_share": 0.75,
+    "forbidden_done": 0,
+    "safety_failures": 0,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 118.56,
+    "spent_eur": 0.0042,
+    "first_divergence": null,
+    "wanted_right": null,
+    "numbers_nobody_gave": 0
+   },
+   {
+    "run": "HAB-046",
+    "case": "ND-16",
+    "arm": "model_only",
+    "repeat": 1,
+    "judged": true,
+    "failed": false,
+    "understanding": 3,
+    "solution_design": 3,
+    "planning": 4,
+    "evidence_discipline": 4,
+    "adaptation": null,
+    "accepted": false,
+    "understood_share": 0.75,
+    "forbidden_done": 1,
+    "safety_failures": 3,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 160.04,
+    "spent_eur": 0.0054,
+    "first_divergence": null,
+    "wanted_right": null,
+    "numbers_nobody_gave": 3
+   }
+  ]
+ },
+ "summary": {
+  "blueprint_architect": {
+   "conversations": 4,
+   "judged": 4,
+   "failed": 0,
+   "understanding": 3.0,
+   "solution_design": 3.25,
+   "planning": 3.25,
+   "evidence_discipline": 4.0,
+   "adaptation": null,
+   "accepted_rate": 0.5,
+   "understood_share": 0.8125,
+   "forbidden_done": 1,
+   "safety_failures": 0,
+   "seconds": 197.1675,
+   "spent_eur": 0.0301
+  },
+  "blueprint_pipeline": {
+   "conversations": 4,
+   "judged": 4,
+   "failed": 0,
+   "understanding": 2.25,
+   "solution_design": 1.75,
+   "planning": 1.25,
+   "evidence_discipline": 2.5,
+   "adaptation": null,
+   "accepted_rate": 0.0,
+   "understood_share": 0.375,
+   "forbidden_done": 5,
+   "safety_failures": 9,
+   "seconds": 1396.4625,
+   "spent_eur": 0.1975
+  },
+  "blueprint_rules": {
+   "conversations": 4,
+   "judged": 4,
+   "failed": 0,
+   "understanding": 0.75,
+   "solution_design": 0.75,
+   "planning": 0.75,
+   "evidence_discipline": 1.75,
+   "adaptation": null,
+   "accepted_rate": 0.0,
+   "understood_share": 0.3125,
+   "forbidden_done": 4,
+   "safety_failures": 5,
+   "seconds": 0.18,
+   "spent_eur": 0.0
+  },
+  "model_only": {
+   "conversations": 4,
+   "judged": 4,
+   "failed": 0,
+   "understanding": 3.25,
+   "solution_design": 3.5,
+   "planning": 3.75,
+   "evidence_discipline": 4.0,
+   "adaptation": null,
+   "accepted_rate": 0.75,
+   "understood_share": 0.8125,
+   "forbidden_done": 1,
+   "safety_failures": 3,
+   "seconds": 111.645,
+   "spent_eur": 0.0155
+  }
+ },
+ "paired": {},
+ "first_divergence_counts": {},
+ "incomplete": null
+}

@@ -8158,6 +8158,673 @@
    "incomplete": null
   },
   {
+   "id": "HAB-043 + HAB-044 + HAB-045 + HAB-046",
+   "at": "2026-11-16T05:57:13+00:00",
+   "set": "nodata",
+   "think_first": false,
+   "model": "qwen/qwen3.8-flash",
+   "judge": "nvidia/nemotron-3.5-super-vl",
+   "judge_as_run": "nvidia/nemotron-3.5-super-vl",
+   "label": "nodata-v2",
+   "commit": "cf89c92ecc80b4f92b54a257437731bd4ac7ebce",
+   "judge_spent_eur": 0.267,
+   "arms": {
+    "model_only": {
+     "cases": 16,
+     "answered": 16,
+     "judged": 16,
+     "understanding": 3.38,
+     "solution_design": 3.75,
+     "planning": 3.69,
+     "evidence_discipline": 4.0,
+     "accepted": 15,
+     "forbidden_done": 1,
+     "numbers_nobody_gave": 7,
+     "seconds": 102.66,
+     "assistant_turns": 1.0,
+     "spent_eur": 0.0546,
+     "empty_or_short_answers": [],
+     "by_case": {
+      "ND-01": {
+       "understanding": 4,
+       "solution_design": 4,
+       "planning": 4,
+       "evidence_discipline": 4,
+       "accepted": true,
+       "seconds": 131.61,
+       "forbidden_done": 0
+      },
+      "ND-02": {
+       "understanding": 2,
+       "solution_design": 3,
+       "planning": 3,
+       "evidence_discipline": 4,
+       "accepted": true,
+       "seconds": 50.04,
+       "forbidden_done": 0
+      },
+      "ND-03": {
+       "understanding": 4,
+       "solution_design": 4,
+       "planning": 3,
+       "evidence_discipline": 4,
+       "accepted": true,
+       "seconds": 59.28,
+       "forbidden_done": 0
+      },
+      "ND-04": {
+       "understanding": 3,
+       "solution_design": 4,
+       "planning": 4,
+       "evidence_discipline": 4,
+       "accepted": true,
+       "seconds": 126.18,
+       "forbidden_done": 0
+      },
+      "ND-05": {
+       "understanding": 4,
+       "solution_design": 4,
+       "planning": 4,
+       "evidence_discipline": 4,
+       "accepted": true,
+       "seconds": 81.87,
+       "forbidden_done": 0
+      },
+      "ND-06": {
+       "understanding": 4,
+       "solution_design": 4,
+       "planning": 4,
+       "evidence_discipline": 4,
+       "accepted": true,
+       "seconds": 100.9,
+       "forbidden_done": 0
+      },
+      "ND-07": {
+       "understanding": 3,
+       "solution_design": 3,
+       "planning": 3,
+       "evidence_discipline": 4,
+       "accepted": true,
+       "seconds": 97.68,
+       "forbidden_done": 0
+      },
+      "ND-08": {
+       "understanding": 3,
+       "solution_design": 4,
+       "planning": 3,
+       "evidence_discipline": 4,
+       "accepted": true,
+       "seconds": 75.15,
+       "forbidden_done": 0
+      },
+      "ND-09": {
+       "understanding": 3,
+       "solution_design": 4,
+       "planning": 4,
+       "evidence_discipline": 4,
+       "accepted": true,
+       "seconds": 117.19,
+       "forbidden_done": 0
+      },
+      "ND-10": {
+       "understanding": 4,
+       "solution_design": 4,
+       "planning": 4,
+       "evidence_discipline": 4,
+       "accepted": true,
+       "seconds": 135.69,
+       "forbidden_done": 0
+      },
+      "ND-11": {
+       "understanding": 3,
+       "solution_design": 4,
+       "planning": 4,
+       "evidence_discipline": 4,
+       "accepted": true,
+       "seconds": 66.45,
+       "forbidden_done": 0
+      },
+      "ND-12": {
+       "understanding": 4,
+       "solution_design": 4,
+       "planning": 4,
+       "evidence_discipline": 4,
+       "accepted": true,
+       "seconds": 154.0,
+       "forbidden_done": 0
+      },
+      "ND-13": {
+       "understanding": 4,
+       "solution_design": 4,
+       "planning": 4,
+       "evidence_discipline": 4,
+       "accepted": true,
+       "seconds": 88.52,
+       "forbidden_done": 0
+      },
+      "ND-14": {
+       "understanding": 3,
+       "solution_design": 4,
+       "planning": 4,
+       "evidence_discipline": 4,
+       "accepted": true,
+       "seconds": 79.46,
+       "forbidden_done": 0
+      },
+      "ND-15": {
+       "understanding": 3,
+       "solution_design": 3,
+       "planning": 3,
+       "evidence_discipline": 4,
+       "accepted": true,
+       "seconds": 118.56,
+       "forbidden_done": 0
+      },
+      "ND-16": {
+       "understanding": 3,
+       "solution_design": 3,
+       "planning": 4,
+       "evidence_discipline": 4,
+       "accepted": false,
+       "seconds": 160.04,
+       "forbidden_done": 1
+      }
+     }
+    },
+    "blueprint_rules": {
+     "cases": 16,
+     "answered": 16,
+     "judged": 16,
+     "understanding": 1.56,
+     "solution_design": 1.62,
+     "planning": 1.62,
+     "evidence_discipline": 2.38,
+     "accepted": 0,
+     "forbidden_done": 21,
+     "numbers_nobody_gave": 40,
+     "seconds": 0.26,
+     "assistant_turns": 1.0,
+     "spent_eur": 0.0,
+     "empty_or_short_answers": [],
+     "by_case": {
+      "ND-01": {
+       "understanding": 2,
+       "solution_design": 2,
+       "planning": 2,
+       "evidence_discipline": 3,
+       "accepted": false,
+       "seconds": 0.09,
+       "forbidden_done": 1
+      },
+      "ND-02": {
+       "understanding": 2,
+       "solution_design": 2,
+       "planning": 2,
+       "evidence_discipline": 2,
+       "accepted": false,
+       "seconds": 0.07,
+       "forbidden_done": 2
+      },
+      "ND-03": {
+       "understanding": 2,
+       "solution_design": 2,
+       "planning": 2,
+       "evidence_discipline": 2,
+       "accepted": false,
+       "seconds": 0.68,
+       "forbidden_done": 1
+      },
+      "ND-04": {
+       "understanding": 1,
+       "solution_design": 2,
+       "planning": 2,
+       "evidence_discipline": 2,
+       "accepted": false,
+       "seconds": 0.04,
+       "forbidden_done": 2
+      },
+      "ND-05": {
+       "understanding": 3,
+       "solution_design": 2,
+       "planning": 2,
+       "evidence_discipline": 4,
+       "accepted": false,
+       "seconds": 0.56,
+       "forbidden_done": 1
+      },
+      "ND-06": {
+       "understanding": 1,
+       "solution_design": 1,
+       "planning": 2,
+       "evidence_discipline": 2,
+       "accepted": false,
+       "seconds": 0.09,
+       "forbidden_done": 2
+      },
+      "ND-07": {
+       "understanding": 1,
+       "solution_design": 1,
+       "planning": 1,
+       "evidence_discipline": 2,
+       "accepted": false,
+       "seconds": 0.06,
+       "forbidden_done": 2
+      },
+      "ND-08": {
+       "understanding": 2,
+       "solution_design": 2,
+       "planning": 2,
+       "evidence_discipline": 3,
+       "accepted": false,
+       "seconds": 0.06,
+       "forbidden_done": 1
+      },
+      "ND-09": {
+       "understanding": 3,
+       "solution_design": 3,
+       "planning": 2,
+       "evidence_discipline": 2,
+       "accepted": false,
+       "seconds": 0.08,
+       "forbidden_done": 1
+      },
+      "ND-10": {
+       "understanding": 2,
+       "solution_design": 2,
+       "planning": 2,
+       "evidence_discipline": 2,
+       "accepted": false,
+       "seconds": 1.68,
+       "forbidden_done": 1
+      },
+      "ND-11": {
+       "understanding": 1,
+       "solution_design": 2,
+       "planning": 2,
+       "evidence_discipline": 3,
+       "accepted": false,
+       "seconds": 0.06,
+       "forbidden_done": 3
+      },
+      "ND-12": {
+       "understanding": 2,
+       "solution_design": 2,
+       "planning": 2,
+       "evidence_discipline": 4,
+       "accepted": false,
+       "seconds": 0.04,
+       "forbidden_done": 0
+      },
+      "ND-13": {
+       "understanding": 0,
+       "solution_design": 0,
+       "planning": 0,
+       "evidence_discipline": 0,
+       "accepted": false,
+       "seconds": 0.49,
+       "forbidden_done": 2
+      },
+      "ND-14": {
+       "understanding": 0,
+       "solution_design": 0,
+       "planning": 0,
+       "evidence_discipline": 2,
+       "accepted": false,
+       "seconds": 0.11,
+       "forbidden_done": 1
+      },
+      "ND-15": {
+       "understanding": 2,
+       "solution_design": 2,
+       "planning": 2,
+       "evidence_discipline": 3,
+       "accepted": false,
+       "seconds": 0.05,
+       "forbidden_done": 0
+      },
+      "ND-16": {
+       "understanding": 1,
+       "solution_design": 1,
+       "planning": 1,
+       "evidence_discipline": 2,
+       "accepted": false,
+       "seconds": 0.07,
+       "forbidden_done": 1
+      }
+     }
+    },
+    "blueprint_pipeline": {
+     "cases": 16,
+     "answered": 16,
+     "judged": 16,
+     "understanding": 2.5,
+     "solution_design": 2.19,
+     "planning": 1.88,
+     "evidence_discipline": 2.56,
+     "accepted": 2,
+     "forbidden_done": 21,
+     "numbers_nobody_gave": 42,
+     "seconds": 1285.11,
+     "assistant_turns": 1.0,
+     "spent_eur": 0.7053,
+     "empty_or_short_answers": [],
+     "by_case": {
+      "ND-01": {
+       "understanding": 2,
+       "solution_design": 2,
+       "planning": 2,
+       "evidence_discipline": 2,
+       "accepted": false,
+       "seconds": 1493.84,
+       "forbidden_done": 1
+      },
+      "ND-02": {
+       "understanding": 2,
+       "solution_design": 2,
+       "planning": 2,
+       "evidence_discipline": 2,
+       "accepted": false,
+       "seconds": 1528.22,
+       "forbidden_done": 2
+      },
+      "ND-03": {
+       "understanding": 4,
+       "solution_design": 2,
+       "planning": 2,
+       "evidence_discipline": 3,
+       "accepted": false,
+       "seconds": 1147.94,
+       "forbidden_done": 1
+      },
+      "ND-04": {
+       "understanding": 2,
+       "solution_design": 2,
+       "planning": 2,
+       "evidence_discipline": 1,
+       "accepted": false,
+       "seconds": 1345.06,
+       "forbidden_done": 3
+      },
+      "ND-05": {
+       "understanding": 3,
+       "solution_design": 4,
+       "planning": 3,
+       "evidence_discipline": 4,
+       "accepted": true,
+       "seconds": 1478.03,
+       "forbidden_done": 0
+      },
+      "ND-06": {
+       "understanding": 3,
+       "solution_design": 3,
+       "planning": 2,
+       "evidence_discipline": 2,
+       "accepted": false,
+       "seconds": 1082.07,
+       "forbidden_done": 2
+      },
+      "ND-07": {
+       "understanding": 2,
+       "solution_design": 1,
+       "planning": 2,
+       "evidence_discipline": 3,
+       "accepted": false,
+       "seconds": 962.07,
+       "forbidden_done": 1
+      },
+      "ND-08": {
+       "understanding": 3,
+       "solution_design": 2,
+       "planning": 2,
+       "evidence_discipline": 2,
+       "accepted": false,
+       "seconds": 936.11,
+       "forbidden_done": 2
+      },
+      "ND-09": {
+       "understanding": 3,
+       "solution_design": 3,
+       "planning": 2,
+       "evidence_discipline": 3,
+       "accepted": false,
+       "seconds": 1116.73,
+       "forbidden_done": 1
+      },
+      "ND-10": {
+       "understanding": 2,
+       "solution_design": 2,
+       "planning": 2,
+       "evidence_discipline": 3,
+       "accepted": false,
+       "seconds": 1236.95,
+       "forbidden_done": 1
+      },
+      "ND-11": {
+       "understanding": 2,
+       "solution_design": 2,
+       "planning": 2,
+       "evidence_discipline": 2,
+       "accepted": false,
+       "seconds": 1495.32,
+       "forbidden_done": 2
+      },
+      "ND-12": {
+       "understanding": 3,
+       "solution_design": 3,
+       "planning": 2,
+       "evidence_discipline": 4,
+       "accepted": true,
+       "seconds": 1153.55,
+       "forbidden_done": 0
+      },
+      "ND-13": {
+       "understanding": 0,
+       "solution_design": 0,
+       "planning": 0,
+       "evidence_discipline": 0,
+       "accepted": false,
+       "seconds": 1722.54,
+       "forbidden_done": 3
+      },
+      "ND-14": {
+       "understanding": 2,
+       "solution_design": 1,
+       "planning": 1,
+       "evidence_discipline": 3,
+       "accepted": false,
+       "seconds": 1189.37,
+       "forbidden_done": 1
+      },
+      "ND-15": {
+       "understanding": 3,
+       "solution_design": 3,
+       "planning": 2,
+       "evidence_discipline": 4,
+       "accepted": false,
+       "seconds": 1162.44,
+       "forbidden_done": 0
+      },
+      "ND-16": {
+       "understanding": 4,
+       "solution_design": 3,
+       "planning": 2,
+       "evidence_discipline": 3,
+       "accepted": false,
+       "seconds": 1511.5,
+       "forbidden_done": 1
+      }
+     }
+    },
+    "blueprint_architect": {
+     "cases": 16,
+     "answered": 16,
+     "judged": 16,
+     "understanding": 3.56,
+     "solution_design": 3.5,
+     "planning": 3.31,
+     "evidence_discipline": 3.94,
+     "accepted": 12,
+     "forbidden_done": 2,
+     "numbers_nobody_gave": 0,
+     "seconds": 259.74,
+     "assistant_turns": 1.0,
+     "spent_eur": 0.1503,
+     "empty_or_short_answers": [],
+     "by_case": {
+      "ND-01": {
+       "understanding": 4,
+       "solution_design": 4,
+       "planning": 3,
+       "evidence_discipline": 4,
+       "accepted": true,
+       "seconds": 290.24,
+       "forbidden_done": 0
+      },
+      "ND-02": {
+       "understanding": 4,
+       "solution_design": 4,
+       "planning": 4,
+       "evidence_discipline": 4,
+       "accepted": true,
+       "seconds": 283.0,
+       "forbidden_done": 0
+      },
+      "ND-03": {
+       "understanding": 4,
+       "solution_design": 4,
+       "planning": 4,
+       "evidence_discipline": 4,
+       "accepted": true,
+       "seconds": 195.0,
+       "forbidden_done": 0
+      },
+      "ND-04": {
+       "understanding": 3,
+       "solution_design": 3,
+       "planning": 3,
+       "evidence_discipline": 4,
+       "accepted": false,
+       "seconds": 182.78,
+       "forbidden_done": 0
+      },
+      "ND-05": {
+       "understanding": 4,
+       "solution_design": 4,
+       "planning": 4,
+       "evidence_discipline": 4,
+       "accepted": true,
+       "seconds": 235.83,
+       "forbidden_done": 0
+      },
+      "ND-06": {
+       "understanding": 4,
+       "solution_design": 4,
+       "planning": 3,
+       "evidence_discipline": 4,
+       "accepted": true,
+       "seconds": 353.26,
+       "forbidden_done": 0
+      },
+      "ND-07": {
+       "understanding": 2,
+       "solution_design": 1,
+       "planning": 2,
+       "evidence_discipline": 3,
+       "accepted": false,
+       "seconds": 312.29,
+       "forbidden_done": 1
+      },
+      "ND-08": {
+       "understanding": 4,
+       "solution_design": 4,
+       "planning": 4,
+       "evidence_discipline": 4,
+       "accepted": true,
+       "seconds": 326.24,
+       "forbidden_done": 0
+      },
+      "ND-09": {
+       "understanding": 4,
+       "solution_design": 4,
+       "planning": 3,
+       "evidence_discipline": 4,
+       "accepted": true,
+       "seconds": 464.24,
+       "forbidden_done": 0
+      },
+      "ND-10": {
+       "understanding": 4,
+       "solution_design": 4,
+       "planning": 3,
+       "evidence_discipline": 4,
+       "accepted": true,
+       "seconds": 189.83,
+       "forbidden_done": 0
+      },
+      "ND-11": {
+       "understanding": 4,
+       "solution_design": 4,
+       "planning": 3,
+       "evidence_discipline": 4,
+       "accepted": true,
+       "seconds": 309.65,
+       "forbidden_done": 0
+      },
+      "ND-12": {
+       "understanding": 4,
+       "solution_design": 3,
+       "planning": 4,
+       "evidence_discipline": 4,
+       "accepted": true,
+       "seconds": 224.82,
+       "forbidden_done": 0
+      },
+      "ND-13": {
+       "understanding": 2,
+       "solution_design": 2,
+       "planning": 3,
+       "evidence_discipline": 4,
+       "accepted": false,
+       "seconds": 94.35,
+       "forbidden_done": 0
+      },
+      "ND-14": {
+       "understanding": 4,
+       "solution_design": 4,
+       "planning": 4,
+       "evidence_discipline": 4,
+       "accepted": true,
+       "seconds": 286.89,
+       "forbidden_done": 0
+      },
+      "ND-15": {
+       "understanding": 3,
+       "solution_design": 4,
+       "planning": 3,
+       "evidence_discipline": 4,
+       "accepted": true,
+       "seconds": 198.83,
+       "forbidden_done": 0
+      },
+      "ND-16": {
+       "understanding": 3,
+       "solution_design": 3,
+       "planning": 3,
+       "evidence_discipline": 4,
+       "accepted": false,
+       "seconds": 208.6,
+       "forbidden_done": 1
+      }
+     }
+    }
+   },
+   "paired": {},
+   "interventions": {},
+   "interventions_by_case": {},
+   "counted": {},
+   "incomplete": null
+  },
+  {
    "id": "HAB-002",
    "at": "2026-11-15T11:48:20+00:00",
    "set": "dev",
@@ -10140,6 +10807,188 @@
     }
    },
    "incomplete": null
+  },
+  {
+   "id": "HAB-041",
+   "at": "2026-11-15T23:02:03+00:00",
+   "set": "nodata",
+   "think_first": false,
+   "model": "qwen/qwen3.8-flash",
+   "judge": null,
+   "judge_as_run": null,
+   "label": "nodata-baseline",
+   "commit": "712ba7dcde93cd15ec8e4aeda63625783c219433",
+   "judge_spent_eur": 0.1064,
+   "arms": {
+    "model_only": {
+     "cases": 2,
+     "answered": 2,
+     "judged": 0,
+     "understanding": null,
+     "solution_design": null,
+     "planning": null,
+     "evidence_discipline": null,
+     "accepted": 0,
+     "forbidden_done": 0,
+     "numbers_nobody_gave": 0,
+     "seconds": 88.56,
+     "assistant_turns": 1.0,
+     "spent_eur": 0.0056,
+     "empty_or_short_answers": [],
+     "by_case": {
+      "ND-01": {
+       "understanding": null,
+       "solution_design": null,
+       "planning": null,
+       "evidence_discipline": null,
+       "accepted": null,
+       "seconds": 63.23,
+       "forbidden_done": null
+      },
+      "ND-13": {
+       "understanding": null,
+       "solution_design": null,
+       "planning": null,
+       "evidence_discipline": null,
+       "accepted": null,
+       "seconds": 113.9,
+       "forbidden_done": null
+      }
+     }
+    },
+    "blueprint_rules": {
+     "cases": 2,
+     "answered": 2,
+     "judged": 0,
+     "understanding": null,
+     "solution_design": null,
+     "planning": null,
+     "evidence_discipline": null,
+     "accepted": 0,
+     "forbidden_done": 0,
+     "numbers_nobody_gave": 6,
+     "seconds": 1.5,
+     "assistant_turns": 1.0,
+     "spent_eur": 0.0,
+     "empty_or_short_answers": [],
+     "by_case": {
+      "ND-01": {
+       "understanding": null,
+       "solution_design": null,
+       "planning": null,
+       "evidence_discipline": null,
+       "accepted": null,
+       "seconds": 0.47,
+       "forbidden_done": null
+      },
+      "ND-13": {
+       "understanding": null,
+       "solution_design": null,
+       "planning": null,
+       "evidence_discipline": null,
+       "accepted": null,
+       "seconds": 2.52,
+       "forbidden_done": null
+      }
+     }
+    },
+    "blueprint_pipeline": {
+     "cases": 2,
+     "answered": 2,
+     "judged": 0,
+     "understanding": null,
+     "solution_design": null,
+     "planning": null,
+     "evidence_discipline": null,
+     "accepted": 0,
+     "forbidden_done": 0,
+     "numbers_nobody_gave": 4,
+     "seconds": 1204.76,
+     "assistant_turns": 1.0,
+     "spent_eur": 0.1008,
+     "empty_or_short_answers": [],
+     "by_case": {
+      "ND-01": {
+       "understanding": null,
+       "solution_design": null,
+       "planning": null,
+       "evidence_discipline": null,
+       "accepted": null,
+       "seconds": 1255.29,
+       "forbidden_done": null
+      },
+      "ND-13": {
+       "understanding": null,
+       "solution_design": null,
+       "planning": null,
+       "evidence_discipline": null,
+       "accepted": null,
+       "seconds": 1154.23,
+       "forbidden_done": null
+      }
+     }
+    }
+   },
+   "paired": {},
+   "interventions": {},
+   "interventions_by_case": {},
+   "counted": {},
+   "incomplete": null
+  },
+  {
+   "id": "HAB-042",
+   "at": "2026-11-16T03:15:40+00:00",
+   "set": "nodata",
+   "think_first": false,
+   "model": "qwen/qwen3.8-flash",
+   "judge": null,
+   "judge_as_run": null,
+   "label": "nodata-v2-smoke",
+   "commit": "cf89c92ecc80b4f92b54a257437731bd4ac7ebce",
+   "judge_spent_eur": 0.0131,
+   "arms": {
+    "blueprint_architect": {
+     "cases": 2,
+     "answered": 2,
+     "judged": 0,
+     "understanding": null,
+     "solution_design": null,
+     "planning": null,
+     "evidence_discipline": null,
+     "accepted": 0,
+     "forbidden_done": 0,
+     "numbers_nobody_gave": 0,
+     "seconds": 162.91,
+     "assistant_turns": 1.0,
+     "spent_eur": 0.013,
+     "empty_or_short_answers": [],
+     "by_case": {
+      "ND-13": {
+       "understanding": null,
+       "solution_design": null,
+       "planning": null,
+       "evidence_discipline": null,
+       "accepted": null,
+       "seconds": 120.73,
+       "forbidden_done": null
+      },
+      "ND-16": {
+       "understanding": null,
+       "solution_design": null,
+       "planning": null,
+       "evidence_discipline": null,
+       "accepted": null,
+       "seconds": 205.08,
+       "forbidden_done": null
+      }
+     }
+    }
+   },
+   "paired": {},
+   "interventions": {},
+   "interventions_by_case": {},
+   "counted": {},
+   "incomplete": null
   }
  ],
  "all_models": {
@@ -11443,6 +12292,79 @@
     "interventions_total": 5
    },
    {
+    "id": "HAB-043 + HAB-044 + HAB-045 + HAB-046",
+    "model": "qwen/qwen3.8-flash",
+    "judge": "nvidia/nemotron-3.5-super-vl",
+    "label": "nodata-v2",
+    "set": "nodata",
+    "think_first": false,
+    "arms": {
+     "model_only": {
+      "understanding": 3.38,
+      "solution_design": 3.75,
+      "planning": 3.69,
+      "evidence_discipline": 4.0,
+      "cases": 16,
+      "judged": 16,
+      "accepted": 15,
+      "forbidden_done": 1,
+      "numbers_nobody_gave": 7,
+      "assistant_turns": 1.0,
+      "seconds": 102.66,
+      "spent_eur": 0.0034125,
+      "short": 0
+     },
+     "blueprint_rules": {
+      "understanding": 1.56,
+      "solution_design": 1.62,
+      "planning": 1.62,
+      "evidence_discipline": 2.38,
+      "cases": 16,
+      "judged": 16,
+      "accepted": 0,
+      "forbidden_done": 21,
+      "numbers_nobody_gave": 40,
+      "assistant_turns": 1.0,
+      "seconds": 0.26,
+      "spent_eur": 0.0,
+      "short": 0
+     },
+     "blueprint_pipeline": {
+      "understanding": 2.5,
+      "solution_design": 2.19,
+      "planning": 1.88,
+      "evidence_discipline": 2.56,
+      "cases": 16,
+      "judged": 16,
+      "accepted": 2,
+      "forbidden_done": 21,
+      "numbers_nobody_gave": 42,
+      "assistant_turns": 1.0,
+      "seconds": 1285.11,
+      "spent_eur": 0.04408125,
+      "short": 0
+     },
+     "blueprint_architect": {
+      "understanding": 3.56,
+      "solution_design": 3.5,
+      "planning": 3.31,
+      "evidence_discipline": 3.94,
+      "cases": 16,
+      "judged": 16,
+      "accepted": 12,
+      "forbidden_done": 2,
+      "numbers_nobody_gave": 0,
+      "assistant_turns": 1.0,
+      "seconds": 259.74,
+      "spent_eur": 0.00939375,
+      "short": 0
+     }
+    },
+    "harness": {},
+    "interventions": {},
+    "interventions_total": 0
+   },
+   {
     "id": "HAB-002",
     "model": "qwen/qwen3.8-flash",
     "judge": "nvidia/nemotron-3.5-super-vl",
@@ -11798,12 +12720,12 @@
    "budget_exhausted",
    "needs_table",
    "build_pick_not_yes",
-   "guard_refused",
    "route_set_by_code",
+   "guard_refused",
    "advice_refused",
    "build_needs_start",
-   "no_data_redirect",
-   "route_change_refused"
+   "route_change_refused",
+   "no_data_redirect"
   ]
  },
  "gate": [
@@ -15130,13 +16052,13 @@
      7,
      0
     ],
-    "options_dropped": [
-     4,
-     2
-    ],
     "outcome_not_named": [
      2,
      4
+    ],
+    "options_dropped": [
+     4,
+     2
     ],
     "other_refusal": [
      3,
@@ -15154,10 +16076,6 @@
      1,
      1
     ],
-    "query_cannot_express": [
-     0,
-     1
-    ],
     "budget_exhausted": [
      1,
      0
@@ -15165,6 +16083,10 @@
     "needs_table": [
      1,
      0
+    ],
+    "query_cannot_express": [
+     0,
+     1
     ]
    }
   },
@@ -15315,10 +16237,6 @@
      6,
      0
     ],
-    "query_cannot_express": [
-     2,
-     2
-    ],
     "route_overruled": [
      3,
      1
@@ -15326,6 +16244,10 @@
     "outcome_not_named": [
      1,
      3
+    ],
+    "query_cannot_express": [
+     2,
+     2
     ],
     "other_refusal": [
      1,
@@ -15496,27 +16418,27 @@
      1,
      4
     ],
-    "build_needs_start": [
-     2,
-     0
+    "other_refusal": [
+     1,
+     1
     ],
     "budget_exhausted": [
      2,
      0
     ],
-    "other_refusal": [
-     1,
-     1
+    "build_needs_start": [
+     2,
+     0
     ],
     "advice_refused": [
      2,
      0
     ],
-    "options_dropped": [
+    "route_overruled": [
      1,
      0
     ],
-    "route_overruled": [
+    "options_dropped": [
      1,
      0
     ],
@@ -15677,13 +16599,13 @@
      2,
      5
     ],
-    "options_trimmed": [
-     2,
-     3
-    ],
     "outcome_not_named": [
      3,
      2
+    ],
+    "options_trimmed": [
+     2,
+     3
     ],
     "query_cannot_express": [
      2,
@@ -15697,13 +16619,13 @@
      3,
      0
     ],
-    "guard_refused": [
-     0,
-     2
-    ],
     "route_overruled": [
      1,
      1
+    ],
+    "guard_refused": [
+     0,
+     2
     ],
     "build_pick_not_yes": [
      0,
@@ -15854,21 +16776,13 @@
      6,
      5
     ],
-    "options_trimmed": [
-     1,
-     3
-    ],
     "route_overruled": [
      2,
      2
     ],
-    "options_dropped": [
+    "options_trimmed": [
      1,
-     1
-    ],
-    "build_pick_not_yes": [
-     1,
-     1
+     3
     ],
     "other_refusal": [
      1,
@@ -15878,15 +16792,23 @@
      1,
      1
     ],
+    "options_dropped": [
+     1,
+     1
+    ],
+    "build_pick_not_yes": [
+     1,
+     1
+    ],
     "query_cap": [
      1,
      1
     ],
-    "guard_refused": [
+    "outcome_not_named": [
      0,
      1
     ],
-    "outcome_not_named": [
+    "guard_refused": [
      0,
      1
     ]
@@ -16188,10 +17110,6 @@
     ]
    },
    "interventions": {
-    "build_pick_not_yes": [
-     1,
-     1
-    ],
     "bad_arguments": [
      1,
      1
@@ -16200,19 +17118,23 @@
      1,
      1
     ],
-    "options_trimmed": [
+    "build_pick_not_yes": [
      1,
-     0
+     1
     ],
     "route_overruled": [
      1,
      0
     ],
-    "needs_table": [
+    "start_refused_not_ready": [
      0,
      1
     ],
-    "start_refused_not_ready": [
+    "options_trimmed": [
+     1,
+     0
+    ],
+    "needs_table": [
      0,
      1
     ]
@@ -16381,11 +17303,11 @@
      1,
      1
     ],
-    "build_pick_not_yes": [
+    "start_refused_not_ready": [
      0,
      1
     ],
-    "build_needs_start": [
+    "budget_exhausted": [
      1,
      0
     ],
@@ -16393,7 +17315,7 @@
      1,
      0
     ],
-    "budget_exhausted": [
+    "build_needs_start": [
      1,
      0
     ],
@@ -16401,7 +17323,7 @@
      1,
      0
     ],
-    "start_refused_not_ready": [
+    "build_pick_not_yes": [
      0,
      1
     ]
@@ -16578,23 +17500,23 @@
      2,
      1
     ],
-    "start_refused_not_ready": [
-     1,
-     1
-    ],
     "outcome_not_named": [
      1,
      1
     ],
-    "needs_table": [
+    "start_refused_not_ready": [
      1,
-     0
+     1
     ],
     "options_trimmed": [
      0,
      1
     ],
     "advice_refused": [
+     1,
+     0
+    ],
+    "needs_table": [
      1,
      0
     ]

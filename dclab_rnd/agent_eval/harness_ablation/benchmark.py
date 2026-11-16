@@ -567,12 +567,13 @@ def page(data: Mapping[str, Any]) -> str:
              "<h1>Does DCLab's harness help or hold back the model?</h1>"]
     am = data.get("all_models") or {"rows": [], "reasons": []}
     best = [(row["arms"]["model_only"]["planning"], row["arms"]["case"]["planning"]) for row in am["rows"]
-            if "model_only" in row["arms"] and row["arms"]["model_only"]["planning"] is not None and row["arms"]["case"]["planning"] is not None]
+            if "model_only" in row["arms"] and "case" in row["arms"]  # a run of the no-data designs has no lead-agent arm
+                and row["arms"]["model_only"]["planning"] is not None and row["arms"]["case"]["planning"] is not None]
     if best:
         parts.append(f'<p class="lede">On eight written cases and {len({row["model"] for row in am["rows"]})} models, a model alone makes a plan scored '
                      f'<b>{_num(min(a for a, _ in best))} to {_num(max(a for a, _ in best))}</b>; the same model inside current DCLab, '
                      f'<b>{_num(min(c for _, c in best))} to {_num(max(c for _, c in best))}</b> (0 to 4). Current DCLab wrote '
-                     f'<b>{sum(row["arms"]["case"]["numbers_nobody_gave"] for row in am["rows"])}</b> numbers nobody gave; the minimal agents, '
+                     f'<b>{sum(row["arms"]["case"]["numbers_nobody_gave"] for row in am["rows"] if "case" in row["arms"])}</b> numbers nobody gave; the minimal agents, '
                      f'{sum(row["arms"]["open"]["numbers_nobody_gave"] for row in am["rows"] if "open" in row["arms"])}.</p>')
     parts.append('<p class="muted">Eight cases, each once. One judge model. Read the differences as hints, not proof. Built from the result files; nothing was run to make this page.</p>')
     parts.append('<p>' + " &nbsp; ".join(_swatch(a) for a in ALL_ARMS) + "</p>")

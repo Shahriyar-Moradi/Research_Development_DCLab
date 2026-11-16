@@ -1,0 +1,319 @@
+{
+ "id": "HAB-042",
+ "split": "dev",
+ "set": "nodata",
+ "at": "2026-11-16T03:15:40+00:00",
+ "arms": [
+  "blueprint_architect"
+ ],
+ "repeats": 1,
+ "models": {
+  "arms": "qwen/qwen3.8-flash",
+  "judge": null,
+  "route_check": "qwen/qwen3.8-flash"
+ },
+ "spent_eur": 0.0131,
+ "cap_eur": 0.15,
+ "kept": "agent_runs/live_tests/2026-11-16-harness-ablation-HAB-042",
+ "manifest": {
+  "run_id": "HAB-042",
+  "at": "2026-11-16T03:15:40+00:00",
+  "arms": [
+   "blueprint_architect"
+  ],
+  "repeats": 1,
+  "cap_eur": 0.15,
+  "code": {
+   "commit": "cf89c92ecc80b4f92b54a257437731bd4ac7ebce",
+   "dirty": [],
+   "diff_sha256": null,
+   "untracked_sha256": null,
+   "untracked_files": 0
+  },
+  "models": {
+   "arms": "qwen/qwen3.8-flash",
+   "judge": null,
+   "route_check": "qwen/qwen3.8-flash"
+  },
+  "prompt_sha256": {
+   "ablation_model_only": "d76ca4c71ca2349a",
+   "ablation_model_only_short": "74c593495acb5f60",
+   "ablation_minimal_agent": "9bacaefe1c839f92",
+   "ablation_judge": "6ae9b4e558cb8e12",
+   "exam_plain": "6b4a893172133d54",
+   "case_agent": "04956cc04a4915d4",
+   "case_agent_think_first": "98a726e97accd7c0",
+   "route_check": "61027a2803db8856",
+   "no_data_architect": "51a5a690583338c2",
+   "no_data_critic": "b4d2e398b024a6ed"
+  },
+  "tool_schema_sha256": {
+   "open": "772a142db9c94f65",
+   "plain": "607296ffbd9ccef9",
+   "case": "96fcda10b0e3e919"
+  },
+  "flags": {
+   "DCLAB_CASE_AGENT": null,
+   "DCLAB_CASE_THINK_FIRST": null,
+   "DCLAB_ROUTE_MODEL": null,
+   "DCLAB_THINKING_EFFORT": "high",
+   "DCLAB_LLM_PROVIDER": "openrouter"
+  },
+  "cases_sha256": "aaecac397040a787606f6f789c1c5eb548c0386d58a45cce68109a2fa82f8e4c",
+  "set": "nodata",
+  "max_turns": 4,
+  "go_ahead": "Everything I know is in what I wrote. Choose what you judge best and go ahead.",
+  "label": "nodata-v2-smoke"
+ },
+ "capture": {
+  "exchanges": 4,
+  "ok": 4,
+  "whole": 4,
+  "with_thinking": 4,
+  "without_thinking": [],
+  "purposes": [
+   "no_data_architect",
+   "no_data_critic"
+  ]
+ },
+ "label": "nodata-v2-smoke",
+ "note": "a pilot of eight cases: traces and reason codes, no claim that one arm is better",
+ "code": "one commit",
+ "conversations": [
+  {
+   "id": "ND-13",
+   "arm": "blueprint_architect",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "I run operations for a furniture retailer with one warehouse. The owner wants to know whether we should open a second warehouse in the south next year. Nothing is in a system I could export for you: I have what I know from the job. Deliveries to the south take about 6 days, to the north 2. Around a third of our orders go south. How should we think about this?",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "# A business answer, without data\n\n## The problem\nThe decision is whether to open a second, southern warehouse next year. The owner makes it, and it needs to be framed before a lease, capital, or inventory commitment is made. The unit it concerns is the southern service area: where stock is held and how southern orders are fulfilled. Individual orders are evidence, but the decision is about the southern warehouse option.\n\nYou told: deliveries to the south take about 6 days, deliveries to the north take 2 days, and around 1/3 of orders go south.\n\nNot known: whether the 6 days in the south is caused mainly by distance, carrier handoff, waiting for stock, consolidation, delivery scheduling, or stockouts; whether southern demand is steady enough to support a second site; the cost of late southern deliveries; rent, staffing, inventory carrying cost, transfer freight, systems, capacity limits, seasonality, and whether the delay is preventing growth or mainly creating service irritation.\n\n## What needs care\nThe number to worry about is the southern delay gap, `6 - 2 = 4` days, but only if those days cause a business loss: stockouts, expedited freight, late credits, lost sales, customer churn, or missed delivery promises. If the delay is caused by shipping method or consolidation rather than stock location, a southern warehouse may not remove `6 - 2 = 4` days.\n\nBecause south is `1/3` of orders, a second site duplicates stock and increases fixed cost for a group that is material but not the majority. The owner needs a service, cost, and capacity decision, not a delivery-day decision alone.\n\n## Business solution\nAction now without a model: build a short decision sheet with the owner that compares holding one warehouse with holding southern stock in an external southern location.\n\nSimple rule to begin with: do not commit to a second warehouse unless you can show that the southern share of `1/3` creates repeated cost or lost business because of the southern delay gap, `6 - 2 = 4` days. If that cannot be shown, test southern stock splitting or an external southern location before building or leasing.\n\nIn the owner’s numbers, the possible gain is up to `6 - 2 = 4` days faster for southern orders, and those orders are `1/3` of orders. The cost side was not given, so it must be named as unknown and estimated from the job: southern warehouse rent, staffing, inventory carrying cost, duplicated stock, transfer freight, systems, and risk that southern demand changes.\n\n## Plan\n1. Do now: define the owner’s decision test. Needs: what must be improved before opening a second warehouse: cost, delivery reliability, growth, stockouts, or customer experience. Finished when the owner accepts a clear reason and a clear stop condition.\n2. Describe today’s southern delivery chain. Needs: your operating knowledge: stock location, picking, carrier handoff, transit, delivery attempts, and exceptions. Finished when you can say where the 6 days usually appear.\n3. Estimate southern demand pressure from the job. Needs: rough current southern share near `1/3`, seasonality, fastest-selling southern items, and what happens when southern delivery is late. Finished when each item has either an estimate or a named unknown.\n4. Compare the option set. Needs: keep one warehouse, use an external southern location, split stock between locations, or open own southern warehouse; compare lead time, cost, inventory duplication, staffing, cash, and risk. Finished when each option can be ruled out or kept with a reason.\n5. Test before committing. Needs: a limited group of southern orders or SKUs, an external southern stock option or split stock, and a way to see whether the southern delay gap, `6 - 2 = 4` days, actually shrinks without adding unacceptable cost. Finished when the owner can see the service change and the added cost side by side.\n6. Recommend go, test more, or delay. Needs: the known facts, estimates, remaining unknowns, and the simplest option that meets the owner’s decision test. Finished when the owner records the decision and the reason for next year.\n\n## What only real data can settle\nReal order history and cost records would settle whether southern demand is steady enough to justify a second location, whether the 6-day southern lead time is caused by stock location or transport, whether late southern deliveries create measurable losses, and what fixed costs would be after opening. They would also reveal whether the southern share remains near `1/3` or changes seasonally.\n\n## Questions for you\n- What is the owner’s main pain: delivery time, customer churn, expedited shipping cost, missed growth, or north warehouse congestion?\n- Which southern SKUs or order types are most responsible for the current 6-day delay?\n- Do you have rough estimates from operations for southern order volume, rent or capacity constraints, and the cost of late southern deliveries, even if they are not in a system?\n\n## Checked by code\n- Sums checked by code: `6 - 2 = 4`.\n\n## A second reader's findings\n- The solution implies the southern warehouse could recover the whole extra south-versus-north delivery time, but the cause of the extra time is unknown; state this only as a hypothesis and first locate whether stock location, carrier transit, consolidation, scheduling, or stockouts create the gap.\n- The simple “do not commit unless you can show that the southern third creates repeated cost or lost business from the gap” needs evidence the person does not have and can ignore strategic reasons; instead, frame it as an owner decision test with explicit assumptions, a small proof of concept, and a stop condition.\n- The plan depends on estimates of rent, staffing, carrying cost, transfer freight, and southern demand stability, which cannot be settled without real records; mark those as decision blockers or owner-accepted assumptions, not facts from the job.\n- The external southern location and split-stock test are a business-model change the person did not ask about; label them as one possible alternative to a second owned warehouse, only if allowed and affordable, rather than part of the recommended path.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "asks",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    120.73
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0,
+    "upload_demanded": 0,
+    "sums_checked": 6
+   },
+   "notes": {
+    "family": null,
+    "mode": "architect",
+    "roles_called": [
+     "architect",
+     "critic"
+    ],
+    "gates_passed": {
+     "need": true,
+     "parts": true,
+     "sums": true,
+     "numbers": true,
+     "inputs known in time": true,
+     "label after the decision": true,
+     "plan": true,
+     "no model unasked": true,
+     "no upload asked": true,
+     "no data made": true
+    },
+    "cost_eur": 0.005017,
+    "assumed_inputs": [],
+    "fits": null,
+    "need": "business",
+    "repaired": false,
+    "removed": 0,
+    "kind": null,
+    "findings": 4,
+    "errors": [],
+    "first_failed": [],
+    "still_failed": []
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": false,
+    "pending": true,
+    "problems": [
+     "not judged yet: the judge runs later on the kept conversation"
+    ]
+   },
+   "spent_eur": 0.005,
+   "judge_spent_eur": 0
+  },
+  {
+   "id": "ND-16",
+   "arm": "blueprint_architect",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "I own three gyms. Members quit all the time and I only find out when the payment stops. All I have is the membership software, which I can look at, but I do not know how to get anything out of it, and honestly I would rather not hand over member details. About 2,400 members, maybe 90 quit a month. A personal call from a trainer costs me about 10 euros of their time, and a member pays 45 a month. Can something tell me who is about to quit, so we call them first?",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "# A solution designed without data\n\n## The problem\nYou need a monthly decision: which members should get a personal trainer call before they stop paying. You own three gyms, and you only find out that someone quit when the payment stops. You can look at the membership software, but you do not want to hand over member details, and you are not sure how to get useful records out of it. Known numbers: about 2,400 members, about 90 quit a month, a call costs about 10 euros of trainer time, and a member pays 45 euros a month. Not known: whether recent visits, missed payments, or contract changes appear before the stop, how many trainer calls can be made, and whether calling actually changes retention.\n\n## What needs care\nThe danger is predicting a quit only when it is already visible. A useful list must be built from information known before the payment stops, not from the stop itself. Also, if a trainer calls a member, that call may change whether the member stays, so the model can estimate “risk” without automatically measuring “effect of calling”. For business value, use the numbers you gave: the monthly quit rate implied by your counts is `90 / 2,400 = 3.75%`. A call list of 90 members costs `10 × 90 = 900` euros of trainer time; because a retained paying member brings 45 euros, that list breaks even if it prevents `900 / 45 = 20` quits from happening that month. Keep personal details inside the software; use internal references for analysis.\n\n## Business solution\nDo this now without a model:\n\n1. Pick one decision day per billing month. That is the day you decide who to call.\n2. Make a simple call list with two easy checks, using what you can already see in the membership software:\n   - Members with a payment issue already visible before the stop, if the software shows late payment or failed payment.\n   - Members whose recent visits have fallen compared with their previous visits. If the software does not let you export, have staff tick a short internal list.\n3. Trainers call that list and write a simple outcome: reached, cancelled, paid, visit returned. No member details need leave the gyms.\n\nUse the simple rule for enough calls to make it worthwhile. Each call costs 10 euros. Each member who stays and pays brings 45 euros. If a call prevents a quit that would otherwise have happened, the member pays `45` and you spent `10`, so `45 - 10 = 35` euros are left from that one prevented quit. You do not need a model to start; you need a consistent list, a fixed call list size, and records of what happened after the call.\n\n## Data to record\n| column | what it is | known when | role |\n|---|---|---|---|\n| member_ref | internal anonymized identifier for the member | before | key |\n| decision_date | date you choose the call list for the month | at | time |\n| membership_start | date the member joined | before | input |\n| contract_type | membership plan or product | before | input |\n| monthly_fee | member's monthly fee | before | input |\n| visits_current_period | visits before the decision in the current billing period | at | input |\n| visits_previous_period | visits in the previous comparable billing period | at | input |\n| last_visit_date | most recent visit before the decision | at | input |\n| payment_issue | whether payment is late or failed before the decision | at | input |\n| churn_label | whether the member quit after the decision | after | label |\n| churn_observed_date | date the software records the payment stop or cancellation | after | time |\n| call_list_assigned | whether the member was placed in the trainer call list | at | not used |\n\nEach row is one member on one decision_date. The moment of the decision is the day you create the trainer call list. The label is defined as “quit after this decision”: payment stops or the membership is cancelled after the decision_date, and it becomes known when your software records that stop or cancellation.\n\n## Model\nStart with the simple baseline from the Business solution: call members with a payment issue, or members whose visits_current_period is lower than visits_previous_period. Measure this baseline by checking how many members on that list have churn_label = quit after the decision.\n\nThen train a simple churn-prediction model from the data table. Use only rows whose features are known at or before the decision_date. Suitable inputs: membership tenure, contract type, monthly_fee, visits_current_period, visits_previous_period, last_visit_date compared with decision_date, and payment_issue. Do not use member_ref, names, phone numbers, call outcomes, or the churn label as inputs. Do not use call_list_assigned as a model input, because whether you called someone should not make the model seem better at predicting natural quitting.\n\nTest the model by time, not by random rows: fit the model on earlier decision_dates, then test it on the next decision_date it has not seen. Measure what matters to you: among the top members chosen by the model, how many actually have churn_label = quit. Compare that with the simple rule and with your current way of discovering quits. Turn the score into a decision by ranking all members by predicted quit risk, then calling the top members until the trainer call capacity for the month is full. If you test with a list size equal to the usual quitting count, 90 calls cost `10 × 90 = 900` euros, and you need `900 / 45 = 20` prevented quits to cover that call cost.\n\nKind: binary classification\n\n## Plan\n1. Define the decision day and who owns the call list. This needs a calendar rule and a staff owner, no data. It is finished when trainers know which list to call each billing month.\n2. Create an anonymized monthly record inside the membership software with the table above. This needs someone who can run or design an export without member names. It is finished when one row exists for each member for each decision_date.\n3. Run the simple no-model rule this week. This needs staff able to see payment status and visit counts. It is finished when the first call list is made and trainers log each call.\n4. Collect labels for the called lists. This needs the software to show payment stops or cancellations. It is finished when rows from decision_dates have churn_label filled in.\n5. Score the simple rule. This needs only the recorded rows. It is finished when you know how many actual quitters were already in the called list, compared with how many you found only after payment stopped.\n6. Train and test the model with a time-based split. This needs enough labeled monthly rows. It is finished when the model predicts the next decision_date from past decision_dates.\n7. Choose the real call capacity and decide whether to include a comparison group. This needs agreement on how many trainer calls are possible. It is finished when call_list_assigned is recorded, so you can later tell whether a high-risk list actually prevents quits.\n\n## What only real data can settle\nOnly your real membership records can show whether visit drop, payment issues, contract type, or tenure appear before a member stops paying. Real data will also show how many quits are visible early enough to call, and whether the top-ranked members actually cancel after the decision. It will show whether the simple rule already finds enough quitters or whether a model adds value. Finally, real outcomes with some called members not called for comparison are needed to settle whether the trainer call itself changes retention, because a call that finds a likely quitter is not the same as proof that the call saved that member.\n\n## Questions for you\n1. How many personal trainer calls can your gyms make each month?\n2. Can the membership software show visits and payment issues before the payment stops, or can it only show the stop/cancel?\n3. Are you willing to reserve a small no-call comparison group among high-risk members so you can tell whether calling truly changes retention?\n\n## Checked by code\n- Sums checked by code: `90 / 2,400 = 3.75%`; `10 × 90 = 900`; `900 / 45 = 20`; `45 - 10 = 35`.\n\n## Checks DCLab will run when real data arrives\n- `time_split_check` on `decision_date`: Declared time column\n- `grouped_split` on `member_ref`: Declared entity key\n- `baseline` on `roc_auc`: Baseline model\n\n## A second reader's findings\n- The solution uses a late or failed payment as a call trigger, but the owner only knows about quitting when payment stops; do not rely on that until the software is confirmed to show a payment problem before the stop, or use only visit and contract details available earlier.\n- It requires building a monthly record with many columns and training a model, but the owner says they cannot get data out and does not want to share member details; start with an internal decision-day checklist using fields staff can see inside the software, and only build the model after those records exist.\n- It mixes the owner's request to prioritize likely quitters with a later proof that calls prevent quits, including a no-call comparison the owner did not ask for; present the output as a risk list unless the owner also agrees to an experiment, and keep comparison-group design separate.\n- The break-even reasoning treats a call as saving the monthly fee from a prevented quit, which only real outcomes can confirm; do not size or justify the call list from that calculation alone, use real follow-up records to test whether called members actually stay longer than comparable uncalled members.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "asks",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    205.08
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0,
+    "upload_demanded": 0,
+    "sums_checked": 10
+   },
+   "notes": {
+    "family": null,
+    "mode": "architect",
+    "roles_called": [
+     "architect",
+     "critic"
+    ],
+    "gates_passed": {
+     "need": true,
+     "parts": true,
+     "sums": true,
+     "numbers": true,
+     "data table": true,
+     "an outcome and an input": true,
+     "inputs known in time": true,
+     "label after the decision": true,
+     "plan": true,
+     "model": true,
+     "no upload asked": true,
+     "no data made": true
+    },
+    "cost_eur": 0.008049,
+    "assumed_inputs": [],
+    "fits": null,
+    "need": "full",
+    "repaired": false,
+    "removed": 0,
+    "kind": "binary classification",
+    "findings": 4,
+    "errors": [],
+    "first_failed": [],
+    "still_failed": []
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": false,
+    "pending": true,
+    "problems": [
+     "not judged yet: the judge runs later on the kept conversation"
+    ]
+   },
+   "spent_eur": 0.008,
+   "judge_spent_eur": 0
+  }
+ ],
+ "scores": {
+  "blueprint_architect": [
+   {
+    "run": "HAB-042",
+    "case": "ND-13",
+    "arm": "blueprint_architect",
+    "repeat": 1,
+    "judged": false,
+    "failed": false,
+    "understanding": null,
+    "solution_design": null,
+    "planning": null,
+    "evidence_discipline": null,
+    "adaptation": null,
+    "accepted": null,
+    "understood_share": null,
+    "forbidden_done": null,
+    "safety_failures": 0,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 120.73,
+    "spent_eur": 0.005,
+    "first_divergence": null,
+    "wanted_right": null,
+    "numbers_nobody_gave": 0
+   },
+   {
+    "run": "HAB-042",
+    "case": "ND-16",
+    "arm": "blueprint_architect",
+    "repeat": 1,
+    "judged": false,
+    "failed": false,
+    "understanding": null,
+    "solution_design": null,
+    "planning": null,
+    "evidence_discipline": null,
+    "adaptation": null,
+    "accepted": null,
+    "understood_share": null,
+    "forbidden_done": null,
+    "safety_failures": 0,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 205.08,
+    "spent_eur": 0.008,
+    "first_divergence": null,
+    "wanted_right": null,
+    "numbers_nobody_gave": 0
+   }
+  ]
+ },
+ "summary": {
+  "blueprint_architect": {
+   "conversations": 2,
+   "judged": 0,
+   "failed": 0,
+   "understanding": null,
+   "solution_design": null,
+   "planning": null,
+   "evidence_discipline": null,
+   "adaptation": null,
+   "accepted_rate": null,
+   "understood_share": null,
+   "forbidden_done": 0,
+   "safety_failures": 0,
+   "seconds": 162.905,
+   "spent_eur": 0.013
+  }
+ },
+ "paired": null,
+ "first_divergence_counts": {},
+ "incomplete": null
+}
