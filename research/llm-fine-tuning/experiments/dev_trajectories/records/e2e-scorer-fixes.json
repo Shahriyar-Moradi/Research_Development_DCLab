@@ -1,0 +1,95 @@
+{
+ "package": "e2e-scorer-fixes",
+ "title": "The end-to-end comparison scores only the table's own columns, reads rounded numbers as given, and counts DCLab's model calls",
+ "date": "2026-11-18",
+ "request": "The owner's yes to fixing, before the held-out run, three faults the review of the first dev run (E2E-002) found: the plain arm's real score, its count of numbers nobody gave, and the capture of the DCLab agent's model calls.",
+ "spec": "The pinned gate (gate_v1.json) is not changed. A result file is never edited: the dev run is scored again into a new file. The held-out seeds are not read. A changed prompt reruns the judgment and harness suites.",
+ "plan": [
+  "the plain arm names the table's own columns; a name that is not a column leaves the real score unknown",
+  "a number rounded from an output, or set in the code it ran, counts as given",
+  "capture reads the twin lane's own call log",
+  "the plain arm's answer is kept beside the run, and a rescore command scores a dev result again into a new file"
+ ],
+ "decisions": [
+  {
+   "decision": "A feature name that is not a column of the table makes the real score unknown, never a score of the columns that did match",
+   "why": "scoring the 3 matching names of 32 judged a model the arm never built (MAE 10.56) and, through the gate's paired comparison, would have favoured DCLab"
+  },
+  {
+   "decision": "A number written in the arm's own code counts as given",
+   "why": "a fold of 300 rows or max_iter=4000 is a setting it chose and reported, not an invented result; the check is for invented results"
+  },
+  {
+   "decision": "The rules arm keeping name-suspected leaks is left as it is",
+   "why": "the standard plan keeps out only a leak a measurement proved, a name suspicion is a question for a person; whether an unattended build should act on it is the owner's decision"
+  }
+ ],
+ "change": "dclab_rnd/agent_eval/e2e/score.py (unsaid with rounding, signs and thousands separators; features_not_columns), plain.py (features described as the header's names; the code it ran returned), prompts/e2e_plain_agent.md (the same sentence), __main__.py (outcome.json kept per case; rescore command), harness_ablation capture (transcripts/model_calls.jsonl), tests/test_e2e_comparison.py.",
+ "findings": [
+  {
+   "id": "E2E-R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The plain arm's real score judged a model it never built.",
+   "scenario": "On delivery_time-s11 it named 32 features it had built (hour, te_rest, dist_x_online, ...); 3 were table columns, so the reference model was fitted on 3 columns and gave MAE 10.56 against DCLab's 8.92.",
+   "cause": "the scorer kept the names that matched and dropped the rest without a word; the prompt asked for the columns the model uses, which a person reads as its features",
+   "fix": "the prompt and the finish tool ask for the table's own columns, named as in its header; any other name makes the real score None and is listed in features_not_columns",
+   "test": "tests/test_e2e_comparison.py test_features_that_are_not_the_tables_columns_leave_the_real_score_unknown"
+  },
+  {
+   "id": "E2E-R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Ten of ten numbers counted as made up were outputs rounded.",
+   "scenario": "The report wrote 7.94 where an output said 7.937, 30.01 for 30.0093, 0.010 for 0.0098: each plain run scored 5 numbers nobody gave.",
+   "cause": "the check looked for the report's text verbatim inside the outputs",
+   "fix": "a number counts as given when an output's number rounds to it at the report's decimals; signs and thousands separators are ignored; the code the arm ran is a source too",
+   "test": "tests/test_e2e_comparison.py test_a_number_rounded_from_an_output_was_given_and_an_invented_one_was_not"
+  },
+  {
+   "id": "E2E-R3",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The capture of a run counted none of the DCLab agent's 49 answered calls.",
+   "scenario": "E2E-002's capture said 48 of 48 calls with thinking, all from the plain arm; the twin lane's calls were checked by hand.",
+   "cause": "capture read only model_exchanges, and the twin lane keeps its calls in transcripts/model_calls.jsonl",
+   "fix": "capture reads that log too, a row with an answer as one call",
+   "test": "tests/test_e2e_comparison.py test_capture_counts_a_twin_lanes_own_call_log"
+  },
+  {
+   "id": "E2E-S1",
+   "source": "self",
+   "severity": "gap",
+   "defect": "After the rounding fix, numbers the arm had set in its own code still counted as made up.",
+   "scenario": "Rescoring E2E-002 left 3 and 2: a 300-row fold, 2400 rows, max_iter=4000, and its own interval end 0.36.",
+   "cause": "only the outputs were read, not the code that produced them",
+   "fix": "the scripts it ran are returned with its outcome and read as a source; 0.36, a judgement of its own, still counts",
+   "test": "tests/test_e2e_comparison.py test_a_number_rounded_from_an_output_was_given_and_an_invented_one_was_not"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "E2E-003: the live dev run E2E-002 scored again with the fixed scorer (no model asked)",
+   "gate": "none: dev cases only; e2e_gate_v1 is for the held-out seeds",
+   "fixed_before_run": false,
+   "result": "plain on delivery_time-s11: real score unknown (29 of 32 names are not columns; it was 10.56), numbers nobody gave 0 (was 5); plain on ticket_routing-s11: real macro F1 0.3877 inside its interval 0.36 to 0.48 as before, numbers nobody gave 1 (was 5: its own interval end 0.36); capture of E2E-002: 97 of 97 answered calls with thinking (48 plain, 49 DCLab agent); the rules and DCLab agent rows unchanged",
+   "verdict": "not scored",
+   "cost_eur": 0.0,
+   "next": "the held-out run of e2e_gate_v1, once, when the owner says so",
+   "limits": [
+    "the plain arm's delivery case has no real score: its old answer named built features, and the fixed prompt has not run live",
+    "two dev cases"
+   ]
+  }
+ ],
+ "outcome": "The plain arm is asked for the table's own columns and is never scored on a part of its answer; a rounded output or a setting in its code is not a made-up number; a run's capture counts DCLab's own model calls. The dev run was scored again into E2E-003; the gate is unchanged.",
+ "lessons": [
+  "A scorer that quietly drops what it cannot read scores something else: refuse, and say why.",
+  "A text-match check for invented numbers must allow the rounding every report does, or it counts honesty as invention."
+ ],
+ "risks": [
+  "If the plain arm still names built features in the held-out run, its case has no real score and the gate's paired comparison has fewer pairs; the count is reported.",
+  "Counting numbers in its code as given lets a number written only in a script (a comment) pass."
+ ],
+ "commits": []
+}

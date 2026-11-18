@@ -22,7 +22,8 @@ TOOLS = [
         "type": "object", "required": ["target", "task", "metric", "value", "low", "high", "features", "report"],
         "properties": {"target": {"type": "string"}, "task": {"type": "string"}, "metric": {"type": "string"},
                        "value": {"type": "number"}, "low": {"type": "number"}, "high": {"type": "number"},
-                       "features": {"type": "array", "items": {"type": "string"}}, "report": {"type": "string"}}}}},
+                       "features": {"type": "array", "items": {"type": "string"},
+                                    "description": "The table's own columns your final model reads, named as in its header."}, "report": {"type": "string"}}}}},
 ]
 
 
@@ -33,6 +34,7 @@ def run(case: Any, client: Any, folder: Path) -> dict[str, Any]:
     case.table.to_csv(folder / case.filename, index=False)
     messages: list[dict[str, Any]] = [{"role": "system", "content": prompts.text(PROMPT)}, {"role": "user", "content": case.request()}]
     seen: list[str] = []
+    code: list[str] = []  # the scripts it ran: a number it set there (a fold's size, an iteration cap) is its choice, not made up
     calls: list[dict[str, Any]] = []
     finished: Optional[dict[str, Any]] = None
     for n in range(MAX_CALLS):
@@ -58,7 +60,8 @@ def run(case: Any, client: Any, folder: Path) -> dict[str, Any]:
                 calls.append({"tool": "finish", "ok": True})
                 value: dict[str, Any] = {"ok": True}
             elif c["name"] == "run_python":
-                value = sandbox.run_python(str(args.get("code") or ""), folder, len(calls) + 1)
+                code.append(str(args.get("code") or ""))
+                value = sandbox.run_python(code[-1], folder, len(calls) + 1)
                 seen.append(str(value.get("stdout") or "") + str(value.get("stderr") or "") + str(value.get("error") or ""))
                 calls.append({"tool": "run_python", "ok": value.get("returncode") == 0})
             else:
@@ -67,4 +70,4 @@ def run(case: Any, client: Any, folder: Path) -> dict[str, Any]:
             messages.append({"role": "tool", "tool_call_id": c["id"], "content": json.dumps(value, default=str)})
         if finished is not None:
             break
-    return {"arm": "plain", "finished": finished, "seen": seen, "calls": calls}
+    return {"arm": "plain", "finished": finished, "seen": seen, "code": code, "calls": calls}

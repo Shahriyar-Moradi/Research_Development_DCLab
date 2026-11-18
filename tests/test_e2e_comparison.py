@@ -153,10 +153,77 @@ class ScoreTests(unittest.TestCase):
         self.assertFalse(row["real_inside_interval"])  # it promised far better than it does on new cases
         self.assertEqual(row["numbers_nobody_gave"], 1)  # 42.5 came from no output
 
+    def test_a_number_rounded_from_an_output_was_given_and_an_invented_one_was_not(self):
+        """Dev run, 2026-11-18: ten of ten "made up" numbers were outputs rounded (7.937 written 7.94)."""
+        from dclab_rnd.agent_eval.e2e import score
+
+        seen = ["MAE-loss HistGB 7.937", "corr -0.6512, rows 3060", "gain 0.0098"]
+        self.assertEqual(score.unsaid("MAE 7.94; r = \u22120.65 on 3,060 rows; +0.010", seen), 0)
+        self.assertEqual(score.unsaid("MAE 7.95 and 4,120 rows", seen), 2)
+        self.assertEqual(score.unsaid("max_iter=4000", seen + ["LogisticRegression(max_iter=4000)"]), 0)  # a setting in its own code
+
+    def test_features_that_are_not_the_tables_columns_leave_the_real_score_unknown(self):
+        """Dev run, 2026-11-18: 32 built features, 3 of them columns, were scored as a model on those 3."""
+        from dclab_rnd.agent_eval.e2e import cases, score
+
+        case = cases.make("delivery_time", 11)
+        built = {"arm": "plain", "seen": ["MAE 6.5"], "finished": {"target": case.target, "metric": "mae", "value": 6.5, "low": 6.0,
+                 "high": 7.2, "features": ["couriers_online", "hour", "te_rest"], "report": "MAE 6.5"}}
+        row = score.score(case, built)
+        self.assertIsNone(row["real"])
+        self.assertEqual(row["features_not_columns"], ["hour", "te_rest"])
+        self.assertNotIn("real_inside_interval", row)  # unknown, never counted as honest or dishonest
+        raw = {**built, "finished": {**built["finished"], "features": ["couriers_online", "distance_km"]}}
+        self.assertIsNotNone(score.score(case, raw)["real"])
+
     def test_an_unfinished_arm_scores_unfinished(self):
         from dclab_rnd.agent_eval.e2e import cases, score
 
         self.assertEqual(score.score(cases.make("ticket_routing", 11), {"arm": "dclab_agent", "finished": None})["finished"], False)
+
+
+class CaptureTests(unittest.TestCase):
+    def test_capture_counts_a_twin_lanes_own_call_log(self):
+        """Dev run, 2026-11-18: capture counted 0 of the DCLab agent's 49 answered calls (they are in the twin's log)."""
+        from dclab_rnd.agent_eval import harness_ablation as H
+
+        home = Path(tempfile.mkdtemp())
+        log = home / "case" / "twin" / "runs" / "r1" / "ai_first" / "transcripts"
+        log.mkdir(parents=True)
+        rows = [{"purpose": "intern", "outcome": "ok", "messages": [{"role": "user", "content": "x"}], "answer": {"thinking": [{"text": "a summary"}]}},
+                {"purpose": "intern", "outcome": "ok", "messages": [{"role": "user", "content": "x"}], "answer": {"thinking": None}},
+                {"n": 3, "check": "a lane check, not a call"}]
+        (log / "model_calls.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows), encoding="utf-8")
+        kept = H.capture(home)
+        self.assertEqual((kept["exchanges"], kept["ok"], kept["with_thinking"], kept["without_thinking"]), (2, 2, 1, ["intern"]))
+
+
+class RescoreTests(unittest.TestCase):
+    def test_a_dev_result_is_scored_again_into_a_new_file_from_the_kept_exchange(self):
+        from dclab_rnd.agent_eval.e2e import __main__ as cli
+
+        root = Path(tempfile.mkdtemp())
+        results = root / "results"
+        results.mkdir()
+        day = root / "run" / "delivery_time-s11" / "plain" / "model_exchanges" / "2026" / "11"
+        day.mkdir(parents=True)
+        finish = {"target": "actual_minutes", "task": "regression", "metric": "mae", "value": 6.5, "low": 6.0, "high": 7.2,
+                  "features": ["couriers_online", "hour"], "report": "MAE 7.94"}
+        exchange = {"outcome": "ok", "messages": [{"role": "user", "content": "go"}, {"role": "tool", "content": "{\"stdout\": \"MAE 7.937\"}"}],
+                    "tool_calls": [{"name": "finish", "arguments": finish}]}
+        (day / "18.jsonl").write_text(json.dumps(exchange) + "\n", encoding="utf-8")
+        old = {"id": "E2E-002", "cases": ["delivery_time-s11"], "run_dir": "run", "spent": 0.1,
+               "scores": [{"case": "delivery_time-s11", "arm": "plain", "real": 10.5, "numbers_nobody_gave": 1, "euros": 0.02},
+                          {"case": "delivery_time-s11", "arm": "rules", "real": 8.8}]}
+        (results / "E2E-002_dev.json").write_text(json.dumps(old), encoding="utf-8")
+        with mock.patch.object(cli, "RESULTS", results), mock.patch.object(cli, "ROOT", root):
+            self.assertEqual(cli.main(["rescore", "E2E-002"]), 0)
+        self.assertEqual(json.loads((results / "E2E-002_dev.json").read_text()), old)  # the old result is never edited
+        new = json.loads((results / "E2E-003_rescore_dev.json").read_text())
+        plain, rules = new["scores"]
+        self.assertEqual((plain["real"], plain["features_not_columns"], plain["numbers_nobody_gave"], plain["euros"]), (None, ["hour"], 0, 0.02))
+        self.assertEqual(rules, old["scores"][1])
+        self.assertEqual((new["rescored_from"], new["spent"]), ("E2E-002", 0.0))
 
 
 class CommandTests(unittest.TestCase):

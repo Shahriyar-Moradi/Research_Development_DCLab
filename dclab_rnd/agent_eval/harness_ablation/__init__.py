@@ -582,6 +582,16 @@ def capture(run_dir: Path) -> dict[str, Any]:
     rows = []
     for path in sorted(Path(run_dir).glob("**/model_exchanges/**/*.jsonl")):
         rows += [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    # A twin run's model lane keeps its calls in its own log (transcripts/model_calls.jsonl, the thinking in each answer),
+    # not in model_exchanges: the end-to-end run of 2026-11-18 counted 0 of its 49 answered calls. Only a row with an
+    # answer is a call; the others in that log are the lane's checks.
+    for path in sorted(Path(run_dir).glob("**/transcripts/model_calls.jsonl")):
+        for line in path.read_text(encoding="utf-8").splitlines():
+            call = json.loads(line) if line.strip() else {}
+            if isinstance(call.get("answer"), dict):
+                answer = call["answer"]
+                rows.append({"purpose": call.get("purpose"), "outcome": call.get("outcome"), "whole": bool(call.get("messages")),
+                             **{k: answer.get(k) for k in ("thinking", "reasoning", "reasoning_details")}})
     ok = [r for r in rows if r.get("outcome") == "ok"]
     # A call shown table values keeps its thinking redacted (``thinking_redacted``, rule 8): that is thinking kept. Live,
     # 2026-11-16: a receipt counted 28 of 59 calls "with thinking" when all 59 had kept it, 31 of them redacted.

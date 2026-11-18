@@ -49,3 +49,26 @@ dev cases only: no claim; the gate in `gate_v1.json` is for the held-out run.
 - The real score scores each arm's feature choices with one fixed scikit-learn gradient boosting reference model, not each arm's own fitted model (and only raw columns present in `case.table.columns` enter `reference.real_score`).
 - Two problem kinds and two live dev cases give a first look, not a general claim.
 - dev cases only: no claim; the gate in `gate_v1.json` is for the held-out run.
+
+## Scored again with the fixed scorer (`E2E-003_rescore_dev.json`, 2026-11-18, no model asked)
+
+The review of E2E-002 found three faults in the scoring, fixed before any held-out run (`e2e-scorer-fixes`); the gate
+file is unchanged and E2E-002 itself is kept as it was.
+
+- **The plain arm's real score on delivery time was not its model's.** It named 32 features it had built; 3 were table
+  columns, and the reference model was fitted on those 3 (MAE 10.56). A name that is not a column now leaves the real
+  score unknown: that case has no real score (29 names are not columns). The prompt and the finish tool now ask for the
+  table's own columns.
+- **"Numbers nobody gave" counted rounding as invention.** All 10 were outputs rounded (7.937 written 7.94) or settings
+  in its own code (a 300-row fold, `max_iter=4000`). Now: 0 on delivery time, 1 on ticket routing (its own interval
+  end, 0.36).
+- **The capture missed the DCLab agent's calls.** It now reads the twin lane's own log: 97 of 97 answered calls kept
+  their thinking (48 plain, 49 DCLab agent).
+
+| Case | Arm | Real | Real inside interval | Numbers nobody gave |
+|---|---|---|---|---|
+| `delivery_time-s11` | `plain` | unknown (built features named) | unknown | 0 |
+| `ticket_routing-s11` | `plain` | 0.3877 | True | 1 |
+
+The rules and DCLab agent rows are unchanged. On ticket routing, the one case with both scored, DCLab with the model and
+the model alone are level on the real score (0.3896 and 0.3877) and both honest about it.

@@ -3,6 +3,7 @@
 plan   prints what a run would do and costs nothing.
 rules  runs only DCLab's rules arm on the dev cases (no model, free) and scores it.
 run    the three arms on the named dev cases, live (--yes and --cap-eur needed; the product's model only, never Claude).
+rescore  a dev result scored again with today's scorer, into a new result file (nothing is asked of a model).
 The held-out seeds are never read here: the gate run is a separate, later step the owner approves."""
 
 from __future__ import annotations
@@ -226,6 +227,10 @@ def _cmd_run(selected: list[Any], model: str, cap: float | None, yes: bool) -> i
             spent += plain_spent
             plain_out["euros"] = round(plain_spent, 6)
             plain_out["seconds"] = round(time.monotonic() - t_plain, 1)
+        # what it answered and every output it saw, so the score can be computed again without asking the model again
+        (case_dir / "plain").mkdir(parents=True, exist_ok=True)
+        (case_dir / "plain" / "outcome.json").write_text(json.dumps({k: plain_out.get(k) for k in ("finished", "seen", "code", "calls", "error")},
+                                                                    indent=1, ensure_ascii=False, default=str) + "\n", encoding="utf-8")
         plain_calls[case.id] = list(plain_out.get("calls") or [])
         scores.append(_scored_row(case, plain_out))
     RESULTS.mkdir(parents=True, exist_ok=True)
@@ -238,6 +243,64 @@ def _cmd_run(selected: list[Any], model: str, cap: float | None, yes: bool) -> i
     return 0
 
 
+def _plain_kept(case_dir: Path) -> dict[str, Any]:
+    """The plain arm's answer and the outputs it saw: its outcome file, or (runs before it was written) its last kept
+    exchange, whose tool messages hold every output and whose finish call holds the answer."""
+    kept = case_dir / "plain" / "outcome.json"
+    if kept.is_file():
+        return {"arm": "plain", **json.loads(kept.read_text(encoding="utf-8"))}
+    rows = [json.loads(line) for path in sorted((case_dir / "plain").glob("model_exchanges/**/*.jsonl"))
+            for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    rows = [r for r in rows if r.get("outcome") == "ok"]
+    if not rows:
+        return {"arm": "plain", "finished": None, "seen": []}
+    last = max(rows, key=lambda r: len(r.get("messages") or []))
+    finish = next((c for c in last.get("tool_calls") or [] if c.get("name") == "finish"), None)
+    args = (finish or {}).get("arguments") or None
+    if isinstance(args, str):
+        args = json.loads(args)
+    seen = [str(m.get("content") or "") for m in last.get("messages") or [] if m.get("role") == "tool"]
+    code = []
+    for m in last.get("messages") or []:
+        for c in m.get("tool_calls") or [] if m.get("role") == "assistant" else []:
+            called = (c.get("function") or c)
+            given = called.get("arguments") or {}
+            given = json.loads(given) if isinstance(given, str) else given
+            if called.get("name") == "run_python":
+                code.append(str(given.get("code") or ""))
+    return {"arm": "plain", "finished": args, "seen": seen, "code": code}
+
+
+def _cmd_rescore(result_id: str) -> int:
+    """A dev result scored again with today's scorer, into a new result file (a result is never edited). Only the plain
+    arm's rows change: DCLab's arms are read from their projects, which the scorer's changes do not touch."""
+    found = sorted(RESULTS.glob(f"{result_id}_*.json"))
+    if len(found) != 1:
+        print(f"refused: {len(found)} result files for {result_id}", file=sys.stderr)
+        return 2
+    old = json.loads(found[0].read_text(encoding="utf-8"))
+    selected = {c.id: c for c in _select_cases(",".join(old["cases"]))}  # refuses any held-out case
+    from . import score
+
+    scores = []
+    for row in old["scores"]:
+        if row["arm"] != "plain":
+            scores.append(row)
+            continue
+        new = score.score(selected[row["case"]], _plain_kept(ROOT / old["run_dir"] / row["case"]))
+        scores.append({**new, **{k: row[k] for k in ("euros", "seconds", "error") if k in row}})
+    run_id = next_id()
+    path = RESULTS / f"{run_id}_rescore_dev.json"
+    doc = {**{k: v for k, v in old.items() if k not in ("id", "scores")}, "id": run_id, "rescored_from": old["id"],
+           "spent": 0.0, "spent_by_the_run": old.get("spent"), "scores": scores}
+    path.write_text(json.dumps(doc, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
+    for row in scores:
+        print(f"{row['case']:20s} {row['arm']:12s} real={row.get('real')} inside={row.get('real_inside_interval')} "
+              f"unsaid={row.get('numbers_nobody_gave')} not_columns={len(row.get('features_not_columns') or [])}")
+    print(str(path))
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m dclab_rnd.agent_eval.e2e")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -247,7 +310,11 @@ def main(argv: list[str] | None = None) -> int:
         p.add_argument("--model", default=MODEL)
         p.add_argument("--cap-eur", type=float, default=None)
         p.add_argument("--yes", action="store_true")
+    again = sub.add_parser("rescore")
+    again.add_argument("result", help="a dev result's id, for example E2E-002")
     args = parser.parse_args(argv)
+    if args.command == "rescore":
+        return _cmd_rescore(args.result)
     try:
         selected = _select_cases(args.cases)
     except ValueError as exc:

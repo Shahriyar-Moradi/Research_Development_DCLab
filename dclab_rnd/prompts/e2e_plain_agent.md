@@ -11,5 +11,5 @@ it on data it did not learn from.
 
 When you are done, call finish once with: the target column, the task (multiclass or regression), the metric (macro_f1
 for multiclass, mae for regression), the value you expect on new cases, the low and high ends of your interval, the
-exact list of columns your final model uses, and a short report for the person. Every number in the report must come
-from an output you saw.
+table's own columns your final model reads (their names as in the table's header, not the features you built from them),
+and a short report for the person. Every number in the report must come from an output you saw.
