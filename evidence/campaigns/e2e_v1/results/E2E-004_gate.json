@@ -1,0 +1,1406 @@
+{
+ "id": "E2E-004",
+ "arms": [
+  "rules",
+  "dclab_agent",
+  "plain"
+ ],
+ "model": "qwen/qwen3.8-flash",
+ "cap": 0.5,
+ "spent": 0.44854,
+ "cases": [
+  "ticket_routing-s101",
+  "delivery_time-s101",
+  "ticket_routing-s102",
+  "delivery_time-s102",
+  "ticket_routing-s103",
+  "delivery_time-s103",
+  "ticket_routing-s104",
+  "delivery_time-s104"
+ ],
+ "not_run": [],
+ "scores": [
+  {
+   "case": "ticket_routing-s101",
+   "arm": "rules",
+   "finished": true,
+   "target_right": true,
+   "metric_right": true,
+   "leaks_used": [
+    "first_response_minutes",
+    "resolved_by"
+   ],
+   "claimed": 0.9298944482007362,
+   "interval": [
+    0.826499353455295,
+    0.9405716993087607
+   ],
+   "real": 0.27003178541294026,
+   "leaks_kept_out": false,
+   "gap": 0.6599,
+   "real_inside_interval": false,
+   "holdout_uses": 1,
+   "euros": 0.0,
+   "seconds": 7.0
+  },
+  {
+   "case": "ticket_routing-s101",
+   "arm": "dclab_agent",
+   "finished": true,
+   "target_right": true,
+   "metric_right": true,
+   "leaks_used": [],
+   "claimed": 0.446529478071829,
+   "interval": [
+    0.3547281340676657,
+    0.4973444757154275
+   ],
+   "real": 0.39232440416095904,
+   "leaks_kept_out": true,
+   "gap": 0.0542,
+   "real_inside_interval": true,
+   "holdout_uses": 1,
+   "euros": 0.033265,
+   "seconds": 593.0
+  },
+  {
+   "case": "ticket_routing-s101",
+   "arm": "plain",
+   "finished": true,
+   "target_right": true,
+   "metric_right": true,
+   "leaks_used": [],
+   "claimed": 0.44,
+   "interval": [
+    0.4,
+    0.48
+   ],
+   "real": 0.3770579310612534,
+   "leaks_kept_out": true,
+   "gap": 0.0629,
+   "real_inside_interval": false,
+   "holdout_uses": null,
+   "numbers_nobody_gave": 0,
+   "euros": 0.027952,
+   "seconds": 340.3
+  },
+  {
+   "case": "delivery_time-s101",
+   "arm": "rules",
+   "finished": true,
+   "target_right": true,
+   "metric_right": true,
+   "leaks_used": [
+    "courier_rating"
+   ],
+   "claimed": 6.608928735415141,
+   "interval": [
+    6.2728311157067616,
+    6.932307159129779
+   ],
+   "real": 8.888131514468144,
+   "leaks_kept_out": false,
+   "gap": -2.2792,
+   "real_inside_interval": false,
+   "holdout_uses": 1,
+   "euros": 0.0,
+   "seconds": 2.0
+  },
+  {
+   "case": "delivery_time-s101",
+   "arm": "dclab_agent",
+   "finished": true,
+   "target_right": true,
+   "metric_right": true,
+   "leaks_used": [],
+   "claimed": 8.917898126602173,
+   "interval": [
+    8.241121332216263,
+    9.396022674194972
+   ],
+   "real": 8.963366583574212,
+   "leaks_kept_out": true,
+   "gap": -0.0455,
+   "real_inside_interval": true,
+   "holdout_uses": 1,
+   "euros": 0.036316,
+   "seconds": 677.0
+  },
+  {
+   "case": "delivery_time-s101",
+   "arm": "plain",
+   "finished": true,
+   "target_right": true,
+   "metric_right": true,
+   "leaks_used": [],
+   "claimed": 6.58,
+   "interval": [
+    6.3,
+    7
+   ],
+   "real": 8.844518532785061,
+   "leaks_kept_out": true,
+   "gap": -2.2645,
+   "real_inside_interval": false,
+   "holdout_uses": null,
+   "numbers_nobody_gave": 0,
+   "euros": 0.021569,
+   "seconds": 254.8
+  },
+  {
+   "case": "ticket_routing-s102",
+   "arm": "rules",
+   "finished": true,
+   "target_right": true,
+   "metric_right": true,
+   "leaks_used": [
+    "first_response_minutes",
+    "resolved_by"
+   ],
+   "claimed": 0.9166666666666666,
+   "interval": [
+    0.8333333333333334,
+    0.9166666666666666
+   ],
+   "real": 0.3138320581786668,
+   "leaks_kept_out": false,
+   "gap": 0.6028,
+   "real_inside_interval": false,
+   "holdout_uses": 1,
+   "euros": 0.0,
+   "seconds": 6.0
+  },
+  {
+   "case": "ticket_routing-s102",
+   "arm": "dclab_agent",
+   "finished": true,
+   "target_right": true,
+   "metric_right": true,
+   "leaks_used": [],
+   "claimed": 0.4080698899112212,
+   "interval": [
+    0.3778188779899579,
+    0.4359562859358922
+   ],
+   "real": 0.38923159578902283,
+   "leaks_kept_out": true,
+   "gap": 0.0188,
+   "real_inside_interval": true,
+   "holdout_uses": 1,
+   "euros": 0.027515,
+   "seconds": 550.0
+  },
+  {
+   "case": "ticket_routing-s102",
+   "arm": "plain",
+   "finished": true,
+   "target_right": true,
+   "metric_right": true,
+   "leaks_used": [],
+   "claimed": 0.42,
+   "interval": [
+    0.38,
+    0.46
+   ],
+   "real": 0.4031599415375157,
+   "leaks_kept_out": true,
+   "gap": 0.0168,
+   "real_inside_interval": true,
+   "holdout_uses": null,
+   "numbers_nobody_gave": 4,
+   "euros": 0.020858,
+   "seconds": 482.9
+  },
+  {
+   "case": "delivery_time-s102",
+   "arm": "rules",
+   "finished": true,
+   "target_right": true,
+   "metric_right": true,
+   "leaks_used": [
+    "courier_rating"
+   ],
+   "claimed": 6.886870031356811,
+   "interval": [
+    6.572172300338746,
+    7.2540464607397706
+   ],
+   "real": 8.744365051451823,
+   "leaks_kept_out": false,
+   "gap": -1.8575,
+   "real_inside_interval": false,
+   "holdout_uses": 1,
+   "euros": 0.0,
+   "seconds": 1.0
+  },
+  {
+   "case": "delivery_time-s102",
+   "arm": "dclab_agent",
+   "finished": true,
+   "target_right": true,
+   "metric_right": true,
+   "leaks_used": [],
+   "claimed": 9.15050186189444,
+   "interval": [
+    8.533199250787249,
+    9.832784135343784
+   ],
+   "real": 9.131690444713316,
+   "leaks_kept_out": true,
+   "gap": 0.0188,
+   "real_inside_interval": true,
+   "holdout_uses": 1,
+   "euros": 0.037118,
+   "seconds": 713.0
+  },
+  {
+   "case": "delivery_time-s102",
+   "arm": "plain",
+   "finished": true,
+   "target_right": true,
+   "metric_right": true,
+   "leaks_used": [],
+   "claimed": 6.7,
+   "interval": [
+    6.3,
+    7.3
+   ],
+   "real": 8.996092808755469,
+   "leaks_kept_out": true,
+   "gap": -2.2961,
+   "real_inside_interval": false,
+   "holdout_uses": null,
+   "numbers_nobody_gave": 4,
+   "euros": 0.030651,
+   "seconds": 1226.2
+  },
+  {
+   "case": "ticket_routing-s103",
+   "arm": "rules",
+   "finished": true,
+   "target_right": true,
+   "metric_right": true,
+   "leaks_used": [
+    "first_response_minutes",
+    "resolved_by"
+   ],
+   "claimed": 1.0,
+   "interval": [
+    0.9145833333333333,
+    1.0
+   ],
+   "real": 0.2523588496319101,
+   "leaks_kept_out": false,
+   "gap": 0.7476,
+   "real_inside_interval": false,
+   "holdout_uses": 1,
+   "euros": 0.0,
+   "seconds": 5.0
+  },
+  {
+   "case": "ticket_routing-s103",
+   "arm": "dclab_agent",
+   "finished": true,
+   "target_right": true,
+   "metric_right": true,
+   "leaks_used": [],
+   "claimed": 0.40928223622297427,
+   "interval": [
+    0.3784563355640863,
+    0.4424472454792013
+   ],
+   "real": 0.3867636847449541,
+   "leaks_kept_out": true,
+   "gap": 0.0225,
+   "real_inside_interval": true,
+   "holdout_uses": 1,
+   "euros": 0.025307,
+   "seconds": 517.0
+  },
+  {
+   "case": "ticket_routing-s103",
+   "arm": "plain",
+   "finished": true,
+   "target_right": true,
+   "metric_right": true,
+   "leaks_used": [],
+   "claimed": 0.43,
+   "interval": [
+    0.4,
+    0.46
+   ],
+   "real": 0.38577928292163977,
+   "leaks_kept_out": true,
+   "gap": 0.0442,
+   "real_inside_interval": false,
+   "holdout_uses": null,
+   "numbers_nobody_gave": 0,
+   "euros": 0.026008,
+   "seconds": 1093.1
+  },
+  {
+   "case": "delivery_time-s103",
+   "arm": "rules",
+   "finished": true,
+   "target_right": true,
+   "metric_right": true,
+   "leaks_used": [
+    "courier_rating"
+   ],
+   "claimed": 6.393500710805257,
+   "interval": [
+    5.796432959238687,
+    6.610004494444528
+   ],
+   "real": 8.667224925128428,
+   "leaks_kept_out": false,
+   "gap": -2.2737,
+   "real_inside_interval": false,
+   "holdout_uses": 1,
+   "euros": 0.0,
+   "seconds": 2.0
+  },
+  {
+   "case": "delivery_time-s103",
+   "arm": "dclab_agent",
+   "finished": true,
+   "target_right": true,
+   "metric_right": true,
+   "leaks_used": [],
+   "claimed": 8.92706942176819,
+   "interval": [
+    8.10614443515564,
+    9.496265557885733
+   ],
+   "real": 8.744078211397374,
+   "leaks_kept_out": true,
+   "gap": 0.183,
+   "real_inside_interval": true,
+   "holdout_uses": 1,
+   "euros": 0.029394,
+   "seconds": 592.0
+  },
+  {
+   "case": "delivery_time-s103",
+   "arm": "plain",
+   "finished": true,
+   "target_right": true,
+   "metric_right": true,
+   "leaks_used": [],
+   "claimed": 7.1,
+   "interval": [
+    6.6,
+    7.8
+   ],
+   "real": 8.723263162181276,
+   "leaks_kept_out": true,
+   "gap": -1.6233,
+   "real_inside_interval": false,
+   "holdout_uses": null,
+   "numbers_nobody_gave": 3,
+   "euros": 0.022386,
+   "seconds": 349.7
+  },
+  {
+   "case": "ticket_routing-s104",
+   "arm": "rules",
+   "finished": true,
+   "target_right": true,
+   "metric_right": true,
+   "leaks_used": [
+    "first_response_minutes",
+    "resolved_by"
+   ],
+   "claimed": 0.9166666666666666,
+   "interval": [
+    0.8333333333333334,
+    0.9166666666666666
+   ],
+   "real": 0.2775825693167514,
+   "leaks_kept_out": false,
+   "gap": 0.6391,
+   "real_inside_interval": false,
+   "holdout_uses": 1,
+   "euros": 0.0,
+   "seconds": 5.0
+  },
+  {
+   "case": "ticket_routing-s104",
+   "arm": "dclab_agent",
+   "finished": true,
+   "target_right": true,
+   "metric_right": true,
+   "leaks_used": [],
+   "claimed": 0.41366178152447514,
+   "interval": [
+    0.384256686505341,
+    0.4438734577863706
+   ],
+   "real": 0.38424617712939785,
+   "leaks_kept_out": true,
+   "gap": 0.0294,
+   "real_inside_interval": false,
+   "holdout_uses": 1,
+   "euros": 0.025373,
+   "seconds": 475.0
+  },
+  {
+   "case": "ticket_routing-s104",
+   "arm": "plain",
+   "finished": true,
+   "target_right": true,
+   "metric_right": true,
+   "leaks_used": [],
+   "claimed": 0.45,
+   "interval": [
+    0.4,
+    0.5
+   ],
+   "real": 0.3942459544419516,
+   "leaks_kept_out": true,
+   "gap": 0.0558,
+   "real_inside_interval": false,
+   "holdout_uses": null,
+   "numbers_nobody_gave": 1,
+   "euros": 0.027879,
+   "seconds": 514.6
+  },
+  {
+   "case": "delivery_time-s104",
+   "arm": "rules",
+   "finished": true,
+   "target_right": true,
+   "metric_right": true,
+   "leaks_used": [
+    "courier_rating"
+   ],
+   "claimed": 6.872162415186565,
+   "interval": [
+    6.64995587220192,
+    7.306533727407455
+   ],
+   "real": 8.930400325392515,
+   "leaks_kept_out": false,
+   "gap": -2.0582,
+   "real_inside_interval": false,
+   "holdout_uses": 1,
+   "euros": 0.0,
+   "seconds": 1.0
+  },
+  {
+   "case": "delivery_time-s104",
+   "arm": "dclab_agent",
+   "finished": true,
+   "target_right": true,
+   "metric_right": true,
+   "leaks_used": [],
+   "claimed": 8.935773969014488,
+   "interval": [
+    8.340849249998728,
+    9.386995556402207
+   ],
+   "real": 8.843884524977941,
+   "leaks_kept_out": true,
+   "gap": 0.0919,
+   "real_inside_interval": true,
+   "holdout_uses": 1,
+   "euros": 0.027647,
+   "seconds": 545.0
+  },
+  {
+   "case": "delivery_time-s104",
+   "arm": "plain",
+   "finished": true,
+   "target_right": true,
+   "metric_right": true,
+   "leaks_used": [],
+   "claimed": 6.6,
+   "interval": [
+    6.1,
+    7.3
+   ],
+   "real": 8.856551909730115,
+   "leaks_kept_out": true,
+   "gap": -2.2566,
+   "real_inside_interval": false,
+   "holdout_uses": null,
+   "numbers_nobody_gave": 2,
+   "euros": 0.029302,
+   "seconds": 570.9
+  }
+ ],
+ "plain_calls": {
+  "ticket_routing-s101": [
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": false
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": false
+   },
+   {
+    "tool": "run_python",
+    "ok": false
+   },
+   {
+    "tool": "run_python",
+    "ok": false
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "finish",
+    "ok": true
+   }
+  ],
+  "delivery_time-s101": [
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": false
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": false
+   },
+   {
+    "tool": "run_python",
+    "ok": false
+   },
+   {
+    "tool": "run_python",
+    "ok": false
+   },
+   {
+    "tool": "run_python",
+    "ok": false
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": false
+   },
+   {
+    "tool": "run_python",
+    "ok": false
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": false
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "finish",
+    "ok": true
+   }
+  ],
+  "ticket_routing-s102": [
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": false
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": false
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": false
+   },
+   {
+    "tool": "run_python",
+    "ok": false
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": false
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": false
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": false
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "finish",
+    "ok": true
+   }
+  ],
+  "delivery_time-s102": [
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": false
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": false
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": false
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": false
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "finish",
+    "ok": true
+   }
+  ],
+  "ticket_routing-s103": [
+   {
+    "tool": "run_python",
+    "ok": false
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": false
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": false
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "finish",
+    "ok": true
+   }
+  ],
+  "delivery_time-s103": [
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": false
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": false
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": false
+   },
+   {
+    "tool": "run_python",
+    "ok": false
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": false
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": false
+   },
+   {
+    "tool": "run_python",
+    "ok": false
+   },
+   {
+    "tool": "finish",
+    "ok": true
+   }
+  ],
+  "ticket_routing-s104": [
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": false
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": false
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": false
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "finish",
+    "ok": true
+   }
+  ],
+  "delivery_time-s104": [
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": false
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": false
+   },
+   {
+    "tool": "run_python",
+    "ok": false
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": false
+   },
+   {
+    "tool": "run_python",
+    "ok": false
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": false
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "finish",
+    "ok": true
+   }
+  ]
+ },
+ "run_dir": "agent_runs/live_tests/2026-11-18-e2e-E2E-004",
+ "gate_judgement": {
+  "gate": "e2e_gate_v1",
+  "pinned": true,
+  "checks": {
+   "dclab_agent_finished": {
+    "count": 8,
+    "of": 8,
+    "met": true
+   },
+   "dclab_agent_leaks_kept_out": {
+    "count": 8,
+    "of": 8,
+    "met": true
+   },
+   "dclab_agent_holdout_reads": {
+    "exactly_one": 8,
+    "of": 8,
+    "met": true
+   },
+   "dclab_agent_real_inside_interval": {
+    "count": 7,
+    "of": 8,
+    "met": true
+   },
+   "dclab_agent_real_score_against_plain": {
+    "ticket_routing": {
+     "pairs": 4,
+     "mean_difference": -0.0019,
+     "bound": -0.02,
+     "met": true
+    },
+    "delivery_time": {
+     "pairs": 4,
+     "mean_difference": 0.0656,
+     "bound": 0.4428,
+     "met": true
+    },
+    "met": true
+   }
+  },
+  "passed": true,
+  "not_judged": []
+ }
+}

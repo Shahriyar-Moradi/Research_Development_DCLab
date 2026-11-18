@@ -1,0 +1,73 @@
+{
+ "package": "e2e-held-out-gate",
+ "title": "The end-to-end comparison's held-out gate: judged by code fixed before the run, run once",
+ "date": "2026-11-18",
+ "request": "The owner: run the held-out gate. Eight held-out cases (ticket routing and delivery time, seeds 101 to 104), DCLab's rules, DCLab with Qwen 3.8 flash and Qwen alone with Python, once, capped at EUR 0.5.",
+ "spec": "The gate file gate_v1.json is pinned by its sha256. The judging code is committed before the run. The gate command refuses a second run, another model, a changed gate file, and runs only with --yes.",
+ "plan": [
+  "gate.py: judge(scores) reads the pinned bars word for word; a check that cannot be judged is named and fails the gate",
+  "the gate command in __main__.py with its refusals; tests for each",
+  "commit and push before the run, then run once in the background",
+  "check capture, archive, write the result note"
+ ],
+ "decisions": [
+  {
+   "decision": "A case where the plain arm names features it built has no fair pair and is left out of the paired comparison; a kind with no pair at all fails the gate",
+   "why": "the gate file's words left this open; it was settled in code before any held-out result existed"
+  },
+  {
+   "decision": "The plain arm's overclaim is reported as a finding, not added to the gate",
+   "why": "the gate was fixed before the run; adding a check after seeing results would be tuning on the held-out set"
+  }
+ ],
+ "change": "New dclab_rnd/agent_eval/e2e/gate.py; the gate command in dclab_rnd/agent_eval/e2e/__main__.py; tests in tests/test_e2e_comparison.py (commit cae3ffac). This record adds the run's result: evidence/campaigns/e2e_v1/results/E2E-004_gate.json and RESULT_gate.md.",
+ "findings": [
+  {
+   "id": "E2E-G1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The model alone overstates its delivery-time score in every held-out case, though it keeps the leaks out.",
+   "scenario": "Delivery time, seeds 101 to 104: the model alone claims about 6.7 minutes MAE; the future set gives about 8.9. DCLab with the same model claims 9.0 and gets 8.9.",
+   "cause": "likely its own check: shuffled folds and a restaurant encoding on rows of every period, while DCLab splits by time (read in one case's code, not proven for all four)",
+   "fix": "none in DCLab: this is the arm DCLab is compared against; reported, not gated",
+   "test": "none"
+  },
+  {
+   "id": "E2E-G2",
+   "source": "measurement",
+   "severity": "leakage",
+   "defect": "DCLab's rules, unattended, keep name-suspected leak columns.",
+   "scenario": "Ticket routing: the rules claim macro F1 0.94 and get 0.28 on the future set; delivery time: 6.7 claimed, 8.8 real.",
+   "cause": "the standard plan keeps out only leaks proven by the audit; a suspicion by name waits for a person, and nobody is there",
+   "fix": "not changed: the owner's decision, raised again",
+   "test": "none"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "e2e_gate_v1 on the 8 held-out cases (E2E-004), with Qwen 3.8 flash",
+   "gate": "e2e_gate_v1 (gate_v1.json, sha256 pinned): DCLab agent finished 8/8, leaks out 8/8, holdout read once 8/8, real inside interval at least 6/8, real score not worse than the model alone (tickets mean difference at least -0.02, delivery at most 5% of the plain MAE)",
+   "fixed_before_run": true,
+   "result": "finished 8/8, leaks out 8/8, holdout once 8/8, inside interval 7/8; tickets 4 pairs, mean difference -0.0019; delivery 4 pairs, +0.066 min against a bound of 0.443; 432 of 432 exchanges kept whole with thinking; EUR 0.449",
+   "verdict": "pass",
+   "cost_eur": 0.449,
+   "next": "the owner's decision on name-suspected leaks in unattended builds; new seeds for any later change",
+   "limits": [
+    "two problem kinds, invented tables, four cases each",
+    "one model, Qwen 3.8 flash",
+    "the real score refits one reference model on each arm's chosen columns",
+    "the gate asks not worse: DCLab is level with the model alone on the score, not better"
+   ]
+  }
+ ],
+ "outcome": "The held-out gate passed: DCLab with the model kept the leaks out, read the holdout once and reported an honest number in 7 of 8 cases, and its columns score level with the same model alone. The model alone overstated its delivery score by about 2 minutes in every case.",
+ "lessons": [
+  "Settle the gate's open words in code before the run, or the result invites a second reading.",
+  "Level on the score can still differ on honesty: report both."
+ ],
+ "risks": [
+  "The held-out set is used; reusing it would tune on it.",
+  "Four cases a kind give wide uncertainty on the paired differences."
+ ],
+ "commits": ["cae3ffac"]
+}
