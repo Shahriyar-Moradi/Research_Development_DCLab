@@ -122,7 +122,7 @@ def _run(seed: str, *, home: Path | None = None, task: str = TASK, model: str | 
         cap_eur: float | None = DEFAULT_CAP_EUR, max_steps: int = 30, max_minutes: int = 40, blind: bool = False, workflow_models: str = "off",
         quick: bool = True, roles: str = "all", capture_cells: bool = False, allow_private: bool = False, source_home: Path | None = None,
         run_id: str | None = None, design: bool = True, design_checkpoints: tuple[str, ...] | None = None, design_steer: bool = True,
-        log=print) -> dict[str, Any]:
+        invented_tables: str | None = None, log=print) -> dict[str, Any]:
     """One twin run. ``seed`` is ``sample:<key>``, ``project:<id>`` or ``draft:<id>``; ``transport`` replaces the real
     Claude transport (tests pass a scripted one). ``roles`` is ``all`` (every role of dclab_core on, so the AI-first
     lane asks Claude for each of them; the workflow lane has no model, so its roles stay on their rules) or ``judged``
@@ -163,6 +163,11 @@ def _run(seed: str, *, home: Path | None = None, task: str = TASK, model: str | 
     from ..models.usage import FileUsage
 
     ai_gateway.usage = Gateway(FileUsage(root / "ai_first" / "model_requests.jsonl"))  # the usage rows every client writes
+    if invented_tables:  # a runner whose every table code invented (CLAUDE.md rule 9): its calls are kept whole, with their thinking
+        from ..models.gateway import mark_invented_tables
+
+        mark_invented_tables(ai_gateway, invented_tables)
+        mark_invented_tables(ai_gateway.usage, invented_tables)
     manifest: dict[str, Any] = {"run_id": run_id, "seed": seed, "task": task, "model": model, "started": now(), "finished": None,
                                 "caps": {"max_requests": max_requests, "cap_eur": cap_eur, "max_steps": max_steps, "max_minutes": max_minutes},
                                 "design": {"on": bool(design) and kind != "draft", "checkpoints": list(checkpoints), "steer": design_steer},

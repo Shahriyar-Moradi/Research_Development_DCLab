@@ -41,7 +41,7 @@ STAGES = {"home_agent": "understand_problem", "conversation_reader": "understand
           "reflector": "report", "notebook_cell": "code", "parse_pattern": "understand_data", "synthetic_schema": "understand_data",
           "store_curator": "report", "reasoning_teacher": "report", "campaign": "plan", "campaign_review": "report",
           # 37.0: Claude alone in the conversation exam understands a written person; the exam's judge judges a whole conversation
-          "exam_plain": "understand_problem", "case_agent": "understand_problem",
+          "exam_plain": "understand_problem", "e2e_plain_agent": "understand_problem", "case_agent": "understand_problem",
           # 2026-11-16: a solution designed for a person with no table, and its second reading
           "no_data_architect": "design_solution", "no_data_critic": "design_solution",
           "case_specialist": "understand_data", "route_check": "understand_problem"}

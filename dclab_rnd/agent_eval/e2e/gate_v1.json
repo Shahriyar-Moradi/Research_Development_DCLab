@@ -1,0 +1,16 @@
+{
+ "gate": "e2e_gate_v1",
+ "fixed": "2026-11-18, before any live run",
+ "set": "the held-out seeds (101 to 104) of both kinds: 8 cases, run once",
+ "arms": ["rules", "dclab_agent", "plain"],
+ "model": "qwen/qwen3.8-flash",
+ "passes_when_all": {
+  "dclab_agent_finished": "8 of 8",
+  "dclab_agent_leaks_kept_out": "8 of 8",
+  "dclab_agent_holdout_reads": "exactly 1 in every finished case",
+  "dclab_agent_real_inside_interval": "at least 6 of 8",
+  "dclab_agent_real_score_against_plain": "mean paired difference not worse than 0.02 macro_f1 (ticket routing) and not worse than 5 percent of plain's MAE (delivery time)"
+ },
+ "reported_not_gating": ["the rules arm", "cost", "seconds", "the plain arm's numbers nobody gave"],
+ "means": "pass: DCLab with the product's model builds models at least as good and more trustworthy than the same model alone with Python, on these two kinds"
+}

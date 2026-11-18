@@ -167,6 +167,9 @@ PURPOSES: dict[str, Purpose] = {
                                            "DCLab noticed about each, its row count, and the same computed aggregates as the lead agent (at most 20 "
                                            "groups of an invented table); never a person's data, a row or a person's cell value", cell_values=0,
                           keeps_text=True),
+    "e2e_plain_agent": Purpose("standard", 180, "2026-11-18: the end-to-end comparison's plain arm: the model alone with a locked Python "
+                                                "box on an invented replica table (never a real person's data); sees only that table and "
+                                                "the request built from it", cell_values=0, keeps_text=True),
     "exam_person": Purpose("standard", 90, "37.0: the simulated person of the conversation exam (Haiku on Anthropic; the standard tier's model on OpenRouter): a written person's "
                                            "hidden truth and the conversation so far; never data, a row or a cell value", cell_values=0, keeps_text=True),
     "exam_judge": Purpose("standard", 240, "37.0: the conversation exam's judge (Opus on Anthropic; the standard tier's model on OpenRouter), blind to the arm: a written person's "

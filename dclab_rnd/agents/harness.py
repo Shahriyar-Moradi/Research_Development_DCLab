@@ -89,6 +89,7 @@ MODEL_USES: dict[str, str] = {  # purpose -> why it is not an agent: one complet
     "no_data_architect": "2026-11-16: the whole solution for a person with no table to share, written in one pass and then checked by code (dclab_rnd.nodata)",
     "no_data_critic": "2026-11-16: one second reading of that solution: what is weak or risky, shown beside it and never applied",
     "exam_plain": "37.0: the conversation exam's Claude-alone arm, one turn of a simulated conversation (an evaluation arm, not a DCLab agent)",
+    "e2e_plain_agent": "2026-11-18: the end-to-end comparison's plain arm: the model alone with a locked Python box (an evaluation arm, not a DCLab agent)",
     "exam_person": "37.0: the simulated person of the conversation exam, one reply from a written person's hidden truth",
     "exam_judge": "37.0: the conversation exam's judge, one blind judgment of a whole conversation",
     "home_understand": "Home's understanding conversation: one turn says back what it understood and asks one open question, or writes the options code checks",
