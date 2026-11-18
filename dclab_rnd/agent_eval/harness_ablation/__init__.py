@@ -578,13 +578,17 @@ def owner_allows(cap_eur: float) -> Optional[str]:
 
 
 def capture(run_dir: Path) -> dict[str, Any]:
-    """What the run kept of its model calls: every answered call must hold its thinking (the owner's rule)."""
+    """What the run kept of its model calls: every answered call must hold its thinking, whole or redacted (the owner's rule)."""
     rows = []
     for path in sorted(Path(run_dir).glob("**/model_exchanges/**/*.jsonl")):
         rows += [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
     ok = [r for r in rows if r.get("outcome") == "ok"]
-    thought = [r for r in ok if r.get("thinking") or r.get("reasoning") or r.get("reasoning_details")]
+    # A call shown table values keeps its thinking redacted (``thinking_redacted``, rule 8): that is thinking kept. Live,
+    # 2026-11-16: a receipt counted 28 of 59 calls "with thinking" when all 59 had kept it, 31 of them redacted.
+    redacted = [r for r in ok if r.get("thinking_redacted") and not r.get("thinking")]
+    thought = [r for r in ok if r.get("thinking") or r.get("reasoning") or r.get("reasoning_details") or r.get("thinking_redacted")]
     return {"exchanges": len(rows), "ok": len(ok), "whole": sum(r.get("whole") is True for r in ok), "with_thinking": len(thought),
+            "thinking_redacted": len(redacted),
             "without_thinking": sorted({str(r.get("purpose")) for r in ok if r not in thought}), "purposes": sorted({str(r.get("purpose")) for r in rows})}
 
 

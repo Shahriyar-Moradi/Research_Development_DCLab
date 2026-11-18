@@ -668,6 +668,20 @@ class ThinkingKeptTests(unittest.TestCase):
                 self.assertEqual(H.main(["--only", "hab-07", "--yes", "--cap-eur", "1", *extra]), 2)
             self.assertIn("no Claude model", err.getvalue())
 
+    def test_thinking_kept_redacted_counts_as_thinking_kept(self):
+        """Live, 2026-11-16: 31 of 59 calls had seen table values, kept their thinking redacted, and were counted as none."""
+        with tempfile.TemporaryDirectory() as tmp:
+            day = Path(tmp) / "model_exchanges" / "2026" / "11"
+            day.mkdir(parents=True)
+            rows = [{"purpose": "exam_plain", "outcome": "ok", "whole": True, "thinking": [{"text": "a summary"}]},
+                    {"purpose": "intern", "outcome": "ok", "whole": False, "thought": True, "thinking_redacted": [{"text": "a redacted summary"}]},
+                    {"purpose": "reporter", "outcome": "ok", "whole": False, "thought": False},
+                    {"purpose": "intern", "outcome": "the provider refused the key"}]
+            (day / "16.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows), encoding="utf-8")
+            kept = H.capture(Path(tmp))
+        self.assertEqual((kept["exchanges"], kept["ok"], kept["whole"]), (4, 3, 1))
+        self.assertEqual((kept["with_thinking"], kept["thinking_redacted"], kept["without_thinking"]), (2, 1, ["reporter"]))
+
 
 if __name__ == "__main__":
     unittest.main()
