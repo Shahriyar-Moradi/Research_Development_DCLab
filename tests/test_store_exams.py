@@ -4,6 +4,7 @@ import json
 import sys
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -86,6 +87,10 @@ class FlowTest(unittest.TestCase):
     def setUp(self):
         self.layout = Layout(Path(tempfile.mkdtemp()))
         self.pins = Path(tempfile.mkdtemp()) / "pins.json"
+        # every function of the flow reads this test's own pins, never the repository's real exam_pins.json (drawn 2026-11-18)
+        patcher = mock.patch.object(exams, "PINS", self.pins)
+        patcher.start()
+        self.addCleanup(patcher.stop)
         sealed = [decision(n, f"t{n % 12}", "yes" if n % 2 else "no") for n in range(40)]
         folder = self.layout.sets("m1_students", "column.is_identifier", "v1")
         folder.mkdir(parents=True, exist_ok=True)
@@ -139,6 +144,28 @@ class LineBreakTest(unittest.TestCase):
         path = Path(tempfile.mkdtemp()) / "rows.jsonl"
         path.write_text(text, encoding="utf-8")
         self.assertEqual([row["id"] for _, row in exams._rows(path)], ["a", "b"])
+
+
+class DrawnExamsTest(unittest.TestCase):
+    """The owner's word, 2026-11-18: the frozen exams are drawn. Each pinned exam is in the store and matches its pin."""
+
+    def test_every_pinned_exam_is_in_the_store_and_matches_its_pin(self):
+        import json as _json
+
+        from dclab_rnd.store import exams
+        from dclab_rnd.store.layout import Layout
+
+        if not exams.PINS.is_file():
+            self.skipTest("no exam drawn in this checkout")
+        pins = _json.loads(exams.PINS.read_text(encoding="utf-8"))
+        self.assertTrue(pins)
+        for model_type, versions in pins.items():
+            for version, pin in versions.items():
+                self.assertRegex(pin, r"^[0-9a-f]{64}$")
+                layout = Layout()
+                if not exams.exam_file(layout, model_type, version).is_file():
+                    continue  # a checkout without the store (CI): the pin alone is checked
+                self.assertEqual(exams.load(layout, model_type, version).hash, pin)
 
 
 if __name__ == "__main__":
