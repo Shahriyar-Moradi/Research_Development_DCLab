@@ -45,30 +45,9 @@ def _decision_messages(row: dict[str, Any]) -> list[dict[str, str]]:
             {"role": "assistant", "content": json.dumps({"answer": answer}, ensure_ascii=False)}]
 
 
-THINK_FIRST = "Think it through first inside <think> and </think>, then reply with this JSON object only, its keys exactly as written."
-
-
-def _with_think(messages: list[dict[str, str]], rationale: str | None) -> list[dict[str, str]]:
-    """27.9: the verified reasoning written before the answer, as a reasoning model writes it (`<think>` … `</think>`)."""
-    from dclab_core.reasoning import think
-
-    if not rationale or not messages or messages[-1].get("role") != "assistant":
-        return messages
-    asked = messages[:-1]
-    try:  # the question asks for the JSON only: with a trace, it asks to think first (the target must not contradict it)
-        question = json.loads(asked[-1]["content"])
-        if isinstance(question, dict) and "answer_only" in question:
-            question["answer_only"] = THINK_FIRST
-            asked = [*asked[:-1], {**asked[-1], "content": json.dumps(question, ensure_ascii=False, sort_keys=True)}]
-    except (ValueError, KeyError, TypeError):
-        pass
-    return [*asked, {**messages[-1], "content": think(rationale.splitlines()) + "\n" + messages[-1]["content"]}]
-
-
-def export(target: str, lake: Path = LAKE, out: Path | None = None, weights: dict[str, float] | None = None, seed: int = 0,
-           thinking: bool = True) -> dict[str, Any]:
+def export(target: str, lake: Path = LAKE, out: Path | None = None, weights: dict[str, float] | None = None, seed: int = 0) -> dict[str, Any]:
     """The training and validation files of one target, from gold only; returns the manifest written beside them.
-    ``thinking`` (27.9): a solver example with a verified trace is written with its `<think>` before the answer."""
+    A solver example's reasoning written by code is kept in the row's metadata, labelled from_record, never inside the messages."""
     if target not in ("decisions", "solver"):
         raise ValueError("target is decisions or solver")
     out = Path(out) if out is not None else OUT / target
@@ -78,7 +57,7 @@ def export(target: str, lake: Path = LAKE, out: Path | None = None, weights: dic
     rows: dict[str, list[dict[str, Any]]] = {"train": [], "val": []}
     by_set: Counter = Counter()
     by_origin: Counter = Counter()
-    reasoned: Counter = Counter()  # 27.9: rows written with their verified `<think>`
+    reasoned: Counter = Counter()  # rows whose code-written reasoning is kept in their metadata (labelled from_record)
     for folder in sorted(p for p in gold.glob("*") if p.is_dir()):
         name = folder.name
         for split, into in (("train", "train"), ("dev", "val")):
@@ -87,10 +66,14 @@ def export(target: str, lake: Path = LAKE, out: Path | None = None, weights: dic
                 if prov["split"] in ("sealed", "eval_only") or prov["origin"] not in L.TRAINABLE or prov.get("from_sealed"):
                     refused[f"{prov['split']}/{prov['origin']}"] += 1
                     continue
-                messages = _decision_messages(row) if target == "decisions" else (_with_think(row["messages"], row.get("rationale")) if thinking else row["messages"])
-                if target == "solver" and thinking and row.get("rationale"):
+                # The question and the answer are written as they are. A trace the rules wrote is not the model's thinking
+                # (the owner's rule): it is kept in the metadata, labelled, and never placed inside the messages.
+                messages = _decision_messages(row) if target == "decisions" else row["messages"]
+                metadata = {"set": name, "origin": prov["origin"], "group": prov["group"], "split": into}
+                if target == "solver" and row.get("rationale"):
+                    metadata.update(reasoning=row["rationale"], reasoning_source="from_record")
                     reasoned[into] += 1
-                item = {"messages": messages, "metadata": {"set": name, "origin": prov["origin"], "group": prov["group"], "split": into}}
+                item = {"messages": messages, "metadata": metadata}
                 copies = weights.get(name, 1.0) if into == "train" else 1.0  # the mix: a family repeated or thinned in train only
                 whole, part = int(copies), copies - int(copies)
                 rng = random.Random(f"{seed}:{name}:{L.fingerprint(messages)[:12]}")
@@ -114,7 +97,7 @@ def export(target: str, lake: Path = LAKE, out: Path | None = None, weights: dic
         except (OSError, ValueError):
             continue
     manifest = {"target": target, "train": len(rows["train"]), "val": len(rows["val"]), "by_set": dict(sorted(by_set.items())),
-                "by_origin": dict(by_origin), "weights": weights, "seed": seed, "thinking": thinking, "with_reasoning": dict(reasoned), "refused": dict(refused), "gold": manifests,
+                "by_origin": dict(by_origin), "weights": weights, "seed": seed, "reasoning_in_metadata": dict(reasoned), "refused": dict(refused), "gold": manifests,
                 "sealed_spent": SPENT_SEALED if target == "decisions" else {},
                 "rule": "Built from the lake's gold sets only; sealed and evaluation-only rows are never in it. Scores of a model "
                         "trained on it say how it does on these sources, never that it is ready for production."}

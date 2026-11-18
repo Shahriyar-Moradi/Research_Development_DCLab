@@ -100,22 +100,28 @@ class LakeReasoningTests(unittest.TestCase):
         self.assertEqual(why["reasoning kept"], 1)
         self.assertEqual(sum(why.values()), 3)
 
-    def test_the_export_writes_the_think_before_the_answer_and_never_without_its_switch(self):
+    def test_the_export_never_writes_a_rules_trace_as_the_models_thinking(self):
+        """The owner's rule: reasoning written by code is labelled where it came from and never stored as the model's
+        own thinking. Before, the solver export put it inside <think> tags (461 rows, 2026-10-17)."""
+        from collections import Counter
+
         from dclab_rnd.lake import reason, write_set
         from dclab_rnd.lake.train import export
 
         lake = Path(tempfile.mkdtemp())
         rows, _ = reason([example("leakage_judgment", GIVEN, ANSWER)])
-        from collections import Counter
-
+        self.assertTrue(rows[0].rationale)  # the rules wrote a trace
         write_set(lake / "gold" / "solver" / "leakage_judgment" / "v1", "training_example", "solver/leakage_judgment", rows, [], Counter())
         m = export("solver", lake, lake / "out")
-        target = json.loads((lake / "out" / "train.chat.jsonl").read_text().splitlines()[0])["messages"][-1]["content"]
-        self.assertTrue(target.startswith("<think>\n") and target.rstrip().endswith("}"))
-        self.assertEqual(m["with_reasoning"], {"train": 1})
-        export("solver", lake, lake / "plain", thinking=False)
-        plain = json.loads((lake / "plain" / "train.chat.jsonl").read_text().splitlines()[0])["messages"][-1]["content"]
-        self.assertTrue(plain.startswith("{"))
+        line = json.loads((lake / "out" / "train.chat.jsonl").read_text().splitlines()[0])
+        self.assertTrue(line["messages"][-1]["content"].startswith("{"))
+        self.assertNotIn("<think>", json.dumps(line["messages"]))
+        self.assertEqual(json.loads(line["messages"][1]["content"]), GIVEN)  # the question is never rewritten
+        self.assertEqual((line["metadata"]["reasoning_source"], line["metadata"]["reasoning"]), ("from_record", rows[0].rationale))
+        mlx = json.loads((lake / "out" / "train.jsonl").read_text().splitlines()[0])
+        self.assertEqual(set(mlx), {"messages"})
+        self.assertNotIn("<think>", json.dumps(mlx))
+        self.assertEqual(m["reasoning_in_metadata"], {"train": 1})
 
     def test_a_selfplay_example_whose_answer_misses_the_planted_leak_is_dropped(self):
         from unittest import mock
@@ -132,14 +138,11 @@ class LakeReasoningTests(unittest.TestCase):
             out, _ = lake.reason([planted])
         self.assertTrue(out[0].rationale)
 
-    def test_the_question_asks_to_think_first_when_its_target_thinks(self):
-        from dclab_rnd.lake.train import THINK_FIRST, _with_think
+    def test_no_export_asks_a_model_to_think_inside_tags(self):
+        from dclab_rnd.lake import train
 
-        msgs = [{"role": "user", "content": json.dumps({"answer_only": "Reply with this JSON object only.", "q": 1})},
-                {"role": "assistant", "content": "{}"}]
-        out = _with_think(msgs, "step one")
-        self.assertEqual(json.loads(out[0]["content"])["answer_only"], THINK_FIRST)
-        self.assertTrue(out[1]["content"].startswith("<think>\nstep one\n</think>"))
+        self.assertFalse(hasattr(train, "THINK_FIRST"))
+        self.assertFalse(hasattr(train, "_with_think"))
 
     def test_the_benchmark_reads_the_answer_after_the_thinking(self):
         from dclab_rnd.lake.benchmark import _json

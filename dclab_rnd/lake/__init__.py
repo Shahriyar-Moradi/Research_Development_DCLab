@@ -432,8 +432,8 @@ def truth_problems(r: L.TrainingExample, text: str) -> list[str]:
 
 
 def reason(rows: list[L.TrainingExample]) -> tuple[list[L.TrainingExample], Counter]:
-    """27.9: each example's verified reasoning (``dclab_core.reasoning``) kept as its rationale, the `<think>` its export
-    writes; a trace that is not grounded in the example's own numbers and columns is not kept (the example stays, with none);
+    """27.9: each example's verified reasoning (``dclab_core.reasoning``) kept as its rationale, the reasoning its export
+    keeps in the metadata, labelled from_record; a trace that is not grounded in the example's own numbers and columns is not kept (the example stays, with none);
     a self-play example whose answer misses the replica's planted leak, identifier or time column is dropped (the engine may
     have handled the trap its own way, but the answer as written would teach that nothing is there)."""
     from dclab_core import reasoning
@@ -636,7 +636,7 @@ def build(lake: Path = LAKE, homes: Iterable[Path] | None = None, manifest_path:
                "workspaces_read": len(homes) - len(run.skipped), "workspaces_skipped": [s["why"] for s in run.skipped], "inputs": len(run.inputs),
                "silver_only": {k: len(v) for k, v in sorted(others.items())},
                "reasoning": dict(reasoned),
-               "other_answers": dict(attached),  # 26.9: captured answers attached to their decisions (lake/bronze/answers)  # 27.9: the examples that carry a verified trace (their `<think>`), and those without
+               "other_answers": dict(attached),  # 26.9: captured answers attached to their decisions (lake/bronze/answers)  # 27.9: the examples that carry a verified trace (kept in the metadata, labelled from_record), and those without
                "dropped_by_source": {k: dict(v) for k, v in sorted(run.dropped.items()) if v},
                "sets": [{"name": s["name"], "written": s["written"], **({"problems": s["problems"]} if not s["written"] else {}),
                          **{k: s["manifest"][k] for k in ("rows", "by_split", "by_origin", "by_family", "groups", "dropped")}} for s in sets],

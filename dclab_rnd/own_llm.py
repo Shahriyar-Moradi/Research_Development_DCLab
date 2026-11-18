@@ -63,8 +63,6 @@ def examples(events: Iterable[dict[str, Any]], records: Iterable[dict[str, Any]]
 def export(home: Path, events: Optional[list[dict[str, Any]]] = None, records: Optional[list[dict[str, Any]]] = None,
            workflow_items: Optional[list[dict[str, Any]]] = None) -> dict[str, Any]:
     """The training files of the workspace's own language model, written inside its folder; returns the manifest."""
-    from dclab_core.reasoning import think
-
     from dclab_core import lake as L
 
     if events is None or records is None or workflow_items is None:
@@ -76,13 +74,12 @@ def export(home: Path, events: Optional[list[dict[str, Any]]] = None, records: O
     for e in kept:
         split = e.provenance.split
         into = "val" if split == "dev" else split if split in files else "train"
-        messages = e.messages
-        if e.rationale and messages and messages[-1].get("role") == "assistant":
-            messages = [*messages[:-1], {**messages[-1], "content": think(e.rationale.splitlines()) + "\n" + messages[-1]["content"]}]
+        messages = e.messages  # as they are: a trace the rules wrote is kept in the metadata, labelled, never inside the messages
+        extra = {"reasoning": e.rationale, "reasoning_source": "from_record"} if e.rationale else {}
         if into == "train" and e.provenance.origin not in L.TRAINABLE:
             into = "eval_only"
         files[into].append(json.dumps({"messages": messages, "metadata": {"family": e.family, "origin": e.provenance.origin,
-                                                                          "group": e.provenance.group}}, ensure_ascii=False))
+                                                                          "group": e.provenance.group, **extra}}, ensure_ascii=False))
     for name, lines in files.items():
         (out / f"{name}.chat.jsonl").write_text("".join(x + "\n" for x in lines), encoding="utf-8")
     manifest = {"at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "counts": {k: len(v) for k, v in files.items()},
