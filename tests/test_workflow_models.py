@@ -135,6 +135,9 @@ class TrainAndGateTests(unittest.TestCase):
         folder.joinpath("rows.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows), encoding="utf-8")
 
     def test_a_card_per_point_says_its_journeys_limits_and_a_point_without_rows_is_skipped(self):
+        reviewed = mock.patch("dclab_rnd.store.provider_outputs.may_train", return_value=True)  # the 2026-11-18 hold: this test is about after the owner's rights review
+        reviewed.start()
+        self.addCleanup(reviewed.stop)
         got = self.W.train(sets=self.tmp / "sets", out=self.tmp / "models")
         card = got["cards"]["workflow.next_question"]
         self.assertEqual(card.limits, self.W.LIMITS)
@@ -150,6 +153,9 @@ class TrainAndGateTests(unittest.TestCase):
             train("workflow.next_question", _rows(4) + [dict(_rows(1)[0], split="sealed")])
 
     def test_the_sealed_journeys_are_judged_once(self):
+        reviewed = mock.patch("dclab_rnd.store.provider_outputs.may_train", return_value=True)  # the 2026-11-18 hold: this test is about after the owner's rights review
+        reviewed.start()
+        self.addCleanup(reviewed.stop)
         self.W.train(sets=self.tmp / "sets", out=self.tmp / "models")
         sealed = [_row(i, f"S{i // 3}", r["state"], r["label"]["value"], r["value_used"], "sealed") for i, r in enumerate(_rows(10))]
         played = [{"id": "S", "rows": sealed, "error": None}]
@@ -163,6 +169,9 @@ class TrainAndGateTests(unittest.TestCase):
             self.W.judge(models=self.tmp / "models", campaign=campaign, played=played)
 
     def test_a_sealed_journey_that_did_not_play_fails_every_point(self):
+        reviewed = mock.patch("dclab_rnd.store.provider_outputs.may_train", return_value=True)  # the 2026-11-18 hold: this test is about after the owner's rights review
+        reviewed.start()
+        self.addCleanup(reviewed.stop)
         self.W.train(sets=self.tmp / "sets", out=self.tmp / "models")
         sealed = [_row(i, f"S{i // 3}", r["state"], r["label"]["value"], r["value_used"], "sealed") for i, r in enumerate(_rows(10))]
         played = [{"id": "S", "source": "workflow_sealed", "rows": sealed, "error": None},
@@ -172,6 +181,9 @@ class TrainAndGateTests(unittest.TestCase):
         self.assertEqual(doc["sealed"]["failed_plays"], ["workflow_sealed:T"])
 
     def test_a_crash_after_the_sealed_set_is_opened_still_spends_it(self):
+        reviewed = mock.patch("dclab_rnd.store.provider_outputs.may_train", return_value=True)  # the 2026-11-18 hold: this test is about after the owner's rights review
+        reviewed.start()
+        self.addCleanup(reviewed.stop)
         self.W.train(sets=self.tmp / "sets", out=self.tmp / "models")
         campaign = self.tmp / "campaign"
         with mock.patch.object(self.W, "_played", side_effect=RuntimeError("crashed while playing")), \
@@ -182,12 +194,18 @@ class TrainAndGateTests(unittest.TestCase):
         self.assertEqual(list((campaign / "results").glob("DWM-*.json")) if (campaign / "results").exists() else [], [])
 
     def test_a_model_whose_bytes_changed_is_never_judged(self):
+        reviewed = mock.patch("dclab_rnd.store.provider_outputs.may_train", return_value=True)  # the 2026-11-18 hold: this test is about after the owner's rights review
+        reviewed.start()
+        self.addCleanup(reviewed.stop)
         self.W.train(sets=self.tmp / "sets", out=self.tmp / "models")
         (self.tmp / "models" / "workflow.next_question.joblib").write_bytes(b"swapped")
         with self.assertRaises(ValueError):
             self.W.judge(models=self.tmp / "models", campaign=self.tmp / "campaign", played=[])
 
     def test_a_workflow_model_answers_in_shadow_and_a_column_folder_alone_stays_alone(self):
+        reviewed = mock.patch("dclab_rnd.store.provider_outputs.may_train", return_value=True)  # the 2026-11-18 hold: this test is about after the owner's rights review
+        reviewed.start()
+        self.addCleanup(reviewed.stop)
         from dclab_core.ledger import DecisionRecord
         from dclab_rnd.ledger import shadow
 

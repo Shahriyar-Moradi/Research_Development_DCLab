@@ -301,11 +301,20 @@ def train(points: Optional[list[str]] = None, sets: Path = SETS, out: Path = MOD
 
     from .decision_models_build import record_fitted
 
+    from dclab_rnd.store import writers as who_wrote
+
+    # every row comes from a written journey; a set a provider wrote trains nothing until the owner's rights review (2026-11-18)
+    sources = Counter(str(r.get("source")) for point in (points or list(wl.POINTS)) for r in rows(point, sets) if r.get("label"))
+    held = {s for s in sources if who_wrote.held_writer(who_wrote.set_writer(s))}
+    if sources and held == set(sources):
+        raise who_wrote.HeldForRights(f"every journey set these rows come from ({', '.join(sorted(held))}) was written by a provider's "
+                                      "model; nothing is trained until the owner records a rights review. The fitted models are not touched.")
+
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
     cards, skipped = {}, {}
     for point in points or list(wl.POINTS):
-        data = [r for r in rows(point, sets) if r.get("label")]
+        data = [r for r in rows(point, sets) if r.get("label") and str(r.get("source")) not in held]
         train_rows, dev_rows = [r for r in data if r["split"] == "train"], [r for r in data if r["split"] == "dev"]
         try:
             model, card = fit(point, train_rows, dev_rows, limits=LIMITS)

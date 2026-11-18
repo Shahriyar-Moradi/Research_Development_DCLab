@@ -65,6 +65,9 @@ class Classifier(unittest.TestCase):
                          ("char_wb", (2, 5), "balanced"))
 
     def test_train_measures_across_writers_and_writes_the_card(self):
+        reviewed = mock.patch("dclab_rnd.store.provider_outputs.may_train", return_value=True)  # the 2026-11-18 hold: this test is about after the owner's rights review
+        reviewed.start()
+        self.addCleanup(reviewed.stop)
         doc = C.train(self.requests, self.dir / "model")
         self.assertEqual(set(doc["cross_writer"]), {"train_a_test_b", "train_b_test_a"})
         for v in doc["cross_writer"].values():
@@ -94,6 +97,9 @@ class Classifier(unittest.TestCase):
         self.assertIsNone(C.choose_threshold([{"confidence": 0.9, "right": False}] * 30)["threshold"])
 
     def test_the_gate_is_written_once_and_the_sealed_set_read_once_when_pinned(self):
+        reviewed = mock.patch("dclab_rnd.store.provider_outputs.may_train", return_value=True)  # the 2026-11-18 hold: this test is about after the owner's rights review
+        reviewed.start()
+        self.addCleanup(reviewed.stop)
         C.train(self.requests, self.dir / "model")
         sealed = self.dir / "sealed.json"
         sealed.write_text(json.dumps([{"id": f"s-{i}", "text": r["text"], "tracks": r["tracks"], "lang": r["lang"], "style": "plain", "need": None}

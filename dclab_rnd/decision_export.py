@@ -31,7 +31,7 @@ LIMITS = ("Invented tables (22.1, 29.2), invented image sets (26.8) and written 
           "journey sets their rows come from were each read by their gate before they were played here (a set not read yet is not).")
 
 
-def rows(sets: Any = SETS) -> list[dict[str, Any]]:
+def rows(sets: Any = SETS, held: Any = None) -> list[dict[str, Any]]:
     """Every set's train and dev rows (a folder, or several), normalised; sealed.jsonl is never opened."""
     from dclab_core.decision_export import normalize
 
@@ -39,7 +39,15 @@ def rows(sets: Any = SETS) -> list[dict[str, Any]]:
     for root in ([sets] if isinstance(sets, (str, Path)) else list(sets)):
         for folder in sorted(p for p in Path(root).iterdir() if p.is_dir()) if Path(root).is_dir() else []:
             with open(folder / "rows.jsonl", encoding="utf-8") as handle:  # train and dev only: sealed.jsonl is never opened
-                out += [normalize(json.loads(line)) for line in handle if line.strip()]
+                raw = [json.loads(line) for line in handle if line.strip()]
+                if Path(root).parent.name == "workflow_v1":  # rows played from written journeys: a provider's people (2026-11-18)
+                    from dclab_rnd.store import writers as who_wrote
+
+                    kept = [r for r in raw if not who_wrote.held_writer(who_wrote.set_writer(r.get("source")))]
+                    if held is not None:
+                        held["workflow_v1: written journeys"] = held.get("workflow_v1: written journeys", 0) + len(raw) - len(kept)
+                    raw = kept
+                out += [normalize(r) for r in raw]
     return out
 
 
@@ -48,7 +56,8 @@ def build(sets: Any = SETS, out: Path = OUT) -> dict[str, Any]:
 
     from dclab_core import decision_export as de
 
-    data = rows(sets)
+    held: dict[str, int] = {}
+    data = rows(sets, held)
     if any(r.get("split") == "sealed" for r in data):
         raise ValueError("a sealed row is in rows.jsonl: the generated sets are not what 22.1 wrote")
     out = Path(out)
@@ -71,7 +80,7 @@ def build(sets: Any = SETS, out: Path = OUT) -> dict[str, Any]:
     (out / "README.md").write_text(de.card(NAME, data, "benchmark labels of the invented tables, image sets and written journeys", LIMITS),
                                    encoding="utf-8")
     sources = [str(Path(x).parent.name) for x in ([sets] if isinstance(sets, (str, Path)) else sets)]
-    manifest = {"name": NAME, "source": f"decisions/{{{','.join(sources)}}} (rows.jsonl; sealed.jsonl not read)", **de.summary(data),
+    manifest = {"name": NAME, "held_for_rights": held, "source": f"decisions/{{{','.join(sources)}}} (rows.jsonl; sealed.jsonl not read)", **de.summary(data),
                 "formats": {"chat": ["train.chat.jsonl", "val.chat.jsonl"], "tabular": "tabular.parquet", "typed": "typed.jsonl"},
                 "same_records_in_every_format": same, "limits": list(LIMITS)}
     (out / "MANIFEST.json").write_text(json.dumps(manifest, indent=1) + "\n", encoding="utf-8")

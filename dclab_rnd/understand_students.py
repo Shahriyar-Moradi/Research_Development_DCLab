@@ -131,11 +131,20 @@ def train(sets: Path = SETS, out: Path = MODELS) -> dict[str, Any]:
 
     from .decision_models_build import record_fitted
 
+    from dclab_rnd.store import writers as who_wrote
+
+    # the people are written journeys (Claude Sonnet, or a model whose requests were not kept): held until the rights review
+    sources = Counter(str(r.get("source")) for point in (*_points(), "problem.family") for r in W.rows(point, sets) if r.get("label"))
+    held = {s for s in sources if who_wrote.held_writer(who_wrote.set_writer(s))}
+    if sources and held == set(sources):
+        raise who_wrote.HeldForRights(f"every journey set these rows come from ({', '.join(sorted(held))}) was written by a provider's "
+                                      "model; nothing is trained until the owner records a rights review. The fitted models are not touched.")
+
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
     measured, skipped = {}, {}
     for point in _points():
-        data = [r for r in W.rows(point, sets) if r.get("label")]
+        data = [r for r in W.rows(point, sets) if r.get("label") and str(r.get("source")) not in held]
         train_rows, dev_rows = [r for r in data if r["split"] == "train"], [r for r in data if r["split"] == "dev"]
         try:
             model, card = fit(point, train_rows, dev_rows, limits=W.LIMITS)
@@ -148,7 +157,7 @@ def train(sets: Path = SETS, out: Path = MODELS) -> dict[str, Any]:
                            "student_dev_accuracy": card.dev.accuracy if card.dev else None, "student_dev_ci": card.dev.accuracy_ci if card.dev else None,
                            "rule_dev_accuracy": card.rule_dev.accuracy if card.rule_dev else None,
                            "rule_dev_ci": card.rule_dev.accuracy_ci if card.rule_dev else None, "family": card.family}
-    rows = W.rows("problem.family", sets)
+    rows = [r for r in W.rows("problem.family", sets) if str(r.get("source")) not in held]
     if rows:
         model, m = text_student(rows)
         joblib.dump(model, out / "problem.family.text.joblib")

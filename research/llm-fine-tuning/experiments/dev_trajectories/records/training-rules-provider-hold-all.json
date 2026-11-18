@@ -1,0 +1,150 @@
+{
+ "package": "training-rules-provider-hold-all",
+ "title": "Hold everything Claude wrote out of every training run and export until rights review",
+ "date": "2026-11-18",
+ "request": "The owner asked to check the decision sets for Claude's outputs, and answered 'Everything Claude wrote' on scope: keep and prepare everything, and hold Claude's labels, answers, thinking, and written people or requests out of every training run and training export until rights_reviewed is true.",
+ "spec": "A single store module (dclab_rnd/store/writers.py) classifies every training schema (decision, routing, judged, episode, preference, retrieval, chat, trajectory, and written sets) and exposes writer_of(), held(), held_writer(), reading_held(), set_writer(), HeldForRights, and an audit CLI. export_chat, tutor, routing export, GLiNER2 export, intent_classifier, workflow_models, understand_students, and decision_export query writers before reading or writing training data; code-made data stays unheld.",
+ "plan": [
+  "G1: create dclab_rnd/store/writers.py with writer_of, held, held_writer, reading_held, set_writer, HeldForRights, and audit.",
+  "G2: add tests/test_store_writers.py (8 unit tests).",
+  "G3: measure baseline audit counts and routing, GLiNER2, and chat exports before guards.",
+  "G4: commit writers.py and test_store_writers.py with baseline audit totals.",
+  "G5: guard export_chat.py with who_wrote.writer_of for test-workspace conversations and test it.",
+  "G6: guard tutor.py so held teacher labels stay out of train and dev fitting.",
+  "G7: guard routing.py export and chat_row so held rows and held model readings/thinking stay out.",
+  "G8: guard lake/answers.py export_gliner2 across routing, journeys, and workflow sources.",
+  "G9: commit G5 to G8 export guards and their tests.",
+  "G10: guard intent_classifier.py, workflow_models.py, understand_students.py (raising HeldForRights before writing), and decision_export.py (skipping held workflow_v1 rows), add tests/test_trainers_hold_written_people.py, and apply the one allowed change to failing existing trainer tests.",
+  "G11: measure audit and routing, GLiNER2, and chat exports after guards, verify exams clean and catalog fresh.",
+  "G12: update CLAUDE.md, write this record, run make sft-dev, run the 15-file final test suite, commit, push main and dev, and report."
+ ],
+ "decisions": [
+  {
+   "decision": "One module decides who wrote a row, and every trainer and export asks it",
+   "why": "seven places each had their own rule or none"
+  },
+  {
+   "decision": "A written set is a provider's unless its records say otherwise",
+   "why": "every hand-made journey and request file was committed with Claude as co-author"
+  },
+  {
+   "decision": "A trainer refuses before writing anything",
+   "why": "a fitted model is never overwritten by a run with nothing to learn from"
+  },
+  {
+   "decision": "Code-made data is not held",
+   "why": "an invented table or a measured label is the code's output"
+  }
+ ],
+ "change": "Added dclab_rnd/store/writers.py and tests/test_store_writers.py (commit c0021683); guarded store/export_chat.py, store/tutor.py, store/sets/routing.py, and lake/answers.py with tests (commit d13b5f8c); guarded intent_classifier.py, workflow_models.py, understand_students.py, and decision_export.py, added tests/test_trainers_hold_written_people.py, updated 8 existing trainer tests and 2 routing tests with the may_train=True patch, updated CLAUDE.md, and recorded this package.",
+ "findings": [
+  {
+   "id": "PH-1",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "store/tutor.py teach fell back to Claude's teacher labels (decision_labeler) when a point had fewer than 20 confirmed labels.",
+   "scenario": "On points in m1_students, m2_workflow_decisions, and m3_ml_decisions with teacher labels (1,121, 96, and 532 held rows across those sets), tutor.teach trained students on teacher labels before rights review.",
+   "cause": "tutor._rows and tutor.teach filtered only by label presence and confirmed source count without checking who_wrote.held(ex).",
+   "fix": "Annotated rows in tutor._rows with 'held': who_wrote.held(ex), excluded held rows from train and dev sets in tutor.teach, and counted held rows in report['held_for_rights'].",
+   "test": "tests/test_store_tutor.py test_a_teachers_label_never_trains_a_student_until_the_rights_review"
+  },
+  {
+   "id": "PH-2",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "store/sets/routing.py export emitted Claude silver labels, written requests, test people's words, Claude's thinking in chat reasoning, and model/model_thinking columns in table.csv.",
+   "scenario": "Exporting m7_routing wrote 9,634 rows across 33 chat files including silver and written folders and populated model_thinking from provider readings.",
+   "cause": "routing.chat_row and routing.export checked only whether words existed and whether the labeller gave a reading, without calling writers.writer_of or writers.reading_held.",
+   "fix": "Skipped held rows in routing.export via who_wrote.writer_of(ex) (counted in skipped), stripped held model readings in export and chat_row via who_wrote.reading_held, and documented the hold in MANIFEST rule.",
+   "test": "tests/test_store_routing.py test_the_export_holds_every_row_a_provider_wrote_and_every_providers_thinking"
+  },
+  {
+   "id": "PH-3",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "lake/answers.py export_gliner2 exported routing silver/written rows, written journeys, and journey-played workflow rows.",
+   "scenario": "Running answers.export_gliner2 emitted 125 files across committee, lake, selfplay, routing, journeys (3 files), and workflow (8 files).",
+   "cause": "_routing, _journeys, _workflow, and export_gliner2 attached no writer attribution and checked no hold switch.",
+   "fix": "Attached 'writer' via who_wrote.writer_of or who_wrote.set_writer in _routing, _journeys, and _workflow, and skipped held rows in export_gliner2 under counts['held_for_rights'].",
+   "test": "tests/test_lake_answers.py test_a_held_writers_rows_are_counted_and_never_written"
+  },
+  {
+   "id": "PH-4",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "intent_classifier.train trained on intent_requests_v1.json (871 requests written by Claude Sonnet 5.5).",
+   "scenario": "Calling intent_classifier.train fit and overwrote model artifacts using Claude-authored requests while rights_reviewed was false.",
+   "cause": "intent_classifier.train performed no writer check on the request file.",
+   "fix": "Added who_wrote.held_writer(who_wrote.set_writer(Path(requests).stem)) check right after load_rows(requests) in intent_classifier.train to raise HeldForRights before fitting or writing.",
+   "test": "tests/test_trainers_hold_written_people.py test_the_intent_classifier_refuses_requests_claude_wrote"
+  },
+  {
+   "id": "PH-5",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "understand_students.train fit models on journeys written by Claude (homework_v1 Claude Sonnet; homework_v2 and homework_v3 model-authored).",
+   "scenario": "Calling understand_students.train created directories and trained state and text students from written journey sets while rights_reviewed was false.",
+   "cause": "understand_students.train did not inspect sources against who_wrote.set_writer and who_wrote.held_writer.",
+   "fix": "Filtered held journey sources in understand_students.train and raised HeldForRights before out.mkdir when all labelled rows come from held sets.",
+   "test": "tests/test_trainers_hold_written_people.py test_the_understanding_students_refuse_rows_from_written_journeys"
+  },
+  {
+   "id": "PH-6",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "workflow_models.train fit models on workflow decisions played from written journey sets created in Claude Code sessions.",
+   "scenario": "Calling workflow_models.train wrote model artifacts from written journey plays without checking the provider rights hold.",
+   "cause": "workflow_models.train never checked who wrote the source journey sets.",
+   "fix": "Computed held sources via who_wrote.set_writer and held_writer before out = Path(out), raised HeldForRights when all labelled rows are held, and filtered held sources in the training loop.",
+   "test": "tests/test_trainers_hold_written_people.py test_the_workflow_models_refuse_rows_from_written_journeys"
+  },
+  {
+   "id": "PH-7",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "decision_export.build exported workflow_v1 decision rows played from written journeys.",
+   "scenario": "Reading workflow_v1/decisions/rows.jsonl included rows played from dev and journey sets written by Claude without holding or counting them.",
+   "cause": "decision_export.rows read every rows.jsonl line uniformly and never checked workflow_v1 row sources against writers.",
+   "fix": "Updated decision_export.rows and decision_export.build to hold workflow_v1 rows whose set_writer is held and record their count in manifest['held_for_rights'].",
+   "test": "tests/test_trainers_hold_written_people.py test_the_decision_export_skips_journey_rows_and_counts_them"
+  },
+  {
+   "id": "PH-8",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "store/export_chat.py exported chat rows from live_tests__ test workspaces when check named rules instead of a provider model.",
+   "scenario": "understand_problem v2 exported conversations from test workspaces whose simulated user turns were written for the test.",
+   "cause": "export_chat.export checked only provider_of(row) and never asked writers.writer_of(row) for test-workspace provenance.",
+   "fix": "Updated export_chat.export to fall back via who = who or who_wrote.writer_of(row), holding test-workspace conversations under held_for_rights['claude'] (296 additional rows held in understand_problem v2).",
+   "test": "tests/test_store_export_chat.py test_a_rules_conversation_from_a_test_workspace_is_held_because_its_person_was_written"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "Real store audit and export counts before and after applying all provider-hold guards",
+   "gate": "none: a count before and after, no threshold fixed before",
+   "fixed_before_run": false,
+   "result": "Audit (identical in G3 and G11): m1_students 280556 rows (frontier 1121), m2_workflow_decisions 26623 rows (frontier 96), m3_ml_decisions 210079 rows (frontier 532), m4_workflow_llm 21708 rows (claude 7233, claude:claude_code 2792, frontier 641, mixed 144), m5_solver_llm 2005 rows (claude:claude_code 330, claude 22, mixed 2, openai 1), m6_stepwise_decisions 5227 rows (claude:claude_code 56), m7_judges 12408 rows (claude:claude_code 3152, claude 311), m7_routing 8156 rows (claude:claude_code 6649, claude 867, frontier 178), m8_retrieval 98 rows (frontier 98). Routing export: before 9634 rows, 33 chat files, skipped {no words: 232, exam request: 72}; after 528 rows, 8 real-only chat files, model_thinking filled 0, skipped {held claude: 8928, held frontier: 178, no words: 232, exam request: 72}. GLiNER2 export: before 125 files (committee 18, journeys 3, lake 53, routing 31, selfplay 12, workflow 8); after 91 files (committee 18, journeys 0, lake 53, routing 8, selfplay 12, workflow 0), held_for_rights {workflow: claude 2056, journeys: claude 1020, journeys: frontier 1070, routing: claude 1912, routing: frontier 176}. understand_problem v2 chat export: before train 1254 and dev 394 (held claude 2448, frontier 218, not_recorded 0); after train 1020 and dev 332 (held claude 2744, frontier 218, not_recorded 0).",
+   "verdict": "not scored",
+   "cost_eur": 0.0,
+   "next": "leave all guards active until the owner records rights_reviewed: true",
+   "limits": [
+    "counts cover train and dev rows only; sealed sets are never read by audit or export"
+   ]
+  }
+ ],
+ "outcome": "All seven remaining training paths and test-workspace chat exports now respect provider_outputs.may_train() through dclab_rnd/store/writers.py while leaving existing stored data and fitted models intact.",
+ "lessons": [
+  "Evaluating every dataset schema inside one shared writers module avoids drift between chat exports, decision trainers, and GLiNER2 formatters.",
+  "Distinguishing provenance authored by Claude Code or written-request generators from code-synthesized tables ensures only provider-written text and labels are held."
+ ],
+ "risks": [
+  "The intent classifier, the understanding students, and the workflow models cannot be retrained until the owner records the rights review.",
+  "The lake keeps its own rule (Claude outputs are evaluation only) and was not changed.",
+  "A test workspace's words are held even when a test replayed a real person's words."
+ ],
+ "commits": [
+  "c0021683",
+  "d13b5f8c"
+ ]
+}

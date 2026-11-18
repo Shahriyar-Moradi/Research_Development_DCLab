@@ -235,6 +235,12 @@ def train(requests: Path = REQUESTS, out: Path = MODELS) -> dict[str, Any]:
     from dclab_core.decision_models import ModelCard, Score, calibration_error, metrics
 
     rows = load_rows(requests)
+    from dclab_rnd.store import writers as who_wrote
+
+    writer = who_wrote.set_writer(Path(requests).stem)  # a written request set: its words are its writer's
+    if who_wrote.held_writer(writer):
+        raise who_wrote.HeldForRights(f"{Path(requests).name}: its {len(rows)} requests were written by {writer}; a provider's "
+                                      "output trains nothing until the owner records a rights review (2026-11-18). The fitted model is not touched.")
     writers = sorted({r["writer"] for r in rows})
     by_writer = {w: [r for r in rows if r["writer"] == w] for w in writers}
     cross = {}
