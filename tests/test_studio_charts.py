@@ -64,6 +64,21 @@ class ChartsTest(unittest.TestCase):
         self.assertLessEqual(max(len(s["points"]) for s in by["gains"]["series"]), 21)
         self.assertLess(len(json.dumps(out)), RESULT_CHARS, "whole within the intern's tool-result limit")
 
+    def test_a_chart_marks_the_choice_in_force_and_the_rules_pick(self):
+        """Live, 2026-11-16: the agent approved `raw` over the rule's `calendar`, and the chart still marked the rule's pick."""
+        records = _records(_binary_final())
+        records["features"]["decision"] = {"selected": "raw", "chosen": "poly2", "overridden": True}
+        records["models"]["decision"] = {"selected": "logistic_regression", "chosen": "xgboost", "overridden": True}
+        by = {c["id"]: c for c in charts(records, "p1")["charts"]}
+        self.assertEqual([(r["label"], r["chosen"], r["rule_pick"]) for r in by["features"]["rows"]], [("raw", False, True), ("poly2", True, False)])
+        self.assertEqual((by["features"]["chosen"], by["features"]["rule_pick"], by["features"]["overridden"]), ("poly2", "raw", True))
+        self.assertEqual([(r["label"], r["chosen"], r["rule_pick"]) for r in by["models"]["rows"]],
+                         [("logistic_regression", False, True), ("xgboost", True, False)])
+        self.assertTrue(by["models"]["overridden"])
+        plain = {c["id"]: c for c in charts(_records(_binary_final()), "p1")["charts"]}  # no approval: one row is both
+        self.assertEqual([(r["chosen"], r["rule_pick"]) for r in plain["features"]["rows"]], [(True, True), (False, False)])
+        self.assertFalse(plain["features"]["overridden"])
+
     def test_an_older_record_without_scores_names_what_it_cannot_draw(self):
         out = charts(_records(_binary_final(keep_scores=False)), "p1")
         ids = [c["id"] for c in out["charts"]]

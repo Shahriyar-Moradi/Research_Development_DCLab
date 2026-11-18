@@ -61,6 +61,15 @@ def _leakage(ev: dict[str, Any]) -> dict[str, Any]:
             "unsafe_lift": lift, "unsafe_lift_metric": ev.get("apparent_lift_metric"), "detector_check": passed}
 
 
+def _picks(record: dict[str, Any], evidence_key: str) -> tuple[Any, Any]:
+    """(the rule's pick, the choice in force). An approval may choose another option: the stage record keeps it in
+    ``decision.chosen`` and the rule's own in ``decision.selected`` (``engine.approve``); the evidence keeps only the
+    rule's. Live, 2026-11-16: the agent approved `raw`, and the features chart still marked the rule's `calendar`."""
+    decision = record.get("decision") or {}
+    rule = decision.get("selected") or (record.get("evidence") or {}).get(evidence_key)
+    return rule, decision.get("chosen") or rule
+
+
 def charts(records: dict[str, dict[str, Any]], project_id: str | None = None) -> dict[str, Any]:
     out: list[dict[str, Any]] = []
     missing: list[str] = []
@@ -71,18 +80,23 @@ def charts(records: dict[str, dict[str, Any]], project_id: str | None = None) ->
     features = records.get("features")
     if features:
         ev = features["evidence"]
+        rule, in_force = _picks(features, "selected_recipe")
         rows = [{"label": r["recipe"], "value": _r(r["metrics"][metric]["mean"]), "spread": _r(r["metrics"][metric].get("std")),
                  "note": f"{int(r['feature_count_mean'])} features" if r.get("feature_count_mean") is not None else None,
-                 "chosen": r["recipe"] == ev.get("selected_recipe")} for r in ev.get("stage_results") or [] if metric in (r.get("metrics") or {})]
+                 "chosen": r["recipe"] == in_force, "rule_pick": r["recipe"] == rule}
+                for r in ev.get("stage_results") or [] if metric in (r.get("metrics") or {})]
         if rows:
-            out.append({"id": "features", **_bars(rows, f"Feature recipes, cross-validation {metric}", metric, ev.get("selection_rule"))})
+            out.append({"id": "features", **_bars(rows, f"Feature recipes, cross-validation {metric}", metric, ev.get("selection_rule")),
+                        "rule_pick": rule, "chosen": in_force, "overridden": in_force != rule})
     models = records.get("models")
     if models:
         ev = models["evidence"]
-        rows = [{"label": r["model"], "value": _r(r["mean"]), "spread": _r(r.get("std")), "chosen": r["model"] == ev.get("selected_model")}
-                for r in ev.get("ranking") or []]
+        rule, in_force = _picks(models, "selected_model")
+        rows = [{"label": r["model"], "value": _r(r["mean"]), "spread": _r(r.get("std")), "chosen": r["model"] == in_force,
+                 "rule_pick": r["model"] == rule} for r in ev.get("ranking") or []]
         if rows:
-            out.append({"id": "models", **_bars(rows, f"Model screen, cross-validation {metric}", metric, ev.get("selection_rule"))})
+            out.append({"id": "models", **_bars(rows, f"Model screen, cross-validation {metric}", metric, ev.get("selection_rule")),
+                        "rule_pick": rule, "chosen": in_force, "overridden": in_force != rule})
     final = records.get("final")
     if not final:
         missing.append("holdout charts: the final stage has not run")
