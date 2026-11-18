@@ -40,7 +40,7 @@ from typing import Any, Callable, Iterable, Mapping, Optional
 from dclab_core import exam as core
 from dclab_core.store import MODEL_TYPES
 
-from .layout import Layout
+from .layout import Layout, jsonl_lines
 
 EXAM_VERSION = "exam_v1"
 MAX_ITEMS = 200
@@ -118,9 +118,8 @@ def sealed_sets(layout: Layout, model_type: str) -> list[tuple[str, str, Path]]:
 
 
 def _rows(path: Path) -> Iterable[tuple[str, dict[str, Any]]]:
-    for line in path.read_text(encoding="utf-8").splitlines():
-        if line.strip():
-            yield line, json.loads(line)
+    for line in jsonl_lines(path.read_text(encoding="utf-8")):
+        yield line, json.loads(line)
 
 
 def _texts(messages: Iterable[Mapping[str, Any]], role: str) -> str:

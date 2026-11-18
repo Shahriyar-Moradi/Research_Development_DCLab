@@ -103,6 +103,15 @@ class ExportTests(unittest.TestCase):
         self.assertNotIn("reasoning_content", line["messages"][3])  # a rule's line is not the model's reasoning
         self.assertEqual(line["messages"][2], {"role": "tool", "tool_call_id": "call_1", "content": '{"rows": 10}'})
 
+    def test_a_row_with_a_unicode_line_separator_is_exported_whole(self):
+        from dclab_rnd.store import export_chat
+        from dclab_rnd.store.sets import write_set
+
+        write_set(self.layout, "m4_workflow_llm", "chat/separators", [chat("u", "train").model_copy(update={"task": "a\u2028b"})],
+                  version="v1", about="a row whose text keeps a U+2028")
+        report = export_chat.export(self.layout, "m4_workflow_llm", "chat/separators", "v1", self.out / "separators")
+        self.assertEqual(report["counts"], {"train": 1, "dev": 0})
+
 
 class TemplateCheckTests(unittest.TestCase):
     def line(self):

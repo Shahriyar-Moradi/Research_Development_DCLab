@@ -14,7 +14,7 @@ from typing import Any, Iterable, Optional
 
 from dclab_core.store import EXAMPLE_SHAPES, SetManifest
 
-from ..layout import Layout
+from ..layout import Layout, jsonl_lines
 from ..store import now, write_json
 
 SPLIT_RULE = ("dclab_core.datasets.split_of(the record's sealed key), salt dclab-datasets-v1: sealed below 0.2, dev below 0.4, else train; "
@@ -28,7 +28,7 @@ def standing(layout: Layout) -> dict[tuple[str, str], dict[str, Any]]:
     store = Store(layout)
     out: dict[tuple[str, str], dict[str, Any]] = {}
     for entry in sorted(store.entries("curation"), key=lambda e: (e.captured_at, e.version)):
-        for line in store.read(entry).decode("utf-8").splitlines():
+        for line in jsonl_lines(store.read(entry).decode("utf-8")):
             d = json.loads(line)
             if str(d.get("curator", "")).startswith("rule:") and d.get("record") and d.get("model_type"):
                 out[(d["record"], d["model_type"])] = d
@@ -52,7 +52,7 @@ def write_set(layout: Layout, model_type: str, folder: str, examples: Iterable[A
     base = layout.sets(model_type, *folder.split("/"), version)
     base.mkdir(parents=True, exist_ok=True)
     sealed, pending = base / "sealed.jsonl", base / "sealed.pending.jsonl"
-    sealed_lines = sealed.read_text(encoding="utf-8").splitlines() if sealed.exists() else []
+    sealed_lines = jsonl_lines(sealed.read_text(encoding="utf-8")) if sealed.exists() else []
     sealed_ids = {json.loads(line)["id"] for line in sealed_lines if line.strip()}
     by_split: dict[str, list[str]] = {"train": [], "dev": [], "sealed": []}
     from ..exams import guard  # 36.4: a frozen exam's row is never a training row
@@ -76,7 +76,7 @@ def write_set(layout: Layout, model_type: str, folder: str, examples: Iterable[A
         later = []
     pending.write_text("".join(later), encoding="utf-8")
     waiting = len(later)
-    sealed_count = len(sealed.read_text(encoding="utf-8").splitlines()) if sealed.exists() else 0
+    sealed_count = len(jsonl_lines(sealed.read_text(encoding="utf-8"))) if sealed.exists() else 0
     labels = Counter(getattr(ex, "label_source", None) or getattr(ex, "decided_by", None) or getattr(ex, "evidence", None) or "none" for ex in examples)
     weights: dict[str, float] = {}
     for ex in examples:

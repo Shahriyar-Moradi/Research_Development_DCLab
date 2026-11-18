@@ -127,5 +127,19 @@ class FlowTest(unittest.TestCase):
         self.assertNotEqual(exams.row_key(a), exams.row_key(b))
 
 
+class LineBreakTest(unittest.TestCase):
+    """2026-11-18: the exam draw stopped because a stored row kept a U+2028 inside its text and the reader split on it."""
+
+    def test_a_row_with_a_unicode_line_separator_in_its_text_is_one_row(self):
+        from dclab_rnd.store.layout import jsonl_lines
+
+        text = json.dumps({"id": "a", "text": "one\u2028two\u2029three\x85four"}, ensure_ascii=False) + "\n" + json.dumps({"id": "b"}) + "\n\n"
+        self.assertEqual(len(text.splitlines()), 6)  # the old reader's count: the row cut into pieces
+        self.assertEqual([json.loads(line)["id"] for line in jsonl_lines(text)], ["a", "b"])
+        path = Path(tempfile.mkdtemp()) / "rows.jsonl"
+        path.write_text(text, encoding="utf-8")
+        self.assertEqual([row["id"] for _, row in exams._rows(path)], ["a", "b"])
+
+
 if __name__ == "__main__":
     unittest.main()

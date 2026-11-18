@@ -23,7 +23,7 @@ from typing import Any, Iterable
 
 from dclab_core.store import ChatExample, SolverTrajectory
 
-from .layout import Layout
+from .layout import Layout, jsonl_lines
 
 SPLITS = ("train", "dev")  # a sealed row is never exported
 
@@ -158,7 +158,7 @@ def export(layout: Layout, model_type: str, folder: str, version: str, out: Path
     calls_without_tools, longest = 0, 0
     for split in SPLITS:
         source = base / f"{split}.jsonl"
-        rows = [json.loads(line) for line in source.read_text(encoding="utf-8").splitlines() if line.strip()] if source.is_file() else []
+        rows = [json.loads(line) for line in jsonl_lines(source.read_text(encoding="utf-8"))] if source.is_file() else []
         said = int((manifest.get("counts") or {}).get(split) or 0)
         if said != len(rows):
             mismatch[split] = {"manifest": said, "read": len(rows)}

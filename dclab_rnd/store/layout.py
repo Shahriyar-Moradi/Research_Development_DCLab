@@ -42,6 +42,13 @@ def slug(text: str, limit: int = 120) -> str:
     return out[:limit]
 
 
+def jsonl_lines(text: str) -> list[str]:
+    """The non-empty lines of a JSON Lines text, split on "\\n" only. ``str.splitlines()`` also splits on U+2028, U+2029 and
+    U+0085, which a stored row keeps raw inside its strings: a row was cut in two and its file could not be read (the exam
+    draw of 2026-11-18 stopped on the build history's set)."""
+    return [line for line in text.split("\n") if line.strip()]
+
+
 class Layout:
     """The store's folders under one root."""
 
