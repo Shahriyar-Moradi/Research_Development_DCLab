@@ -1,0 +1,132 @@
+{
+ "package": "training-rules-item1",
+ "title": "Make training data preparation obey the owner's standing rules (Item 1)",
+ "date": "2026-11-18",
+ "request": "Fix three rule violations in how DCLab prepares training data: stop wrapping code-written reasoning in <think> tags as if it were the model's own thinking (keep it in metadata labelled from_record); keep and prepare commercial provider outputs (Claude, OpenAI, and claude_code build sessions) while holding them out of every training export until rights_reviewed is true; and draw and pin the frozen exams now. Then resolve the two pre-existing blockers uncovered during execution (newline-only JSONL reading and evaluation-only rows from sealed partitions in lake gold) and isolate FlowTest pins.",
+ "spec": "Solver and own-LLM training exports write messages as they are and store any code-written rationale in metadata under reasoning and reasoning_source='from_record'; no code prompts a model to think inside <think> tags. owner_decisions.json adds rights_reviewed: false, provider_outputs exposes rights_reviewed() and may_train(), and export_chat skips commercial provider rows and claude_code trajectories while recording held_for_rights and answerer_not_recorded. Frozen exams (exam_v1) are drawn once, verified clean, committed in training_records/store, and pinned in dclab_rnd/store/exam_pins.json. Store JSONL readers split only on '\\n', and lake.gold_split leaves evaluation-only rows from sealed partitions out of gold while counting them.",
+ "plan": [
+  "Task A: remove THINK_FIRST, _with_think, and --no-think from lake exports and own_llm, keep code-written rationales in metadata labelled from_record, add tests/test_no_think_in_training.py, delete old solver export files, and commit.",
+  "Task B: add rights_reviewed: false and on_hold in owner_decisions.json, add rights_reviewed() and may_train() in provider_outputs.py, gate export_chat.py via provider_of() with held_for_rights and answerer_not_recorded counts, update CLAUDE.md, add four tests, and commit.",
+  "Task E1 (blocker from C2): add jsonl_lines() in dclab_rnd/store/layout.py splitting on '\\n' only and switch exams.py, export_chat.py, and sets/__init__.py from .splitlines(), add regression tests, verify, and commit.",
+  "Task E2 (blocker from A7 solver-data rebuild): add gold_split() in dclab_rnd/lake/__init__.py to drop evaluation-only rows from sealed partitions out of gold and count them, add GoldSplitTest, rebuild solver-data cleanly (0 <think>), and commit.",
+  "Task C: run exam draw dry run and real draw, verify clean: true across all drawn types, add DrawnExamsTest, isolate FlowTest.setUp() pins to self.pins, commit pins and test in this repo, and commit and push exams in training_records/store.",
+  "Task D: record this package, build dev SFT corpus, check data catalog freshness, run the 12-file test suite, commit record and out_dev files, and push main and dev."
+ ],
+ "decisions": [
+  {
+   "decision": "Store code-written rationales in row metadata with reasoning_source='from_record' instead of injecting <think> blocks or modifying the user question.",
+   "why": "Preserves the owner's standing rule that thinking tags represent only API-recorded model thinking while keeping verified rule explanations traceable in metadata."
+  },
+  {
+   "decision": "Hold commercial provider rows inside export_chat using provider_outputs.may_train() rather than refusing consent: train sets or deleting rows.",
+   "why": "Follows the owner's 2026-11-18 ruling to keep and prepare every dataset while blocking provider outputs (including claude_code build history) from training exports until rights_reviewed is set to true."
+  },
+  {
+   "decision": "Replace .splitlines() with jsonl_lines() splitting on '\\n' only in store readers.",
+   "why": "Stored chat and trajectory strings contain raw U+2028, U+2029, and U+0085 separators that str.splitlines() splits into invalid JSON fragments."
+  },
+  {
+   "decision": "Leave evaluation-only rows from sealed partitions out of lake gold and count them as dropped while keeping them in bronze and store sets.",
+   "why": "Satisfies both dclab_core gold invariants (sealed partitions cannot sit in eval_only, and Claude answers cannot sit outside eval_only) without altering dclab_core contracts."
+  },
+  {
+   "decision": "Isolate FlowTest by patching exams.PINS to self.pins in setUp() rather than relaxing pin checks in dclab_rnd/store/exams.py.",
+   "why": "Keeps strict pin verification in exams.sit, exams.gate, and exams.accept active for any real or copied store while ensuring tests do not read repository exam_pins.json."
+  }
+ ],
+ "change": "Modified dclab_rnd/lake/train.py, dclab_rnd/lake/__main__.py, dclab_rnd/own_llm.py, dclab_rnd/lake/__init__.py, dclab_rnd/store/owner_decisions.json, dclab_rnd/store/provider_outputs.py, dclab_rnd/store/export_chat.py, dclab_rnd/store/layout.py, dclab_rnd/store/exams.py, dclab_rnd/store/sets/__init__.py, dclab_rnd/store/exam_pins.json, research/llm-fine-tuning/experiments/lake/MANIFEST.json, CLAUDE.md, and tests (test_reasoning.py, test_no_think_in_training.py, test_store_export_chat.py, test_provider_outputs.py, test_store_exams.py, test_training_lake.py); committed drawn exam_v1 files in training_records/store.",
+ "findings": [
+  {
+   "id": "TR-A",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Training exports wrapped code-written reasoning in <think> tags inside messages and rewrote user prompts to ask models to think inside <think> tags.",
+   "scenario": "Exporting solver examples in dclab_rnd/lake/train.py or workspace examples in dclab_rnd/own_llm.py when a rule-written rationale was present wrote <think>...</think> into assistant content and set answer_only to THINK_FIRST (461 rows exported earlier on 2026-10-17).",
+   "cause": "dclab_rnd/lake/train.py defined THINK_FIRST and _with_think() with thinking=True default, and dclab_rnd/own_llm.py prepended dclab_core.reasoning.think(e.rationale.splitlines()) to the assistant reply.",
+   "fix": "Removed THINK_FIRST, _with_think(), and --no-think; wrote user and assistant messages unchanged and stored code-written rationales in row metadata under reasoning and reasoning_source='from_record'; deleted the old solver export and rebuilt cleanly with 0 <think> tags and 3,493 from_record metadata entries.",
+   "test": "tests/test_reasoning.py test_the_export_never_writes_a_rules_trace_as_the_models_thinking, test_no_export_asks_a_model_to_think_inside_tags; tests/test_no_think_in_training.py test_no_code_asks_for_think_tags_or_wraps_a_trace_in_them"
+  },
+  {
+   "id": "TR-B",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Commercial provider outputs (Claude, OpenAI, hosted non-Qwen models, and claude_code build sessions) in sets marked consent: train could be exported for training without a rights review.",
+   "scenario": "Running dclab_rnd/store/export_chat.py on m4_workflow_llm or m5_solver_llm sets exported commercial provider and claude_code rows whenever manifest consent was 'train'.",
+   "cause": "export_chat.export() checked only manifest consent ('train') and had no rights_reviewed flag or per-row provider gate while owner_decisions.json marked provider_outputs for_training: true.",
+   "fix": "Added rights_reviewed: false and on_hold in dclab_rnd/store/owner_decisions.json, added rights_reviewed() and may_train() in dclab_rnd/store/provider_outputs.py, and added provider_of(row) in dclab_rnd/store/export_chat.py to skip provider and claude_code rows when may_train() is false while reporting held_for_rights and answerer_not_recorded counts.",
+   "test": "tests/test_store_export_chat.py test_a_providers_rows_are_held_until_the_rights_review_and_counted, test_a_claude_code_build_session_is_a_providers_output_too, test_once_the_rights_are_reviewed_every_row_is_exported; tests/test_provider_outputs.py test_the_owners_hold_of_2026_11_18_keeps_provider_outputs_out_of_training"
+  },
+  {
+   "id": "TR-C",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "No frozen exam had ever been drawn, leaving dclab_rnd/store/exam_pins.json missing and the training-set exam guard empty.",
+   "scenario": "Building training sets via store/sets/__init__.py found no drawn exam in training_records/store/exams/ and no pins in dclab_rnd/store/exam_pins.json.",
+   "cause": "The initial one-time draw command (dclab_rnd.store.exams draw --yes) had never been executed and pinned.",
+   "fix": "Ran dry run and real draw (exam_v1) across all model types, verified every drawn exam clean: true, pinned hashes in dclab_rnd/store/exam_pins.json, pushed exams/ to training_records/store, and added DrawnExamsTest.",
+   "test": "tests/test_store_exams.py test_every_pinned_exam_is_in_the_store_and_matches_its_pin"
+  },
+  {
+   "id": "TR-E1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "The exam draw dry run crashed with JSONDecodeError: Unterminated string while scanning stored JSON Lines files.",
+   "scenario": "Running python -m dclab_rnd.store.exams draw failed on m5_solver_llm/trajectories/development/v2 train.jsonl (line 161 under splitlines) and dev.jsonl (line 7 under splitlines) because stored row strings contained raw U+2028, U+2029, or U+0085 characters.",
+   "cause": "exams._rows(), export_chat.export(), and sets/__init__.py split JSON Lines text using str.splitlines(), which breaks lines on Unicode line/paragraph separators inside string literals.",
+   "fix": "Added jsonl_lines(text) in dclab_rnd/store/layout.py to split only on '\\n' and updated exams.py, export_chat.py, and sets/__init__.py to call jsonl_lines().",
+   "test": "tests/test_store_exams.py test_a_row_with_a_unicode_line_separator_in_its_text_is_one_row; tests/test_store_export_chat.py test_a_row_with_a_unicode_line_separator_is_exported_whole"
+  },
+  {
+   "id": "TR-E2",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "One row from a sealed partition with origin teacher_claude stopped the entire lake build on solver/understand_problem.",
+   "scenario": "Running make solver-data failed with FAIL solver/understand_problem reporting one row of a sealed partition outside the sealed split (split='eval_only', from_sealed=True).",
+   "cause": "session_examples() in dclab_rnd/lake/__init__.py assigned split='eval_only' whenever origin was in L.EVAL_ONLY without checking from_sealed, conflicting with L.gold_problems() which forbids sealed-partition rows outside split 'sealed'.",
+   "fix": "Added gold_split(origin, from_sealed, said, group) in dclab_rnd/lake/__init__.py returning None when origin is in L.EVAL_ONLY and from_sealed is True, updated add() to leave those rows in bronze and record them via run.drop(), and rebuilt solver-data cleanly (1 row left out of gold).",
+   "test": "tests/test_training_lake.py test_every_origin_and_partition_gets_a_split_the_gold_check_accepts_or_is_left_out"
+  },
+  {
+   "id": "TR-C5",
+   "source": "test",
+   "severity": "latent",
+   "defect": "Three exam functions read the repository's real exam_pins.json whatever store layout they are given, causing two existing FlowTest tests to fail once real exams were drawn.",
+   "scenario": "After C3 wrote dclab_rnd/store/exam_pins.json, FlowTest.test_a_version_with_scrambled_answers_is_refused_and_the_skill_named and FlowTest.test_a_model_version_with_any_name_can_sit raised ExamError comparing the temporary exam hash against the real repository pin because setUp() passed pins=self.pins to draw() only.",
+   "cause": "exams.sit(), exams.gate(), and exams.accept() call load(layout, ...) without a pins argument, so they always check dclab_rnd/store/exam_pins.json; the tests passed earlier only by luck because exam_pins.json did not exist yet.",
+   "fix": "Isolated FlowTest.setUp() in tests/test_store_exams.py by patching exams.PINS to self.pins while keeping strict pin checks in dclab_rnd/store/exams.py unchanged; the functions themselves still take no pins argument (left for a later fix).",
+   "open": "exams.sit, exams.gate, and exams.accept still take no pins argument and always default to exams.PINS; extending those function signatures is left open for a later fix.",
+   "test": "tests/test_store_exams.py test_a_version_with_scrambled_answers_is_refused_and_the_skill_named, test_a_model_version_with_any_name_can_sit"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "Frozen exam draw (exam_v1), 2026-11-18",
+   "gate": "none: one-time draw and pin check (draw dry run, draw --yes, and verify clean: true)",
+   "fixed_before_run": false,
+   "result": "m1_students 1153 items, m2_workflow_decisions 324 items, m3_ml_decisions 2415 items, m4_workflow_llm 807 items, m5_solver_llm 675 items, m6_stepwise_decisions 483 items, m7_judges 190 items (all seven written: true and verify clean: true); m7_routing and m8_retrieval refused (no sealed row with an expected answer); dry run and real draw item counts matched identically across all model types",
+   "verdict": "not scored",
+   "next": "use the frozen exams only to guard training sets and gate future tuned model versions",
+   "limits": [
+    "one-time draw over sealed rows available on 2026-11-18; m7_routing and m8_retrieval remain undrawn until sealed rows with expected answers exist"
+   ]
+  }
+ ],
+ "outcome": "Tasks A, B, E1, E2, and C completed and verified: code-written rationales stay in metadata labelled from_record with solver-data rebuilt holding 0 <think> tags; commercial provider outputs and claude_code sessions are held out of training exports pending owner rights review; JSONL readers split strictly on newlines; sealed evaluation-only rows leave lake gold cleanly; and exam_v1 exams are drawn, verified clean, pushed to the store repository, and pinned.",
+ "lessons": [
+  "Never treat str.splitlines() as a JSON Lines line splitter because stored model and code strings contain raw Unicode line separators (U+2028, U+2029, U+0085).",
+  "Every helper called by flow tests on a temporary store must isolate global pin paths such as exams.PINS so tests do not pass only while repository pin files are absent.",
+  "When lake gold rules reject a combination of provenance origin and partition (evaluation-only rows from sealed partitions), decide explicitly at the gold boundary and count what was dropped instead of crashing the whole build."
+ ],
+ "risks": [
+  "Commercial provider rows remain held from training exports until the owner sets rights_reviewed: true in dclab_rnd/store/owner_decisions.json.",
+  "m7_routing and m8_retrieval have no drawn exam yet and will need their own draw once sealed rows with expected answers exist.",
+  "exams.sit, exams.gate, and exams.accept still lack a pins parameter and default to exams.PINS."
+ ],
+ "commits": [
+  "82bdb3c7",
+  "18528e7e",
+  "8a370cb4",
+  "2bf9abf2",
+  "c23ca9d5"
+ ]
+}
