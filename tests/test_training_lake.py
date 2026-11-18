@@ -387,5 +387,27 @@ class SessionMappingTests(unittest.TestCase):
         self.assertEqual(L.gold_problems(got), [])
 
 
+class GoldSplitTest(unittest.TestCase):
+    """2026-11-18: a Claude answer read from a sealed partition stopped the whole lake build."""
+
+    def test_every_origin_and_partition_gets_a_split_the_gold_check_accepts_or_is_left_out(self):
+        from dclab_core import lake as L
+        from dclab_rnd.lake import gold_split
+
+        self.assertIsNone(gold_split("teacher_claude", True, "dev", "g"))  # evaluation only AND sealed: left out of gold
+        self.assertEqual(gold_split("teacher_claude", False, "train", "g"), "eval_only")
+        self.assertEqual(gold_split("rule_prod", True, "dev", "g"), "sealed")
+        self.assertEqual(gold_split("rule_prod", False, "dev", "g"), "dev")
+        self.assertIn(gold_split("rule_prod", False, None, "g"), ("train", "dev", "sealed"))  # drawn from its group
+        for origin, from_sealed in (("teacher_claude", False), ("rule_prod", True), ("rule_prod", False)):
+            split = gold_split(origin, from_sealed, "dev", "g")
+            messages = [{"role": "user", "content": "q"}, {"role": "assistant", "content": "a"}]
+            row = L.TrainingExample(example_id=f"ss_{origin}_{from_sealed}", family="understand_problem", messages=messages,
+                                    verification=L.Verification(kind="construction", passed=True),
+                                    provenance=L.Provenance(source="t", origin=origin, consent="train", group=f"g{origin}{from_sealed}",
+                                                            split=split, from_sealed=from_sealed))
+            self.assertEqual(L.gold_problems([row]), [], (origin, from_sealed, split))
+
+
 if __name__ == "__main__":
     unittest.main()

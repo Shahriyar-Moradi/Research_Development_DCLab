@@ -33,7 +33,7 @@ import subprocess
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable, Iterable, Iterator
+from typing import Any, Callable, Iterable, Iterator, Optional
 
 from dclab_core import lake as L
 
@@ -266,7 +266,10 @@ def session_examples(other: dict[str, list[dict[str, Any]]], run: Run) -> list[L
         if origin is None:
             run.drop(item["source"], "written by a model whose terms are not known")
             return
-        split = "eval_only" if origin in L.EVAL_ONLY else ("sealed" if item.get("from_sealed") else item["row"].get("split") or L.split_of(group))
+        split = gold_split(origin, bool(item.get("from_sealed")), item["row"].get("split"), group)
+        if split is None:
+            run.drop(item["source"], "an evaluation-only answer from a sealed partition (kept in bronze, left out of gold)")
+            return
         out.append(L.TrainingExample(example_id="ss_" + L.fingerprint([family, messages])[:24], family=family, messages=messages,  # type: ignore[arg-type]
                                      verification=verification, quality=0.6,
                                      provenance=L.Provenance(source=item["source"], origin=origin, record_ids=[str(x[1]) for x in item["row"].get("sources") or []][:20],  # type: ignore[arg-type]
@@ -429,6 +432,18 @@ def truth_problems(r: L.TrainingExample, text: str) -> list[str]:
     if t["time_column"] and f"ordered in time by `{t['time_column']}`" not in text:
         return [f"the planted time column `{t['time_column']}` is not the trace's"]
     return []
+
+
+def gold_split(origin: str, from_sealed: bool, said: Optional[str], group: str) -> Optional[str]:
+    """The gold split of a workspace example, or None when gold must leave it out. An evaluation-only answer (Claude's)
+    read from a sealed partition may be neither a training target nor outside the sealed split, and the gold check
+    allows it in neither place: one such row stopped the whole lake build (2026-11-18). It stays in bronze; gold
+    counts it as dropped."""
+    if origin in L.EVAL_ONLY:
+        return None if from_sealed else "eval_only"
+    if from_sealed:
+        return "sealed"
+    return said or L.split_of(group)
 
 
 def reason(rows: list[L.TrainingExample]) -> tuple[list[L.TrainingExample], Counter]:
