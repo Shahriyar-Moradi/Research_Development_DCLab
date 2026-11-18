@@ -190,6 +190,14 @@ class CaseHomeTests(unittest.TestCase):
         self.assertEqual(read("Customers leave after the first month. Build it."), "")  # a time word alone is not a stated moment
         self.assertEqual(read("The prediction is made at signup, before payment.", "The prediction is made at renewal, before the invoice."),
                          "at renewal, before the invoice")  # the newest message wins
+        # the review of 2026-11-18: this build asks no question, so a sentence about something else must never be read as the moment
+        for other in ("The score is higher when tenure is long, we think.",  # about the score, not about when
+                      "We predict churn for customers before renewal.",  # names what is predicted
+                      "We score leads after the sales call to rank them.",
+                      "We decide who to call after the model scores them."):
+            self.assertEqual(read(other), "", other)
+        self.assertEqual(read("Predictions are made every Monday before the team meeting."), "every Monday before the team meeting")
+        self.assertEqual(read("The forecast runs at midnight before the stores open."), "at midnight before the stores open")
 
     def test_an_order_to_build_is_never_stored_inside_the_moment(self):
         """Live, 2026-11-16: "…on that day. Build it now." was stored whole as the project's prediction moment."""

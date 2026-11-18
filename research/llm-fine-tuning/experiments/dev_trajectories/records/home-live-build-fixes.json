@@ -84,6 +84,16 @@
    "cause": "harness_ablation.capture only checked thinking, reasoning, and reasoning_details and ignored thinking_redacted.",
    "fix": "Updated capture() in dclab_rnd/agent_eval/harness_ablation/__init__.py to count thinking_redacted in with_thinking and report the thinking_redacted count separately.",
    "test": "tests/test_harness_ablation.py test_thinking_kept_redacted_counts_as_thinking_kept"
+  },
+  {
+   "id": "HLB-R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The reader of a stated prediction moment took sentences about something else as the moment, and the build then starts with no question.",
+   "scenario": "\"We predict churn for customers before renewal.\" was read as the moment \"churn for customers before renewal\"; \"The score is higher when tenure is long\" as \"higher when tenure is long\".",
+   "cause": "the pattern accepted \"is\" alone as the verb, and anything after \"we predict\" that held a time word (the plan's own pattern: the plan was not run before it was handed over)",
+   "fix": "the verb must say the prediction is made, happens or runs, and what follows must open with a time (at, when, before, after, every ...)",
+   "test": "tests/test_case_home.py test_only_a_sentence_that_states_the_moment_is_read_as_one (four sentences that must read as no moment, two that must)"
   }
  ],
  "measurements": [],
@@ -91,7 +101,8 @@
  "lessons": [
   "User replies to Home build questions often combine a fact with an immediate build order; extract each sentence cleanly before saving contract fields.",
   "Whenever an async job replaces a plan shown earlier in chat, emit a concise correction to the same draft thread.",
-  "Summary and chart readers must check decision.chosen rather than raw rule evidence fields so approved overrides display accurately."
+  "Summary and chart readers must check decision.chosen rather than raw rule evidence fields so approved overrides display accurately.",
+  "A plan handed to another model is code nobody has run: its reviewer must probe it with inputs the plan's own tests did not think of."
  ],
  "risks": [
   "Prediction moments phrased in other sentence shapes that do not start with MOMENT_STATED still fall back to Home asking cleanly and Task B cleaning the reply.",

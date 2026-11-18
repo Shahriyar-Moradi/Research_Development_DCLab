@@ -263,7 +263,8 @@ class CaseHome(HomeAgent):
                 if not found or "?" in s:
                     continue
                 moment = s[found.end():].strip().rstrip(".!").strip()
-                if len(moment.split()) >= 3 and self.TIME_WORDS.search(moment) and not self.VAGUE_MOMENT.match(moment):
+                if (len(moment.split()) >= 3 and self.MOMENT_OPENS.match(moment) and self.TIME_WORDS.search(moment)
+                        and not self.VAGUE_MOMENT.match(moment)):
                     return moment[:400]
         return ""
 
@@ -326,12 +327,18 @@ class CaseHome(HomeAgent):
     # A sentence in which the person themselves states when the prediction is made ("The prediction is made at the
     # monthly review", "We predict when the order is placed"). Live, 2026-11-16: the person said it in the same message
     # as "Build it", nothing carried it to the build, and Home asked for it again.
+    # The review of 2026-11-18: "is" alone was enough, so "The score is higher when tenure is long" was read as a moment.
+    # The verb must now say the prediction is MADE (or happens, or runs).
     MOMENT_STATED = re.compile(
         r"^\W*(?:and\s+|so\s+|also\s+)?"
-        r"(?:(?:the\s+)?(?:predictions?|forecasts?|scores?|scoring|decisions?)\s+(?:is|are|gets|get|will\s+be|should\s+be|happens?|runs?)"
-        r"(?:\s+(?:made|done|run|taken|produced|computed))?"
+        r"(?:(?:the\s+)?(?:predictions?|forecasts?|scores?|scoring|decisions?)\s+"
+        r"(?:(?:is|are|gets|get|will\s+be|should\s+be)\s+(?:made|done|run|taken|produced|computed)|happens?|runs?)"
         r"|we\s+(?:predict|score|forecast|decide))\s*",
         re.IGNORECASE)
+    # What follows must open with a time ("at ...", "when ...", "every ..."). The review of 2026-11-18: "We predict churn
+    # for customers before renewal" names what is predicted, and it was built on at once as the moment.
+    MOMENT_OPENS = re.compile(r"^(?:at|when|whenever|before|after|once|on|every|each|during|upon|right\s+(?:before|after)|as\s+soon\s+as|by\s+the\s+time)\b",
+                              re.IGNORECASE)
     SENTENCES = re.compile(r"(?<=[.?!;])\s+|\n+")
 
     def _moment_of(self, text: str) -> str:
