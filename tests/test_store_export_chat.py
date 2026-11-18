@@ -11,6 +11,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -201,6 +202,64 @@ class TemplateCheckTests(unittest.TestCase):
         self.assertEqual(report["mismatch"], {"train": {"manifest": 4, "read": 1}})
         self.assertGreater(report["longest_line_chars"], 100)
         self.assertTrue(report["commit"] is None or len(report["commit"]) == 40)
+
+
+class ProviderGateTests(unittest.TestCase):
+    """The owner, 2026-11-18: every Claude answer is kept and prepared, and no training export uses one until the owner
+    records a rights review. Before, Claude rows in sets marked consent "train" were exported."""
+
+    def setUp(self):
+        from dclab_core.store import SolverTrajectory, TrajectoryStep
+        from dclab_rnd.store import Layout
+        from dclab_rnd.store.sets import write_set
+
+        self.folder = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.folder, True)
+        self.layout = Layout(self.folder / "store")
+        rows = [chat("claude", "train").model_copy(update={"check": {"model": "claude-sonnet-5-5"}}),
+                chat("qwen", "train").model_copy(update={"check": {"model": "qwen/qwen3.8-flash", "provider": "openrouter",
+                                                                   "source_class": "open_weights_model"}}),
+                chat("unsaid", "train")]
+        write_set(self.layout, "m4_workflow_llm", "chat/mixed", rows, version="v1", about="answerers of every kind")
+        step = TrajectoryStep(n=0, tool="note", arguments={"text": "x"}, result={"ok": True}, no_thought="none kept")
+        build = SolverTrajectory(id="build1", model_type="m5_solver_llm", split="train", provenance=provenance(), problem_kind="development",
+                                 problem={"agent": "claude_code", "request": "fix a bug"}, steps=[step])
+        write_set(self.layout, "m5_solver_llm", "trajectories/development", [build], version="v1", about="build history")
+
+    def decisions(self, reviewed):
+        from dclab_rnd.store import provider_outputs
+
+        path = self.folder / "owner_decisions.json"
+        path.write_text(json.dumps({"provider_outputs": {"for_training": True, "rights_reviewed": reviewed}}), encoding="utf-8")
+        return mock.patch.object(provider_outputs, "DECISIONS", path)
+
+    def ids(self, out):
+        return sorted(json.loads(line)["id"] for line in (out / "train.jsonl").read_text(encoding="utf-8").splitlines())
+
+    def test_a_providers_rows_are_held_until_the_rights_review_and_counted(self):
+        from dclab_rnd.store import export_chat
+
+        with self.decisions(False):
+            report = export_chat.export(self.layout, "m4_workflow_llm", "chat/mixed", "v1", self.folder / "out")
+        self.assertEqual(self.ids(self.folder / "out"), ["qwen", "unsaid"])  # Qwen: the owner's yes of 2026-11-11
+        self.assertEqual(report["held_for_rights"], {"claude": 1})
+        self.assertEqual(report["answerer_not_recorded"], 1)  # kept, and said
+
+    def test_a_claude_code_build_session_is_a_providers_output_too(self):
+        from dclab_rnd.store import export_chat
+
+        with self.decisions(False):
+            report = export_chat.export(self.layout, "m5_solver_llm", "trajectories/development", "v1", self.folder / "dev")
+        self.assertEqual(self.ids(self.folder / "dev"), [])
+        self.assertEqual(report["held_for_rights"], {"claude": 1})
+
+    def test_once_the_rights_are_reviewed_every_row_is_exported(self):
+        from dclab_rnd.store import export_chat
+
+        with self.decisions(True):
+            report = export_chat.export(self.layout, "m4_workflow_llm", "chat/mixed", "v1", self.folder / "ok")
+        self.assertEqual(self.ids(self.folder / "ok"), ["claude", "qwen", "unsaid"])
+        self.assertEqual(report["held_for_rights"], {})
 
 
 if __name__ == "__main__":

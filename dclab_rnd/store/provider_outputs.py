@@ -37,6 +37,17 @@ def for_training(path: Optional[Path] = None, decision: str = PROVIDER_OUTPUTS) 
     return _decision(path, decision).get("for_training") is True  # no record of the owner's yes: evaluation only
 
 
+def rights_reviewed(path: Optional[Path] = None, decision: str = PROVIDER_OUTPUTS) -> bool:
+    """Whether the owner recorded a review of the provider's terms (2026-11-18: not yet). Until then every training
+    export refuses the provider's outputs; the sets still keep and prepare them."""
+    return _decision(path, decision).get("rights_reviewed") is True
+
+
+def may_train(path: Optional[Path] = None, decision: str = PROVIDER_OUTPUTS) -> bool:
+    """A provider's output may enter a training run: the owner said yes AND recorded the rights review."""
+    return for_training(path, decision) and rights_reviewed(path, decision)
+
+
 def consent(path: Optional[Path] = None, decision: str = PROVIDER_OUTPUTS) -> str:
     return "train" if for_training(path, decision) else "improve"
 
@@ -78,5 +89,5 @@ def answerer_name(model: Any) -> str:
     return safe or "unknown-model"
 
 
-__all__ = ["for_training", "consent", "weight", "openrouter_qwen", "answerer_name", "DECISIONS", "PROVIDER_OUTPUTS", "OPENROUTER_QWEN",
-           "OPEN_WEIGHTS"]
+__all__ = ["for_training", "rights_reviewed", "may_train", "consent", "weight", "openrouter_qwen", "answerer_name", "DECISIONS",
+           "PROVIDER_OUTPUTS", "OPENROUTER_QWEN", "OPEN_WEIGHTS"]

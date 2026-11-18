@@ -7,7 +7,7 @@ assistant turn whose reasoning was recorded (never a visible, a rule's or a teac
 only on real thinking), tool calls in the wire shape with their arguments as objects (what Qwen's template renders), and
 ``tool_call_id`` on tool turns. A trajectory becomes the same shape: the problem as the user's turn, each step an assistant
 turn with its call and a tool turn with the whole result. ``train.jsonl`` and ``dev.jsonl`` as the set has them; a sealed
-row is never exported. A set whose manifest's consent is not ``train`` (silver_frontier) is refused. The export's
+row is never exported. A set whose manifest's consent is not ``train`` is refused, and inside a set every row written by a commercial provider's model (Claude, OpenAI, a Claude Code build session) is held back until the owner records a rights review (``provider_outputs.may_train``, the owner 2026-11-18). The export's
 MANIFEST.json carries the set's manifest, the commit and the counts. The training run itself is the owner's
 (decisions/finetune/README.md); ``template_check`` checks the export against the model's template first.
 """
@@ -30,6 +30,25 @@ SPLITS = ("train", "dev")  # a sealed row is never exported
 
 class NotForTraining(ValueError):
     """The set's manifest does not allow training on it."""
+
+
+def provider_of(row: dict[str, Any]) -> tuple[str | None, bool]:
+    """(the provider's answerer, whether the writer was recorded) for one stored row. A chat example names its model in
+    ``check``; a trajectory names its answerer, or is a Claude Code build session (``agent: claude_code``). The answerer
+    is a provider's when it is not DCLab's rules, not a local model and not the OpenRouter Qwen (``sets.llm.silver_of``)."""
+    from .sets.llm import exchange_answerer, silver_of
+
+    check = row.get("check") if isinstance(row.get("check"), dict) else {}
+    problem = row.get("problem") if isinstance(row.get("problem"), dict) else {}
+    if check.get("model"):
+        who = exchange_answerer(check)
+    elif problem.get("answerer"):
+        who = str(problem["answerer"])
+    elif problem.get("agent") == "claude_code":
+        who = "claude:claude_code"
+    else:
+        return None, False
+    return (who if silver_of(who) else None), True
 
 
 def wire_call(call: dict[str, Any], n: int) -> dict[str, Any]:
@@ -130,6 +149,11 @@ def export(layout: Layout, model_type: str, folder: str, version: str, out: Path
     out.mkdir(parents=True, exist_ok=True)
     counts: dict[str, int] = {}
     skipped: dict[str, int] = {}
+    held: dict[str, int] = {}  # a provider model's rows held back until the owner records a rights review
+    not_recorded = 0  # rows that do not say which model wrote them: kept, and counted so the owner sees them
+    from . import provider_outputs
+
+    may_train = provider_outputs.may_train()
     mismatch: dict[str, dict[str, int]] = {}  # the set's files against its manifest: said, never hidden
     calls_without_tools, longest = 0, 0
     for split in SPLITS:
@@ -142,6 +166,14 @@ def export(layout: Layout, model_type: str, folder: str, version: str, out: Path
         for row in rows:
             if row.get("split") not in SPLITS:  # a hand-edited or older set: the rule holds whatever the file says
                 skipped["a row whose split is not train or dev"] = skipped.get("a row whose split is not train or dev", 0) + 1
+                continue
+            who, recorded = provider_of(row)
+            not_recorded += 0 if recorded else 1
+            if who and not may_train:
+                kind = who.split(":", 1)[0]
+                held[kind] = held.get(kind, 0) + 1
+                skipped["a provider model's output, held until the owner records a rights review"] = (
+                    skipped.get("a provider model's output, held until the owner records a rights review", 0) + 1)
                 continue
             line, why = next(lines_of([row], folder.startswith("reasoning/final_turn")))
             if line is None:
@@ -156,7 +188,7 @@ def export(layout: Layout, model_type: str, folder: str, version: str, out: Path
         counts[split] = len(kept)
     doc = {"set": manifest, "export": {"model_type": model_type, "folder": folder, "version": version, "source": str(base),
                                       "commit": _commit(), "at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-                                      "counts": counts, "skipped": skipped, "mismatch": mismatch, "sealed": "never exported",
+                                      "counts": counts, "skipped": skipped, "held_for_rights": held, "answerer_not_recorded": not_recorded, "mismatch": mismatch, "sealed": "never exported",
                                       "lines_with_calls_but_no_tools": calls_without_tools,  # before a run: a set that kept no schemas
                                       "longest_line_chars": longest,  # against a trainer's max_seq_length, which cuts silently
                                       "shape": "tools + messages; reasoning_content on assistant turns with recorded reasoning; arguments as objects"}}

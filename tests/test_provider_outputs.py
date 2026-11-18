@@ -75,6 +75,13 @@ class ProviderOutputsTest(unittest.TestCase):
         self.assertEqual(P.answerer_name("qwen2.5-coder:1.5b"), "qwen2.5-coder-1.5b")
         self.assertEqual(P.answerer_name(""), "unknown-model")
 
+    def test_the_owners_hold_of_2026_11_18_keeps_provider_outputs_out_of_training(self):
+        from dclab_rnd.store import provider_outputs as P
+
+        self.assertTrue(P.for_training())  # kept and prepared in the sets
+        self.assertFalse(P.rights_reviewed())  # the owner has not recorded the review yet
+        self.assertFalse(P.may_train())  # so no training export uses them
+
 
 if __name__ == "__main__":
     unittest.main()
