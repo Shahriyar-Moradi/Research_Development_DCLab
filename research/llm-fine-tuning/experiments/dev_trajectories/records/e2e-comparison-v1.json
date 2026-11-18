@@ -1,0 +1,121 @@
+{
+ "package": "e2e-comparison-v1",
+ "title": "End-to-end comparison: DCLab rules, DCLab agent, and plain Qwen with locked Python on code replicas",
+ "date": "2026-11-18",
+ "request": "Measure DCLab end to end (data in and model out) against the product's model alone given a locked Python box on code-generated replicas (ticket_routing and delivery_time), scored by code on an unseen future set with leak columns blank, plus pin gate_v1 before any live call and run two dev cases capped at EUR 0.50.",
+ "spec": "dclab_rnd/agent_eval/e2e provides code-made cases (cases.py), fixed-model future scorer with time deltas (reference.py), macOS sandbox-exec Python box (sandbox.py), e2e_plain_agent prompt and model purpose with thinking stored, plain arm loop (plain.py), twin lane reader (dclab.py), code scorer (score.py), CLI runner (plan|rules|run), pinned e2e_gate_v1, and twin invented_tables marking.",
+ "plan": [
+  "E1-E3: implement cases.py, reference.py, and sandbox.py with unit tests in tests/test_e2e_comparison.py.",
+  "E4: add dclab_rnd/prompts/e2e_plain_agent.md, register e2e_plain_agent alongside exam_plain, and run make agent-eval and make harness-eval.",
+  "E5-E7: implement plain.py, dclab.py, and score.py with unit tests.",
+  "E8: add optional invented_tables marking to dclab_rnd/twin/__init__.py (_run).",
+  "E9-E10: implement e2e CLI runner, pin gate_v1.json and gate_v1.sha256, verify tests, and commit before any live call.",
+  "E11: run free rules arm on 6 dev cases (E2E-001), run 2 live dev cases on qwen/qwen3.8-flash capped at EUR 0.50 (E2E-002), check thinking capture, and run python -m dclab_rnd.archive.",
+  "E12-E13: write evidence/campaigns/e2e_v1/RESULT_dev.md, update CLAUDE.md, write this record, rebuild sft-dev, verify final tests, commit, and push main and dev."
+ ],
+ "decisions": [
+  {
+   "decision": "Code-generated replicas for cases and unseen future test set",
+   "why": "Avoids model-authored text rules and lets the future set blank post-event leak columns at prediction time."
+  },
+  {
+   "decision": "One fixed HistGradientBoosting reference scorer with pairwise datetime differences",
+   "why": "Compares each arm's feature choices rather than estimator tuning while letting decision trees use time deltas."
+  },
+  {
+   "decision": "macOS sandbox-exec locked box failing closed without network, keys, or outside writes",
+   "why": "Runs plain model Python scripts safely on the local machine."
+  },
+  {
+   "decision": "Pin gate_v1.json and gate_v1.sha256 in git before any live model call",
+   "why": "Keeps held-out seeds (101 to 104) criteria fixed before seeing dev outcomes."
+  },
+  {
+   "decision": "Register e2e_plain_agent next to exam_plain with cell_values=0 and adaptive thinking",
+   "why": "Stores plain-arm prompts, tool calls, and thinking whole while respecting model data limits."
+  }
+ ],
+ "change": "Created dclab_rnd/agent_eval/e2e (cases, reference, sandbox, plain, dclab, score, __main__, gate_v1.json, gate_v1.sha256), dclab_rnd/prompts/e2e_plain_agent.md, and tests/test_e2e_comparison.py; registered e2e_plain_agent in settings.py, harness.py, sets/llm.py, and tests/test_model_data_limits.py; added invented_tables to dclab_rnd/twin/__init__.py; updated agent_eval and harness fingerprints; ran E2E-001 (rules) and E2E-002 (live dev); archived snapshot 20261118T205250Z; wrote RESULT_dev.md, CLAUDE.md, and this record.",
+ "findings": [
+  {
+   "id": "E2E-1",
+   "source": "self",
+   "severity": "gap",
+   "defect": "ticket_routing prediction moment in multiclass.py differed from draft spec and Budget lived in conversation_exam rather than harness_ablation; test_model_data_limits also enumerates all PURPOSES.",
+   "scenario": "Preflight inspection of kinds/multiclass.py, harness_ablation/__init__.py, and test_model_data_limits.py during E1, E4, and E9.",
+   "cause": "Draft plan used an older phrasing for ticket_routing, referenced harness_ablation's re-used Budget helper, and did not list test_model_data_limits.py among purpose-enumerating test files.",
+   "fix": "Copied multiclass.py's exact moment into cases.py, imported Budget from conversation_exam in __main__.py, and added e2e_plain_agent to no_user_data in tests/test_model_data_limits.py.",
+   "test": "tests/test_e2e_comparison.py CaseTests and CommandTests; tests/test_model_data_limits.py"
+  },
+  {
+   "id": "E2E-2",
+   "source": "measurement",
+   "severity": "leakage",
+   "defect": "The blind rules arm (workflow lane without a model) kept post-event leak columns in features and predicted outside the future-set interval in all 6 dev cases.",
+   "scenario": "Running E2E-001 (6 dev cases) and E2E-002 (2 dev cases) with blind=True left solution.forbidden empty and time_column unset on delivery_time, even when data notes flagged courier_rating and resolved_by as possible post-event columns.",
+   "cause": "Without a model acting on data-audit flags or specifying the prediction moment, the rules path keeps all non-identifier columns as features and treats order_time as an identifier.",
+   "fix": "Recorded the behavior in E2E-001_rules_dev.json, E2E-002_dev.json, and RESULT_dev.md without altering DCLab per plan.",
+   "test": "E2E-001 rules run (6 of 6 leaks_kept_out=False)"
+  },
+  {
+   "id": "E2E-3",
+   "source": "measurement",
+   "severity": "gap",
+   "defect": "TwinGateway does not emit model_exchanges files counted by harness_ablation.capture.",
+   "scenario": "Running harness_ablation.capture on E2E-002 returned 48 ok plain exchanges with thinking and 0 twin model_exchanges, even with invented_tables passed to twin.run.",
+   "cause": "TwinGateway records exchanges in ai_first/transcripts/model_calls.jsonl and ai_first/transcripts/thinking.jsonl rather than gateway model_exchanges JSONL files.",
+   "fix": "Verified that all 49 ok twin calls (21 delivery_time-s11 and 28 ticket_routing-s11) kept non-empty answer.thinking in model_calls.jsonl and thinking.jsonl, and documented the distinction without editing gateway.py.",
+   "test": "E11 capture check on E2E-002 plus inspection of ai_first/transcripts/model_calls.jsonl"
+  },
+  {
+   "id": "E2E-4",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "Plain arm on delivery_time-s11 returned 32 engineered feature names rather than raw table column names, leaving only 3 raw columns scorable by reference.real_score and claiming MAE 6.5 against real 10.5572.",
+   "scenario": "finish tool call in E2E-002 listed distance, hour, te_rest, and derived terms instead of distance_km, order_time, and restaurant_id; both plain runs also wrote 5 numbers not matched verbatim in tool outputs and hit failing scripts (6/23 delivery_time, 4/23 ticket_routing).",
+   "cause": "reference.real_score intersects reported feature names with case.table.columns, and plain prose rounded or derived values relative to stdout text.",
+   "fix": "Recorded exact scores and call counts in E2E-002_dev.json and RESULT_dev.md without changing prompts or scorer.",
+   "test": "E2E-002 live run plain outcomes"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "E2E-001 free rules run on all six development cases",
+   "gate": "no gate for dev cases; e2e_gate_v1 applies to held-out seeds 101 to 104 only",
+   "fixed_before_run": false,
+   "result": "6 of 6 finished, 0 of 6 leaks_kept_out, 0 of 6 real_inside_interval, 6 of 6 holdout_uses=1. ticket_routing real macro_f1 0.2892, 0.2306, 0.3137 vs claimed 0.8935, 1.0, 0.9167; delivery_time real mae 8.8300, 9.2719, 9.6640 vs claimed 6.1163, 6.3058, 5.6439.",
+   "verdict": "not scored",
+   "cost_eur": 0.0,
+   "next": "inspect blind rules leakage clearing in a later package if owner approves",
+   "limits": [
+    "uses HistGradientBoosting reference model on reported feature columns, not the arm's own fitted estimator",
+    "development seeds only on two replica kinds"
+   ]
+  },
+  {
+   "name": "E2E-002 live three-arm comparison on two development cases (qwen/qwen3.8-flash)",
+   "gate": "e2e_gate_v1 applies only to held-out seeds 101 to 104 after owner review of dev",
+   "fixed_before_run": false,
+   "result": "Total spent EUR 0.100322 of EUR 0.5 cap, 0 cases skipped. delivery_time-s11: rules real 8.8300 vs claimed 6.7554 (leaks_kept_out=False, inside=False, EUR 0.0, 3.0s); dclab_agent real 8.9233 vs claimed 8.4609 (leaks_kept_out=True, inside=True, holdout_uses=1, EUR 0.02364, 516.0s); plain real 10.5572 vs claimed 6.5 (leaks_kept_out=True, inside=False, unsaid=5, EUR 0.022721, 589.1s). ticket_routing-s11: rules real 0.2892 vs claimed 0.8935 (leaks_kept_out=False, inside=False, EUR 0.0, 6.0s); dclab_agent real 0.3896 vs claimed 0.3870 (leaks_kept_out=True, inside=True, holdout_uses=1, EUR 0.03025, 597.0s); plain real 0.3877 vs claimed 0.43 (leaks_kept_out=True, inside=True, unsaid=5, EUR 0.023711, 800.9s). Archived snapshot 20261118T205250Z.",
+   "verdict": "not scored",
+   "cost_eur": 0.100322,
+   "next": "present RESULT_dev.md to the owner before running held-out gate seeds 101 to 104",
+   "limits": [
+    "scores raw column selections with one fixed reference model rather than each arm's fitted model",
+    "only two live development cases (delivery_time-s11 and ticket_routing-s11); no general claim"
+   ]
+  }
+ ],
+ "outcome": "Built and pinned the three-arm end-to-end comparison package, ran all 6 rules dev cases free (E2E-001) and 2 live dev cases on qwen/qwen3.8-flash for EUR 0.100322 (E2E-002), verified thinking capture across 48 plain exchanges and 49 twin calls, archived snapshot 20261118T205250Z, and wrote RESULT_dev.md without touching held-out seeds.",
+ "lessons": [
+  "Scoring choices on an unseen future set with leaks blank exposes silent leak retention in blind rule runs that otherwise pass in-table holdout checks.",
+  "When a plain Python agent engineers new feature names instead of listing source table columns, reference scorers matching raw column names penalize its feature set unless raw inputs are requested or translated."
+ ],
+ "risks": [
+  "Blind rules-only runs keep flagged leak suspects (courier_rating, resolved_by, first_response_minutes) in features today.",
+  "Held-out seeds 101 to 104 remain unrun until the owner reviews E2E-002 and RESULT_dev.md."
+ ],
+ "commits": [
+  "54238842"
+ ]
+}

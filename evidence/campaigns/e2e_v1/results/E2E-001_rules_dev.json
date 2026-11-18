@@ -1,0 +1,153 @@
+{
+ "id": "E2E-001",
+ "arms": [
+  "rules"
+ ],
+ "model": null,
+ "cases": [
+  "ticket_routing-s11",
+  "delivery_time-s11",
+  "ticket_routing-s12",
+  "delivery_time-s12",
+  "ticket_routing-s13",
+  "delivery_time-s13"
+ ],
+ "scores": [
+  {
+   "case": "ticket_routing-s11",
+   "arm": "rules",
+   "finished": true,
+   "target_right": true,
+   "metric_right": true,
+   "leaks_used": [
+    "first_response_minutes",
+    "resolved_by"
+   ],
+   "claimed": 0.8934976229162905,
+   "interval": [
+    0.7974185136989408,
+    0.9056737993974836
+   ],
+   "real": 0.28917315469145954,
+   "leaks_kept_out": false,
+   "gap": 0.6043,
+   "real_inside_interval": false,
+   "holdout_uses": 1,
+   "euros": 0.0,
+   "seconds": 70.2
+  },
+  {
+   "case": "delivery_time-s11",
+   "arm": "rules",
+   "finished": true,
+   "target_right": true,
+   "metric_right": true,
+   "leaks_used": [
+    "courier_rating"
+   ],
+   "claimed": 6.116295268694559,
+   "interval": [
+    5.679326661674182,
+    6.567479778774579
+   ],
+   "real": 8.829994170532464,
+   "leaks_kept_out": false,
+   "gap": -2.7137,
+   "real_inside_interval": false,
+   "holdout_uses": 1,
+   "euros": 0.0,
+   "seconds": 12.8
+  },
+  {
+   "case": "ticket_routing-s12",
+   "arm": "rules",
+   "finished": true,
+   "target_right": true,
+   "metric_right": true,
+   "leaks_used": [
+    "first_response_minutes",
+    "resolved_by"
+   ],
+   "claimed": 1.0,
+   "interval": [
+    0.9166666666666666,
+    1.0
+   ],
+   "real": 0.2305673758743002,
+   "leaks_kept_out": false,
+   "gap": 0.7694,
+   "real_inside_interval": false,
+   "holdout_uses": 1,
+   "euros": 0.0,
+   "seconds": 79.4
+  },
+  {
+   "case": "delivery_time-s12",
+   "arm": "rules",
+   "finished": true,
+   "target_right": true,
+   "metric_right": true,
+   "leaks_used": [
+    "courier_rating"
+   ],
+   "claimed": 6.3057959388097125,
+   "interval": [
+    5.933964909235637,
+    6.748610858662923
+   ],
+   "real": 9.271879759487046,
+   "leaks_kept_out": false,
+   "gap": -2.9661,
+   "real_inside_interval": false,
+   "holdout_uses": 1,
+   "euros": 0.0,
+   "seconds": 12.7
+  },
+  {
+   "case": "ticket_routing-s13",
+   "arm": "rules",
+   "finished": true,
+   "target_right": true,
+   "metric_right": true,
+   "leaks_used": [
+    "first_response_minutes",
+    "resolved_by"
+   ],
+   "claimed": 0.9166666666666666,
+   "interval": [
+    0.8333333333333334,
+    0.9166666666666666
+   ],
+   "real": 0.3136645909945733,
+   "leaks_kept_out": false,
+   "gap": 0.603,
+   "real_inside_interval": false,
+   "holdout_uses": 1,
+   "euros": 0.0,
+   "seconds": 72.9
+  },
+  {
+   "case": "delivery_time-s13",
+   "arm": "rules",
+   "finished": true,
+   "target_right": true,
+   "metric_right": true,
+   "leaks_used": [
+    "courier_rating"
+   ],
+   "claimed": 5.643928181330363,
+   "interval": [
+    5.211046238795916,
+    6.101070546619097
+   ],
+   "real": 9.66401748912539,
+   "leaks_kept_out": false,
+   "gap": -4.0201,
+   "real_inside_interval": false,
+   "holdout_uses": 1,
+   "euros": 0.0,
+   "seconds": 12.9
+  }
+ ],
+ "run_dir": "agent_runs/live_tests/2026-11-18-e2e-E2E-001"
+}

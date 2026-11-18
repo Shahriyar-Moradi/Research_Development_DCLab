@@ -1,0 +1,344 @@
+{
+ "id": "E2E-002",
+ "arms": [
+  "rules",
+  "dclab_agent",
+  "plain"
+ ],
+ "model": "qwen/qwen3.8-flash",
+ "cap": 0.5,
+ "spent": 0.100322,
+ "cases": [
+  "delivery_time-s11",
+  "ticket_routing-s11"
+ ],
+ "not_run": [],
+ "scores": [
+  {
+   "case": "delivery_time-s11",
+   "arm": "rules",
+   "finished": true,
+   "target_right": true,
+   "metric_right": true,
+   "leaks_used": [
+    "courier_rating"
+   ],
+   "claimed": 6.755406593640644,
+   "interval": [
+    6.266952139441172,
+    7.10084858226776
+   ],
+   "real": 8.829994170532464,
+   "leaks_kept_out": false,
+   "gap": -2.0746,
+   "real_inside_interval": false,
+   "holdout_uses": 1,
+   "euros": 0.0,
+   "seconds": 3.0
+  },
+  {
+   "case": "delivery_time-s11",
+   "arm": "dclab_agent",
+   "finished": true,
+   "target_right": true,
+   "metric_right": true,
+   "leaks_used": [],
+   "claimed": 8.460902870496113,
+   "interval": [
+    8.013594441962242,
+    9.267552373711268
+   ],
+   "real": 8.923342584220812,
+   "leaks_kept_out": true,
+   "gap": -0.4624,
+   "real_inside_interval": true,
+   "holdout_uses": 1,
+   "euros": 0.02364,
+   "seconds": 516.0
+  },
+  {
+   "case": "delivery_time-s11",
+   "arm": "plain",
+   "finished": true,
+   "target_right": true,
+   "metric_right": true,
+   "leaks_used": [],
+   "claimed": 6.5,
+   "interval": [
+    6,
+    7.2
+   ],
+   "real": 10.5572039018691,
+   "leaks_kept_out": true,
+   "gap": -4.0572,
+   "real_inside_interval": false,
+   "holdout_uses": null,
+   "numbers_nobody_gave": 5,
+   "euros": 0.022721,
+   "seconds": 589.1
+  },
+  {
+   "case": "ticket_routing-s11",
+   "arm": "rules",
+   "finished": true,
+   "target_right": true,
+   "metric_right": true,
+   "leaks_used": [
+    "first_response_minutes",
+    "resolved_by"
+   ],
+   "claimed": 0.8934976229162905,
+   "interval": [
+    0.7969010143805235,
+    0.9027635257297473
+   ],
+   "real": 0.28917315469145954,
+   "leaks_kept_out": false,
+   "gap": 0.6043,
+   "real_inside_interval": false,
+   "holdout_uses": 1,
+   "euros": 0.0,
+   "seconds": 6.0
+  },
+  {
+   "case": "ticket_routing-s11",
+   "arm": "dclab_agent",
+   "finished": true,
+   "target_right": true,
+   "metric_right": true,
+   "leaks_used": [],
+   "claimed": 0.38697927519525016,
+   "interval": [
+    0.3590965262243677,
+    0.4158132054511912
+   ],
+   "real": 0.38959781155488016,
+   "leaks_kept_out": true,
+   "gap": -0.0026,
+   "real_inside_interval": true,
+   "holdout_uses": 1,
+   "euros": 0.03025,
+   "seconds": 597.0
+  },
+  {
+   "case": "ticket_routing-s11",
+   "arm": "plain",
+   "finished": true,
+   "target_right": true,
+   "metric_right": true,
+   "leaks_used": [],
+   "claimed": 0.43,
+   "interval": [
+    0.36,
+    0.48
+   ],
+   "real": 0.38769758524437153,
+   "leaks_kept_out": true,
+   "gap": 0.0423,
+   "real_inside_interval": true,
+   "holdout_uses": null,
+   "numbers_nobody_gave": 5,
+   "euros": 0.023711,
+   "seconds": 800.9
+  }
+ ],
+ "plain_calls": {
+  "delivery_time-s11": [
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": false
+   },
+   {
+    "tool": "run_python",
+    "ok": false
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": false
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": false
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": false
+   },
+   {
+    "tool": "run_python",
+    "ok": false
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "finish",
+    "ok": true
+   }
+  ],
+  "ticket_routing-s11": [
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": false
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": false
+   },
+   {
+    "tool": "run_python",
+    "ok": false
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": true
+   },
+   {
+    "tool": "run_python",
+    "ok": false
+   },
+   {
+    "tool": "finish",
+    "ok": true
+   }
+  ]
+ },
+ "run_dir": "agent_runs/live_tests/2026-11-18-e2e-E2E-002"
+}
