@@ -248,6 +248,25 @@ class CaseHome(HomeAgent):
         saved = (draft.get("case_state") or {}).get("case")
         return C.grounded_columns(C.CaseFile.read(saved), columns) if saved and columns else []
 
+    def _stated_moment(self, draft: dict[str, Any]) -> str:
+        """The prediction moment the person stated in their own words, or "". Their newest message first, then the
+        case's kept words, then the draft's first sentence. Only a sentence that opens by saying when the prediction
+        (or the decision) is made, names a time and is not a question: never a guess from other words."""
+        saved = (draft.get("case_state") or {}).get("case")
+        texts = [str(m.get("text") or "") for m in reversed(draft.get("messages") or []) if m.get("role") == "user"]
+        texts += list(reversed(C.CaseFile.read(saved).words)) if saved else []
+        texts.append(str(draft.get("problem") or ""))
+        for text in texts:
+            for sentence in self.SENTENCES.split(text):
+                s = sentence.strip()
+                found = self.MOMENT_STATED.match(s)
+                if not found or "?" in s:
+                    continue
+                moment = s[found.end():].strip().rstrip(".!").strip()
+                if len(moment.split()) >= 3 and self.TIME_WORDS.search(moment) and not self.VAGUE_MOMENT.match(moment):
+                    return moment[:400]
+        return ""
+
     def _build(self, draft_id: str, outcome: Optional[str] = None) -> None:
         """The same build step as the button and the rules-first Home's "build it". What it still needs is asked in the chat:
         a column check as the rules-first Home asks it (``built``), the outcome column or the prediction moment as the build's
@@ -259,6 +278,13 @@ class CaseHome(HomeAgent):
             column = outcome or (candidates[0] if len(candidates) == 1 else None)
             if column:
                 self.store.update(draft_id, lambda d: d.setdefault("understanding", {}).update(target=column))
+        draft = self.store.get(draft_id)
+        if not (draft.get("understanding") or {}).get("prediction_moment") and not draft.get("build_waiting"):
+            # the owner, 2026-11-17 ("both"): a moment the person stated is used at once AND said back, so they can correct it
+            moment = self._stated_moment(draft)
+            if moment:
+                self.store.update(draft_id, lambda d: d.setdefault("understanding", {}).update(prediction_moment=moment))
+                self.say(draft_id, f"I am using the prediction moment you gave: {moment}. Tell me if that is wrong.", kind="text", by="case_agent")
         done = self.on_request(draft_id, "build", {})
         if done is None:
             return
@@ -297,6 +323,16 @@ class CaseHome(HomeAgent):
     )
     LEADING_ANSWER = re.compile(r"^\W*(?:(?:yes|yeah|yep|ok(?:ay)?|sure|no|nope|not(?: quite)?|wait|actually|sorry|rather|instead)\b\W*)*"
                                 r"(?:but\b\W*)?", re.IGNORECASE)
+    # A sentence in which the person themselves states when the prediction is made ("The prediction is made at the
+    # monthly review", "We predict when the order is placed"). Live, 2026-11-16: the person said it in the same message
+    # as "Build it", nothing carried it to the build, and Home asked for it again.
+    MOMENT_STATED = re.compile(
+        r"^\W*(?:and\s+|so\s+|also\s+)?"
+        r"(?:(?:the\s+)?(?:predictions?|forecasts?|scores?|scoring|decisions?)\s+(?:is|are|gets|get|will\s+be|should\s+be|happens?|runs?)"
+        r"(?:\s+(?:made|done|run|taken|produced|computed))?"
+        r"|we\s+(?:predict|score|forecast|decide))\s*",
+        re.IGNORECASE)
+    SENTENCES = re.compile(r"(?<=[.?!;])\s+|\n+")
 
     def _say_moment_back(self, draft_id: str, moment: str) -> None:
         moment = moment.strip()[:400]

@@ -165,6 +165,32 @@ class CaseHomeTests(unittest.TestCase):
         self.assertEqual(calls, ["build", "build", "build"])
         self.assertIsNone(draft.get("build_waiting"))
 
+    def test_a_moment_stated_with_the_build_order_is_used_at_once_and_said_back(self):
+        """Live, 2026-11-16: the person gave the moment and said "Build it" in one message, and Home asked for it again."""
+        d = self.store.create("predict which members cancel")
+        self.store.update(d["id"], lambda x: x.update(analysis={"columns": [{"name": "member_id"}, {"name": "churned", "unique": 2}]}))
+        home, calls = self._home_with_builds({"refused": "not yet", "rule": None})
+        with mock.patch.object(A, "turn", self._yes):
+            home.reply(d["id"], "The outcome column is churned. The prediction is made at the monthly review, before any outreach. Build it.")
+        draft = self.store.get(d["id"])
+        self.assertEqual(draft["understanding"]["prediction_moment"], "at the monthly review, before any outreach")
+        self.assertEqual(calls, ["build"])
+        self.assertIsNone(draft.get("build_waiting"))
+        said = [m["text"] for m in draft["messages"] if m.get("role") == "agent"]
+        self.assertTrue(any("I am using the prediction moment you gave: at the monthly review, before any outreach." in t for t in said))
+
+    def test_only_a_sentence_that_states_the_moment_is_read_as_one(self):
+        home, _ = self._home_with_builds()
+        read = lambda *texts: home._stated_moment({"messages": [{"role": "user", "text": t} for t in texts], "problem": ""})  # noqa: E731
+        self.assertEqual(read("We predict when the order is placed, before shipping."), "when the order is placed, before shipping")
+        self.assertEqual(read("The decision is made at the monthly review, before any outreach."), "at the monthly review, before any outreach")
+        self.assertEqual(read("The decision is made by the regional manager."), "")  # no time named: not a moment
+        self.assertEqual(read("Is the prediction made at signup or at renewal?"), "")  # a question states nothing
+        self.assertEqual(read("The prediction is made now."), "")  # vague
+        self.assertEqual(read("Customers leave after the first month. Build it."), "")  # a time word alone is not a stated moment
+        self.assertEqual(read("The prediction is made at signup, before payment.", "The prediction is made at renewal, before the invoice."),
+                         "at renewal, before the invoice")  # the newest message wins
+
     def test_a_question_or_a_sentence_naming_a_column_in_passing_is_never_taken_as_the_build_answer(self):
         """The review of 37.11: "What do you mean by prediction moment?" became the moment; "revenue by region" made region the outcome."""
         from dclab_rnd.agents import case_agent as A
