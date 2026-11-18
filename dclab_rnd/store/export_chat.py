@@ -151,6 +151,7 @@ def _commit() -> str | None:
 
 
 def export(layout: Layout, model_type: str, folder: str, version: str, out: Path) -> dict[str, Any]:
+    from . import writers as who_wrote
     base = layout.sets(model_type, *folder.split("/"), version)
     manifest_path = base / "MANIFEST.json"
     if not manifest_path.is_file():
@@ -181,6 +182,8 @@ def export(layout: Layout, model_type: str, folder: str, version: str, out: Path
                 continue
             who, recorded = provider_of(row)
             not_recorded += 0 if recorded else 1
+            # a row whose model is not named may still hold words written for a test (the owner, 2026-11-18: everything Claude wrote)
+            who = who or who_wrote.writer_of(row)
             if who and not may_train:
                 kind = who.split(":", 1)[0]
                 held[kind] = held.get(kind, 0) + 1

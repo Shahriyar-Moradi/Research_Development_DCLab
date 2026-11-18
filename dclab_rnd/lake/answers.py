@@ -178,6 +178,7 @@ def _lake(lake: Path) -> Iterator[dict[str, Any]]:
 
 
 def _workflow(_: Path) -> Iterator[dict[str, Any]]:
+    from ..store import writers as who_wrote
     from dclab_core.workflow_labels import QUESTIONS as ASKABLE
 
     for point_dir in sorted(p for p in WORKFLOW.iterdir() if p.is_dir()) if WORKFLOW.is_dir() else []:
@@ -203,7 +204,8 @@ def _workflow(_: Path) -> Iterator[dict[str, Any]]:
             yield {"sample_id": r["record"], "decision_point": point, "split": r.get("split") or "train", "group": r.get("group"),
                    "text": _workflow_text(point, r.get("state") or {}), "schema": {"answer": {"labels": labels, "prompt": prompt}},
                    "options": list(labels), "label": ("yes" if value is True else "no" if value is False else value),
-                   "accepted": r["label"].get("accepted"), "rule_answer": r.get("value_used"), "label_origin": "journey_truth"}
+                   "accepted": r["label"].get("accepted"), "rule_answer": r.get("value_used"), "label_origin": "journey_truth",
+                   "writer": who_wrote.set_writer(r.get("source"))}
 
 
 def _committee(_: Path) -> Iterator[dict[str, Any]]:
@@ -252,6 +254,7 @@ def _understand_spent() -> bool:
 
 
 def _journeys(_: Path) -> Iterator[dict[str, Any]]:
+    from ..store import writers as who_wrote
     families = _families()
     for path in sorted(JOURNEYS.glob("journeys_*.json")):
         name = path.stem.replace("journeys_", "")
@@ -272,7 +275,8 @@ def _journeys(_: Path) -> Iterator[dict[str, Any]]:
             split = _journey_split(name, j["id"], group)  # S8 B2: a homework person in the one split it has everywhere
             yield {"sample_id": group, "decision_point": "problem.family_from_words", "split": split, "group": group,
                    "text": str(j["words"]), "schema": schema, "options": list(families), "label": accepted if multi else accepted[0],
-                   "accepted": accepted, "rule_answer": None, "label_origin": "journey_truth", "set": name}
+                   "accepted": accepted, "rule_answer": None, "label_origin": "journey_truth", "set": name,
+                   "writer": who_wrote.set_writer(name)}
 
 
 def _selfplay(lake: Path) -> Iterator[dict[str, Any]]:
@@ -363,12 +367,13 @@ def _routing(_: Path, root: Optional[Path] = None) -> Iterator[dict[str, Any]]:
                 labels: Any = {k: v for k, v in TRACK_MEANINGS.items() if k in options} if ex.get("point") == "request.intent" else options
                 if not labels or str(ex["label"]) not in {str(k) for k in labels}:
                     continue
+                from ..store import writers as who_wrote
                 rule = next((r.get("value") for r in ex.get("readings") or [] if r.get("by") == "rule"), None)
                 yield {"sample_id": ex["id"], "decision_point": ex["point"], "split": split, "group": ex.get("split_group"),
                        "text": _routing_text(ex), "schema": {"answer": {"labels": labels, "prompt": "Which kind of help does this request need?"
                                                                         if ex.get("point") == "request.intent" else "Where does Home route it next?"}},
                        "options": options, "label": ex["label"], "accepted": None, "rule_answer": rule, "label_origin": ex["label_source"],
-                       "apart": ex["label_source"], "origin": ex.get("origin"), "language": ex.get("language")}
+                       "apart": ex["label_source"], "origin": ex.get("origin"), "language": ex.get("language"), "writer": who_wrote.writer_of(ex)}
 
 
 PROVIDERS = {"lake": _lake, "workflow": _workflow, "journeys": _journeys, "selfplay": _selfplay, "committee": _committee, "routing": _routing}
@@ -657,6 +662,7 @@ def gliner2_row(d: dict[str, Any]) -> dict[str, Any]:
 def export_gliner2(sources: tuple[str, ...] = SOURCES, lake: Path = LAKE, out: Path = EXPORT, version: str = "v1") -> dict[str, Any]:
     """Every source's labelled decisions in GLiNER2's training format, one file per source, point and split; the sealed
     decisions in files of their own (``sealed.jsonl``: evaluation, never training). Rebuilt whole."""
+    from ..store import writers as who_wrote
     root = Path(out) / version
     shutil.rmtree(root, ignore_errors=True)
     counts: dict[str, Any] = {}
@@ -666,6 +672,9 @@ def export_gliner2(sources: tuple[str, ...] = SOURCES, lake: Path = LAKE, out: P
             if d.get("label") is None or str(d["label"]) not in {str(x) for x in (list(d["schema"]["answer"]["labels"]))} \
                     and not isinstance(d["label"], (list, bool)):
                 counts.setdefault("refused", Counter())[f"{source}: a label outside its options"] += 1
+                continue
+            if who_wrote.held_writer(d.get("writer")):  # a provider wrote its words or its label: kept, never exported yet (2026-11-18)
+                counts.setdefault("held_for_rights", Counter())[f"{source}: {str(d['writer']).split(':', 1)[0]}"] += 1
                 continue
             folder = root / source / d["decision_point"] / (d["apart"] if d.get("apart") else "")  # routing: each label class apart
             files[folder / f"{d['split']}.jsonl"].append(json.dumps(gliner2_row(d), ensure_ascii=False))
@@ -680,7 +689,7 @@ def export_gliner2(sources: tuple[str, ...] = SOURCES, lake: Path = LAKE, out: P
                         "each test's own truth (construction, public datasets' marks, journeys' truth, replicas' planted facts), never from "
                         "a model's answer, except routing/<point>/silver/: Claude's reading of a real request no person confirmed, kept apart "
                         "and weighted lower (routing/<point>/real/ is a person's label, routing/<point>/written/ a writer's, an eval's or a "
-                        "script's truth)."}
+                        "script's truth). Until the owner records a rights review, a row a provider wrote (a written journey, a written or silver routing row, a journey-played workflow row) is held and counted under counts.held_for_rights."}
     root.mkdir(parents=True, exist_ok=True)
     (root / "MANIFEST.json").write_text(json.dumps(manifest, indent=1) + "\n", encoding="utf-8")
     return manifest

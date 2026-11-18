@@ -15,6 +15,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -326,6 +327,9 @@ class RoutingCollectorTest(unittest.TestCase):
     def test_claudes_label_carries_its_api_thinking_summary_as_the_answers_reasoning(self):
         """2026-10-30, the owner: "use Claude's thinking to add the reason ... exactly summarized thinking": the labeller's kept
         exchange (by its request id) gives the label its reason, never a field the reply wrote; a shadow reading, never used."""
+        reviewed = mock.patch("dclab_rnd.store.provider_outputs.may_train", return_value=True)  # the 2026-11-18 hold: this test is about after the owner's rights review
+        reviewed.start()
+        self.addCleanup(reviewed.stop)
         from dclab_rnd.store import Store
         from dclab_rnd.store.sets import routing as R
 
@@ -397,6 +401,9 @@ class RoutingCollectorTest(unittest.TestCase):
         self.assertFalse(any(t.get("sample_id") == "m7_routing:dev:dra000000005" for t in tests))  # an exam's request never leaves
 
     def test_the_chat_and_table_exports_keep_each_class_apart_and_never_an_exam(self):
+        reviewed = mock.patch("dclab_rnd.store.provider_outputs.may_train", return_value=True)  # the 2026-11-18 hold: this test is about after the owner's rights review
+        reviewed.start()
+        self.addCleanup(reviewed.stop)
         import csv
 
         from dclab_rnd.store.sets import routing
@@ -416,6 +423,29 @@ class RoutingCollectorTest(unittest.TestCase):
         self.assertTrue(any(r["id"] == "m7_routing:written:IR1-busi-002" and r["language"] == "fa" for r in table))
         self.assertNotIn(EXAM_TEXT, (root / "table.csv").read_text(encoding="utf-8"))
         self.assertGreaterEqual(manifest["skipped"].get("an exam's request", 0), 1)
+
+    def test_the_export_holds_every_row_a_provider_wrote_and_every_providers_thinking(self):
+        """The owner, 2026-11-18: everything Claude wrote waits for the rights review. The written requests and a model's
+        label are skipped and counted; a person's label stays, without a provider's thinking as its reason."""
+        import csv
+        from unittest import mock
+
+        from dclab_rnd.store.sets import routing
+
+        self.build()
+        out = self.tmp / "held"
+        with mock.patch("dclab_rnd.store.provider_outputs.may_train", return_value=False):
+            manifest = routing.export(self.layout, out=out)
+        root = out / "v1"
+        chats = [json.loads(line) for p in (root / "chat").rglob("*.jsonl") for line in p.read_text(encoding="utf-8").splitlines()]
+        self.assertFalse({p.parent.name for p in (root / "chat").rglob("*.jsonl")} & {"written", "silver"})
+        self.assertTrue(any(k.startswith("held until the owner's rights review") for k in manifest["skipped"]))
+        r1 = next(c for c in chats if c["id"] == "m7_routing:dev:dra000000001")  # a person's label: kept
+        self.assertNotEqual(r1["messages"][2].get("reasoning_source"), "recorded")  # the model's thinking is not its reason
+        with (root / "table.csv").open(encoding="utf-8") as fh:
+            table = list(csv.DictReader(fh))
+        self.assertFalse(any(r["id"] == "m7_routing:written:IR1-busi-002" for r in table))
+        self.assertTrue(all(not r["model_thinking"] for r in table))
 
     def test_the_keepers_sources_are_not_placed_as_code_judged_by_a_test(self):
         from dclab_core.store import Provenance, StoreRecord

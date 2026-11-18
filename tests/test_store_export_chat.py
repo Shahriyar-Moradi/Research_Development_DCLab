@@ -303,6 +303,21 @@ class ProviderGateTests(unittest.TestCase):
         self.assertEqual(report["held_for_rights"], {"frontier": 1})
         self.assertEqual(report["answerer_not_recorded"], 2)
 
+    def test_a_rules_conversation_from_a_test_workspace_is_held_because_its_person_was_written(self):
+        """The owner, 2026-11-18: everything Claude wrote is held, also a test person's words. A row with no model from a
+        test workspace (live_tests__...) holds such words; the same row from the owner's own workspace does not."""
+        from dclab_rnd.store import export_chat
+        from dclab_rnd.store.sets import write_set
+
+        test_ws = provenance().model_copy(update={"workspace": "live_tests__2026-10-30-journeys"})
+        rows = [chat("tested", "train").model_copy(update={"provenance": test_ws, "check": {"answerer": "rules"}}),
+                chat("owners", "train").model_copy(update={"check": {"answerer": "rules"}})]
+        write_set(self.layout, "m4_workflow_llm", "chat/tested", rows, version="v1", about="a test's conversation and the owner's")
+        with self.decisions(False):
+            report = export_chat.export(self.layout, "m4_workflow_llm", "chat/tested", "v1", self.folder / "tested")
+        self.assertEqual(self.ids(self.folder / "tested"), ["owners"])
+        self.assertEqual(report["held_for_rights"], {"claude": 1})
+
 
 if __name__ == "__main__":
     unittest.main()

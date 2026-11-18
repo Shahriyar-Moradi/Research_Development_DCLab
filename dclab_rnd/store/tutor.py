@@ -21,6 +21,7 @@ CONFIRMED = ("person", "measured", "benchmark", "blind")
 
 
 def _rows(path: Any) -> list[dict[str, Any]]:
+    from . import writers as who_wrote
     if not path.exists():
         return []
     rows = []
@@ -31,7 +32,7 @@ def _rows(path: Any) -> list[dict[str, Any]]:
         rule = next((a.get("value") for a in ex.get("answers") or [] if a.get("by") == "rule"), None)
         rows.append({"record": ex["id"], "point": ex["point"], "state": ex.get("state") or {}, "options": ex.get("options") or [], "group": group,
                      "split": ex.get("split"), "value_used": rule, "label": {"value": ex.get("label"), "source": ex.get("label_source")} if ex.get("label") is not None else None,
-                     "weight": ex.get("weight", 1.0)})
+                     "weight": ex.get("weight", 1.0), "held": who_wrote.held(ex)})
     return rows
 
 
@@ -51,11 +52,17 @@ def teach(layout: Optional[Layout] = None, run: Optional[str] = None) -> dict[st
     with harness.session("tutor", run_id=run) as session:
         for folder in sorted(p for p in base.iterdir() if p.is_dir()) if base.exists() else []:
             point = folder.name
-            labelled = [r for r in _rows(folder / "v1" / "train.jsonl") if r["label"]]
+            rows = _rows(folder / "v1" / "train.jsonl")
+            # a label a provider's model gave (a teacher's) stays out until the owner's rights review (2026-11-18)
+            held = sum(1 for r in rows if r["label"] and r["held"])
+            if held:
+                report.setdefault("held_for_rights", {})[point] = held
+            labelled = [r for r in rows if r["label"] and not r["held"]]
             confirmed = [r for r in labelled if (r["label"] or {}).get("source") in CONFIRMED]
             train_rows = confirmed if len(confirmed) >= MIN_TRAIN else labelled  # silver only when confirmed labels are too few (said)
             silver = len(train_rows) - len([r for r in train_rows if (r["label"] or {}).get("source") in CONFIRMED])
-            dev_rows = [r for r in _rows(folder / "v1" / "dev.jsonl") if r["label"] and (r["label"] or {}).get("source") in CONFIRMED]  # measured on confirmed only
+            dev_rows = [r for r in _rows(folder / "v1" / "dev.jsonl") if r["label"] and not r["held"]
+                        and (r["label"] or {}).get("source") in CONFIRMED]  # measured on confirmed only
             groups = len({r["group"] for r in train_rows})
             if len(train_rows) < MIN_TRAIN or len(dev_rows) < MIN_DEV or groups < MIN_GROUPS:
                 report["waiting"][point] = {"train": len(train_rows), "dev": len(dev_rows), "groups": groups,

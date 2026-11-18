@@ -183,5 +183,29 @@ class CaptureTests(unittest.TestCase):
         self.assertEqual(schema["answer"]["labels"], ["yes", "no"])
 
 
+class HeldForRightsTests(unittest.TestCase):
+    """The owner, 2026-11-18: a written journey, a written or silver routing row and a journey-played workflow row are
+    Claude's; the GLiNER2 export holds them and counts them until the rights review."""
+
+    def test_a_held_writers_rows_are_counted_and_never_written(self):
+        import tempfile
+        from collections import Counter
+        from unittest import mock
+
+        from dclab_rnd.lake import answers
+
+        base = {"decision_point": "problem.family_from_words", "split": "train", "group": "g", "schema": {"answer": {"labels": ["a", "b"], "prompt": "Which?"}},
+                "options": ["a", "b"], "label": "a", "accepted": ["a"], "rule_answer": None, "label_origin": "journey_truth"}
+        rows = [{**base, "sample_id": "s1", "text": "written by claude", "writer": "claude:claude_code"},
+                {**base, "sample_id": "s2", "text": "made by code", "writer": None}]
+        out = Path(tempfile.mkdtemp())
+        with mock.patch.dict(answers.PROVIDERS, {"fake": lambda _lake: iter(rows)}), \
+                mock.patch("dclab_rnd.store.provider_outputs.may_train", return_value=False):
+            manifest = answers.export_gliner2(sources=("fake",), out=out)
+        written = [json.loads(line) for p in out.rglob("train.jsonl") for line in p.read_text(encoding="utf-8").splitlines()]
+        self.assertEqual([w["input"] for w in written], ["made by code"])
+        self.assertEqual(manifest["counts"]["held_for_rights"], {"fake: claude": 1})
+
+
 if __name__ == "__main__":
     unittest.main()

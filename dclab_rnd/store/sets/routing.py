@@ -731,8 +731,11 @@ def chat_row(ex: dict[str, Any]) -> dict[str, Any]:
     said = "; ".join(f"{k}: {v}" for k, v in sorted((ex.get("state") or {}).items()) if v is not None)
     user = str(ex.get("text") or "") + (f"\n[{said}]" if said and ex.get("point") != "request.intent" else "")
     giver = str(ex.get("label_by") or "").rsplit(":", 1)[-1]  # the reason is the label giver's own thinking when it kept one
+    from .. import writers as who_wrote
+
     same = [r for r in ex.get("readings") or [] if r.get("by") == "model" and r.get("value") == ex.get("label") and r.get("thinking")
-            and not (r.get("answerer") == LABELLER and ex.get("point") in NOT_LABELS)]  # the review: never its reasoning either
+            and not (r.get("answerer") == LABELLER and ex.get("point") in NOT_LABELS)  # the review: never its reasoning either
+            and not who_wrote.reading_held(r)]  # a provider's thinking waits for the owner's rights review (2026-11-18)
     reading = next((r for r in same if r.get("answerer") == giver), None) or next(iter(same), None)
     answer = {"role": "assistant", "content": str(ex["label"])}
     answer.update({"reasoning": reading["thinking"], "reasoning_source": "recorded"} if reading else
@@ -750,6 +753,7 @@ def export(layout: Optional[Layout] = None, out: Optional[Path] = None, version:
     """The m7_routing sets as chat JSONL (``chat/<point>/<class>/<split>.jsonl``, each label class apart) and as one table
     (``table.csv``, every row with its words, its readings by answerer and its label class). An exam's request is never written
     here; a sealed row only in a sealed file. Rebuilt whole."""
+    from .. import writers as who_wrote
     import csv
     import shutil
 
@@ -768,9 +772,15 @@ def export(layout: Optional[Layout] = None, out: Optional[Path] = None, version:
         if not ex.get("text"):
             skipped["no words (no consent, or shape only)"] += 1
             continue
+        who = who_wrote.writer_of(ex)
+        if who and not who_wrote.may_train():  # a provider wrote its label or its words: kept in the store, never exported yet
+            skipped[f"held until the owner's rights review: {who.split(':', 1)[0]}"] += 1
+            continue
         readings = ex.get("readings") or []
         first = lambda by: next((r for r in readings if r.get("by") == by and r.get("answerer") != LABELLER), {})  # noqa: E731
         model = first("model")
+        if who_wrote.reading_held(model):
+            model = {}  # a provider's answer and thinking stay out of the table too
         table.append({"id": ex["id"], "split": split, "point": ex.get("point"), "origin": ex.get("origin"), "language": ex.get("language"),
                       "text": ex["text"], "label": ex.get("label"), "label_source": ex.get("label_source"), "label_by": ex.get("label_by"),
                       "weight": ex.get("weight"), "value_used": ex.get("value_used"), "used_by": ex.get("used_by"), "outcome": ex.get("outcome"),
@@ -791,7 +801,7 @@ def export(layout: Optional[Layout] = None, out: Optional[Path] = None, version:
                 "rule": "train may train, dev validates, sealed is evaluation only. Label classes stay apart: real (a person's), written (a "
                         "writer's, an eval's or a script's truth, weight 0.5), silver (Claude's reading of an unconfirmed real request, "
                         "weight 0.5). A reasoning is an API thinking summary (recorded), never written afterwards. An exam's request is "
-                        "never here."}
+                        "never here. Until the owner records a rights review, a row a provider wrote (its label or its words) is skipped and counted, and a provider's reading is never a reason or a table column."}
     (root / "MANIFEST.json").write_text(json.dumps(manifest, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
     return manifest
 

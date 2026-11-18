@@ -74,6 +74,24 @@ class TutorTest(unittest.TestCase):
         steps = [e for e in self.log.read() if e.kind == "agent.step" and e.ids.run == "tutor-1"]
         self.assertTrue(any(str(e.payload.get("tool")).startswith("teach:") for e in steps))
 
+    def test_a_teachers_label_never_trains_a_student_until_the_rights_review(self):
+        """The owner, 2026-11-18: a teacher's label is Claude's (decision_labeler). With too few confirmed labels the tutor
+        used to fall back to it; now it is held and counted, and the point waits."""
+        from unittest import mock
+
+        from dclab_rnd.store import tutor
+
+        base = self.layout.sets("m1_students", "column.is_identifier", "v1")
+        for split in ("train", "dev"):
+            path = base / f"{split}.jsonl"
+            rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
+            path.write_text("".join(json.dumps({**r, "label_source": "teacher"}) + "\n" for r in rows), encoding="utf-8")
+        with mock.patch("dclab_rnd.store.provider_outputs.may_train", return_value=False):
+            report = tutor.teach(self.layout, run="tutor-held")
+        self.assertNotIn("column.is_identifier", report["students"])
+        self.assertIn("column.is_identifier", report["waiting"])
+        self.assertGreater(report["held_for_rights"]["column.is_identifier"], 0)
+
 
 if __name__ == "__main__":
     unittest.main()
