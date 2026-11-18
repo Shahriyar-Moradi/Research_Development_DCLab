@@ -110,7 +110,15 @@ def _plan_first(s: Any, session_id: str) -> None:
         except Exception:  # noqa: BLE001 - no switch to read: the rules plan
             use_model = False
         if use_model:  # with no model the rules' plan was made at the build, in the request
-            task_path.plan_project(s.projects, project_id, gateway=s.gateway, use_model=True)
+            result = task_path.plan_project(s.projects, project_id, gateway=s.gateway, use_model=True)
+            if result.get("status") == "planned" and result.get("routed_to") == "model":
+                # the build message was written from the rules' plan: the chat is told what the model's plan changed
+                project = s.projects.get(project_id)
+                draft_id = (project.get("draft") or {}).get("id")
+                work = getattr(s, "draft_work", None)
+                text = task_path.says_update(project)
+                if draft_id and work is not None and text:
+                    work.agent(draft_id).say(draft_id, text)
     except Exception:  # noqa: BLE001
         pass
     checkpoint()  # a person's Stop between the plan and the first stage is obeyed

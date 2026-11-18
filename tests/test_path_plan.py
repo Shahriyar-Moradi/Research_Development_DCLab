@@ -338,6 +338,42 @@ class JobTests(Case):
         handlers._intern_run(services, {"session_id": "s1", "action": "run", "plan_first": True})  # Home's build
         self.assertIn(LEAK, self.kept_out(pid))
 
+    def test_the_models_plan_is_said_in_the_chat_so_the_build_message_is_not_left_wrong(self):
+        """Live, 2026-11-16: the build message said "1 open question"; the model's plan replaced the rules' and had none."""
+        from dclab_rnd.jobs import handlers
+
+        pid = home_project(self.store)
+        P.plan_project(self.store, pid)  # the rules' plan, as Home's build makes it
+        project = self.store.get(pid)
+        project["draft"] = {"id": "d1"}
+        self.store.save(project)
+        answer = model_answer([{"task_type": "leakage_probe", "params": {"table": "customers", "column": LEAK}, "purpose": "Recorded after the outcome"}],
+                              [f"post_outcome_{LEAK}"])
+        said = []
+        services = self.services(pid)
+        services.gateway = Gateway(Planner(answer))
+        services.draft_work = SimpleNamespace(agent=lambda draft_id: SimpleNamespace(say=lambda d, text, **k: said.append((d, text))))
+        handlers._plan_first(services, "s1")
+        self.assertEqual(P.stored(self.store.get(pid))["routed_to"], "model")
+        self.assertEqual(len(said), 1)
+        self.assertEqual(said[0][0], "d1")
+        self.assertIn("the model refined the plan: 1 sub-problem(s), 1 step(s)", said[0][1])
+        self.assertIn("no open question for you; this replaces the count in my earlier message", said[0][1])
+        handlers._plan_first(services, "s1")  # the model's plan is kept: nothing is said twice
+        self.assertEqual(len(said), 1)
+
+    def test_nothing_is_said_when_the_rules_plan_stands_or_there_is_no_chat(self):
+        from dclab_rnd.jobs import handlers
+
+        pid = home_project(self.store)
+        said = []
+        services = self.services(pid)  # its model cannot plan: the rules' plan stands
+        services.draft_work = SimpleNamespace(agent=lambda draft_id: SimpleNamespace(say=lambda d, text, **k: said.append(text)))
+        handlers._plan_first(services, "s1")
+        self.assertEqual(said, [])
+        self.assertIsNone(P.says_update(self.store.get(pid)))
+        handlers._plan_first(self.services(pid), "s1")  # a services object with no chat at all: no error
+
     def test_the_build_message_says_what_the_plan_did(self):
         source = (ROOT / "dclab_rnd" / "draft" / "chat.py").read_text(encoding="utf-8")
         self.assertIn('if done.get("plan_note"):', source)

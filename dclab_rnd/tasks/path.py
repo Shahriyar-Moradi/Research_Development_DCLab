@@ -214,4 +214,18 @@ def says(result: dict[str, Any]) -> Optional[str]:
     return " ".join(parts) or None
 
 
-__all__ = ["KEY", "began", "plan_project", "plannable", "says", "stored"]
+def says_update(project: dict[str, Any]) -> Optional[str]:
+    """What to tell the person when the model's plan replaced the rules' plan before the first stage. Live, 2026-11-16:
+    the build message said "1 open question", the model's plan had none, and the chat was never corrected."""
+    plan = stored(project)
+    if plan is None or plan.get("routed_to") != "model":
+        return None
+    legs = (plan.get("path") or {}).get("legs") or []
+    steps = sum(len(leg.get("steps") or []) for leg in legs)
+    asks = (plan.get("enforcement") or {}).get("asked") or []
+    return (f"Before the first stage, the model refined the plan: {len(legs)} sub-problem(s), {steps} step(s). "
+            + (f"It has {len(asks)} open question(s) for you on the project's page; this replaces the count in my earlier message."
+               if asks else "It has no open question for you; this replaces the count in my earlier message."))
+
+
+__all__ = ["KEY", "began", "plan_project", "plannable", "says", "says_update", "stored"]
