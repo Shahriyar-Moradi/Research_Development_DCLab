@@ -1,0 +1,78 @@
+{
+ "package": "training-rules-home-answerer",
+ "title": "Home conversations record which model wrote them so training exports hold provider answers",
+ "date": "2026-11-18",
+ "request": "Close the training-export gap where Home conversations named no model in check, causing 1,276 rows in m4_workflow_llm/understand_problem/v2 to bypass the commercial provider hold as answerer_not_recorded.",
+ "spec": "home_models() aggregates ok non-shadow conversational model requests per (workspace, draft id), preferring exchange records with provider and source_class. home_answerer() writes check['answerer'] (single, mixed sorted with most restrictive model first, frontier:unknown when draft shows model signs with no captured requests, or rules with no model key). llm.from_draft() and llm.build() populate these fields, and export_chat.provider_of() reads check['answerer'] before check['model'].",
+ "plan": [
+  "G1: add NOT_IN_CONVERSATION, MODEL_QUESTION_SOURCES, home_models, _model_signs, _rank, and home_answerer in dclab_rnd/store/sets/llm.py.",
+  "G2: extend llm.from_draft() to accept models and update check via home_answerer(), and build models in llm.build().",
+  "G3: update provider_of() in dclab_rnd/store/export_chat.py to read check.get('answerer') before check.get('model').",
+  "G4: add 7 unit tests in tests/test_home_answerer.py and 1 end-to-end test in tests/test_store_sets_llm.py, then run the 8-file suite.",
+  "G5: check disk and memory, record understand_problem v2 export counts before, rebuild M4/M5 sets via llm.build(), measure export and Home counts after, verify exams clean, and check data_catalog.",
+  "G6: record this package, rebuild sft-dev, re-run the 8-file suite, commit all package files, push main and dev, and report results."
+ ],
+ "decisions": [
+  {
+   "decision": "Write rules attribution in check['answerer'] only and never write 'rules' into check['model'].",
+   "why": "exchange_answerer reads any check['model'] without provider/source_class as a hosted commercial model (frontier:rules)."
+  },
+  {
+   "decision": "Prefer the most restrictive answerer when a draft mixes multiple models (provider > OpenRouter Qwen > rules) and join them under mixed:...",
+   "why": "Guarantees silver_of treats mixed conversations as held until rights review and causes reasoning set builders reading check['model'] to file mixed rows under the provider set."
+  },
+  {
+   "decision": "Classify drafts that show model signs without captured model requests as frontier:unknown.",
+   "why": "Older live_tests workspaces lack captured exchanges for model-run turns; holding them errs on the safe side under the owner's rule."
+  }
+ ],
+ "change": "Modified dclab_rnd/store/sets/llm.py (home_models, _model_signs, _rank, home_answerer, from_draft, build) and dclab_rnd/store/export_chat.py (provider_of), added tests/test_home_answerer.py (7 tests) and an end-to-end test in tests/test_store_sets_llm.py, rebuilt M4/M5 sets in the store, and added this dev trajectory record.",
+ "findings": [
+  {
+   "id": "HA-1",
+   "source": "measurement",
+   "severity": "gap",
+   "defect": "Home conversations named no model, so the training export could not hold a provider's answers.",
+   "scenario": "Exporting m4_workflow_llm/understand_problem/v2 counted 1,276 Home rows as answerer_not_recorded and exported them, including 250 written by Claude (32) or another hosted model (218).",
+   "cause": "from_draft() in dclab_rnd/store/sets/llm.py never read the model requests logged or exchanged for the draft.",
+   "fix": "Added home_models() and home_answerer() in dclab_rnd/store/sets/llm.py, wired them into from_draft() and build(), and updated provider_of() in dclab_rnd/store/export_chat.py to read check['answerer'] first.",
+   "test": "tests/test_home_answerer.py (test_a_claude_request_for_the_draft_names_claude, test_the_log_and_the_exchange_of_one_qwen_request_are_one_answerer, test_claude_and_qwen_on_one_draft_are_mixed_and_claude_is_its_model, test_requests_that_wrote_no_turn_do_not_count, test_a_draft_that_shows_a_model_ran_without_its_requests_is_an_unknown_model, test_a_rules_conversation_is_the_rules_and_never_a_model_called_rules, test_the_export_holds_claude_and_the_unknown_model_and_keeps_qwen_and_the_rules); tests/test_store_sets_llm.py test_a_home_conversation_says_who_wrote_it_and_the_export_holds_claudes"
+  },
+  {
+   "id": "HA-2",
+   "source": "self",
+   "severity": "gap",
+   "defect": "Many model-run Home conversations have no captured model request at all in the store.",
+   "scenario": "Drafts from live_tests workspaces recorded agent.mode == 'model', case_state, turns by model or case_agent, or critic/advisory questions without corresponding model_requests records.",
+   "cause": "Earlier live_tests runs did not capture model request exchanges alongside their draft files.",
+   "fix": "Added _model_signs() inside home_answerer() to classify drafts showing model activity without captured requests as frontier:unknown (held out of training on the safe side).",
+   "test": "tests/test_home_answerer.py test_a_draft_that_shows_a_model_ran_without_its_requests_is_an_unknown_model"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "The real export of understand_problem v2 before and after the rebuild",
+   "gate": "none: real export counts before and after rebuilding M4/M5 sets",
+   "fixed_before_run": false,
+   "result": "Before rebuild: 1432 train and 466 dev exported, held_for_rights claude 2416 (2416 skipped), answerer_not_recorded 1276. After rebuild (546s): 1254 train and 394 dev exported, held_for_rights claude 2448 and frontier 218 (2666 skipped), answerer_not_recorded 0. Home conversation rows in understand_problem v2 (train and dev): rules 1020, frontier 218, claude 32, openrouter 6, NONE 0.",
+   "verdict": "not scored",
+   "cost_eur": 0.0,
+   "next": "keep held provider rows prepared until the owner sets rights_reviewed: true",
+   "limits": [
+    "old set version understand_problem/v1 is never rebuilt and keeps answerer_not_recorded",
+    "requests without a draft id cannot be joined by draft lookup and rely on _model_signs"
+   ]
+  }
+ ],
+ "outcome": "Home conversations now record check['answerer'] across the store, reducing answerer_not_recorded in understand_problem v2 from 1,276 to 0, holding all 250 commercial/frontier Home rows (32 claude, 218 frontier), and keeping all 1,020 rules rows and 6 openrouter Qwen rows.",
+ "lessons": [
+  "Never treat a missing model field on a composite conversation object as proof that code rules wrote it; fall back to structural model-run signs before attributing rules.",
+  "Keep check['model'] reserved strictly for real model identifiers because exchange_answerer classifies any bare name without provider metadata as a hosted frontier model."
+ ],
+ "risks": [
+  "A request with outcome ok may not have reached a turn, so a few rows may be held that need not be.",
+  "Requests with no draft id cannot be joined.",
+  "understand_problem/v1 (291 old rows) is never rebuilt."
+ ],
+ "commits": []
+}

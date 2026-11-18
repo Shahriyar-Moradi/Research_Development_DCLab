@@ -170,6 +170,40 @@ class LlmSetsTest(unittest.TestCase):
         critic = {**q, "source": "critic"}
         self.assertIn("no_reasoning", llm.home_turn(turn, {"q1": critic}, {}, "2026-10-20"))
 
+    def test_a_home_conversation_says_who_wrote_it_and_the_export_holds_claudes(self):
+        """2026-11-18: 1,276 Home rows named no model, so the training export could not hold Claude's. The draft's own
+        requests now name it, through the store's whole path: kept log, shaped records, the set, the export."""
+        from dclab_core.store import ChatExample
+        from dclab_rnd.store import Store, curators, export_chat, provider_outputs, shapers
+        from dclab_rnd.store.sets import llm
+
+        store = Store(self.layout)
+        asked = {"at": "2026-11-10T10:00:00+00:00", "model_request": "mr20", "purpose": "home_agent", "outcome": "ok", "whole": True,
+                 "model": "claude-sonnet-5-5", "draft": "d3", "messages": [{"role": "user", "content": "Churn next month?"}],
+                 "reply": "When is it predicted?", "thinking": []}
+        refused = {**asked, "model_request": "mr21", "model": "qwen/qwen3.8-flash", "outcome": "the provider refused the key"}
+        store.keep_log("model_requests", "dev", "model_exchanges/2026/11/10.jsonl",
+                       (json.dumps(asked) + "\n" + json.dumps(refused) + "\n").encode(), consent="train")
+        d3 = {"id": "d3", "created": "2026-11-10T09:00:00+00:00", "intent": {"track": "analysis"},
+              "messages": [{"role": "user", "text": "Churn next month?"}, {"role": "agent", "by": "model", "text": "When is it predicted?"}]}
+        store.keep("conversations", "dev", "drafts/d3/draft.json", json.dumps(d3).encode(), consent="train")
+        shapers.shape(self.layout)
+        curators.curate(self.layout, run="r3")
+        with mock.patch.object(llm, "BENCHMARKS", self.benchmarks):
+            llm.build(self.layout)
+        convo = next(ChatExample.model_validate(e) for e in self.examples("m4_workflow_llm", "home_analysis", "v1")
+                     if e["provenance"]["draft"] == "d3")
+        self.assertEqual((convo.check["answerer"], convo.check["model"]), ("claude:claude-sonnet-5-5", "claude-sonnet-5-5"))
+        rules = next(ChatExample.model_validate(e) for e in self.examples("m4_workflow_llm", "understand_problem", "v2")
+                     if e["provenance"]["draft"] == "d1")  # setUp's draft: no request, no sign of a model
+        self.assertEqual(rules.check["answerer"], "rules")
+        decisions = Path(tempfile.mkdtemp()) / "owner_decisions.json"
+        decisions.write_text(json.dumps({"provider_outputs": {"for_training": True, "rights_reviewed": False}}), encoding="utf-8")
+        with mock.patch.object(provider_outputs, "DECISIONS", decisions):
+            report = export_chat.export(self.layout, "m4_workflow_llm", "home_analysis", "v1", Path(tempfile.mkdtemp()) / "out")
+        self.assertEqual(report["held_for_rights"].get("claude"), 1)
+        self.assertEqual(report["answerer_not_recorded"], 0)
+
     def test_case_records_are_streamed_not_listed(self):
         """2026-11-01: a list of every tests, conversations and other record filled the 8 GB Mac's disk with swap during the
         store's whole run; the builder hands cases.from_records a one-pass iterator instead."""

@@ -313,6 +313,65 @@ def home_thinking(sessions: Iterable[StoreRecord], exchanges: Iterable[StoreReco
     return out
 
 
+# Purposes whose words never reach a Home conversation: a label or a judge's verdict written afterwards, or a vector
+NOT_IN_CONVERSATION = frozenset({"routing_labeler", "exam_judge", "embedding"})
+MODEL_QUESTION_SOURCES = ("critic", "advisory", "second_opinion")  # a question a model asked, not the rules
+
+
+def home_models(requests: Iterable[StoreRecord]) -> dict[tuple[str, str], dict[str, dict[str, str]]]:
+    """(workspace, draft id) -> {answerer: its model, provider and source class} for every model that answered for that
+    draft. Only a request that returned text counts (outcome ok), and never a shadow's. The same request is kept twice (in
+    the request log and in its exchange, only the exchange naming the provider), so it is keyed by its answerer and the copy
+    that names a provider wins."""
+    out: dict[tuple[str, str], dict[str, dict[str, str]]] = defaultdict(dict)
+    for r in requests:
+        b = r.body
+        draft = b.get("draft") or b.get("draft_id")
+        model = str(b.get("model") or "").strip()
+        if not draft or not model or b.get("outcome") != "ok" or b.get("shadow") or b.get("purpose") in NOT_IN_CONVERSATION:
+            continue
+        found = {"model": model, "provider": str(b.get("provider") or ""), "source_class": str(b.get("source_class") or "")}
+        who = exchange_answerer(found)
+        kept = out[(r.provenance.workspace, str(draft))]
+        if who not in kept or (found["provider"] and not kept[who]["provider"]):
+            kept[who] = found
+    return dict(out)
+
+
+def _model_signs(b: dict[str, Any]) -> bool:
+    """The draft itself shows a model wrote some of it: the model ran the conversation, a turn says a model or the lead
+    agent wrote it, the lead agent kept its state, or a model's critic or advisor asked a question."""
+    if ((b.get("agent") or {}).get("mode")) == "model" or b.get("case_state"):
+        return True
+    for m in b.get("messages") or []:
+        if isinstance(m, dict) and (m.get("by") in ("model", "case_agent")
+                                    or ((m.get("question") or {}).get("source")) in MODEL_QUESTION_SOURCES):
+            return True
+    return any(isinstance(q, dict) and q.get("source") in MODEL_QUESTION_SOURCES for q in b.get("questions") or [])
+
+
+def _rank(answerer: str) -> int:
+    """The most restrictive answerer first: a provider's model, then the OpenRouter Qwen, then DCLab's own."""
+    return 0 if silver_of(answerer) else 1 if open_weights(answerer) else 2
+
+
+def home_answerer(b: dict[str, Any], found: dict[str, dict[str, str]]) -> dict[str, Any]:
+    """Who wrote a Home conversation, for its check. With recorded requests: every answerer, and the most restrictive one's
+    model as ``model`` (so ``exchange_answerer`` and the reasoning sets read it as before). With none: a model's signs make it
+    an unknown hosted model (held, the safe side); no sign makes it DCLab's rules."""
+    if found:
+        names = sorted(found, key=lambda a: (_rank(a), a))
+        top = found[names[0]]
+        out: dict[str, Any] = {"answerer": names[0] if len(names) == 1 else "mixed:" + "+".join(sorted(names)),
+                               "models": sorted(names), "model": top["model"],
+                               "answerer_basis": "the model requests recorded for this draft"}
+        out.update({k: top[k] for k in ("provider", "source_class") if top[k]})
+        return out
+    if _model_signs(b):
+        return {"answerer": "frontier:unknown", "answerer_basis": "a model wrote turns here and its requests were not captured"}
+    return {"answerer": "rules", "answerer_basis": "no model request recorded for this draft and no turn says a model wrote it"}
+
+
 def home_turn(m: dict[str, Any], questions: dict[str, dict[str, Any]], thinking: dict[str, str], at: str, model_mode: bool = False) -> dict[str, Any]:
     """An agent turn's reasoning, each with its source (never mixed): the model's own thinking where it was kept
     (``recorded``); the rules' own stated reason where code wrote the turn (``from_record``: a question's field and why it
@@ -343,9 +402,11 @@ def home_turn(m: dict[str, Any], questions: dict[str, dict[str, Any]], thinking:
     return {"no_reasoning": f"{_lost_or(when, 'not kept')}: who wrote this turn (a model or the rules) was not recorded"}
 
 
-def from_draft(record: StoreRecord, thinking: Optional[dict[str, str]] = None) -> Optional[ChatExample]:
+def from_draft(record: StoreRecord, thinking: Optional[dict[str, str]] = None,
+               models: Optional[dict[tuple[str, str], dict[str, dict[str, str]]]] = None) -> Optional[ChatExample]:
     """A Home conversation (a draft's newest version) as an M4 example, every agent turn with its reasoning and its source
-    (``home_turn``), filed under its kind of help's stage (the intent's track; a draft from before H2 is a prediction)."""
+    (``home_turn``), filed under its kind of help's stage (the intent's track; a draft from before H2 is a prediction).
+    Its check says who wrote it (home_answerer), so the training export can hold a provider's conversation."""
     b = record.body
     turns = [m for m in b.get("messages") or [] if isinstance(m, dict) and (m.get("text") or m.get("content"))]
     if len(turns) < 2:
@@ -359,6 +420,8 @@ def from_draft(record: StoreRecord, thinking: Optional[dict[str, str]] = None) -
     group = f"project:{b['project_id']}" if b.get("project_id") else f"draft:{b.get('id')}"
     track = str(((b.get("intent") or {}).get("track")) or "prediction")
     check: dict[str, Any] = {"built": bool(b.get("project_id")), "track": track}
+    # who wrote it: the training export holds a provider's conversation until the owner's rights review (2026-11-18)
+    check.update(home_answerer(b, (models or {}).get((record.provenance.workspace, str(b.get("id") or "")), {})))
     outcome = b.get("outcome") if isinstance(b.get("outcome"), dict) else {}
     if outcome.get("verdict") in ("kept", "changed", "refused", "asked_again"):  # 36.2: what the person did with the result; open is none
         check.update(outcome=outcome["verdict"], outcome_by=outcome.get("by"))
@@ -939,8 +1002,9 @@ def build(layout: Optional[Layout] = None) -> dict[str, Any]:
             if key not in newest or version(r) > version(newest[key]):  # by its version number, never by the id's text
                 newest[key] = r
     thinking = home_thinking(shapers.records(layout, "sessions"), shapers.records(layout, "model_requests"))
+    models = home_models(shapers.records(layout, "model_requests"))  # every request is read, consented or not: only its model's name is used
     for r in newest.values():
-        ex = from_draft(r, thinking)
+        ex = from_draft(r, thinking, models)
         if ex is not None:
             add("m4_workflow_llm", ex.stage, ex)
     for t in trajectories(r for r in shapers.records(layout, "agents") if allowed(r, "m5_solver_llm", choices)):

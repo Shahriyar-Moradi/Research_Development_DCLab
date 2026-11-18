@@ -34,13 +34,15 @@ class NotForTraining(ValueError):
 
 def provider_of(row: dict[str, Any]) -> tuple[str | None, bool]:
     """(the provider's answerer, whether the writer was recorded) for one stored row. A chat example names its model in
-    ``check``; a trajectory names its answerer, or is a Claude Code build session (``agent: claude_code``). The answerer
+    ``check``; a Home conversation names its answerer there; a trajectory names its answerer, or is a Claude Code build session (``agent: claude_code``). The answerer
     is a provider's when it is not DCLab's rules, not a local model and not the OpenRouter Qwen (``sets.llm.silver_of``)."""
     from .sets.llm import exchange_answerer, silver_of
 
     check = row.get("check") if isinstance(row.get("check"), dict) else {}
     problem = row.get("problem") if isinstance(row.get("problem"), dict) else {}
-    if check.get("model"):
+    if check.get("answerer"):  # a Home conversation says who wrote it (sets/llm.py home_answerer)
+        who = str(check["answerer"])
+    elif check.get("model"):
         who = exchange_answerer(check)
     elif problem.get("answerer"):
         who = str(problem["answerer"])
