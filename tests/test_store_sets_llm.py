@@ -204,6 +204,31 @@ class LlmSetsTest(unittest.TestCase):
         self.assertEqual(report["held_for_rights"].get("claude"), 1)
         self.assertEqual(report["answerer_not_recorded"], 0)
 
+    def test_a_case_file_says_who_wrote_it_through_the_whole_build(self):
+        """2026-11-18: the 289 case files named no model. The build now hands the case builder the draft's model requests."""
+        from dclab_core.store import ChatExample
+        from dclab_rnd.store import Store, curators, shapers
+        from dclab_rnd.store.sets import llm
+
+        store = Store(self.layout)
+        asked = {"at": "2026-11-10T10:00:00+00:00", "model_request": "mr30", "purpose": "case_agent", "outcome": "ok", "whole": True,
+                 "model": "claude-sonnet-5-5", "draft": "d4", "messages": [{"role": "user", "content": "We lose members."}],
+                 "reply": "Who acts on the list?", "thinking": []}
+        store.keep_log("model_requests", "dev", "model_exchanges/2026/11/10.jsonl", (json.dumps(asked) + "\n").encode(), consent="train")
+        case = {"version": 4, "goal": {"value": "keep members", "status": "said", "quote": "keep members"},
+                "route": {"track": "prediction", "tool": "ml_project"}}
+        d4 = {"id": "d4", "created": "2026-11-10T09:00:00+00:00",
+              "messages": [{"role": "user", "text": "We lose members."}, {"role": "agent", "by": "case_agent", "text": "Who acts on the list?"}],
+              "case_state": {"case": case, "turns": [{"role": "user", "content": "We lose members."},
+                                                     {"role": "assistant", "content": "Who acts on the list?"}]}}
+        store.keep("conversations", "dev", "drafts/d4/draft.json", json.dumps(d4).encode(), consent="train")
+        shapers.shape(self.layout)
+        curators.curate(self.layout, run="r4")
+        with mock.patch.object(llm, "BENCHMARKS", self.benchmarks):
+            llm.build(self.layout)
+        found = [ChatExample.model_validate(e) for e in self.examples("m4_workflow_llm", "case_files", "v1") if e["check"].get("origin") == "real"]
+        self.assertEqual([(e.check["answerer"], e.check["model"]) for e in found], [("claude:claude-sonnet-5-5", "claude-sonnet-5-5")])
+
     def test_case_records_are_streamed_not_listed(self):
         """2026-11-01: a list of every tests, conversations and other record filled the 8 GB Mac's disk with swap during the
         store's whole run; the builder hands cases.from_records a one-pass iterator instead."""
@@ -212,9 +237,9 @@ class LlmSetsTest(unittest.TestCase):
         seen = []
         real = cases.from_records
 
-        def spy(records):
+        def spy(records, models=None):
             seen.append(isinstance(records, list))
-            return real(records)
+            return real(records, models)
 
         with mock.patch.object(cases, "from_records", spy):
             llm.build(self.layout)

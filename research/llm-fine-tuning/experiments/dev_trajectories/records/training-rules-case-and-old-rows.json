@@ -1,0 +1,76 @@
+{
+ "package": "training-rules-case-and-old-rows",
+ "title": "Case files say who wrote them, and an old Home row with no writer is held",
+ "date": "2026-11-18",
+ "request": "Close two remaining export-hold gaps after commit 890b2dcc: join m4_workflow_llm/case_files (289 rows from drafts and conversation exams) to their recorded model requests so check['answerer'] is written, and make export_chat hold any Home conversation or case file that names no writer (including understand_problem/v1's 291 un-rebuilt Home rows) as frontier:unknown.",
+ "spec": "cases.from_records accepts home_models(), joins exam cases via exam_writers() using exam id, arm, and person key (excluding exam_judge), joins draft cases by workspace and draft id, defaults exams with missing requests to frontier:unknown, and writes home_answerer() into check. llm.build computes home_models once and passes it to both cases.from_records and from_draft. export_chat.provider_of holds rows in WRITER_REQUIRED (home_conversation, case_file) that name no writer as frontier:unknown while keeping recorded=False.",
+ "plan": [
+  "H1: add EXAM_ID, exam_writers(), and writer propagation via home_answerer in dclab_rnd/store/sets/cases.py.",
+  "H2: compute home_models() once in llm.build() in dclab_rnd/store/sets/llm.py, pass it to cases.from_records(), remove the duplicate home_models call below, and update only the spy signature in tests/test_store_sets_llm.py.",
+  "H3: add WRITER_REQUIRED in dclab_rnd/store/export_chat.py so provider_of() returns 'frontier:unknown' when a home_conversation or case_file names no writer.",
+  "H4: add 4 tests in tests/test_store_cases.py, 1 test in tests/test_store_export_chat.py, and 1 end-to-end test in tests/test_store_sets_llm.py, then run the 8-file suite.",
+  "H5: verify disk and memory, measure case_files/v1 and understand_problem v1/v2 before rebuild, rebuild M4/M5 sets via llm.build(), measure after, verify exams clean, and check data_catalog.",
+  "H6: write this record, run make sft-dev, re-run the 8-file suite, commit, push main and dev, and report."
+ ],
+ "decisions": [
+  {
+   "decision": "Look up conversation-exam writers by exam id, arm, and person key across workspaces via exam_writers() rather than exact workspace matching.",
+   "why": "Exam requests carry exam:CEX-... draft ids whose workspace may differ from the kept conversation.json workspace folder."
+  },
+  {
+   "decision": "Treat conversation-exam cases with no captured model requests as frontier:unknown instead of rules.",
+   "why": "Both the simulated person and the lead agent in a conversation exam are models, so rules never wrote them."
+  },
+  {
+   "decision": "Hold any home_conversation or case_file lacking a recorded writer inside export_chat rather than mutating un-rebuilt v1 files.",
+   "why": "Preserves old store sets unchanged while preventing pre-attribution Home conversations (including 58 commercial provider copies in understand_problem/v1) from entering training."
+  }
+ ],
+ "change": "Modified dclab_rnd/store/sets/cases.py, dclab_rnd/store/sets/llm.py, and dclab_rnd/store/export_chat.py; added tests in tests/test_store_cases.py, tests/test_store_export_chat.py, and tests/test_store_sets_llm.py (plus spy parameter in test_case_records_are_streamed_not_listed); rebuilt M4/M5 store sets; and added this dev trajectory record.",
+ "findings": [
+  {
+   "id": "HF-1",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The 289 case files in m4_workflow_llm/case_files named no model, so commercial provider cases were exported for training.",
+   "scenario": "An exam case file whose written person was Claude Haiku and whose lead agent was Claude Sonnet was exported because check carried only origin and case_version.",
+   "cause": "The case builder (cases.from_records) never read the model requests recorded for drafts or conversation exams.",
+   "fix": "Extended cases.from_records to take home_models(), added exam_writers() to match exam id, arm, and person keys while ignoring exam_judge, wrote home_answerer() into check via cases.example(), and passed models from llm.build().",
+   "test": "tests/test_store_cases.py (test_an_exam_case_names_its_agent_and_its_written_person_but_not_its_judge, test_a_drafts_case_names_the_model_of_its_own_draft_in_its_own_workspace, test_with_no_request_found_a_case_is_an_unknown_models_never_the_rules, test_the_export_holds_a_claude_case_and_keeps_a_qwen_case); tests/test_store_sets_llm.py test_a_case_file_says_who_wrote_it_through_the_whole_build"
+  },
+  {
+   "id": "HF-2",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "m4_workflow_llm/understand_problem/v1 holds 291 Home conversations that name no writer because that set version is never rebuilt.",
+   "scenario": "Exporting understand_problem v1 shipped 291 old Home rows without holding them, including 58 older copies of conversations written by Claude or another hosted model.",
+   "cause": "export_chat.provider_of() returned (None, False) whenever no writer field was present, letting old Home and case-file rows bypass the provider hold.",
+   "fix": "Added WRITER_REQUIRED = frozenset({'home_conversation', 'case_file'}) in dclab_rnd/store/export_chat.py so provider_of() returns ('frontier:unknown', False) when a row of either task names no writer.",
+   "test": "tests/test_store_export_chat.py test_a_conversation_from_before_its_writer_was_recorded_is_held_as_an_unknown_models"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "The real exports of case_files v1 and understand_problem v1 and v2, before and after",
+   "gate": "none: real export counts before and after rebuilding M4 and M5 sets",
+   "fixed_before_run": false,
+   "result": "Before rebuild (with WRITER_REQUIRED export rule active): case_files v1 exported 0 train and 0 dev, held frontier 289, answerer_not_recorded 289; understand_problem v1 exported 33 train and 0 dev, held frontier 291, answerer_not_recorded 324 (291 home_conversation held plus 33 home_agent exported); understand_problem v2 exported 1254 train and 394 dev, held claude 2448 and frontier 218, answerer_not_recorded 0. After rebuild (568s): case_files v1 exported 41 train and 20 dev (61 Qwen cases kept), held mixed 144 and claude 84 (228 held), answerer_not_recorded 0; understand_problem v1 unchanged at 33 train and 0 dev, held frontier 291, answerer_not_recorded 324; understand_problem v2 unchanged at 1254 train and 394 dev, held claude 2448 and frontier 218, answerer_not_recorded 0.",
+   "verdict": "not scored",
+   "cost_eur": 0.0,
+   "next": "keep held rows prepared and only release after the owner records rights_reviewed: true",
+   "limits": [
+    "understand_problem v1 remains un-rebuilt so its non-Home rows stay unrecorded until another task attribution rule covers them"
+   ]
+  }
+ ],
+ "outcome": "Case files now carry check['answerer'] across all 289 rows (61 Qwen kept, 144 mixed and 84 claude held, 0 unrecorded), and understand_problem v1's 291 un-rebuilt Home conversations are held as frontier:unknown during training export.",
+ "lessons": [
+  "Any training-export gate over row-level writers must treat missing writer metadata on model-written task families conservatively as frontier:unknown rather than assuming code rules.",
+  "When joining exam transcripts stored under per-exam workspaces to model requests, match by parsed exam identifier and role key rather than assuming identical workspace strings."
+ ],
+ "risks": [
+  "An ok request may not have reached a turn, so a few cases may be held that need not be.",
+  "v1's rows that are older copies of v2 conversations are held even when v2 says the rules wrote them (205 of them), which loses nothing because their newer copy is in v2."
+ ],
+ "commits": []
+}

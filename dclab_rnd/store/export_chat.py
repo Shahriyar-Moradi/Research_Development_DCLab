@@ -32,6 +32,11 @@ class NotForTraining(ValueError):
     """The set's manifest does not allow training on it."""
 
 
+# Rows a model may have written. One that names no writer is from before the writer was recorded (understand_problem v1
+# is never rebuilt): it is held as an unknown model's until the owner's rights review, and counted as not recorded.
+WRITER_REQUIRED = frozenset({"home_conversation", "case_file"})
+
+
 def provider_of(row: dict[str, Any]) -> tuple[str | None, bool]:
     """(the provider's answerer, whether the writer was recorded) for one stored row. A chat example names its model in
     ``check``; a Home conversation names its answerer there; a trajectory names its answerer, or is a Claude Code build session (``agent: claude_code``). The answerer
@@ -49,7 +54,7 @@ def provider_of(row: dict[str, Any]) -> tuple[str | None, bool]:
     elif problem.get("agent") == "claude_code":
         who = "claude:claude_code"
     else:
-        return None, False
+        return ("frontier:unknown" if row.get("task") in WRITER_REQUIRED else None), False
     return (who if silver_of(who) else None), True
 
 

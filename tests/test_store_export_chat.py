@@ -270,6 +270,22 @@ class ProviderGateTests(unittest.TestCase):
         self.assertEqual(self.ids(self.folder / "ok"), ["claude", "qwen", "unsaid"])
         self.assertEqual(report["held_for_rights"], {})
 
+    def test_a_conversation_from_before_its_writer_was_recorded_is_held_as_an_unknown_models(self):
+        """2026-11-18: understand_problem v1 keeps 291 Home conversations from before the writer was recorded, and it is never
+        rebuilt. A model may have written them, so they are held, and counted as not recorded. Other tasks are unchanged."""
+        from dclab_rnd.store import export_chat
+        from dclab_rnd.store.sets import write_set
+
+        rows = [chat("old_home", "train").model_copy(update={"task": "home_conversation"}),
+                chat("old_case", "train").model_copy(update={"task": "case_file"}),
+                chat("other_task", "train")]
+        write_set(self.layout, "m4_workflow_llm", "chat/old", rows, version="v1", about="from before the writer was recorded")
+        with self.decisions(False):
+            report = export_chat.export(self.layout, "m4_workflow_llm", "chat/old", "v1", self.folder / "old")
+        self.assertEqual(self.ids(self.folder / "old"), ["other_task"])
+        self.assertEqual(report["held_for_rights"], {"frontier": 2})
+        self.assertEqual(report["answerer_not_recorded"], 3)
+
 
 if __name__ == "__main__":
     unittest.main()

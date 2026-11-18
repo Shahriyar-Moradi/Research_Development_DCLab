@@ -992,9 +992,11 @@ def build(layout: Optional[Layout] = None) -> dict[str, Any]:
 
     # a generator, read once by from_records: the list held every tests, conversations and other record at once (several GB
     # with swap on an 8 GB Mac; the store's whole run filled the disk, 2026-11-01)
+    # who wrote each conversation, read once: the case files below and the Home conversations after them both need it
+    models = home_models(shapers.records(layout, "model_requests"))  # every request is read, consented or not: only its model's name is used
     found_cases = (r for kind in ("tests", "conversations", "other") for r in shapers.records(layout, kind)  # an exam's conversation is kept as "other"
                    if allowed(r, "m4_workflow_llm", choices))
-    for ex in cases.from_records(found_cases):
+    for ex in cases.from_records(found_cases, models):
         add("m4_workflow_llm", cases.FOLDER, ex)
     for r in shapers.records(layout, "conversations"):
         if r.provenance.source.endswith("/draft.json") and allowed(r, "m4_workflow_llm", choices):
@@ -1002,7 +1004,6 @@ def build(layout: Optional[Layout] = None) -> dict[str, Any]:
             if key not in newest or version(r) > version(newest[key]):  # by its version number, never by the id's text
                 newest[key] = r
     thinking = home_thinking(shapers.records(layout, "sessions"), shapers.records(layout, "model_requests"))
-    models = home_models(shapers.records(layout, "model_requests"))  # every request is read, consented or not: only its model's name is used
     for r in newest.values():
         ex = from_draft(r, thinking, models)
         if ex is not None:
