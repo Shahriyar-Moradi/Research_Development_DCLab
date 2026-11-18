@@ -286,6 +286,23 @@ class ProviderGateTests(unittest.TestCase):
         self.assertEqual(report["held_for_rights"], {"frontier": 2})
         self.assertEqual(report["answerer_not_recorded"], 3)
 
+    def test_a_kept_model_call_that_names_no_model_is_held_as_an_unknown_models(self):
+        """2026-11-18: plan v1 and understand_problem v1 keep 82 replies from kept model calls without the model's name, most
+        of them Claude Sonnet's; the export sent them out. A model call is always a model's reply, so they are held."""
+        from dclab_rnd.store import export_chat
+        from dclab_rnd.store.sets import write_set
+
+        call = provenance().model_copy(update={"source": "model_exchanges/2026/10/20.jsonl"})
+        rows = [chat("old_call", "train").model_copy(update={"provenance": call, "task": "home_agent", "check": {"outcome": "ok"}}),
+                chat("named_qwen", "train").model_copy(update={"provenance": call, "check": {"model": "qwen/qwen3.8-flash"}}),
+                chat("not_a_call", "train")]
+        write_set(self.layout, "m4_workflow_llm", "chat/calls", rows, version="v1", about="kept model calls")
+        with self.decisions(False):
+            report = export_chat.export(self.layout, "m4_workflow_llm", "chat/calls", "v1", self.folder / "calls")
+        self.assertEqual(self.ids(self.folder / "calls"), ["named_qwen", "not_a_call"])  # a named Qwen call is the owner's yes
+        self.assertEqual(report["held_for_rights"], {"frontier": 1})
+        self.assertEqual(report["answerer_not_recorded"], 2)
+
 
 if __name__ == "__main__":
     unittest.main()

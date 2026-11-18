@@ -35,6 +35,9 @@ class NotForTraining(ValueError):
 # Rows a model may have written. One that names no writer is from before the writer was recorded (understand_problem v1
 # is never rebuilt): it is held as an unknown model's until the owner's rights review, and counted as not recorded.
 WRITER_REQUIRED = frozenset({"home_conversation", "case_file"})
+# A row built from a kept model call is a model's reply by definition. The old set versions (plan v1, understand_problem v1)
+# kept 82 of them without the model's name, most of them Claude Sonnet's (2026-10-20 and 21): held, never exported unnamed.
+MODEL_CALL_SOURCES = ("model_exchanges/",)
 
 
 def provider_of(row: dict[str, Any]) -> tuple[str | None, bool]:
@@ -54,7 +57,9 @@ def provider_of(row: dict[str, Any]) -> tuple[str | None, bool]:
     elif problem.get("agent") == "claude_code":
         who = "claude:claude_code"
     else:
-        return ("frontier:unknown" if row.get("task") in WRITER_REQUIRED else None), False
+        source = str((row.get("provenance") or {}).get("source") or "")
+        model_wrote = row.get("task") in WRITER_REQUIRED or source.startswith(MODEL_CALL_SOURCES)
+        return ("frontier:unknown" if model_wrote else None), False
     return (who if silver_of(who) else None), True
 
 

@@ -1,0 +1,73 @@
+{
+ "package": "training-rules-model-call-rows",
+ "title": "Old model-call rows that name no model are held by the training export",
+ "date": "2026-11-18",
+ "request": "The owner's yes to fix, in this session, the leak found while reviewing the small model's case-file work: old set versions kept model replies without the model's name, and the export sent them out.",
+ "spec": "Every training export holds a provider's output until the owner's rights review. A row built from a kept model call is a model's reply; with no model named, it is held as an unknown model's and counted as not recorded. No stored file is edited.",
+ "plan": [
+  "sweep every M4 and M5 chat and trajectory set for rows exported with no writer",
+  "find who wrote them from the store's request records",
+  "hold rows from kept model calls that name no model, in provider_of",
+  "a test, then the real exports and the sweep again"
+ ],
+ "decisions": [
+  {
+   "decision": "Hold by the row's source (a kept model call), not by its task name",
+   "why": "the 82 rows have five different tasks (home_agent, home_orchestrator, notebook_cell, synthetic_schema, reasoning_teacher); every row from a kept model call is a model's reply, whatever its task"
+  },
+  {
+   "decision": "Hold as an unknown model's rather than look up the model",
+   "why": "the newer set versions keep the same replies with their model named, so holding the old copies loses nothing; a lookup would add code for no training gain"
+  },
+  {
+   "decision": "The 9 verified-code rows stay exported",
+   "why": "their builder (store/sets/code.py) says DCLab's engine wrote the code from the project's records, not a model"
+  }
+ ],
+ "change": "dclab_rnd/store/export_chat.py: MODEL_CALL_SOURCES, and provider_of holds a row from a kept model call that names no model; tests/test_store_export_chat.py: one test.",
+ "findings": [
+  {
+   "id": "MC-1",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Old set versions kept 82 model replies without the model's name, and the training export sent them out.",
+   "scenario": "understand_problem v1 holds 33 Home agent replies of 2026-10-20 and 21; on those days every Home agent request in that workspace was Claude Sonnet 5.5, exactly 33 of them. plan v1 holds 49 more (orchestrator, notebook cells, synthetic schemas, the reasoning teacher). The export counted them as not recorded and exported them.",
+   "cause": "these versions were built before the exchange's model was copied into the row's check; they are never rebuilt; the export held a writer-less row only for Home conversations and case files",
+   "fix": "a row whose source is a kept model call (model_exchanges/) and that names no model is held as frontier:unknown and counted as not recorded",
+   "test": "tests/test_store_export_chat.py test_a_kept_model_call_that_names_no_model_is_held_as_an_unknown_models"
+  },
+  {
+   "id": "MC-2",
+   "source": "self",
+   "severity": "gap",
+   "defect": "My plan for the case files predicted understand_problem v1 held only Home conversations, so it expected 291 rows not recorded and missed these 33.",
+   "scenario": "the small model reported 324 and, as told, changed no code; it named the 33 rows but did not see they were Claude's.",
+   "cause": "I counted v1's Home rows and never looked at its other tasks",
+   "fix": "a sweep of every chat and trajectory set for rows exported with no writer, after the fix: only the 9 engine-written code rows remain",
+   "test": "the sweep, recorded in the measurement"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "The real exports of the affected sets and a sweep of every M4 and M5 chat and trajectory set, after the fix",
+   "gate": "none: a check of the real exports and a sweep, no threshold fixed before",
+   "fixed_before_run": false,
+   "result": "plan v1: 0 exported, frontier 49 held (were 49 exported); understand_problem v1: 0 exported, frontier 324 held (33 were exported); understand_problem v2 unchanged (1,648 exported, claude 2,448 and frontier 218 held, 0 not recorded); case_files v1 unchanged (61 exported, claude 84 and mixed 144 held, 0 not recorded); the sweep of 23,238 rows finds only the 9 engine-written verified_code rows exported with no writer",
+   "verdict": "not scored",
+   "cost_eur": 0.0,
+   "next": "none",
+   "limits": [
+    "train and dev rows only; sealed rows are never exported"
+   ]
+  }
+ ],
+ "outcome": "No chat or trajectory row written by a model leaves the training export without its writer named; the 82 old model-call rows are held, and the only writer-less rows still exported are 9 code pipelines written by DCLab's engine.",
+ "lessons": [
+  "Before predicting a set's numbers, look at every task in it, not only the one the fix is about.",
+  "A sweep of every set for the same gap is cheap and finds what a per-set plan misses."
+ ],
+ "risks": [
+  "The decision sets (m1, m2, m3, m6, m7) were not part of this sweep: their rows are labels, not chat, with their own label-source rules."
+ ],
+ "commits": []
+}
