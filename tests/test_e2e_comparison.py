@@ -226,6 +226,60 @@ class RescoreTests(unittest.TestCase):
         self.assertEqual((new["rescored_from"], new["spent"]), ("E2E-002", 0.0))
 
 
+def _gate_rows(agent_f1=0.40, plain_f1=0.40, agent_mae=9.0, plain_mae=9.0, plain_delivery_real=True):
+    rows = []
+    for seed in (101, 102, 103, 104):
+        for kind, a, b in (("ticket_routing", agent_f1, plain_f1), ("delivery_time", agent_mae, plain_mae)):
+            case = f"{kind}-s{seed}"
+            rows.append({"case": case, "arm": "dclab_agent", "finished": True, "leaks_kept_out": True, "holdout_uses": 1,
+                         "real_inside_interval": True, "real": a})
+            rows.append({"case": case, "arm": "plain", "finished": True,
+                         "real": b if (kind == "ticket_routing" or plain_delivery_real) else None})
+    return rows
+
+
+class GateJudgeTests(unittest.TestCase):
+    def test_level_arms_pass_and_a_worse_agent_fails(self):
+        from dclab_rnd.agent_eval.e2e import gate
+
+        self.assertTrue(gate.judge(_gate_rows())["passed"])
+        self.assertFalse(gate.judge(_gate_rows(agent_f1=0.37))["passed"])  # 0.03 worse than plain on macro F1
+        self.assertTrue(gate.judge(_gate_rows(agent_mae=9.4))["passed"])  # 0.4 is within 5 percent of 9.0
+        self.assertFalse(gate.judge(_gate_rows(agent_mae=9.5))["passed"])
+
+    def test_a_kind_with_no_pair_is_not_judged_and_the_gate_cannot_pass(self):
+        from dclab_rnd.agent_eval.e2e import gate
+
+        got = gate.judge(_gate_rows(plain_delivery_real=False))
+        self.assertFalse(got["passed"])
+        self.assertEqual(got["not_judged"], ["dclab_agent_real_score_against_plain"])
+
+    def test_a_leak_a_second_holdout_read_or_a_case_not_run_fails(self):
+        from dclab_rnd.agent_eval.e2e import gate
+
+        rows = _gate_rows()
+        rows[0]["leaks_kept_out"] = False
+        self.assertFalse(gate.judge(rows)["passed"])
+        rows = _gate_rows()
+        rows[0]["holdout_uses"] = 2
+        self.assertFalse(gate.judge(rows)["passed"])
+        self.assertFalse(gate.judge(_gate_rows()[2:])["passed"])  # one case not run: 7 of 8 finished
+
+    def test_the_gate_command_runs_once_and_only_with_yes(self):
+        from dclab_rnd.agent_eval.e2e import __main__ as cli
+
+        results = Path(tempfile.mkdtemp())
+        with mock.patch.object(cli, "RESULTS", results), mock.patch.object(cli, "_cmd_run", return_value=0) as run:
+            self.assertEqual(cli.main(["gate"]), 2)  # without --yes nothing is drawn or sent
+            run.assert_not_called()
+            self.assertEqual(cli.main(["gate", "--model", "qwen/qwen3.6-27b", "--yes", "--cap-eur", "0.5"]), 2)
+            self.assertEqual(cli.main(["gate", "--yes", "--cap-eur", "0.5"]), 0)
+            self.assertEqual([c.id for c in run.call_args.args[0]][:2], ["ticket_routing-s101", "delivery_time-s101"])
+            (results / "E2E-009_gate.json").write_text("{}", encoding="utf-8")
+            self.assertEqual(cli.main(["gate", "--yes", "--cap-eur", "0.5"]), 2)  # run once
+        self.assertEqual(run.call_count, 1)
+
+
 class CommandTests(unittest.TestCase):
     def test_a_claude_model_is_refused_and_a_run_without_yes_only_plans(self):
         from dclab_rnd.agent_eval.e2e import __main__ as cli

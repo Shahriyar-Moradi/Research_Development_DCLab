@@ -3,8 +3,9 @@
 plan   prints what a run would do and costs nothing.
 rules  runs only DCLab's rules arm on the dev cases (no model, free) and scores it.
 run    the three arms on the named dev cases, live (--yes and --cap-eur needed; the product's model only, never Claude).
+gate   the held-out run of e2e_gate_v1, once (--yes and --cap-eur needed), judged by gate.py.
 rescore  a dev result scored again with today's scorer, into a new result file (nothing is asked of a model).
-The held-out seeds are never read here: the gate run is a separate, later step the owner approves."""
+The held-out seeds are read only by gate, which the owner approves and which runs once."""
 
 from __future__ import annotations
 
@@ -152,7 +153,7 @@ def _cmd_rules(selected: list[Any]) -> int:
     return 0
 
 
-def _cmd_run(selected: list[Any], model: str, cap: float | None, yes: bool) -> int:
+def _cmd_run(selected: list[Any], model: str, cap: float | None, yes: bool, suffix: str = "dev") -> int:
     reason = refuse_model(model)
     if reason:
         print(f"refused: {reason}", file=sys.stderr)
@@ -234,10 +235,14 @@ def _cmd_run(selected: list[Any], model: str, cap: float | None, yes: bool) -> i
         plain_calls[case.id] = list(plain_out.get("calls") or [])
         scores.append(_scored_row(case, plain_out))
     RESULTS.mkdir(parents=True, exist_ok=True)
-    path = RESULTS / f"{run_id}_dev.json"
+    path = RESULTS / f"{run_id}_{suffix}.json"
     doc = {"id": run_id, "arms": ["rules", "dclab_agent", "plain"], "model": model, "cap": cap, "spent": round(spent, 6),
            "cases": ran_cases, "not_run": not_run, "scores": scores, "plain_calls": plain_calls,
            "run_dir": str(run_dir.relative_to(ROOT))}
+    if suffix == "gate":
+        from . import gate
+
+        doc["gate_judgement"] = gate.judge(scores, len(selected))
     path.write_text(json.dumps(doc, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
     print(json.dumps({"id": run_id, "spent": round(spent, 6), "not_run": not_run, "result": str(path)}, indent=1))
     return 0
@@ -301,6 +306,29 @@ def _cmd_rescore(result_id: str) -> int:
     return 0
 
 
+def _cmd_gate(model: str, cap: float | None, yes: bool) -> int:
+    """The held-out run of e2e_gate_v1: its eight cases, once. Refused when a gate result exists, the gate file is not the
+    pinned one, or the model is not the gate's."""
+    from . import cases, gate
+
+    done = sorted(RESULTS.glob("E2E-*_gate.json"))
+    if done:
+        print(f"refused: the held-out set was run once already ({done[0].name})", file=sys.stderr)
+        return 2
+    if not gate.pinned():
+        print("refused: gate_v1.json is not the pinned file", file=sys.stderr)
+        return 2
+    if model != json.loads(gate.GATE.read_text(encoding="utf-8"))["model"]:
+        print("refused: the gate names its model", file=sys.stderr)
+        return 2
+    selected = cases.held_out_cases() if yes else []
+    if not yes:
+        print(json.dumps({"gate": "e2e_gate_v1", "cases": 8, "model": model, "cap_eur": cap}, indent=1))
+        print("refused: nothing was sent; pass --yes and --cap-eur above zero to run the held-out set once", file=sys.stderr)
+        return 2
+    return _cmd_run(selected, model, cap, yes, suffix="gate")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m dclab_rnd.agent_eval.e2e")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -310,11 +338,17 @@ def main(argv: list[str] | None = None) -> int:
         p.add_argument("--model", default=MODEL)
         p.add_argument("--cap-eur", type=float, default=None)
         p.add_argument("--yes", action="store_true")
+    held = sub.add_parser("gate")
+    held.add_argument("--model", default=MODEL)
+    held.add_argument("--cap-eur", type=float, default=None)
+    held.add_argument("--yes", action="store_true")
     again = sub.add_parser("rescore")
     again.add_argument("result", help="a dev result's id, for example E2E-002")
     args = parser.parse_args(argv)
     if args.command == "rescore":
         return _cmd_rescore(args.result)
+    if args.command == "gate":
+        return _cmd_gate(args.model, args.cap_eur, args.yes)
     try:
         selected = _select_cases(args.cases)
     except ValueError as exc:

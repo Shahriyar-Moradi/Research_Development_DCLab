@@ -76,3 +76,10 @@ def dev_cases() -> list[Case]:
     from . import DEV_SEEDS, KINDS
 
     return [make(kind, seed) for seed in DEV_SEEDS for kind in KINDS]
+
+
+def held_out_cases() -> list[Case]:
+    """The gate's eight cases (e2e_gate_v1), drawn by the gate command alone and run once."""
+    from . import HELD_OUT_SEEDS, KINDS
+
+    return [make(kind, seed) for seed in HELD_OUT_SEEDS for kind in KINDS]
