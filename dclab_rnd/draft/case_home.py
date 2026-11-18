@@ -334,10 +334,26 @@ class CaseHome(HomeAgent):
         re.IGNORECASE)
     SENTENCES = re.compile(r"(?<=[.?!;])\s+|\n+")
 
+    def _moment_of(self, text: str) -> str:
+        """The moment in an answer, without the sentences that are an order to build or plain approval, and without an
+        opening "The prediction is made". Live, 2026-11-16: "…on that day. Build it now." was stored whole, so the
+        project's prediction moment ended with "Build it now."."""
+        from .chat import build_order
+
+        kept = []
+        for sentence in self.SENTENCES.split(str(text or "").strip()):
+            s = sentence.strip()
+            if not s or build_order(s) or not re.sub(r"[\W_]+", " ", self.APPROVAL.sub(" ", s)).strip():
+                continue  # empty, an order to build, or only words of approval
+            kept.append(self.MOMENT_STATED.sub("", s, count=1).strip())
+        return " ".join(k for k in kept if k).strip()
+
     def _say_moment_back(self, draft_id: str, moment: str) -> None:
         moment = moment.strip()[:400]
         self.store.update(draft_id, lambda d: d.update(build_waiting="confirm moment", moment_said=moment))
-        self.say(draft_id, f"So the prediction is made {moment.rstrip('.')}, using only what is known then. Shall I build with that? "
+        # the person's own "using only what is known ..." is not said a second time
+        tail = "" if re.search(r"\bknown\b", moment, re.IGNORECASE) else ", using only what is known then"
+        self.say(draft_id, f"So the prediction is made {moment.rstrip('.')}{tail}. Shall I build with that? "
                            "Say yes, or tell me the moment again.", kind="text", by="case_agent")
     OUTCOME_SAID = re.compile(r"^\s*(?:(?:the\s+)?(?:outcome|target|label|answer)(?:\s+column)?\s*(?:is|=|:)\s*)?[`'\"]?([\w.\- ]+?)[`'\"]?\s*[.!]?\s*$",
                               re.IGNORECASE)
@@ -373,9 +389,10 @@ class CaseHome(HomeAgent):
             self._build(draft_id)
             return True
         if need == "prediction moment":
-            if len(said.split()) < 3 or self.VAGUE_MOMENT.match(said):
+            moment = self._moment_of(said)
+            if len(moment.split()) < 3 or self.VAGUE_MOMENT.match(moment):
                 return False
-            self._say_moment_back(draft_id, said)
+            self._say_moment_back(draft_id, moment)
             return True
         if need == "confirm moment":
             if self.HOLD_BUILD.search(said):
@@ -385,7 +402,7 @@ class CaseHome(HomeAgent):
             if left or not self.YES_WORD.search(said):
                 # not a plain yes: never built. A time named is the new moment, said back ("Yes, but it is at checkout");
                 # other words get the question again, with the moment kept
-                moment = self.LEADING_ANSWER.sub("", said, count=1)
+                moment = self._moment_of(self.LEADING_ANSWER.sub("", said, count=1))
                 if self.TIME_WORDS.search(moment) and not self.VAGUE_MOMENT.match(moment) and len(moment.split()) >= 2:
                     self._say_moment_back(draft_id, moment)
                 elif not self.YES_WORD.search(said):  # no yes and no moment ("let us look at groups instead"): the agent reads it

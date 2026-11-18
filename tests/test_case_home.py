@@ -191,6 +191,32 @@ class CaseHomeTests(unittest.TestCase):
         self.assertEqual(read("The prediction is made at signup, before payment.", "The prediction is made at renewal, before the invoice."),
                          "at renewal, before the invoice")  # the newest message wins
 
+    def test_an_order_to_build_is_never_stored_inside_the_moment(self):
+        """Live, 2026-11-16: "…on that day. Build it now." was stored whole as the project's prediction moment."""
+        d = self.store.create("predict which members cancel")
+        self.store.update(d["id"], lambda x: x.update(analysis={"columns": [{"name": "member_id"}, {"name": "churned", "unique": 2}]},
+                                                      understanding={"target": "churned"}, build_waiting="prediction moment"))
+        home, calls = self._home_with_builds({"refused": "not yet", "rule": None})
+        with mock.patch.object(A, "turn", side_effect=AssertionError("the agent must not read the build's answer")):
+            home.reply(d["id"], "The prediction is made at the monthly review, before any outreach, using only what is known on that day. Build it now.")
+        draft = self.store.get(d["id"])
+        moment = "at the monthly review, before any outreach, using only what is known on that day"
+        self.assertEqual((draft.get("build_waiting"), draft.get("moment_said")), ("confirm moment", moment + "."))
+        back = draft["messages"][-1]["text"]
+        self.assertEqual(back, f"So the prediction is made {moment}. Shall I build with that? Say yes, or tell me the moment again.")
+        with mock.patch.object(A, "turn", side_effect=AssertionError("the agent must not read the build's answer")):
+            home.reply(d["id"], "yes")
+        self.assertEqual(self.store.get(d["id"])["understanding"]["prediction_moment"], moment + ".")
+        self.assertEqual(calls, ["build"])
+
+    def test_the_moment_is_cleaned_of_orders_and_approval_only(self):
+        home, _ = self._home_with_builds()
+        self.assertEqual(home._moment_of("at signup, before the first month is paid"), "at signup, before the first month is paid")  # unchanged
+        self.assertEqual(home._moment_of("At checkout, before payment. Build it now."), "At checkout, before payment.")
+        self.assertEqual(home._moment_of("We predict when the ticket is opened. Go ahead."), "when the ticket is opened.")
+        self.assertEqual(home._moment_of("Build it now."), "")  # nothing but an order: no moment
+        self.assertEqual(home._moment_of("At the start date of the contract"), "At the start date of the contract")  # "start" inside a moment is kept
+
     def test_a_question_or_a_sentence_naming_a_column_in_passing_is_never_taken_as_the_build_answer(self):
         """The review of 37.11: "What do you mean by prediction moment?" became the moment; "revenue by region" made region the outcome."""
         from dclab_rnd.agents import case_agent as A
