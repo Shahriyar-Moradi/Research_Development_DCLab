@@ -1,0 +1,107 @@
+{
+ "package": "home-live-build-fixes",
+ "title": "Fix the five problems found in the live Home build (2026-11-16)",
+ "date": "2026-11-18",
+ "request": "Fix five concrete defects observed during the 2026-11-16 end-to-end live Home build (agent_runs/live_tests/2026-11-16-home-plan-live-model) without changing prompts, tool schemas, or the Build project route.",
+ "spec": "Stated prediction moments given alongside a build order are used at once and echoed in chat so the person can correct them; build orders and plain approval words are stripped before saving or repeating prediction moments; Home chat is notified when a model plan replaces a rules plan before stage 1; charts mark both the choice in force (decision.chosen) and the rule pick; and exchange archive receipts count thinking_redacted as kept thinking.",
+ "plan": [
+  "Task A: extract a person's explicitly stated prediction moment in CaseHome._build, save it to understanding.prediction_moment, and echo it back in chat.",
+  "Task B: strip build orders, approval fillers, and leading phrases in CaseHome._moment_of and avoid repeating 'using only what is known' when already present in _say_moment_back.",
+  "Task C: add tasks.path.says_update and post it to draft_work from jobs.handlers._plan_first when a model plan replaces the rules plan.",
+  "Task D: update studio.charts.charts via _picks helper so features and models charts mark decision.chosen as chosen, decision.selected or evidence pick as rule_pick, and include overridden.",
+  "Task E: update harness_ablation.capture to count thinking_redacted calls as kept thinking and return thinking_redacted count."
+ ],
+ "decisions": [
+  {
+   "decision": "Read the stated prediction moment in CaseHome code and echo it back in chat without adding tool arguments or editing prompts.",
+   "why": "Owner decision ('both') avoids asking for an already-stated moment while letting the person correct it, and keeps pinned prompt and tool-schema hashes intact."
+  },
+  {
+   "decision": "Clean prediction-moment answers sentence by sentence using chat.build_order and MOMENT_STATED before saving or echoing.",
+   "why": "Prevents trailing build orders such as 'Build it now.' from being saved inside the moment and prevents doubled 'The prediction is made' phrasing."
+  },
+  {
+   "decision": "Send the refined-plan chat update from jobs.handlers._plan_first only when plan_project returns status='planned' and routed_to='model'.",
+   "why": "Prevents stale rules-plan open-question counts from misleading the user while staying silent when the rules plan stands or is kept unchanged."
+  },
+  {
+   "decision": "Keep existing row keys and add rule_pick beside chosen and overridden on the features and models chart objects.",
+   "why": "Preserves backward compatibility for callers expecting chosen while allowing get_charts readers to distinguish manual overrides from rule picks."
+  },
+  {
+   "decision": "Count thinking_redacted in with_thinking and report thinking_redacted separately in harness_ablation.capture.",
+   "why": "Calls shown table values store redacted thinking by design (owner rule 8) and were falsely reported as missing thinking."
+  }
+ ],
+ "change": "Modified dclab_rnd/draft/case_home.py, dclab_rnd/tasks/path.py, dclab_rnd/jobs/handlers.py, dclab_rnd/studio/charts.py, dclab_rnd/agent_eval/harness_ablation/__init__.py, and tests/test_case_home.py, tests/test_path_plan.py, tests/test_studio_charts.py, tests/test_harness_ablation.py.",
+ "findings": [
+  {
+   "id": "HLB-1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "When the person stated the prediction moment and said 'Build it' in the same message, Home asked for the prediction moment again.",
+   "scenario": "User writes 'The outcome column is churned. The prediction is made at the monthly review, before any outreach. Build it.' during the live Home build.",
+   "cause": "CaseHome._build only carried the grounded outcome column into understanding.target and never read a stated prediction moment from the user's messages.",
+   "fix": "Added MOMENT_STATED, SENTENCES, and CaseHome._stated_moment, and in CaseHome._build saved any clearly stated prediction moment to understanding.prediction_moment and echoed it in chat.",
+   "test": "tests/test_case_home.py test_a_moment_stated_with_the_build_order_is_used_at_once_and_said_back, test_only_a_sentence_that_states_the_moment_is_read_as_one"
+  },
+  {
+   "id": "HLB-2",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "A trailing build order such as 'Build it now.' was saved inside the prediction moment, and the confirmation reply doubled 'The prediction is made' and 'using only what is known'.",
+   "scenario": "User answers the moment prompt with 'The prediction is made at the monthly review, before any outreach, using only what is known on that day. Build it now.' and Home stored 'Build it now.' inside prediction_moment.",
+   "cause": "CaseHome._build_answer stored the raw text word for word without filtering build orders or stripping the leading 'The prediction is made' prefix.",
+   "fix": "Added CaseHome._moment_of to strip build_order sentences, approval-only sentences, and MOMENT_STATED prefixes, wired it into _build_answer, and guarded _say_moment_back against repeating 'using only what is known then'.",
+   "test": "tests/test_case_home.py test_an_order_to_build_is_never_stored_inside_the_moment, test_the_moment_is_cleaned_of_orders_and_approval_only"
+  },
+  {
+   "id": "HLB-3",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The build message reported '1 open question' from the rules plan, and when the model's plan later replaced it with zero open questions before stage 1, the chat was never corrected.",
+   "scenario": "Home's build ran the rules plan first (reporting 1 open question in chat), then jobs.handlers._plan_first replaced it with the model's plan having no open questions.",
+   "cause": "jobs.handlers._plan_first discarded the return value of task_path.plan_project and posted no update to the draft chat.",
+   "fix": "Added tasks.path.says_update and posted it via s.draft_work.agent(draft_id).say in jobs.handlers._plan_first when plan_project returns status='planned' and routed_to='model'.",
+   "test": "tests/test_path_plan.py test_the_models_plan_is_said_in_the_chat_so_the_build_message_is_not_left_wrong, test_nothing_is_said_when_the_rules_plan_stands_or_there_is_no_chat"
+  },
+  {
+   "id": "HLB-4",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The features chart still marked the rule's pick (calendar) as chosen even after the agent approved an alternative recipe (raw).",
+   "scenario": "In the live Home build, the agent approved 'raw' over the rule's 'calendar' recipe, and studio.charts still marked 'calendar' as chosen=true.",
+   "cause": "studio.charts.charts checked evidence.selected_recipe and evidence.selected_model instead of reading decision.chosen and decision.selected.",
+   "fix": "Added _picks(record, evidence_key) in dclab_rnd/studio/charts.py and updated the features and models charts to set chosen from decision.chosen, rule_pick from decision.selected/evidence, and overridden when they differ.",
+   "test": "tests/test_studio_charts.py test_a_chart_marks_the_choice_in_force_and_the_rules_pick"
+  },
+  {
+   "id": "HLB-5",
+   "source": "measurement",
+   "severity": "gap",
+   "defect": "The archive receipt counted only 28 of 59 model calls as having kept thinking even though all 59 kept thinking (31 redacted because they saw table values).",
+   "scenario": "Live run archive receipt inspected exchange JSONL rows where 31 ok calls recorded thinking_redacted instead of thinking.",
+   "cause": "harness_ablation.capture only checked thinking, reasoning, and reasoning_details and ignored thinking_redacted.",
+   "fix": "Updated capture() in dclab_rnd/agent_eval/harness_ablation/__init__.py to count thinking_redacted in with_thinking and report the thinking_redacted count separately.",
+   "test": "tests/test_harness_ablation.py test_thinking_kept_redacted_counts_as_thinking_kept"
+  }
+ ],
+ "measurements": [],
+ "outcome": "All five live Home build defects (Tasks A through E) are fixed with minimal code changes, zero prompt or tool-schema changes, and passing unit test suites for each task.",
+ "lessons": [
+  "User replies to Home build questions often combine a fact with an immediate build order; extract each sentence cleanly before saving contract fields.",
+  "Whenever an async job replaces a plan shown earlier in chat, emit a concise correction to the same draft thread.",
+  "Summary and chart readers must check decision.chosen rather than raw rule evidence fields so approved overrides display accurately."
+ ],
+ "risks": [
+  "Prediction moments phrased in other sentence shapes that do not start with MOMENT_STATED still fall back to Home asking cleanly and Task B cleaning the reply.",
+  "A live end-to-end Home build verification run (~EUR 0.10) remains optional for confirming full server behavior under a live key."
+ ],
+ "commits": [
+  "9422b35e",
+  "1ae93295",
+  "6b0d5ad3",
+  "0d41c88e",
+  "e44b5d21"
+ ]
+}
