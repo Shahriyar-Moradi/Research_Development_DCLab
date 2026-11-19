@@ -707,7 +707,8 @@ def _judge_run(run_dir: Path, key: Mapping[str, Mapping[str, Any]], args: Any) -
     record = {"id": run, "split": "dev", "set": SET, "at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "arms": info["arms"], "repeats": info["repeats"],
               "models": {**info["models"], "judge": args.judge_model}, "spent_eur": round(budget.spent_eur(), 4), "cap_eur": args.cap_eur,
               "judge_only": True, "kept": _rel(run_dir), "manifest": info, "capture": capture(run_dir), "label": info.get("label"),
-              "note": "a pilot of eight cases: traces and reason codes, no claim that one arm is better; judged after the run, from the kept conversations", **result}
+              "note": "a pilot of eight cases: traces and reason codes, no claim that one arm is better; judged after the run, from the kept conversations",
+              **({"evaluation_only": True} if SET in HELD_OUT else {}), **result}
     RESULTS.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(record, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
     if result["incomplete"]:
@@ -816,6 +817,9 @@ def main(argv: Optional[list[str]] = None) -> int:
     if args.arm_model:
         price_snapshot(run_dir, args.arm_model)  # before the gateway reads its prices: the run's cap must be able to count it
     gateway = run_gateway(run_dir)
+    if SET in HELD_OUT:  # held-out people are evaluation only: kept whole with their thinking, never a training set's content
+        (run_dir / "consent.json").write_text(json.dumps({"improve": False, "train": False, "why": f"held-out set {SET}: evaluation only"}) + "\n",
+                                              encoding="utf-8")
     unserved = sorted({PURPOSE[a] for a in arms if PURPOSE[a] and not gateway.available(PURPOSE[a])})
     if unserved:  # no model serves an arm (no key, or DCLAB_NO_LIVE_MODELS): a run of failures is never stored as a result
         shutil.rmtree(run_dir, ignore_errors=True)
@@ -857,7 +861,8 @@ def main(argv: Optional[list[str]] = None) -> int:
     record = {"id": run, "split": "dev", "set": SET, "at": info["at"], "arms": arms, "repeats": args.repeats, "models": info["models"],
               "spent_eur": round(budget.spent_eur(), 4), "cap_eur": args.cap_eur, "kept": _rel(run_dir), "manifest": info,
               "capture": kept, "label": args.label, "note": "a pilot of eight cases: traces and reason codes, no claim that one arm is better",
-              "code": "uncommitted edits (the owner's choice): see manifest.code" if state["dirty"] else "one commit", **result}
+              "code": "uncommitted edits (the owner's choice): see manifest.code" if state["dirty"] else "one commit",
+              **({"evaluation_only": True} if SET in HELD_OUT else {}), **result}
     RESULTS.mkdir(parents=True, exist_ok=True)
     path = RESULTS / (f"{run}_dev_unjudged.json" if args.no_judge else f"{run}_dev.json")
     path.write_text(json.dumps(record, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")

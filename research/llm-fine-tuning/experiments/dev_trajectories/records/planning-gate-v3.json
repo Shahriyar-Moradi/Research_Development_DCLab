@@ -1,0 +1,128 @@
+{
+ "package": "planning-gate-v3",
+ "title": "The planning exam hp_gate_v3: v2's checks plus traps caught and no needless entity split, pinned before its run",
+ "date": "2026-11-19",
+ "request": "The owner chose a fresh exam (v3) to judge the day's planning fixes honestly.",
+ "spec": "Held-out tables and people written by an independent session; v2's six checks by v2's code; check 7 the serving plan enforces at least half of planted traps; check 8 no entity split where the case says none is needed; everything that decides the result pinned; run once.",
+ "plan": [
+  "an independent session writes the material",
+  "v3 gate and commands from v2's",
+  "review before the pin",
+  "pin, commit, run tables and people once, judge"
+ ],
+ "decisions": [
+  {
+   "decision": "Check 7 bar at 0.5 of planted traps for the serving plan",
+   "why": "v2 never gated how much was caught; v2 rules caught 0.29, the practice set after the fixes 0.58 (read by the fixer)"
+  },
+  {
+   "decision": "Entity traps planted only where the brief asks for new entities",
+   "why": "for the same customers again a time split with the customer on both sides is honest; v2 may have counted those as misses"
+  },
+  {
+   "decision": "Held-out people runs written as evaluation only (consent.json all off, evaluation_only in the result)",
+   "why": "they were kept as dev material since v2; the full records stay, no training set reads them"
+  }
+ ],
+ "change": "dclab_rnd/agent_eval/planning_gate_v3/ (gate, run, commands, pin), dclab_rnd/agent_eval/harness_ablation/__init__.py (held-out runs evaluation only), tests/test_planning_gate_v3.py.",
+ "findings": [
+  {
+   "id": "PG3-R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "The pin did not cover v3's own checks and commands.",
+   "scenario": "rows.json is readable before judge; an edit to caught() would still pass pinned().",
+   "cause": "copied from v2 without its new needs",
+   "fix": "gate.py, __init__.py, tasks/enforced.py, e2e/score.py and harness_ablation/gate.py hashed into TERMS",
+   "test": "tests/test_planning_gate_v3.py test_the_terms_pin_the_checks_the_builder_the_reader_and_the_held_material"
+  },
+  {
+   "id": "PG3-R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "The people run could be played twice and the better one picked.",
+   "scenario": "two harness_ablation runs on plan_held_v3, judge --people the better id.",
+   "cause": "copied from v2 without its new needs",
+   "fix": "exactly one run on the set, on the pinned people, after the pin",
+   "test": "tests/test_planning_gate_v3.py test_the_people_run_is_refused_unless_it_is_the_only_one_on_the_pinned_people_after_the_pin"
+  },
+  {
+   "id": "PG3-R3",
+   "source": "reviewer",
+   "severity": "privacy",
+   "verdict": "confirmed",
+   "defect": "Held-out people runs were kept as dev material.",
+   "scenario": "harness_ablation never sealed held-out sets; result split dev.",
+   "cause": "copied from v2 without its new needs",
+   "fix": "consent.json all off in the run folder and evaluation_only in the result for HELD_OUT sets; registration required before pin and run",
+   "test": "tests/test_planning_gate_v3.py test_the_tables_are_refused_after_a_start_marker_and_not_by_v2s_run"
+  },
+  {
+   "id": "PG3-R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "Check 8 could pass with nothing tested.",
+   "scenario": "no_group_needed as a list or a misspelled key: 0 everywhere, met.",
+   "cause": "copied from v2 without its new needs",
+   "fix": "not judged unless a case applies; preflight needs a real column",
+   "test": "tests/test_planning_gate_v3.py test_preflight_needs_a_real_column_for_no_group_needed"
+  },
+  {
+   "id": "PG3-R5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "The run-once guard lived in an ignored folder.",
+   "scenario": "run folder moved by the snapshot routine: a second run allowed.",
+   "cause": "copied from v2 without its new needs",
+   "fix": "a committed start marker and the exam vault also refuse",
+   "test": "tests/test_planning_gate_v3.py test_the_tables_are_refused_after_a_start_marker_and_not_by_v2s_run"
+  },
+  {
+   "id": "PG3-R6",
+   "source": "reviewer",
+   "severity": "gap",
+   "verdict": "confirmed",
+   "defect": "The run did not record the code that measured it.",
+   "scenario": "an edit to enforced.obeyed between pin and run left no trace.",
+   "cause": "copied from v2 without its new needs",
+   "fix": "code_state in the start marker and rows.json",
+   "test": "tests/test_planning_gate_v3.py test_the_terms_pin_the_checks_the_builder_the_reader_and_the_held_material"
+  },
+  {
+   "id": "PG3-R7",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "A reader error lost a paid row and stopped the run.",
+   "scenario": "open_stores raising after build_v2.",
+   "cause": "copied from v2 without its new needs",
+   "fix": "reader in try/except, reader_error kept on the row",
+   "test": "tests/test_planning_gate_v3.py test_a_needless_entity_split_is_read_and_a_reader_error_never_loses_the_row"
+  },
+  {
+   "id": "PG3-R8",
+   "source": "reviewer",
+   "severity": "gap",
+   "verdict": "confirmed",
+   "defect": "Tests missed the failure paths.",
+   "scenario": "needless_group=1, stopped rows in check 7, stale pin_problem, v2 people, marker refusal.",
+   "cause": "copied from v2 without its new needs",
+   "fix": "tests added",
+   "test": "tests/test_planning_gate_v3.py"
+  }
+ ],
+ "measurements": [],
+ "outcome": "hp_gate_v3 is pinned before its run, with its own code, the counting code and the held-out material in the pin.",
+ "lessons": [
+  "Pin every file that decides a verdict, the gate's own included.",
+  "A held-out run must be playable once and only once, by a guard that survives moving its folder."
+ ],
+ "risks": [
+  "Check 7's bar of 0.5 was chosen after seeing v2 and the practice set."
+ ],
+ "commits": []
+}
