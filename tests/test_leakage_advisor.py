@@ -177,6 +177,18 @@ class LeakageAdvisorTests(unittest.TestCase):
         self.assertEqual(r_ex.status_code, 200, r_ex.text)
         self.assertTrue(r_ex.json()["solution_mutated"])
         self.assertIn("courier_rating", [f["column"] for f in store.get(pid)["solution"]["forbidden"]])
+        # the review: saved as a person saves a solution: logged as a graph move, stages it invalidates cleared, and every
+        # later stage still runs (an extra key in forbidden once made them all fail)
+        self.assertIn("set_solution", (home / "projects" / pid / "transitions.jsonl").read_text() if (home / "projects" / pid / "transitions.jsonl").exists()
+                      else "".join(str(t) for t in store.records(pid)))
+        self.assertFalse(store.has_stage(pid, "leakage"))
+        studio_engine.execute(store, pid, "data")
+        studio_engine.execute(store, pid, "leakage")
+        studio_engine.execute(store, pid, "features")
+        adv = store.read_stage(pid, "leakage")["evidence"]["leakage_advisor"]
+        bad = client.post(f"/api/projects/{pid}/leakage/decide", headers=headers,
+                          json={"choice": "exclude_directly", "columns": ["actual_minutes", "no_such_column"]})
+        self.assertEqual(bad.status_code, 422, bad.text)  # never the outcome or a column the advisor never reviewed
 
         # Prediction moment changes -> prior leakage advisor is automatically invalidated (HTTP 409)!
         p_mut = store.get(pid)
@@ -195,9 +207,46 @@ class LeakageAdvisorTests(unittest.TestCase):
         self.assertEqual(r_stale.json()["detail"]["error"], "stale_leakage_advice")
 
 
-if __name__ == "__main__":
-    unittest.main()
+    def test_a_moment_word_or_a_name_alone_is_a_question_never_a_block(self):
+        """The review: `couriers_online` shares a stem with the moment's "courier rating" and was reported very likely
+        leakage; only the audit's own verdict or an extreme heuristic blocks."""
+        home = Path(tempfile.mkdtemp())
+        store, pid, _df = self._build_project(home)
+        studio_engine.execute(store, pid, "data")
+        adv = studio_engine.execute(store, pid, "leakage")["evidence"]["leakage_advisor"]
+        actions = {r["column"]: r["action"] for r in adv["recommendations"]}
+        self.assertNotEqual(actions.get("couriers_online"), "block")
 
+    def test_a_stage_asks_no_model_when_the_process_installed_no_gateway(self):
+        """The review: a layer or baseline run mocks the stage notes and installs nothing; the advisor fell back to a bare
+        gateway built from .env, outside every cap. Only an installed gateway is asked, with the project's id."""
+        from unittest import mock
+
+        from dclab_rnd import models
+
+        asked = []
+
+        class Gateway:
+            def project_private(self, pid):
+                return False
+
+            def available(self, purpose):
+                return True
+
+            def client(self, purpose, **kw):
+                if purpose == "leakage_review":  # the advisor's own request (stage notes have their own rules)
+                    asked.append((purpose, kw.get("project_id")))
+                return None
+
+        home = Path(tempfile.mkdtemp())
+        store, pid, _df = self._build_project(home)
+        studio_engine.execute(store, pid, "data")
+        with mock.patch.object(models.gateway, "_INSTALLED", None), mock.patch("dclab_rnd.models.gateway.Gateway", return_value=Gateway()):
+            studio_engine.execute(store, pid, "leakage")
+        self.assertEqual(asked, [])
+        with mock.patch.object(models.gateway, "_INSTALLED", Gateway()):
+            studio_engine.execute(store, pid, "leakage")
+        self.assertEqual(asked, [("leakage_review", pid)])  # installed: asked once, with the project's id for its cap
 
     def test_stage_leakage_asks_no_model_inside_notes_off(self):
         """2026-11-19: inside an exam's notes_off the advisor called the process's model, outside the exam's cap and
@@ -222,7 +271,11 @@ if __name__ == "__main__":
         home = Path(tempfile.mkdtemp())
         store, pid, _df = self._build_project(home)
         studio_engine.execute(store, pid, "data")
-        with mock.patch("dclab_rnd.models.installed", return_value=Gateway()), agent.notes_off():
+        with mock.patch("dclab_rnd.models.installed_only", return_value=Gateway()), agent.notes_off():
             rec = studio_engine.execute(store, pid, "leakage")
         self.assertNotIn("leakage_review", asked)
         self.assertIn("leakage_advisor", rec["evidence"])  # the advisor's rules still ran, with no model
+
+
+if __name__ == "__main__":
+    unittest.main()

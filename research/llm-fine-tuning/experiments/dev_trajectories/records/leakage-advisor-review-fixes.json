@@ -1,0 +1,97 @@
+{
+ "package": "leakage-advisor-review-fixes",
+ "title": "The Leakage Advisor's exclusion goes through the person's save path, asks only an installed gateway, and blocks only on evidence",
+ "date": "2026-11-19",
+ "request": "The owner asked for a full review of another agent's six commits, with authority to fix bugs.",
+ "spec": "Fix the reviewer's confirmed findings on 815c0ded with tests.",
+ "plan": [
+  "review",
+  "fix",
+  "test"
+ ],
+ "decisions": [
+  {
+   "decision": "The exclusion is proposed by the advisor and saved by the route through _save_solution",
+   "why": "one path for every solution change: checks, graph log, audit, ledger, stages cleared"
+  }
+ ],
+ "change": "dclab_rnd/studio/leakage_advisor.py, dclab_rnd/agentic/routers/projects.py, dclab_rnd/studio/engine.py (project_id, installed_only), dclab_rnd/models/gateway.py and __init__.py (installed_only), tests/test_leakage_advisor.py.",
+ "findings": [
+  {
+   "id": "LR-1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "A confirmed exclusion broke every later stage.",
+   "scenario": "exclude_directly then the features stage: ValidationError forbidden.0.source.",
+   "cause": "written beside the product's own paths",
+   "fix": "only column and reason written",
+   "test": "tests/test_leakage_advisor.py test_stage_leakage_emits_provisional_advice_compare_both_is_train_only_and_moment_change_invalidates"
+  },
+  {
+   "id": "LR-2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "The exclusion skipped the validator, audit, ledger and stage clearing, and accepted the target or a missing column.",
+   "scenario": "exclude the target and no_such_column: 200.",
+   "cause": "written beside the product's own paths",
+   "fix": "saved through _save_solution; only columns the advisor reviewed",
+   "test": "tests/test_leakage_advisor.py test_stage_leakage_emits_provisional_advice_compare_both_is_train_only_and_moment_change_invalidates"
+  },
+  {
+   "id": "LR-3",
+   "source": "reviewer",
+   "severity": "leakage",
+   "verdict": "confirmed",
+   "defect": "Harnesses that install no gateway still sent requests through a bare gateway built from .env.",
+   "scenario": "layer and baseline runs: leakage_review asked outside every cap.",
+   "cause": "written beside the product's own paths",
+   "fix": "installed_only(): no bare fallback",
+   "test": "tests/test_leakage_advisor.py test_a_stage_asks_no_model_when_the_process_installed_no_gateway"
+  },
+  {
+   "id": "LR-4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "The request never carried the project id, so the project's cap and consent were skipped.",
+   "scenario": "pid always None.",
+   "cause": "written beside the product's own paths",
+   "fix": "prepare sets project_id",
+   "test": "tests/test_leakage_advisor.py test_a_stage_asks_no_model_when_the_process_installed_no_gateway"
+  },
+  {
+   "id": "LR-5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "A moment word or a name alone was reported as very likely leakage.",
+   "scenario": "couriers_online blocked for a shared stem with the moment.",
+   "cause": "written beside the product's own paths",
+   "fix": "block only on the audit's own verdict or an extreme heuristic; the rest asked",
+   "test": "tests/test_leakage_advisor.py test_a_moment_word_or_a_name_alone_is_a_question_never_a_block"
+  },
+  {
+   "id": "LR-7",
+   "source": "reviewer",
+   "severity": "gap",
+   "verdict": "confirmed",
+   "defect": "The notes_off regression test never ran.",
+   "scenario": "indented under __main__.",
+   "cause": "written beside the product's own paths",
+   "fix": "moved into the class",
+   "test": "tests/test_leakage_advisor.py test_stage_leakage_asks_no_model_inside_notes_off"
+  }
+ ],
+ "measurements": [],
+ "outcome": "Fixed six of eight; the lost update during compare_both is avoided by saving a fresh project, and staleness by problem revision is not wired (open).",
+ "lessons": [
+  "Run a stage after every change a feature makes to the solution.",
+  "A test placed after the main block never runs: count the tests that ran."
+ ],
+ "risks": [
+  "Staleness by problem revision is still not wired."
+ ],
+ "commits": []
+}

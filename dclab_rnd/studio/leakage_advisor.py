@@ -188,10 +188,13 @@ def advise(
             rationale = f"Already declared forbidden under the active solution; excluded from clean training features."
             uncertainty = "Low (confirmed by current solution contract)."
             evidence_refs.append("solution:forbidden")
-        elif (rev_item is not None and rev_item.get("verdict") == "after the moment") or extreme_sig or (name_post_event and (strong_sig or bool(moment_str))):
+        # block only on the audit's own verdict (apply True) or an extreme or duplicate heuristic; the moment rule and the model
+        # are shown, never ticked (leakage_review's apply False), and a name alone is a question (the review, 2026-11-19:
+        # `couriers_online` blocked for sharing a stem with the moment; a count of past events blocked by its name)
+        elif (rev_item is not None and rev_item.get("verdict") == "after the moment" and rev_item.get("apply") is True) or extreme_sig:
             action = "block"
             likelihood = "very_likely"
-            confidence = "high" if (rev_item is not None or extreme_sig) else "medium"
+            confidence = "high"
             reasons_parts = []
             if rev_item is not None:
                 reasons_parts.append(str(rev_item.get("reason") or "recorded after the prediction moment"))
@@ -207,7 +210,7 @@ def advise(
             )
             uncertainty = "Provisional advice; confirm availability at the prediction moment or compare clean vs. leaky on training folds."
             likely_leakage_cols.append(col)
-        elif strong_sig or name_post_event or (col in disagreements_by_col):
+        elif strong_sig or name_post_event or (col in disagreements_by_col) or (rev_item is not None and rev_item.get("verdict") == "after the moment"):
             action = "ask"
             likelihood = "possible"
             confidence = "medium"
@@ -446,22 +449,21 @@ def apply_leakage_decision(
         existing_cols = {str(f.get("column")) for f in forbidden if isinstance(f, Mapping)}
         rec_map = {str(r["column"]): r for r in (advisory.get("recommendations") or []) if isinstance(r, Mapping) and r.get("column")}
         added = []
+        unknown = [c for c in cols if c not in rec_map]
+        if unknown:  # only a column the advisor reviewed: never the outcome, a missing column or one it never saw
+            raise ValueError(f"not reviewed by the leakage advisor: {', '.join(unknown[:5])}")
         for col in cols:
             if col not in existing_cols:
                 reason = str((rec_map.get(col) or {}).get("rationale") or "Confirmed leakage exclusion by user.")[:240]
-                forbidden.append({"column": col, "reason": reason, "source": f"confirmed:{by}"})
+                # the Solution's own shape only (a column and its reason): an extra key made every later stage fail
+                forbidden.append({"column": col, "reason": f"{reason} (confirmed by {by})"[:300]})
                 added.append(col)
+        out["added_forbidden"] = added
         if added:
-            from . import memory as studio_memory
-
-            sol["forbidden"] = forbidden
-            project["solution"] = sol
-            studio_memory.solution_saved(project, before, sol, "human")
-            store.save(project)
-            out["solution_mutated"] = True
-            out["added_forbidden"] = added
-        else:
-            out["added_forbidden"] = []
+            # proposed, not saved here: the caller saves it through the person's own path (the solution's checks, the graph's
+            # validator and log, the audit, the ledger, and the stages it invalidates cleared), never beside it (the review)
+            out["proposed_solution"] = {**sol, "forbidden": forbidden}
+        _ = before
         return out
 
     # choice == "keep_confirmed"

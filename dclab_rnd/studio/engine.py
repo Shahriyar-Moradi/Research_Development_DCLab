@@ -94,6 +94,7 @@ class Prepared:
         self.kind: kinds.ProblemKind = kinds.get(solution.task)  # the problem kind (16.1), set on every prepare
         self.decided: list[Any] = []  # 22.9: the column decisions a routed decision model made here (ledger.use.Choice)
         self.recipe: dict[str, Any] | None = None  # 30.10: the resolved recipe (dclab_core.recipes), set on every prepare
+        self.project_id: str | None = None  # the project this was prepared for, set by prepare
         self.personal: set[str] = set()  # 23.7: the columns that hold a person's data (their levels are not named in a record)
         self.labels_by_source: dict[str, int] = {}  # 30.12: rows per label source among the rows with an outcome
         self.noisy_rules: list[dict[str, Any]] = []  # 30.12: the rule behind each noisy source's labels (capacity.rule_columns)
@@ -277,6 +278,7 @@ def prepare(store: ProjectStore, project: dict[str, Any]) -> Prepared:
     code_rule = "declared in the R&D dataset catalog for this sample" if declared is not None else HEURISTIC_RULE
     recipes = _register_recipes(bundle.spec, X, roles, datetime_time, project.get("feature_programs"), kind)
     prepared = Prepared(frame, solution, bundle, roles, class_labels, recipes, sampling, code_rule)
+    prepared.project_id = project.get("id")  # the Leakage Advisor's request carries it (the review: it was always None)
     row_order = (getattr(bundle, "extras", None) or {}).get("row_order")  # a time split sorted the rows: follow it
     prepared.source_rows = positions[np.asarray(row_order)] if row_order is not None and len(row_order) == len(positions) else positions
     from dclab_core import sensitivity
@@ -751,8 +753,8 @@ def stage_leakage(p: Prepared, eid: str) -> tuple[dict, list, str]:
 
         if not notes_allowed():  # a team run or an exam: no model outside its own capped gateway (2026-11-19)
             raise LookupError("stage models are off here")
-        gw = studio_models.installed()
-        pid = getattr(p, "project_id", None)
+        gw = studio_models.installed_only()  # never a bare gateway from the environment: a harness that installed none asks nothing
+        pid = getattr(p, "project_id", None)  # set by prepare: the project's cap, consent and deletion reach the request
         is_priv = bool(gw.project_private(pid)) if (gw is not None and pid and callable(getattr(gw, "project_private", None))) else False
         if gw is not None and not is_priv and gw.available("leakage_review"):
             advisor_client = gw.client("leakage_review", project_id=pid)

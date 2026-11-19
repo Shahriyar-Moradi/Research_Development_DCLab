@@ -1403,12 +1403,17 @@ async def decide_leakage_advice(project_id: str, payload: AnyObject, s: Services
     who = current_principal()
     by = f"person:{who.user_id}" if (who is not None and who.user_id) else "person:owner"
     try:
-        return await asyncio.to_thread(
+        out = await asyncio.to_thread(
             leakage_advisor.apply_leakage_decision,
             s.projects, project_id, advisory,
             choice=choice, columns=columns, by=by,
             confirm_exclude_after_compare=confirm_after,
         )
+        if out.get("proposed_solution"):  # saved as the person saves a solution: checked, logged, audited, stages cleared
+            proposed = {k: v for k, v in out.pop("proposed_solution").items() if k in SolutionBody.model_fields}
+            await _save_solution(project_id, SolutionBody(**proposed), s)
+            out["solution_mutated"] = True
+        return out
     except leakage_advisor.StaleLeakageAdviceError as exc:
         raise HTTPException(409, {"error": "stale_leakage_advice", "message": str(exc),
                                   "old_moment": exc.old_moment, "current_moment": exc.current_moment}) from None

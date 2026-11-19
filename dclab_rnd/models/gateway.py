@@ -23,7 +23,7 @@ import os
 import threading
 import time
 from pathlib import Path
-from typing import Any, Callable, Iterator
+from typing import Any, Callable, Iterator, Optional
 
 from . import prices, settings
 from .client import ChatClient
@@ -927,6 +927,15 @@ def installed() -> Gateway:
 
     current = getattr(context.services(), "gateway", None)
     return current or _INSTALLED or Gateway()
+
+
+def installed_only() -> Optional[Gateway]:
+    """The gateway this request, job or server installed, or None: never a bare one built from the environment. A model
+    call inside a stage uses it, so a harness that installed nothing (an exam, a layer run, a baseline) sends no request
+    outside its own capped gateway (the review of the Leakage Advisor, 2026-11-19)."""
+    from .. import context
+
+    return getattr(context.services(), "gateway", None) or _INSTALLED
 
 
 def for_tools() -> Gateway:
