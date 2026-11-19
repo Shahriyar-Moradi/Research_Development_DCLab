@@ -1,0 +1,297 @@
+{
+ "cases": 12,
+ "failed": 0,
+ "rules": {
+  "leaks": {
+   "block": 5,
+   "ask": 2,
+   "keep": 1
+  },
+  "leaks_flagged": 0.875,
+  "leaks_blocked": 0.625,
+  "honest": {
+   "keep": 22,
+   "absent": 7
+  },
+  "honest_blocked": 0.0,
+  "honest_flagged": 0.0
+ },
+ "model": {
+  "leaks": {
+   "block": 5,
+   "ask": 3
+  },
+  "leaks_flagged": 1.0,
+  "leaks_blocked": 0.625,
+  "honest": {
+   "keep": 20,
+   "absent": 7,
+   "ask": 2
+  },
+  "honest_blocked": 0.0,
+  "honest_flagged": 0.069
+ },
+ "spent_eur": 0.09,
+ "exchanges": 54,
+ "with_thinking": 54,
+ "rows": [
+  {
+   "case": "pr01",
+   "rules": {
+    "leaks": {
+     "refund_amount": "block"
+    },
+    "honest": {
+     "prior_returns": "keep",
+     "order_date": "absent"
+    }
+   },
+   "model": {
+    "leaks": {
+     "refund_amount": "block"
+    },
+    "honest": {
+     "prior_returns": "keep",
+     "order_date": "absent"
+    }
+   },
+   "model_used": false
+  },
+  {
+   "case": "pr02",
+   "rules": {
+    "leaks": {
+     "late_fee_charged": "ask"
+    },
+    "honest": {
+     "promised_hours": "keep",
+     "pickup_hour": "keep"
+    }
+   },
+   "model": {
+    "leaks": {
+     "late_fee_charged": "ask"
+    },
+    "honest": {
+     "promised_hours": "keep",
+     "pickup_hour": "ask"
+    }
+   },
+   "model_used": false
+  },
+  {
+   "case": "pr03",
+   "rules": {
+    "leaks": {
+     "outcome_code": "block"
+    },
+    "honest": {
+     "months_active": "keep",
+     "price_change_pct": "keep"
+    }
+   },
+   "model": {
+    "leaks": {
+     "outcome_code": "block"
+    },
+    "honest": {
+     "months_active": "keep",
+     "price_change_pct": "keep"
+    }
+   },
+   "model_used": false
+  },
+  {
+   "case": "pr04",
+   "rules": {
+    "leaks": {},
+    "honest": {
+     "prior_no_shows": "keep",
+     "appt_date": "absent",
+     "reminder_sent": "keep"
+    }
+   },
+   "model": {
+    "leaks": {},
+    "honest": {
+     "prior_no_shows": "keep",
+     "appt_date": "absent",
+     "reminder_sent": "ask"
+    }
+   },
+   "model_used": false
+  },
+  {
+   "case": "pr05",
+   "rules": {
+    "leaks": {
+     "rework_minutes": "block"
+    },
+    "honest": {
+     "produced_at": "absent",
+     "cycle_time_s": "keep",
+     "line": "keep"
+    }
+   },
+   "model": {
+    "leaks": {
+     "rework_minutes": "block"
+    },
+    "honest": {
+     "produced_at": "absent",
+     "cycle_time_s": "keep",
+     "line": "keep"
+    }
+   },
+   "model_used": false
+  },
+  {
+   "case": "pr06",
+   "rules": {
+    "leaks": {
+     "n_followups": "keep"
+    },
+    "honest": {
+     "due_date": "absent",
+     "prior_late_pct": "keep"
+    }
+   },
+   "model": {
+    "leaks": {
+     "n_followups": "ask"
+    },
+    "honest": {
+     "due_date": "absent",
+     "prior_late_pct": "keep"
+    }
+   },
+   "model_used": false
+  },
+  {
+   "case": "pr07",
+   "rules": {
+    "leaks": {
+     "days_to_resolve": "block"
+    },
+    "honest": {
+     "created_at": "absent",
+     "n_prior_tickets_30d": "keep",
+     "sentiment_score": "keep"
+    }
+   },
+   "model": {
+    "leaks": {
+     "days_to_resolve": "block"
+    },
+    "honest": {
+     "created_at": "absent",
+     "n_prior_tickets_30d": "keep",
+     "sentiment_score": "keep"
+    }
+   },
+   "model_used": false
+  },
+  {
+   "case": "pr08",
+   "rules": {
+    "leaks": {},
+    "honest": {
+     "temp_forecast_c": "keep",
+     "floor_area_m2": "keep"
+    }
+   },
+   "model": {
+    "leaks": {},
+    "honest": {
+     "temp_forecast_c": "keep",
+     "floor_area_m2": "keep"
+    }
+   },
+   "model_used": false
+  },
+  {
+   "case": "pr09",
+   "rules": {
+    "leaks": {
+     "final_grade": "block"
+    },
+    "honest": {
+     "quiz_avg_wk4": "keep",
+     "attendance_rate_wk4": "keep",
+     "term": "absent"
+    }
+   },
+   "model": {
+    "leaks": {
+     "final_grade": "block"
+    },
+    "honest": {
+     "quiz_avg_wk4": "keep",
+     "attendance_rate_wk4": "keep",
+     "term": "absent"
+    }
+   },
+   "model_used": false
+  },
+  {
+   "case": "pr10",
+   "rules": {
+    "leaks": {},
+    "honest": {
+     "arrival_date": "absent",
+     "previous_cancellations": "keep",
+     "lead_time_days": "keep"
+    }
+   },
+   "model": {
+    "leaks": {},
+    "honest": {
+     "arrival_date": "absent",
+     "previous_cancellations": "keep",
+     "lead_time_days": "keep"
+    }
+   },
+   "model_used": false
+  },
+  {
+   "case": "pr11",
+   "rules": {
+    "leaks": {
+     "chargeback_flag": "ask"
+    },
+    "honest": {
+     "device_new": "keep",
+     "country_mismatch": "keep"
+    }
+   },
+   "model": {
+    "leaks": {
+     "chargeback_flag": "ask"
+    },
+    "honest": {
+     "device_new": "keep",
+     "country_mismatch": "keep"
+    }
+   },
+   "model_used": false
+  },
+  {
+   "case": "pr12",
+   "rules": {
+    "leaks": {},
+    "honest": {
+     "footfall_prev_week": "keep",
+     "temp_forecast_c": "keep"
+    }
+   },
+   "model": {
+    "leaks": {},
+    "honest": {
+     "footfall_prev_week": "keep",
+     "temp_forecast_c": "keep"
+    }
+   },
+   "model_used": false
+  }
+ ]
+}
