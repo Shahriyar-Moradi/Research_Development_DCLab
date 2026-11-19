@@ -1195,7 +1195,11 @@ def _decision(p: Prepared, selected: dict[str, Any], y_test: pd.Series, predicti
                 # rows of seen entities, so only the training rows count right); a random or group split's training rows
                 # hold part of every day, so every row counts (the review of 0.115.0)
                 timed = bundle.spec.split_strategy in ("time", "time_group")
-                every = (bundle.X_train[time_column] if timed
+                held = (bundle.extras.get("split") or {}).get("way") == "held out as new"
+                # entities held out as new (2026-11-19): training holds only the others, so a day's rows are counted over every
+                # row before the cut (the review: three quarters of the true rate, a review share a third too large)
+                every = (bundle.X[time_column].iloc[:int(bundle.extras["split"]["before_cut"])] if held
+                         else bundle.X_train[time_column] if timed
                          else pd.concat([bundle.X_train[time_column], bundle.X_test[time_column]], ignore_index=True))
                 stamps = pd.to_datetime(every.astype(str), errors="coerce").dropna()
                 days = (stamps.max() - stamps.min()).total_seconds() / 86400 if len(stamps) > 1 else 0

@@ -147,9 +147,18 @@ class BudgetAndSplitTest(unittest.TestCase):
             train_groups = bundle.X_train["customer"].astype(str).to_numpy()
             self.assertFalse(set(train_groups[fit]) & set(train_groups[valid]))
         self.assertIn("rows removed", bundle.cv_description)
-        everywhere = X.assign(customer=rng.integers(0, 20, n))  # every customer in both periods: refused, never silently dropped
+        # every customer in both periods (2026-11-19): a quarter of them is held out as new, scored after the cut, never trained on
+        everywhere = ds.prepare_bundle(spec, X.assign(customer=rng.integers(0, 20, n)), y)
+        groups = everywhere.X["customer"].astype(str).to_numpy()
+        self.assertFalse(set(groups[everywhere.train_idx]) & set(groups[everywhere.test_idx]))
+        self.assertGreater(everywhere.X["day"].iloc[everywhere.test_idx].min(), everywhere.X["day"].iloc[everywhere.train_idx].max())  # no tie across the cut
+        self.assertIn("held out as new", everywhere.holdout_description)
+        for fit, valid in everywhere.cv_splits:
+            train_groups = everywhere.X_train["customer"].astype(str).to_numpy()
+            self.assertFalse(set(train_groups[fit]) & set(train_groups[valid]))
+        few = X.assign(customer=rng.integers(0, 5, n))  # five customers: too few to hold any out, refused, never silently dropped
         with self.assertRaises(ValueError) as refusal:
-            ds.prepare_bundle(spec, everywhere, y)
+            ds.prepare_bundle(spec, few, y)
         self.assertIn("Declare only one", str(refusal.exception))
 
     @unittest.skipIf(STUDIO_MISSING, STUDIO_MISSING)

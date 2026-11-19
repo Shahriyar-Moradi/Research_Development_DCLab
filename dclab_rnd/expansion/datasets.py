@@ -21,7 +21,7 @@ import threading
 import urllib.request
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, Optional
 
 import numpy as np
 import pandas as pd
@@ -381,6 +381,7 @@ def prepare_bundle(
     )
 
     regression = (spec.task_type == "timeseries_regression") if stratify is None else not stratify  # no class strata
+    split_extras: dict[str, Any] = {}
     X = X.reset_index(drop=True)
     y = y.reset_index(drop=True)
     n = len(X)
@@ -402,31 +403,11 @@ def prepare_bundle(
         row_order = np.asarray(order)
         X = X.iloc[order].reset_index(drop=True)
         y = y.iloc[order].reset_index(drop=True)
-        groups = X[spec.group_column].astype(str).to_numpy()
-        n_test = int(round(HOLDOUT_FRACTION * n))
-        train_idx = np.arange(n - n_test)
-        later = np.arange(n - n_test, n)
-        test_idx = later[~np.isin(groups[later], groups[train_idx])]  # an entity seen in training never scores the holdout
-        removed = {"holdout": int(len(later) - len(test_idx))}
-        if not _enough_unseen(len(test_idx), len(later)):
-            raise ValueError(f"With both `{spec.time_column}` and `{spec.group_column}` declared, {removed['holdout']} of the last "
-                             f"{len(later)} rows belong to a {spec.group_column} seen earlier, leaving {len(test_idx)} to test on: "
-                             "almost every entity appears in both periods. Declare only one of the two (time for a forward check, "
-                             "the entity for unseen entities).")
-        cv_splits = []
-        for a, b in TimeSeriesSplit(n_splits=cv_folds).split(train_idx):
-            keep = b[~np.isin(groups[b], groups[a])]
-            removed[f"fold_{len(cv_splits) + 1}"] = int(len(b) - len(keep))
-            if len(keep) >= 10:
-                cv_splits.append((a, keep))
-        if len(cv_splits) < 2:
-            raise ValueError(f"Time-ordered folds that keep `{spec.group_column}` apart leave fewer than two usable folds: declare "
-                             "only one of the two.")
-        cv_description = (f"expanding-window time-ordered folds ({len(cv_splits)}) by `{spec.time_column}`, each validation fold "
-                          f"without the `{spec.group_column}` values its fit rows saw (rows removed: "
-                          + ", ".join(f"{k} {v}" for k, v in removed.items() if k != "holdout") + ")")
-        holdout_description = (f"last {len(later)} of {n} rows by `{spec.time_column}`, less {removed['holdout']} rows of "
-                               f"`{spec.group_column}` values seen in training: {len(test_idx)} rows")
+        parts = time_group_split(_time_key(X[spec.time_column]), X[spec.group_column].astype(str).to_numpy(), y=y,
+                                 folds=cv_folds, regression=regression, time_column=spec.time_column, group_column=spec.group_column)
+        train_idx, test_idx, cv_splits = parts["train"], parts["test"], parts["cv"]
+        cv_description, holdout_description = parts["cv_description"], parts["holdout_description"]
+        split_extras = {k: parts[k] for k in ("way", "before_cut", "unused_share") if k in parts}
     elif spec.split_strategy == "group":
         groups = X[spec.group_column].to_numpy()
         # Regression targets cannot be stratified: fall back to plain group folds.
@@ -474,7 +455,7 @@ def prepare_bundle(
         source_rows=int(source_rows if source_rows is not None else n),
         sampling=dict(sampling or {}),
         class_labels=class_labels,
-        extras={"row_order": row_order},
+        extras={"row_order": row_order, **({"split": split_extras} if split_extras else {})},
     )
 
 
@@ -493,27 +474,135 @@ def _enough_unseen(unseen: int, later: int) -> bool:
     return unseen >= max(30, 0.1 * later)
 
 
-def time_group_feasible(times: Any, groups: Any, folds: int = CV_FOLDS) -> tuple[bool, int, int]:
-    """Whether the engine can split these rows forward in time with every entity on one side (``time_group``): the rows in
-    time order, the last ``HOLDOUT_FRACTION`` as the holdout, and enough of them from entities unseen before. Returns
-    (feasible, unseen rows, holdout rows). The engine raises on the same test; a caller proposing the split asks first
-    (28.6: a debate's grouped forward split the engine then refused)."""
-    times, groups = pd.Series(times).reset_index(drop=True), pd.Series(groups).astype(str).reset_index(drop=True).to_numpy()
-    order = np.argsort(_time_key(times), kind="stable")
-    groups = groups[order]
+NEW_ENTITY_SHARE = 0.25  # of the entities, held out as the new ones when no entity is new in the data itself
+NEW_ENTITY_CUT = 0.75  # the time quantile after which the held-out entities' rows are scored
+NEW_ENTITY_MIN = 20  # at least this many entities, so at least five are held out: an interval over two entities means little
+
+
+def time_group_split(keys: Any, groups: Any, y: Any = None, folds: int = CV_FOLDS, regression: bool = True,
+                     time_column: str = "time", group_column: str = "group") -> dict[str, Any]:
+    """Forward in time with no entity on both sides, on rows already in time order (``keys``: their time, sorted).
+
+    First as the data gives it: the latest rows, less those of an entity seen earlier (stores that opened late). When
+    every entity appears in every period that leaves nothing to test (2026-11-19: every store reports every week), the
+    new ones are simulated: a quarter of the entities is held out at random (seeded), their rows after the time cut are
+    the holdout, and the other entities' rows before the cut train. The held-out entities' early rows and the others'
+    late rows are used by neither: what a store opened next year would face. The training folds repeat it inside the
+    training rows. Raises ValueError when neither way leaves enough to test on."""
+    keys, groups = np.asarray(keys), np.asarray(groups).astype(str)
     n = len(groups)
     n_test = int(round(HOLDOUT_FRACTION * n))
-    later = groups[n - n_test:]
-    unseen = int((~np.isin(later, groups[:n - n_test])).sum())
-    ok = _enough_unseen(unseen, len(later))
-    train = groups[:n - n_test]
-    if ok:  # the engine's second test: two or more time-ordered folds that each keep ten rows of entities their fit never saw
-        from sklearn.model_selection import TimeSeriesSplit  # (the review, 2026-11-19: the holdout alone said yes, the build failed)
+    train_idx = np.arange(n - n_test)
+    later = np.arange(n - n_test, n)
+    test_idx = later[~np.isin(groups[later], groups[train_idx])]  # an entity seen in training never scores the holdout
+    removed = {"holdout": int(len(later) - len(test_idx))}
+    if _enough_unseen(len(test_idx), len(later)):
+        cv_splits = []
+        from sklearn.model_selection import TimeSeriesSplit
 
-        usable = 0 if len(train) <= folds else sum(
-            int((~np.isin(train[b], train[a])).sum()) >= 10 for a, b in TimeSeriesSplit(n_splits=folds).split(np.arange(len(train))))
-        ok = usable >= 2
-    return ok, unseen, len(later)
+        for a, b in (TimeSeriesSplit(n_splits=folds).split(train_idx) if len(train_idx) > folds else ()):
+            keep = b[~np.isin(groups[b], groups[a])]
+            removed[f"fold_{len(cv_splits) + 1}"] = int(len(b) - len(keep))
+            if len(keep) >= 10:
+                cv_splits.append((a, keep))
+        if len(cv_splits) >= 2:
+            return {"train": train_idx, "test": test_idx, "cv": cv_splits, "way": "unseen in the data",
+                    "cv_description": (f"expanding-window time-ordered folds ({len(cv_splits)}) by `{time_column}`, each validation fold "
+                                       f"without the `{group_column}` values its fit rows saw (rows removed: "
+                                       + ", ".join(f"{k} {v}" for k, v in removed.items() if k != "holdout") + ")"),
+                    "holdout_description": (f"last {len(later)} of {n} rows by `{time_column}`, less {removed['holdout']} rows of "
+                                            f"`{group_column}` values seen in training: {len(test_idx)} rows")}
+    held, why = _held_out_entities(keys, groups, y, folds, regression)
+    if held is None:
+        raise ValueError(f"With both `{time_column}` and `{group_column}` declared, no split can test on unseen `{group_column}` values: the "
+                         f"latest rows belong to values seen earlier, and holding some out as new fails: {why}. Declare only one of the "
+                         "two (time for a forward check, the entity for unseen entities).")
+    train_idx, test_idx, cv_splits, info = held
+    return {"train": train_idx, "test": test_idx, "cv": cv_splits, "way": "held out as new", "before_cut": info["before_cut"],
+            "unused_share": round(info["unused"] / max(len(keys), 1), 3),
+            "cv_description": (f"{len(cv_splits)} folds inside the training rows, each holding out a share of their `{group_column}` "
+                               f"values after a cut by `{time_column}` and fitting on the others before it"),
+            "holdout_description": (f"rows after the cut by `{time_column}` of {info['held']} `{group_column}` values held out as new "
+                                    f"({len(test_idx)} rows); training: the other {info['kept']} values before the cut "
+                                    f"({len(train_idx)} rows); {info['unused']} rows used by neither")}
+
+
+def _held_out_entities(keys: np.ndarray, groups: np.ndarray, y: Any, folds: int, regression: bool) -> Any:
+    """The simulated new entities: ((train positions, test positions, folds as positions inside the training rows, counts),
+    None), or (None, why). Seeded; a classification needs both classes on both sides and in every fold kept (up to ten
+    draws)."""
+    values = np.asarray(y) if y is not None else None
+    entities = np.unique(groups)
+    if len(entities) < NEW_ENTITY_MIN:
+        return None, f"{len(entities)} values, fewer than {NEW_ENTITY_MIN}"
+    cut = keys[int(NEW_ENTITY_CUT * len(keys))]
+    after = keys >= cut
+    k = max(2, int(np.ceil(NEW_ENTITY_SHARE * len(entities))))
+    why = "too few rows after the cut"
+    for attempt in range(10):
+        rng = np.random.default_rng(RANDOM_STATE + attempt)
+        held = np.isin(groups, rng.choice(entities, size=k, replace=False))
+        test_idx = np.flatnonzero(after & held)
+        train_idx = np.flatnonzero(~after & ~held)
+        if not _enough_unseen(len(test_idx), int(after.sum())) or len(train_idx) < 50:
+            continue
+        if values is not None and not regression and (len(set(values[test_idx])) < 2 or len(set(values[train_idx])) < 2):
+            why = "no draw of held-out values holds both classes on both sides"
+            continue
+        cv_splits = _held_out_folds(keys[train_idx], groups[train_idx], None if values is None else values[train_idx], folds, regression, rng)
+        if len(cv_splits) < 2:
+            why = "fewer than two training folds with enough rows" + ("" if regression or values is None else " and both classes")
+            continue
+        return (train_idx, test_idx, cv_splits, {"held": k, "kept": len(entities) - k, "before_cut": int((~after).sum()),
+                                                  "unused": len(keys) - len(train_idx) - len(test_idx)}), None
+    return None, why
+
+
+def _held_out_folds(keys: np.ndarray, groups: np.ndarray, values: Any, folds: int, regression: bool, rng: Any) -> list[tuple[np.ndarray, np.ndarray]]:
+    """The same simulation inside the training rows: the entities split into ``folds`` parts; fold k fits on the other parts
+    before the cut and validates on part k after it. Positions are inside the training rows."""
+    entities = rng.permutation(np.unique(groups))
+    parts = np.array_split(entities, folds)
+    cut = keys[int(NEW_ENTITY_CUT * len(keys))]
+    after = keys >= cut
+    out = []
+    for part in parts:
+        held = np.isin(groups, part)
+        fit, val = np.flatnonzero(~after & ~held), np.flatnonzero(after & held)
+        if len(val) < 10 or len(fit) < 20:
+            continue
+        if values is not None and not regression and len(set(values[val])) < 2:
+            continue
+        out.append((fit, val))
+    return out
+
+
+def time_group_feasible(times: Any, groups: Any, folds: int = CV_FOLDS, y: Any = None, regression: bool = True,
+                        details: Optional[dict[str, Any]] = None) -> tuple[bool, int, int]:
+    """Whether the engine can split these rows forward in time with every entity on one side (``time_group``), read by the
+    split itself (``time_group_split``), with the outcome when given so a classification's class checks are read too (the
+    review, 2026-11-19: without it the check said yes and the build refused). Returns (feasible, rows to test on, the
+    latest fifth's rows); refused, the second is how many of the latest fifth's rows are of an entity unseen before.
+    ``details``: filled with the way it splits, the unused share, or why it cannot. A caller proposing the split asks
+    first when it cannot (28.6; the practice set, 2026-11-19)."""
+    times, groups = pd.Series(times).reset_index(drop=True), pd.Series(groups).astype(str).reset_index(drop=True).to_numpy()
+    if y is not None:  # the engine trains and tests only rows with an outcome
+        known = pd.Series(y).reset_index(drop=True).notna().to_numpy()
+        times, groups, y = times[known].reset_index(drop=True), groups[known], pd.Series(y).reset_index(drop=True)[known].reset_index(drop=True)
+    order = np.argsort(_time_key(times), kind="stable")
+    keys, groups = _time_key(times)[order], groups[order]
+    values = None if y is None else y.iloc[order].reset_index(drop=True)
+    n_test = int(round(HOLDOUT_FRACTION * len(keys)))
+    try:
+        parts = time_group_split(keys, groups, y=values, folds=folds, regression=regression)
+    except ValueError as error:
+        if details is not None:
+            details.update(way=None, why=str(error))
+        later = groups[len(groups) - n_test:]
+        return False, int((~np.isin(later, groups[:len(groups) - n_test])).sum()), n_test
+    if details is not None:
+        details.update(way=parts["way"], unused_share=parts.get("unused_share", 0.0), test_rows=len(parts["test"]))
+    return True, len(parts["test"]), n_test
 
 
 def downloads_dir(root: Path) -> Path:

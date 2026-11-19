@@ -55,3 +55,14 @@ the review showed a guess picks the wrong entity (a customer split for "the stor
 What this does not prove: the rules were written after reading this set, so the gain here is not evidence. A fresh
 held-out exam (another session's cases) must judge it. Entity splits for new entities need an engine split that holds
 out entities and scores their later rows; that is a separate change.
+
+## After the engine's split for new entities
+
+The engine's time-and-entity split used to refuse a table where every entity appears in every period. It now holds a
+seeded quarter of the entities out as new (at least 20 entities, so at least five held out): their rows after a time
+cut (the 0.75 quantile) are the test, the other entities' rows before the cut train, and the rest is used by neither,
+which the person is told. Rerun `agent_runs/practice/2026-11-19T132745-planning-practice`: **28 of 48 enforced**,
+0 builds failed; the entity split applied in pr09 and pr12 on both seeds.
+
+The cost is real: pr12 leaves 460 of 1,200 rows unused, pr09 about half. The test set is small (80 to 160 rows), so its
+interval is wide. pr05 and pr08 are still not read: their brief's noun names no column.

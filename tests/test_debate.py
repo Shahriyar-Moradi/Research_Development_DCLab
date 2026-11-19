@@ -176,8 +176,10 @@ class JourneyTests(unittest.TestCase):
         live = {"designer": ScriptedAdvisor({"solution_planner": {"decisions": []}}), "challenger": ScriptedAdvisor({"solution_challenger": challenger}),
                 "judge": ScriptedAdvisor({"debate_judge": ruling})}
         row = journeys.play(person, 0, None, live)
-        self.assertTrue(row["parts"]["pipeline"], row["why"])  # the engine ran: the grouping was not applied
-        self.assertNotIn("group_column", row["debate"]["applied"])
+        # 2026-11-19: customers recurring in every period are now held out as new by the engine, so the grouping the judge
+        # kept can be tested and is applied; the engine still runs to its holdout
+        self.assertTrue(row["parts"]["pipeline"], row["why"])
+        self.assertIn("group_column", row["debate"]["applied"])
 
     def test_the_engines_own_test_of_a_grouped_forward_split(self):
         import numpy as np
@@ -185,7 +187,10 @@ class JourneyTests(unittest.TestCase):
         from dclab_rnd.expansion.datasets import time_group_feasible
 
         times = np.arange(1000)
-        self.assertFalse(time_group_feasible(times, np.arange(1000) % 50)[0])  # every entity recurs: nothing unseen to test
+        self.assertFalse(time_group_feasible(times, np.arange(1000) % 5)[0])  # five entities, all recurring: none to hold out
+        ok, test_rows, later = time_group_feasible(times, np.arange(1000) % 50)  # fifty recurring: a quarter held out as new
+        self.assertTrue(ok)
+        self.assertGreaterEqual(test_rows, 30)
         ok, unseen, later = time_group_feasible(times, np.arange(1000) // 5)  # new entities over time
         self.assertTrue(ok)
         self.assertEqual((unseen, later), (200, 200))

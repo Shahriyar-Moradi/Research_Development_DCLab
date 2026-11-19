@@ -66,7 +66,9 @@ def group_fits(projects: Any, project: dict[str, Any]) -> Any:
     from dclab_rnd.studio import engine
 
     target = (project.get("solution") or {}).get("target")
+    regression = (project.get("solution") or {}).get("task") not in ("binary", "multiclass")
     seen: dict[tuple[str, str], bool] = {}
+    ways: dict[tuple[str, str], dict[str, Any]] = {}
 
     def can_group(group: str, time_column: Optional[str]) -> bool:
         if not time_column:
@@ -85,11 +87,16 @@ def group_fits(projects: Any, project: dict[str, Any]) -> Any:
                 if not pd.api.types.is_numeric_dtype(times):
                     times = pd.to_datetime(times, errors="coerce", utc=True, format="mixed").dt.tz_localize(None)
                 keep = times.notna()
-                seen[(group, time_column)] = time_group_feasible(times[keep], frame.loc[keep, group], folds=engine.cv_folds(project))[0]
+                found: dict[str, Any] = {}
+                seen[(group, time_column)] = time_group_feasible(times[keep], frame.loc[keep, group], folds=engine.cv_folds(project),
+                                                                 y=frame.loc[keep, target] if target in frame else None,
+                                                                 regression=regression, details=found)[0]
+                ways[(group, time_column)] = found
             except Exception:  # noqa: BLE001
                 seen[(group, time_column)] = False
         return seen[(group, time_column)]
 
+    can_group.ways = ways  # type: ignore[attr-defined]  # how each split it said yes to is made, for the note to the person
     return can_group
 
 
@@ -183,8 +190,8 @@ def plan_project(projects: Any, project_id: str, *, gateway: Any = None, use_mod
         def ask(change: dict[str, Any], question: str, **more: Any) -> None:
             record["asked"].append({"trap": change["trap"], "kind": change["kind"], "field": change["field"], "value": change["value"], "question": question, **more})
 
-        for change in enforced.changes(plan.get("caught_traps") or [], plan.get("calls") or [], solution, columns, times,
-                                       can_group=group_fits(projects, project)):
+        can_group = group_fits(projects, project)
+        for change in enforced.changes(plan.get("caught_traps") or [], plan.get("calls") or [], solution, columns, times, can_group=can_group):
             field, value = change["field"], change["value"]
             if change["action"] == "none" or (field == "forbidden" and value in stays):
                 continue
@@ -210,7 +217,12 @@ def plan_project(projects: Any, project_id: str, *, gateway: Any = None, use_mod
                 continue
             refused = change_solution(projects, project_id, [change], "agent")
             if refused is None:
-                applied.append({"trap": change["trap"], "kind": change["kind"], "field": field, "value": value, "why": change["why"], "by": "agent", "at": now()})
+                done = {"trap": change["trap"], "kind": change["kind"], "field": field, "value": value, "why": change["why"], "by": "agent", "at": now()}
+                way = next((w for (g, _t), w in can_group.ways.items() if g == value), {}) if field == "group_column" else {}
+                if way.get("way") == "held out as new":  # said, never silent (the review): what the simulation costs
+                    done["note"] = (f"Every `{value}` appears in every period, so a quarter of them are held out as new and scored after a "
+                                    f"time cut; {round(100 * float(way.get('unused_share') or 0))}% of the rows are used by neither training nor the test.")
+                applied.append(done)
             else:  # a signed solution, or one whose own rules refuse the change: said, never worked around
                 ask(change, f"The plan asks for a stricter check ({change['why']}), and DCLab did not change the solution by itself: {refused[:160]} Change it?",
                     needs_person=True)
@@ -243,7 +255,7 @@ def says(result: dict[str, Any]) -> Optional[str]:
         if a["field"] == "time_column":
             parts.append(f"The split is by time, on `{a['value']}`.")
         if a["field"] == "group_column":
-            parts.append(f"Rows of one `{a['value']}` stay on one side of the split.")
+            parts.append(f"Rows of one `{a['value']}` stay on one side of the split." + (f" {a['note']}" if a.get("note") else ""))
     if result.get("asks"):
         parts.append(f"The plan has {len(result['asks'])} open question(s) for you on the project's page.")
     return " ".join(parts) or None

@@ -111,20 +111,77 @@ class ProductTests(unittest.TestCase):
         self.assertIn("both cannot hold", out[0]["why"])
         self.assertEqual(enforced.changes(traps, [], solution, columns, can_group=lambda g, t: True)[0]["action"], "apply")
 
-    def test_the_engines_fold_rule_is_read_too(self):
-        """The review: 30 stores every week and 10 new ones in the last weeks passed the holdout rule; the folds then failed."""
-        from dclab_rnd.expansion.datasets import time_group_feasible
+    def test_the_feasibility_check_is_the_split_itself(self):
+        """The review: a guard that copied only the holdout rule said yes while the folds failed the build. The check now
+        runs the split: 30 stores every week and 10 new ones late is split (held out as new), and the split it says it can
+        make is the one the engine makes."""
+        from dclab_rnd.expansion.datasets import _time_key, time_group_feasible, time_group_split
 
         weeks = pd.date_range("2025-01-06", periods=40, freq="W-MON")
         rows = [(w, s) for i, w in enumerate(weeks) for s in range(30)] + [(w, 100 + s) for w in weeks[-4:] for s in range(10)]
         frame = pd.DataFrame(rows, columns=["week", "store"])
-        self.assertFalse(time_group_feasible(frame["week"], frame["store"])[0])
+        ok, test_rows, _ = time_group_feasible(frame["week"], frame["store"])
+        parts = time_group_split(_time_key(frame["week"]), frame["store"].astype(str).to_numpy())
+        self.assertTrue(ok)
+        self.assertEqual(test_rows, len(parts["test"]))
+        self.assertGreaterEqual(len(parts["cv"]), 2)
+
+
+class HeldOutSplitTests(unittest.TestCase):
+    """The engine's split for new entities (2026-11-19) and the review of it."""
+
+    @staticmethod
+    def every_period(entities, periods=40, rate=None, seed=1):
+        rng = np.random.default_rng(seed)
+        rows = [(t, e) for t in range(periods) for e in range(entities)]
+        frame = pd.DataFrame(rows, columns=["t", "e"])
+        if rate is not None:  # positives only in a few entities: a rare class
+            frame["y"] = ((frame["e"] < rate) & (rng.random(len(frame)) < 0.3)).astype(int)
+        return frame
+
+    def test_too_few_entities_to_hold_five_out_is_refused(self):
+        from dclab_rnd.expansion.datasets import time_group_feasible
+
+        why = {}
+        self.assertFalse(time_group_feasible(self.every_period(19)["t"], self.every_period(19)["e"], details=why)[0])
+        self.assertIn("fewer than 20", why["why"])
+        self.assertTrue(time_group_feasible(self.every_period(20)["t"], self.every_period(20)["e"])[0])
+
+    def test_a_rare_class_the_split_cannot_hold_on_both_sides_is_refused_by_the_check_too(self):
+        """The review: the check ran without the outcome, said yes, and the build refused (226 of 300 rare-class tables)."""
+        from dclab_rnd.expansion.datasets import _time_key, time_group_feasible, time_group_split
+
+        f = self.every_period(33, periods=25, rate=1)
+        why = {}
+        ok = time_group_feasible(f["t"], f["e"], y=f["y"], regression=False, details=why)[0]
+        try:
+            time_group_split(_time_key(f["t"]), f["e"].astype(str).to_numpy(), y=f["y"], regression=False)
+            split = True
+        except ValueError:
+            split = False
+        self.assertEqual(ok, split)  # the check is the split
+        self.assertFalse(ok)
+        self.assertIn("class", why["why"])
+
+    def test_inside_the_training_rows_every_fold_fits_before_it_validates_and_keeps_entities_apart(self):
+        from dclab_rnd.expansion.datasets import _time_key, time_group_split
+
+        f = self.every_period(40)
+        keys, groups = _time_key(f["t"]), f["e"].astype(str).to_numpy()
+        parts = time_group_split(keys, groups)
+        self.assertEqual(parts["way"], "held out as new")
+        train_keys, train_groups = keys[parts["train"]], groups[parts["train"]]
+        self.assertGreater(keys[parts["test"]].min(), train_keys.max())
+        for fit, val in parts["cv"]:
+            self.assertGreater(train_keys[val].min(), train_keys[fit].max())
+            self.assertFalse(set(train_groups[fit]) & set(train_groups[val]))
+        self.assertEqual(parts["before_cut"], int((keys < keys[parts["test"]].min()).sum()))  # what the engine counts a day's rows over
 
 
 class PlanTests(unittest.TestCase):
     """The rules plan reads new entities from the brief and applies the entity split only when the engine can make it."""
 
-    def project(self, brief, stores_open_over_time):
+    def project(self, brief, stores_open_over_time, stores=30):
         from dclab_rnd.studio import ProjectStore, data
 
         store = ProjectStore(Path(tempfile.mkdtemp()) / "projects")
@@ -134,7 +191,7 @@ class PlanTests(unittest.TestCase):
         if stores_open_over_time:  # a few stores open each week: the latest weeks hold stores never seen before
             rows = [(w, s) for i, w in enumerate(weeks) for s in range(i * 2, i * 2 + 10)]
         else:  # every store every week
-            rows = [(w, s) for w in weeks for s in range(30)]
+            rows = [(w, s) for w in weeks for s in range(stores)]
         frame = pd.DataFrame(rows, columns=["week_start", "store_no"])
         frame["footfall"] = rng.integers(100, 900, len(frame))
         frame["units_sold"] = frame["footfall"] * 0.1 + frame["store_no"] % 7 + rng.normal(0, 3, len(frame))
@@ -159,13 +216,22 @@ class PlanTests(unittest.TestCase):
         self.assertEqual(solution.get("time_column"), "week_start")  # both hold: the latest weeks' new stores are the test
         self.assertTrue(any(a["field"] == "group_column" for a in out["applied"]))
 
-    def test_when_every_store_is_in_every_week_it_is_asked_and_the_build_is_not_broken(self):
+    def test_when_every_store_is_in_every_week_some_are_held_out_as_new_and_the_person_is_told(self):
+        from dclab_rnd.tasks import path as P
+
         out, solution = self.plan("Units per store next week, including the stores we open next year.", False)
-        self.assertIsNone(solution.get("group_column"))
-        self.assertEqual(solution.get("time_column"), "week_start")
-        asked = [a for a in out["asks"] if a["field"] == "group_column"]
-        self.assertEqual(len(asked), 1)
-        self.assertIn("both cannot hold", asked[0]["question"])
+        self.assertEqual((solution.get("group_column"), solution.get("time_column")), ("store_no", "week_start"))
+        self.assertFalse([a for a in out["asks"] if a["field"] == "group_column"])
+        note = next(a for a in out["applied"] if a["field"] == "group_column")["note"]
+        self.assertIn("held out as new", note)
+        self.assertIn("used by neither", note)
+        self.assertIn(note, P.says(out))  # the build's message carries it
+
+    def test_with_too_few_stores_to_hold_any_out_it_is_asked(self):
+        from dclab_rnd.tasks import path as P
+
+        store, pid = self.project("Units per store next week, including the stores we open next year.", False, stores=5)
+        self.assertFalse(P.group_fits(store, store.get(pid))("store_no", "week_start"))  # five stores: none to hold out
 
     def test_without_new_entities_in_the_brief_the_same_stores_stay_on_both_sides(self):
         out, solution = self.plan("Units per store next week for our stores.", True)

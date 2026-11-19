@@ -619,7 +619,8 @@ def _design(project: dict[str, Any], frame: Any, target: str, task: str, moment:
             else:  # 28.6 (the debate's live runs): applied only where the engine can test it, by its own rule
                 from dclab_rnd.expansion.datasets import time_group_feasible
 
-                ok, unseen, later = time_group_feasible(frame[times[0]], frame[final["group_column"]])
+                ok, unseen, later = time_group_feasible(frame[times[0]], frame[final["group_column"]], y=frame[target] if target in frame else None,
+                                                        regression=task not in ("binary", "multiclass"))
                 if not ok:
                     return fields, (f"{final['group_column']} recurs over time: {unseen} of the last {later} rows are of one unseen before, "
                                     "too few to test a grouped forward split")

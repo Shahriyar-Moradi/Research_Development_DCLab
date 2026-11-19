@@ -251,7 +251,9 @@ def _run(store: Any, project_id: str, description: str, person: Person, advisor:
     if group and time_used and {group, time_used} <= set(frame.columns):
         from ..expansion.datasets import time_group_feasible
 
-        ok, unseen, later = time_group_feasible(frame[time_used], frame[group])
+        outcome = fields.get("target") or target  # rows without an outcome stay in: the check reads classes where it has them
+        ok, unseen, later = time_group_feasible(frame[time_used], frame[group], y=frame[outcome] if outcome in frame else None,
+                                                regression=fields.get("task") not in ("binary", "multiclass"))
         if not ok:  # 28.6 (the debate's live runs): the engine would refuse this split; the time order is kept, the entity a stated risk
             fields["group_column"] = None
             _step(store, project_id, steps, "solution_planner", "WF-03", "rules",

@@ -1,0 +1,139 @@
+{
+ "package": "engine-split-new-entities",
+ "title": "The engine tests a model for new entities when every entity appears in every period",
+ "date": "2026-11-19",
+ "request": "The owner chose the engine split for new entities: the planner's entity split was asked, never applied, because the engine refused time and entity together when every store reports every week.",
+ "spec": "Forward in time and no entity on both sides, as the declared split means; the old way first; a simulation only when it cannot; seeded; the person told what it costs; the feasibility check is the split itself.",
+ "plan": [
+  "time_group_split: the natural way, then held-out entities",
+  "folds that repeat it inside training",
+  "time_group_feasible calls the split",
+  "update the tests that asserted the old refusal",
+  "review, fix, rerun the practice set"
+ ],
+ "decisions": [
+  {
+   "decision": "Hold out a quarter of the entities and score their rows after the 0.75 time cut",
+   "why": "what a store opened next year faces: never trained on, and later in time"
+  },
+  {
+   "decision": "Rows of held-out entities before the cut and of the others after it are used by neither",
+   "why": "either would put the entity or the future on the training side"
+  },
+  {
+   "decision": "At least 20 entities",
+   "why": "an interval over two held-out entities means little (the review)"
+  },
+  {
+   "decision": "Five tests that asserted the refusal were changed, keeping their intent with data that still cannot be split",
+   "why": "the refusal they guarded is now a split for most tables; the guard still holds where it cannot"
+  }
+ ],
+ "change": "dclab_rnd/expansion/datasets.py (time_group_split, _held_out_entities, _held_out_folds, time_group_feasible with the outcome and details, bundle extras), dclab_rnd/studio/engine.py (rows a day before the cut), dclab_rnd/tasks/path.py (the outcome in group_fits, the note), dclab_rnd/studio/team.py and agent_eval/journeys (the outcome in the check); tests.",
+ "findings": [
+  {
+   "id": "ES-M1",
+   "source": "measurement",
+   "severity": "gap",
+   "verdict": "confirmed",
+   "defect": "The engine refused time and entity together when every entity recurs.",
+   "scenario": "Practice pr09, pr12: the planner's entity split could only be asked.",
+   "cause": "the latest rows held no unseen entity",
+   "fix": "seeded held-out entities after a time cut",
+   "test": "tests/test_split_hints.py test_inside_the_training_rows_every_fold_fits_before_it_validates_and_keeps_entities_apart"
+  },
+  {
+   "id": "ES-R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "The check said yes, the build refused a rare-class classification.",
+   "scenario": "33 entities, positives in 3: feasible True, split ValueError (226 of 300 rare-class tables).",
+   "cause": "the check ran without the outcome",
+   "fix": "the outcome and task passed by every caller; rows without an outcome dropped; the error names the class reason",
+   "test": "tests/test_split_hints.py test_a_rare_class_the_split_cannot_hold_on_both_sides_is_refused_by_the_check_too"
+  },
+  {
+   "id": "ES-R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "A day's rows were counted from training only, so the review share was a third too large.",
+   "scenario": "40 stores a day, training sees 30: a capacity of 6 a day reviewed 20% instead of 15%.",
+   "cause": "training holds only the kept entities",
+   "fix": "count every row before the cut (bundle extras)",
+   "test": "tests/test_split_hints.py test_inside_the_training_rows_every_fold_fits_before_it_validates_and_keeps_entities_apart"
+  },
+  {
+   "id": "ES-R3",
+   "source": "reviewer",
+   "severity": "gap",
+   "verdict": "confirmed",
+   "defect": "Tests weaker than their claims.",
+   "scenario": "assertGreaterEqual across the cut; no fold-order test; no rare-class test; no team test of the new default.",
+   "cause": "written for the old refusal",
+   "fix": "assertGreater; fold order; rare class; a team test with 120 recurring customers",
+   "test": "tests/test_team.py test_a_planned_grouped_forward_split_on_many_recurring_customers_holds_some_out_as_new"
+  },
+  {
+   "id": "ES-R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "Refusal messages said 0 unseen rows.",
+   "scenario": "team and journeys: '0 of the last N rows are of one unseen before' when 25 existed.",
+   "cause": "the check returned 0 on failure",
+   "fix": "returns the natural unseen count",
+   "test": "tests/test_split_hints.py test_too_few_entities_to_hold_five_out_is_refused"
+  },
+  {
+   "id": "ES-R5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "The interval could rest on two entities.",
+   "scenario": "8 entities: 50 test rows from 2 entities, a cluster bootstrap over 2 groups.",
+   "cause": "8 entities allowed",
+   "fix": "at least 20 entities",
+   "test": "tests/test_split_hints.py test_too_few_entities_to_hold_five_out_is_refused"
+  },
+  {
+   "id": "ES-R6",
+   "source": "reviewer",
+   "severity": "gap",
+   "verdict": "confirmed",
+   "defect": "A refusal became a silent simulation.",
+   "scenario": "40 stores x 52 weeks: 37.5% of rows used by neither, said only in the holdout description.",
+   "cause": "no note",
+   "fix": "the plan's applied change carries a note with the unused share, said in the build message",
+   "test": "tests/test_split_hints.py test_when_every_store_is_in_every_week_some_are_held_out_as_new_and_the_person_is_told"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "Practice set v1 after the engine split",
+   "gate": "none: read by the fixer",
+   "fixed_before_run": false,
+   "result": "enforced 24 to 28 of 48; entity 0 to 4 applied (pr09, pr12 both seeds); builds failed 0; pr12 460 of 1,200 rows unused",
+   "verdict": "not scored",
+   "cost_eur": 0.0,
+   "next": "a fresh held-out exam",
+   "limits": [
+    "read by the fixer",
+    "small test sets: wide intervals"
+   ]
+  }
+ ],
+ "outcome": "Time and entity together now split for most tables: a quarter of the entities held out as new after a time cut, the cost said to the person. Too few entities or a class the split cannot hold is still refused, and the check says so before the build.",
+ "lessons": [
+  "A feasibility check must be the code it predicts, called with the same inputs.",
+  "When a split throws data away, say how much."
+ ],
+ "risks": [
+  "NumPy may change seeded draws across versions; the split fingerprint would then change.",
+  "The served model never sees the latest quarter of time.",
+  "The hyperparameter search skips these projects (its selection fold empties).",
+  "Home's page still describes time and group as the latest period with no entity on both sides."
+ ],
+ "commits": []
+}
