@@ -85,18 +85,19 @@
 
   /* ---------------- navigation model ---------------- */
   const PROJECT_VIEWS = ['project', 'solution', 'notebook', 'audit', 'models', 'evaluation', 'decision', 'reliability', 'brief'];
+  /* A project page's crumb is the open project's name (setProjectLabel): "Project" until it is known, never a sample's name. */
   const VIEW_META = {
     home: { label: 'Home', crumbs: ['Workspace'] },
     new: { label: 'New project', crumbs: ['Workspace'] },
-    project: { label: 'Workflow', crumbs: ['Term-deposit calls'] },
-    solution: { label: 'Solution & data', crumbs: ['Term-deposit calls'] },
-    notebook: { label: 'Notebook', crumbs: ['Term-deposit calls'] },
-    audit: { label: 'Leakage & features', crumbs: ['Term-deposit calls'] },
-    models: { label: 'Models', crumbs: ['Term-deposit calls'] },
-    evaluation: { label: 'Evaluation', crumbs: ['Term-deposit calls'] },
-    decision: { label: 'Decision', crumbs: ['Term-deposit calls'] },
-    reliability: { label: 'Reliability & holdout', crumbs: ['Term-deposit calls'] },
-    brief: { label: 'Decision brief', crumbs: ['Term-deposit calls'] },
+    project: { label: 'Workflow', crumbs: ['Project'] },
+    solution: { label: 'Solution & data', crumbs: ['Project'] },
+    notebook: { label: 'Notebook', crumbs: ['Project'] },
+    audit: { label: 'Leakage & features', crumbs: ['Project'] },
+    models: { label: 'Models', crumbs: ['Project'] },
+    evaluation: { label: 'Evaluation', crumbs: ['Project'] },
+    decision: { label: 'Decision', crumbs: ['Project'] },
+    reliability: { label: 'Reliability & holdout', crumbs: ['Project'] },
+    brief: { label: 'Decision brief', crumbs: ['Project'] },
     intern: { label: 'Intern', crumbs: ['Workspace'] },
     compute: { label: 'Compute & jobs', crumbs: ['Workspace'] },
     evidence: { label: 'Evidence library', crumbs: ['Knowledge'] },
@@ -1129,7 +1130,11 @@
       body = JSON.stringify(body); headers['Content-Type'] = 'application/json';
     }
     const { quiet, ...fetchOpts } = opts;
-    const res = await fetch('/api' + path, Object.assign({}, fetchOpts, { headers, body }));
+    const res = await fetch('/api' + path, Object.assign({}, fetchOpts, { headers, body })).catch(e => {
+      if (e && e.name === 'AbortError') throw e;  // a caller's own cancel
+      // the browser's words for an unreachable server ("Load failed", "Failed to fetch") say nothing to a person
+      const err = new Error('The DCLab server did not answer. Check that it is running, then try again.'); err.cause = e; throw err;
+    });
     if (res.status === 401 && !quiet && cfg.auth && cfg.auth.mode !== 'none') { server.config = null; showSignIn(cfg.auth.mode, 'Your session ended; sign in again.'); }
     if (res.status === 403 && !retried && (opts.method || 'GET') !== 'GET') {
       // The server restarted and issued a new request token: fetch it once and try again. A role refusal (package 10.2)
@@ -1176,10 +1181,14 @@
       const done = error => {
         clearTimeout(slow);
         if (this.current === watch) this.current = null;
-        const failure = error || watch.failures[0];
+        // The chosen project was not read: the page's markup still holds the sample, so its body is hidden (styles.css)
+        // rather than show the sample's numbers under the project's name.
+        const lost = PROJECT_VIEWS.includes(name) ? currentProject.lost : null;
+        el.toggleAttribute('data-unloaded', !!lost);
+        const failure = error || lost || watch.failures[0];
         if (!failure || failure.status === 401) { box.hidden = true; box.innerHTML = ''; return; }
         box.hidden = false;
-        box.innerHTML = `<div class="callout warn" role="alert"><span class="ic">${icon('alert')}</span><span><b>${error ? 'This page could not be loaded.' : 'Part of this page could not be loaded.'}</b> ${esc(failure.message || 'The server did not answer.')} <button type="button" class="btn sm" data-state-retry>Try again</button></span></div>`;
+        box.innerHTML = `<div class="callout warn" role="alert"><span class="ic">${icon('alert')}</span><span><b>${error || lost ? 'This page could not be loaded.' : 'Part of this page could not be loaded.'}</b> ${esc(failure.message || 'The server did not answer.')}${lost ? ' Nothing is shown until the project can be read.' : ''}<button type="button" class="btn sm" data-state-retry>Try again</button></span></div>`;
         $('[data-state-retry]', box).addEventListener('click', () => { box.hidden = true; again(); }, { once: true });
       };
       promise.then(() => done(null), err => { console.error('enter ' + name, err); done(err); });
@@ -1211,31 +1220,51 @@
      the most recent real project opens; with none at all, the pages keep their sample. */
   const currentProject = {
     _cache: null,
+    /* The error that kept the open project from being read (the server did not answer, or refused). "No project" then
+       does not mean "show the sample": loading.track hides the page's body and says what failed. null once it is read,
+       or when there is truly none (a sample chosen, or an empty workspace). */
+    lost: null,
     async id() {
       const key = state.project;
       if (typeof key === 'string' && key.startsWith('p:')) return key.slice(2);
-      if (key) return null;  // a sample was chosen on purpose
+      if (key) { this.lost = null; return null; }  // a sample was chosen on purpose
       try {
         const ws = await DC.client.workspace();
         let saved = null;
         try { saved = localStorage.getItem('dclab-project'); } catch (e) { saved = null; }  // the project the person chose, kept across a reload
         const pick = ws.projects.find(p => p.id === saved) || ws.projects[0];
+        this.lost = null;
         if (pick) { state.project = 'p:' + pick.id; return pick.id; }
-      } catch (e) { /* offline */ }
+      } catch (e) { this.lost = e; }
       return null;
     },
     /* The project with its stage records, transitions and graph; cached for two seconds across pages. */
-    async get(force) {
+    async get(force, again) {
       const id = await this.id();
       if (!id) return null;
       const c = this._cache;
       if (!force && c && c.id === id && Date.now() - c.at < 2000) return c.project;
-      const project = await DC.client.getProject(id);
+      let project;
+      try { project = await DC.client.getProject(id); } catch (e) {
+        if (e.status === 404 && !again) {  // deleted meanwhile: the choice is dropped and the most recent project opens
+          this.forget();
+          const watch = loading.current;
+          if (watch) watch.failures = watch.failures.filter(f => f !== e);
+          return this.get(force, true);
+        }
+        this.lost = e;
+        throw e;
+      }
+      this.lost = null;
       this._cache = { id, at: Date.now(), project };
       setProjectLabel(project.name);
       return project;
     },
     clear() { this._cache = null; },
+    forget() {
+      state.project = null; this._cache = null;
+      try { localStorage.removeItem('dclab-project'); } catch (e) { /* storage blocked */ }
+    },
   };
   /* ---------------- the project switcher ----------------
      A green button naming the project the person is on, with the list of the others. It sits first in the header's actions

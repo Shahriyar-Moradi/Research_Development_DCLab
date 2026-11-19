@@ -6247,6 +6247,9 @@ hr { border: 0; border-top: 1px solid var(--line); margin: 0; }
 }
 .content { width: 100%; max-width: 1360px; margin: 0 auto; padding: 32px 32px 120px; }
 .view[hidden] { display: none !important; }
+/* The open project could not be read (core.js loading.track): only the message and Try again show. The page's markup
+   still holds the sample's numbers, and they must not appear under the project's name. */
+.view[data-unloaded] > :not([data-view-state]) { display: none !important; }
 
 @media (max-width: 960px) {
   .app { grid-template-columns: minmax(0, 1fr); }

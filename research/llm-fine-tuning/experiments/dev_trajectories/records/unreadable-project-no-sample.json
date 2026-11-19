@@ -1,0 +1,122 @@
+{
+  "package": "unreadable-project-no-sample",
+  "title": "A project page that cannot read its project says so, and never shows the sample in its place",
+  "date": "2026-11-20",
+  "request": "The owner sent 19 screenshots of the product and asked how to improve the UI. The review found that ten project pages showed 'Part of this page could not be loaded. Load failed' above the bank-marketing sample's numbers (duration forbidden, 2,000 calls a month, 'Term-deposit calls') while the project picker said Churn; that the breadcrumb of every project page was the fixed text 'Term-deposit calls'; and that the validator printed failure sentences ('`None` is still running on this project', 'Save the solution first') beside green ticks. The owner said 'Yes, fix them', then 'Yes, add test', then 'Yes, commit mine'.",
+  "spec": "When the open project cannot be read (the server refuses or does not answer), every project page hides its body and shows one message with Try again; the built-in sample appears only when a sample was chosen on purpose or the workspace has no project. The breadcrumb names the open project. A passed validator check shows only its name; a failed one keeps its reason. The browser's raw error words are replaced by a sentence a person understands.",
+  "plan": [
+    "Trace each screenshot problem to its code: the fixed crumbs in core.js VIEW_META, currentProject.id()/get() returning null on a failed read, each page's enter() treating null as 'show the sample', the validator rendering c.detail for every check.",
+    "Record why the project was not read (currentProject.lost) instead of collapsing it into 'no project'.",
+    "In the page-load tracker, mark a project page data-unloaded when the project was lost, and hide everything but the message with one CSS rule, so no page's own fallback code has to change.",
+    "Render a check's detail only when the check failed; drop the doubled 'Allowed. Allowed.' and 'Blocked. Blocked:'.",
+    "Verify in the browser with the server up, stopped, and back; then add a Playwright check and prove it fails without the fix.",
+    "Commit only these edits: carry them onto HEAD in a clean worktree, build the generated frontend there, test there, and leave the other uncommitted work in the tree untouched."
+  ],
+  "decisions": [
+    {
+      "decision": "Hide the page body centrally (a data-unloaded attribute set by loading.track plus one CSS rule) rather than edit the sample fallback in ten page scripts.",
+      "why": "Each page's enter() falls back to the sample in its own way; one central rule covers all ten pages and every future project page, and a page's own code cannot forget it."
+    },
+    {
+      "decision": "Keep the sample when the workspace was read and has no project, or when a sample was chosen on purpose.",
+      "why": "Only an unknown state is the bug: an empty workspace really has no project, and the sample is the product's documented way to show the pages then."
+    },
+    {
+      "decision": "A project deleted meanwhile (404) drops the saved choice and opens the most recent project once, instead of showing an error.",
+      "why": "A stale choice in localStorage is not a server failure; one retry with the guard 'again' cannot loop."
+    },
+    {
+      "decision": "Fix the validator wording in the page, not in studio/graph.py.",
+      "why": "graph.py's detail is the failure reason by design and other callers (the intern, the MCP tools) read it only when a check fails; the page was the one place printing it for a passed check."
+    },
+    {
+      "decision": "Commit through a clean worktree at HEAD instead of staging hunks in the shared tree.",
+      "why": "core.js, project.html and browser_e2e.py also held another session's uncommitted work, and the generated static/app files must be built from exactly the committed sources or test_committed_build_is_current fails."
+    }
+  ],
+  "change": "dclab_rnd/agentic/web/src/core.js (VIEW_META crumbs 'Project'; currentProject.lost and forget(); get() retries once on 404; loading.track sets data-unloaded and says 'This page could not be loaded'; request() replaces the browser's 'Load failed' with a sentence), dclab_rnd/agentic/web/src/views/project.html (enter() throws instead of drawing the sample when the project was not read; the validator shows a check's reason only when it failed), dclab_rnd/agentic/web/src/styles.css (.view[data-unloaded] hides all but the message), scripts/browser_e2e.py (check 'unreadable'), the rebuilt dclab_rnd/agentic/static/app.",
+  "findings": [
+    {
+      "id": "F1",
+      "source": "owner",
+      "severity": "behaviour",
+      "verdict": "confirmed",
+      "defect": "Project pages showed the built-in sample's numbers under a real project's name when the project could not be read.",
+      "scenario": "The server is stopped or slow; the person opens Solution with Churn chosen; the page shows duration forbidden, 2,000 calls a month and 'Term-deposit calls', with only a small 'Part of this page could not be loaded' banner above.",
+      "cause": "currentProject.id() swallowed the workspace read's error and returned null, and each page's enter() treated null as 'no project, show the sample'.",
+      "fix": "currentProject.lost records the error; loading.track marks the page data-unloaded and the CSS rule hides everything but the message and Try again.",
+      "test": "scripts/browser_e2e.py check 'unreadable': all project pages, alternating a 503 and an aborted request, must show 'could not be loaded' and none of the sample's words; with the CSS rule removed it fails on #project showing 'Term-deposit' and 'HyperAck'."
+    },
+    {
+      "id": "F2",
+      "source": "owner",
+      "severity": "behaviour",
+      "verdict": "confirmed",
+      "defect": "The breadcrumb of every project page said 'Term-deposit calls' whatever project was open.",
+      "scenario": "Before setProjectLabel ran (or when it never ran because the read failed), the crumb was the hard-coded sample name.",
+      "cause": "VIEW_META held crumbs: ['Term-deposit calls'] for every project view.",
+      "fix": "The default crumb is 'Project'; setProjectLabel replaces it with the open project's name.",
+      "test": "Check 'unreadable' reads #crumbs on the Workflow page and after Try again: it must equal the project's name."
+    },
+    {
+      "id": "F3",
+      "source": "owner",
+      "severity": "behaviour",
+      "verdict": "confirmed",
+      "defect": "The validator printed failure sentences beside passed checks and repeated its verdict.",
+      "scenario": "On Workflow, Validator and team, 'run the data stage' showed a tick beside '`None` is still running on this project' and 'Allowed. Allowed.'.",
+      "cause": "drawRealVerdict rendered c.detail for every check, and the message already began with the status word the bold label also showed.",
+      "fix": "Detail only when c.ok is false; no message when allowed; a leading 'Blocked:' is dropped.",
+      "test": "Check 'unreadable': every li.blocked keeps its reason, no li.done has a reason or 'still running', the verdict says 'Blocked' once."
+    },
+    {
+      "id": "F4",
+      "source": "self",
+      "severity": "behaviour",
+      "verdict": "confirmed",
+      "defect": "The browser's own words ('Load failed', 'Failed to fetch') were the only explanation shown when the server did not answer.",
+      "scenario": "The server is stopped; every banner says 'Load failed'.",
+      "cause": "request() let fetch's TypeError through unchanged.",
+      "fix": "A network error becomes 'The DCLab server did not answer. Check that it is running, then try again.'; an abort is passed through.",
+      "test": "Check 'unreadable' fails if 'Load failed' or 'Failed to fetch' is visible on a project page."
+    },
+    {
+      "id": "F5",
+      "source": "test",
+      "severity": "gap",
+      "verdict": "confirmed",
+      "defect": "The check waited for the validator's rows to be visible while its tab was closed, and listed a Features page that exists only in uncommitted work.",
+      "scenario": "wait_for_selector('#validator-out li.done') timed out with two rows found; at HEAD #view-features does not exist.",
+      "cause": "The validator is on the 'Validator & team' tab; PROJECT_PAGES was written from the working tree.",
+      "fix": "The check opens #project/validator first and skips pages the build does not have (at least nine must be checked).",
+      "test": "The check passes at HEAD plus this change in a clean worktree."
+    }
+  ],
+  "measurements": [
+    {
+      "name": "browser check 'unreadable' with and without the fix",
+      "gate": "passes with the fix; fails without the data-unloaded CSS rule",
+      "fixed_before_run": true,
+      "result": "With the fix: PASS (10 pages in the working tree, 9 at HEAD). Without the rule: FAIL, '#project shows the sample's [Term-deposit, HyperAck] under the project Unreadable check'.",
+      "verdict": "pass",
+      "cost_eur": 0.0,
+      "next": "Run the whole browser suite at the next nightly gate.",
+      "limits": [
+        "Run with the installed Chrome (DCLAB_BROWSER_CHANNEL=chrome): Playwright's own Chromium is not downloaded on this Mac.",
+        "Only this check and 'pages' were run, not the whole browser suite."
+      ]
+    }
+  ],
+  "outcome": "A project page that cannot read its project shows only 'This page could not be loaded' with a plain reason and Try again; the sample never stands in for a real project. The breadcrumb names the open project and the validator gives reasons only for failed checks. A Playwright check guards all three.",
+  "lessons": [
+    "A fallback that turns 'could not read' into 'there is nothing' is a trust bug: keep the error and let the page say it, especially in a product whose promise is honest numbers.",
+    "When many pages share one failure mode, fix it where they all pass (the load tracker) rather than in each page.",
+    "Prove a new test guards the bug by removing the fix and watching it fail.",
+    "In a tree with other sessions' uncommitted work, commit through a clean worktree and build generated files there, so the commit holds only your change and its build matches its sources."
+  ],
+  "risks": [
+    "Research lab, Benchmark, Policy model and Domain packs still show built-in content when a read fails; only the ten project pages are covered.",
+    "The four-step bar still disagrees between pages for the same project; not addressed here."
+  ],
+  "commits": []
+}

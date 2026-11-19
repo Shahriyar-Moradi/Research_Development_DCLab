@@ -873,6 +873,83 @@ def check_task_plan(b: Browser) -> str:
 CHECKS.update({'taskplan': (check_task_plan, 1280), 'taskplan-mobile': (check_task_plan, 375)})
 
 
+PROJECT_PAGES = ("project", "solution", "notebook", "audit", "features", "models", "evaluation", "decision", "reliability", "brief")
+SAMPLE_WORDS = ("Term-deposit", "HyperAck", "duration")  # the built-in sample's words: never under a real project's name
+
+
+def check_unreadable(b: Browser) -> str:
+    """2026-11-20: a project that cannot be read is never replaced by the built-in sample. Every project page then shows
+    only "could not be loaded" with Try again (the sample's numbers stayed under the project's name before, as if real);
+    the breadcrumb names the open project, not "Term-deposit calls"; the validator writes a reason only beside a failed
+    check (a passed one said "`None` is still running" beside its tick)."""
+    page = b.page
+    headers = {"X-DCLab-Token": b.api("/config")["csrf"]}
+    made = b.context.request.post(b.base + "/api/projects", data={"name": "Unreadable check"}, headers=headers)
+    check(made.ok, f"create project answered {made.status}")
+    pid, name = made.json()["id"], made.json()["name"]
+    data = b.context.request.post(b.base + f"/api/projects/{pid}/data/sample", data={"key": "telco_churn"}, headers=headers)
+    check(data.ok, f"attach the sample table answered {data.status}")
+    page.evaluate("id => { try { localStorage.setItem('dclab-project', id); } catch (e) {} }", pid)
+    page.reload()
+    page.wait_for_selector("#nav .nav-item.active[data-nav='home']")
+
+    # readable: the crumb and the validator ("run the data stage": the solution is missing, the rest passes)
+    b.view("project", settle=1)
+    crumb = page.locator("#crumbs span").first.inner_text()
+    check(crumb == name, f"the breadcrumb says {crumb!r}, not the open project {name!r}")
+    page.evaluate("() => { location.hash = '#project/validator'; }")  # the validator is on the "Validator & team" tab
+    page.wait_for_selector("#validator-out li.done")
+    passed = page.locator("#validator-out li.done").all_inner_texts()
+    failed = page.locator("#validator-out li.blocked").all_inner_texts()
+    verdict = page.locator("#validator-out .callout").inner_text()
+    check(bool(failed) and all("·" in t for t in failed), f"a failed check lost its reason: {failed}")
+    check(all("·" not in t and "still running" not in t for t in passed), f"a passed check shows failure text: {passed}")
+    check(verdict.count("Blocked") == 1 and verdict.count("Allowed") <= 1, f"the verdict repeats itself: {verdict!r}")
+
+    # unreadable: half the pages see a refusal, half a server that does not answer at all
+    route = f"**/api/projects/{pid}"
+    mode = {"n": 0}
+
+    def fail(r):
+        mode["n"] += 1
+        if mode["n"] % 2:
+            r.fulfill(status=503, content_type="application/json", body='{"detail": "Test read failure"}')
+        else:
+            r.abort()
+
+    page.route(route, fail)
+    shown = []
+    pages = [v for v in PROJECT_PAGES if page.locator(f"#view-{v}").count()]  # a page this build does not have is skipped
+    try:
+        for view in pages:
+            page.evaluate("() => DC.currentProject.clear()")  # its two-second cache would answer without a read
+            b.view(view)
+            el = page.locator(f"#view-{view}")
+            check(el.get_attribute("data-unloaded") is not None, f"#{view} drew its body although the project was not read")
+            text = el.inner_text()  # only what is visible
+            check("could not be loaded" in text and "Try again" in text, f"#{view} does not say it could not be loaded: {text[:160]!r}")
+            check("Load failed" not in text and "Failed to fetch" not in text, f"#{view} shows the browser's raw error: {text[:160]!r}")
+            seen = [w for w in SAMPLE_WORDS if w in text]
+            check(not seen, f"#{view} shows the sample's {seen} under the project {name!r}")
+            shown.append(view)
+    finally:
+        page.unroute(route)
+    check(len(pages) >= 9 and mode["n"] >= len(pages), f"only {mode['n']} reads of the project were refused: the check did not test what it says")
+
+    # Try again once the server answers: the real project, its name in the crumb
+    page.locator("#view-brief [data-state-retry]").click()
+    page.wait_for_function("() => !document.querySelector('#view-brief').hasAttribute('data-unloaded') && !DC.loading.current", timeout=30_000)
+    crumb = page.locator("#crumbs span").first.inner_text()
+    check(crumb == name, f"after Try again the breadcrumb says {crumb!r}")
+    expected = ("503", "Failed to load resource", "ERR_FAILED", "did not answer", "Test read failure", "enter ")
+    left = [m for m in b.problems() if not any(x in m for x in expected)]
+    check(not left, f"unexpected browser errors: {left[:3]}")
+    return f"crumb and validator right; {len(shown)} project pages hid the sample when the project was not read; Try again recovered"
+
+
+CHECKS.update({"unreadable": (check_unreadable, 1280)})
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--base", help="URL of a running server; without it the script starts its own (no model, an empty workspace)")

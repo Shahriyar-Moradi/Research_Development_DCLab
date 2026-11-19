@@ -283,8 +283,8 @@ DC.view('project', {
       try {
         const v = await DC.client.checkMove(REAL[proj].id, { body: { move: o.move, actor: o.actor, stage: o.stage, gate: o.gate } });
         const cls = v.status === 'blocked' ? 'bad' : v.status === 'allowed' ? 'ok' : 'warn';
-        $('#validator-out', el).innerHTML = `<div class="callout ${cls}"><span class="ic">${icon(v.status === 'blocked' ? 'alert' : v.status === 'allowed' ? 'check' : 'info')}</span><span><b>${v.status === 'blocked' ? 'Blocked' : v.status === 'allowed' ? 'Allowed' : 'Valid, waits for approval'}.</b> ${esc(v.message || '')}</span></div>
-          <ul class="plan-list">${(v.checks || []).map(c => `<li class="${c.ok ? 'done' : 'blocked'}"><span class="pi">${c.ok ? '✓' : '!'}</span><span><b>${esc(c.name)}</b> · <span class="muted">${DC.linkIds(c.detail || '')}</span></span></li>`).join('')}</ul>
+        $('#validator-out', el).innerHTML = `<div class="callout ${cls}"><span class="ic">${icon(v.status === 'blocked' ? 'alert' : v.status === 'allowed' ? 'check' : 'info')}</span><span><b>${v.status === 'blocked' ? 'Blocked' : v.status === 'allowed' ? 'Allowed' : 'Valid, waits for approval'}.</b> ${v.status === 'allowed' ? '' : esc(String(v.message || '').replace(/^Blocked:\s*/, ''))}</span></div>
+          <ul class="plan-list">${(v.checks || []).map(c => `<li class="${c.ok ? 'done' : 'blocked'}"><span class="pi">${c.ok ? '✓' : '!'}</span><span><b>${esc(c.name)}</b>${c.ok ? '' : ` · <span class="muted">${DC.linkIds(c.detail || '')}</span>`}</span></li>`).join('')}</ul>
           ${(v.rules || []).length ? `<div class="row small"><span class="muted">Rules:</span>${chips(v.rules.filter(r => DC.REC[r]))}</div>` : ''}<div class="xs muted">A check only: nothing is run or logged from here.</div>`;
         DC.hydrate($('#validator-out', el));
       } catch (e) { $('#validator-out', el).innerHTML = `<div class="callout bad"><span class="ic">${icon('alert')}</span><span>${esc(e.message)}</span></div>`; }
@@ -624,13 +624,20 @@ DC.view('project', {
     el.addEventListener('keydown', e => { const n = e.target.closest('.node'); if (n && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); drawNode(n.dataset.node); } });
     drawValidator(); drawTeam();  // the project is chosen in enter(): drawing the sample here made it the open project for every page
   },
-  async enter() {
-    // a project just created by the wizard, else the most recent real project, else the bank sample
+  async enter(el, again) {
+    // a project just created by the wizard, else the most recent real project, else (a workspace with none) the bank sample
     const list = await this.switcher();
-    const chosen = DC.state.projectId || DC.state.project ? null : await DC.currentProject.id();  // the project the person chose, as every page reads it
+    const named = DC.state.projectId || DC.state.project;
+    const chosen = named ? null : await DC.currentProject.id();  // the project the person chose, as every page reads it
+    // the workspace could not be read: "none" is not known, so the sample is not put in a project's place
+    if (!named && !chosen && DC.currentProject.lost) throw DC.currentProject.lost;
     const want = DC.state.projectId ? 'p:' + DC.state.projectId : DC.state.project || (chosen ? 'p:' + chosen : list.length ? 'p:' + list[0].id : 'bank');
     DC.state.projectId = null; DC.state.project = want;
-    if (want.startsWith('p:')) { try { await this.openReal(want); return; } catch (e) { DC.toast(e.message, { ok: false }); } }
-    this.setProject(want.startsWith('p:') ? 'bank' : want);
+    if (!want.startsWith('p:')) { DC.currentProject.lost = null; this.setProject(want); return; }
+    try { await this.openReal(want); DC.currentProject.lost = null; } catch (e) {
+      if (e.status === 404 && !again) { DC.currentProject.forget(); return this.enter(el, true); }  // deleted meanwhile: the most recent one opens
+      DC.currentProject.lost = e;  // not read: the page says so and shows nothing (never the sample under this project's name)
+      throw e;
+    }
   },
 });
