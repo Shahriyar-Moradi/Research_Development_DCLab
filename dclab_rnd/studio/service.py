@@ -95,6 +95,22 @@ def _package_versions() -> dict[str, str]:
     return found
 
 
+def date_order(values: Any) -> bool | None:
+    """Whether the training dates were written day first (True), month first (False), or did not say (None: ISO dates,
+    parsed dates, or only dates whose two numbers are both 12 or less). The exported scorer reads its dates the same way."""
+    import re
+
+    if pd.api.types.is_datetime64_any_dtype(values):
+        return None
+    day = month = False
+    for text in pd.Series(values).dropna().astype(str).head(5000):
+        match = re.match(r"^\s*(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})\b", text)
+        if match:
+            a, b = int(match.group(1)), int(match.group(2))
+            day, month = day or a > 12, month or b > 12
+    return True if day and not month else False if month and not day else None
+
+
 def approval_binding(art: Any) -> dict[str, Any] | None:
     """What the final stage's approval binds of a captured artifact: every key, digest and the key's reference, or None
     when the capture did not get as far as its digests (nothing to bind; the export then refuses)."""
@@ -180,8 +196,10 @@ def _score_stripped(artifact: dict[str, Any], meta: dict[str, Any], key: str, ro
         if pd.api.types.is_bool_dtype(frame[column]) or str(frame[column].dtype) == "boolean":
             frame[column] = pd.to_numeric(frame[column].astype("object").map({True: 1.0, False: 0.0}), errors="coerce")
     time_col = meta.get("time_column")
-    if time_col and meta.get("time_is_datetime"):
-        frame[time_col] = pd.to_datetime(frame[time_col], errors="coerce").dt.strftime("%Y-%m-%d %H:%M:%S")
+    if time_col and meta.get("time_is_datetime"):  # read exactly as the exported scorer reads it
+        from .service_template.scorer import read_times
+
+        frame[time_col] = read_times(frame[time_col], meta.get("time_dayfirst"))[0].values
     for column in artifact.get("hashed_columns") or []:
         frame[column] = rn._as_text(frame[column]).map(lambda v: "h:" + hashlib.sha256(f"{key}|{v}".encode()).hexdigest()[:16])
     recipe = artifact["recipe"]
@@ -240,6 +258,7 @@ def capture_final_artifact(store: Any, project_id: str, run_id: str, project: di
             "target_range": [float(np.min(y_train)), float(np.max(y_train))] if y_train is not None else None,
             "behaviour_within_batch": behaviour,
             "time_column": time_col, "time_is_datetime": bool(time_col and column_kind(train_frame[time_col]) == "datetime") if time_col else False,
+            "time_dayfirst": date_order(train_frame[time_col]) if time_col else None,
             "class_labels": list(prepared.class_labels) if prepared.class_labels else None, "n_classes": rn._n_classes(bundle),
             "positive_label": solution.positive_label, "threshold": threshold, "prediction_moment": solution.prediction_moment,
             "holdout": {k: final_evidence["holdout_metrics"].get(k) for k in (bundle.spec.primary_metric,)},

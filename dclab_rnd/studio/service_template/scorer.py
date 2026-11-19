@@ -86,7 +86,7 @@ class Scorer:
                 frame[column] = pd.to_numeric(frame[column].astype("object").map({True: 1.0, False: 0.0}), errors="coerce")
         time = self.meta.get("time_column")
         if time and self.meta.get("time_is_datetime"):
-            frame[time] = pd.to_datetime(frame[time], errors="coerce").dt.strftime("%Y-%m-%d %H:%M:%S")
+            frame[time], frame.attrs["warnings"] = read_times(frame[time], self.meta.get("time_dayfirst"))
         # category levels are kept as salted hashes in the model: the input's values are hashed the same way
         import hashlib
 
@@ -97,7 +97,7 @@ class Scorer:
             frame[column] = _as_text(frame[column]).map(lambda v: "h:" + hashlib.sha256(f"{salt}|{v}".encode()).hexdigest()[:16])
         return frame
 
-    def predict(self, rows: Any) -> list[dict[str, Any]]:
+    def predict(self, rows: Any) -> list[dict[str, Any]]:  # noqa: C901 - one row's warnings ride on its prediction
         from dclab_rnd.expansion.runner import predict_scores
 
         frame = self.frame(rows)
@@ -122,6 +122,8 @@ class Scorer:
                 out.append({"class": labels[best], "probabilities": {labels[j]: float(scores[i][j]) for j in range(len(labels))}})
             else:
                 out.append({"prediction": float(scores[i])})
+        for i, said in (frame.attrs.get("warnings") or {}).items():  # a date read with a guess, or not read: said, never silent
+            out[int(i)]["warnings"] = list(said)
         if self.meta.get("behaviour_within_batch") and len(frame) == 1:
             for row in out:
                 row["note"] = "behaviour features need the rows scored with this one: a single row has no history"
@@ -168,3 +170,27 @@ class Scorer:
         if scores is None and self.meta["task"] == "binary":
             scores = [r["score"] for r in self.predict(rows)]
         return monitor(plan, frame, scores).model_dump(mode="json")
+
+
+SLASHED = __import__("re").compile(r"^\s*(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})\b")
+
+
+def read_times(values: Any, dayfirst: Any = None) -> tuple[Any, dict[int, list[str]]]:
+    """The time column as the training text form, and a warning for each row read with a guess or not read at all
+    (2026-11-19: 07/08/2025 was read as 8 July with no word, and "not a date" was scored as missing in silence).
+    ``dayfirst``: the order the training dates used, True, False, or None when they did not show it."""
+    raw = pd.Series(values).reset_index(drop=True)
+    parsed = pd.to_datetime(raw, errors="coerce", dayfirst=bool(dayfirst), format="mixed", utc=True).dt.tz_localize(None)
+    warnings: dict[int, list[str]] = {}
+    for i, value in raw.items():
+        text = "" if value is None or (isinstance(value, float) and value != value) else str(value).strip()
+        if not text:
+            continue
+        if pd.isna(parsed.iloc[i]):
+            warnings.setdefault(int(i), []).append(f"the time value {text[:40]!r} could not be read: scored as missing")
+            continue
+        match = SLASHED.match(text)
+        if match and dayfirst is None and int(match.group(1)) <= 12 and int(match.group(2)) <= 12 and match.group(1) != match.group(2):
+            warnings.setdefault(int(i), []).append(f"the date {text[:40]!r} could be day/month or month/day; read as month first. "
+                                                   "Send dates as YYYY-MM-DD")
+    return parsed.dt.strftime("%Y-%m-%d %H:%M:%S"), warnings

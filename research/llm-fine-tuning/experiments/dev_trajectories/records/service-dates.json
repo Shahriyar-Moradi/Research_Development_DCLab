@@ -1,0 +1,67 @@
+{
+ "package": "service-dates",
+ "title": "The exported service reads dates in the training order and says when it guessed",
+ "date": "2026-11-19",
+ "request": "The owner asked for live checks of the new changes and to fix the date bugs the export check found.",
+ "spec": "Dates read the way the training data wrote them; a guessed order or an unreadable date is said on its row; the capture's parity check reads dates the same way.",
+ "plan": [
+  "learn the training order at capture",
+  "read with it in the scorer",
+  "warn per row",
+  "tests"
+ ],
+ "decisions": [
+  {
+   "decision": "Warn, never refuse, on an ambiguous date",
+   "why": "a service that refuses every 07/08 date fails real callers; a warning on the row tells them to send ISO dates"
+  }
+ ],
+ "change": "dclab_rnd/studio/service.py (date_order, time_dayfirst in model.json, the parity reader), dclab_rnd/studio/service_template/scorer.py (read_times, warnings on predictions), tests/test_service_dates.py, dclab_rnd/agent_eval/export_parity_live.py.",
+ "findings": [
+  {
+   "id": "SD-1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "A day-first date was read month first with no warning.",
+   "scenario": "pr10's booking_date 07/08/2025 read as 8 July; the score moved from 0.2398 to 0.2877.",
+   "cause": "pd.to_datetime without the training order",
+   "fix": "the training order learnt at capture and used; an ambiguous date warned",
+   "test": "tests/test_service_dates.py test_a_guessed_or_unread_date_is_said_on_its_row"
+  },
+  {
+   "id": "SD-2",
+   "source": "measurement",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "An unreadable date was scored as missing in silence.",
+   "scenario": "booking_date 'not a date' returned a score of 0.213.",
+   "cause": "errors='coerce' with no report",
+   "fix": "a warning on the row",
+   "test": "tests/test_service_dates.py test_a_guessed_or_unread_date_is_said_on_its_row"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "End-to-end export parity on two practice projects (rules arm, no model)",
+   "gate": "none: a functional check",
+   "fixed_before_run": false,
+   "result": "pr10 roc_auc recorded 0.727288, service 0.727288; pr02 mae recorded 0.498861, service 0.498861; CSV and JSON identical",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "next": "run the HTTP layer once Flask is installed",
+   "limits": [
+    "the Flask layer itself not run (not installed)",
+    "two projects"
+   ]
+  }
+ ],
+ "outcome": "The exported model reproduces the approved holdout score exactly on real rows; dates are now read in the training order and a guess is said.",
+ "lessons": [
+  "A functional end-to-end run on real rows finds what synthetic parity rows cannot."
+ ],
+ "risks": [
+  "pr02's exported model needs late_fee_charged, a planted late column the unattended plan did not catch (leaks by data, fix 3, still open)."
+ ],
+ "commits": []
+}
