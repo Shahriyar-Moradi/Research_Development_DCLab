@@ -11,6 +11,13 @@ Rules enforced here:
 - Corrections and retirements preserve history, increment revision, mark dependent drafts/advice stale, and invalidate
   derived summaries.
 - Raw rows, secrets, credentials, protected benchmark columns, and trivial greetings are never stored.
+- Restoring earlier words (undoing a correction) is allowed: the retired memory item stays retired, and the new one
+  says it was restored at its revision (an item's id is the hash of its words).
+- A change to the prediction moment, the target or the forbidden columns returns ``solution_note``: the signed solution
+  is not changed here, and still has the old value until the person changes it through the solution.
+- Conflicts, stale marks and problem bindings are recorded in the workspace's experience log under the raw project id.
+- A deleted project's ledgers move to ``bases/purged/`` with a tombstone (hidden, never deleted); only derived summaries
+  and cached vectors are deleted.
 """
 
 from __future__ import annotations
@@ -175,6 +182,66 @@ def _mark_dependents_stale(doc: dict[str, Any], *, changed_field: str, old_entry
     return affected
 
 
+SOLUTION_FIELDS = {"prediction_moment": "prediction moment", "target": "target", "forbidden": "forbidden columns"}
+
+
+def _solution_field(field: Any) -> Optional[str]:
+    """The signed solution's field a base field names (the prediction moment, the target, the forbidden columns), or None."""
+    name = str(field or "").strip().lower()
+    if name in SOLUTION_FIELDS:
+        return SOLUTION_FIELDS[name]
+    if name.startswith("forbidden"):
+        return SOLUTION_FIELDS["forbidden"]
+    return None
+
+
+def _solution_note(field: Any) -> Optional[str]:
+    """What the person must be told when a base change touches a value the signed solution also holds: the base is memory,
+    the solution is what the stages run on, and this change does not reach it (it is changed through the solution)."""
+    what = _solution_field(field)
+    if what is None:
+        return None
+    return (f"The signed solution still uses the earlier {what}. This change is in the Problem Base only: change the {what} "
+            "through the solution (the Solution step) before the next run, or the stages keep the old value.")
+
+
+def _record(log: Any, kind: str, scope: AuthorizedScope, payload: dict[str, Any], actor: str = "system") -> None:
+    """A base event in the workspace's record under the raw project id (so deleting the project removes it too)."""
+    try:
+        from .. import experience
+
+        experience.record(kind, actor, payload, log=log, **({"project": str(scope.project_id)} if scope.project_id else {}))
+    except Exception:  # noqa: BLE001 - the change stands; its record is best effort
+        pass
+
+
+def _record_conflict(log: Any, scope: AuthorizedScope, scope_kind: str, action: str, expected: int, current: int) -> None:
+    _record(log, "decision.refused", scope, {"point": f"memory.base.{scope_kind}", "choice": action, "rule": "revision_conflict",
+                                             "reason": f"expected revision {expected}, current revision {current}"}, actor="person")
+
+
+def _record_stale(log: Any, scope: AuthorizedScope, scope_kind: str, doc: Mapping[str, Any], stale_ids: Iterable[str]) -> None:
+    """Each draft or recorded decision a base change made stale: refused until a person rechecks it."""
+    by_id = {str(e.get("entry_id")): e for e in doc.get("entries") or []}
+    for entry_id in stale_ids:
+        entry = by_id.get(str(entry_id)) or {}
+        _record(log, "decision.refused", scope, {"point": f"memory.base.{scope_kind}.stale", "choice": str(entry_id),
+                                                 "rule": "stale_dependency", "reason": str(entry.get("stale_reason") or "source changed")[:300]})
+
+
+def _memory_text(home: Path, scope_kind: str, scope_id: str, cleaned: str, new_rev: int) -> str:
+    """The words for the memory item of a base value. An item's id is the hash of its words and a retirement is final, so
+    restoring earlier words (undoing a correction) cannot reuse the retired item: its memory line says it was restored at
+    this revision (a new id), while the base keeps the person's own words."""
+    from dclab_core.memory import TEXT, item_id
+
+    held = next((v for v in latest(open_memory(home).log()) if v.id == item_id("fact", scope_kind, scope_id, cleaned)), None)
+    if held is None or held.status != "retired":
+        return cleaned
+    tag = f" (restored at revision {new_rev})"
+    return cleaned[: max(1, TEXT - len(tag))].rstrip() + tag
+
+
 def _invalidate_summary_best_effort(home: Path, scope: AuthorizedScope) -> None:
     try:
         from . import summary as summary_mod
@@ -263,6 +330,7 @@ def upsert_base_fact(
         cur_rev = int(doc.get("revision") or 0)
         active_entries = [dict(e) for e in doc["entries"] if e.get("status") == "active"]
         if expected_revision is not None and int(expected_revision) != cur_rev:
+            _record_conflict(log, scope, scope_kind, "upsert", int(expected_revision), cur_rev)
             raise RevisionConflictError(
                 scope=scope_kind, scope_id=scope_id,
                 expected_revision=int(expected_revision), current_revision=cur_rev,
@@ -286,7 +354,7 @@ def upsert_base_fact(
             kind="fact",
             scope=scope_kind,
             scope_id=scope_id,
-            text=cleaned,
+            text=_memory_text(home, scope_kind, scope_id, cleaned, new_rev),
             source=src,
             who=author,
             at=now_ts,
@@ -314,7 +382,7 @@ def upsert_base_fact(
             "kind": "fact",
             "subject": subj,
             "field": fld,
-            "text": written_item.text,
+            "text": cleaned,
             "source": src,
             "source_type": "user_edit",
             "source_id": entry_id,
@@ -345,8 +413,13 @@ def upsert_base_fact(
         )
         _write_doc_unlocked(path, doc)
 
+    _record_stale(log, scope, scope_kind, doc, stale_ids)
     _invalidate_summary_best_effort(home, scope)
-    return {"entry": dict(entry), "revision": new_rev, "unchanged": False, "stale_dependents": stale_ids}
+    out = {"entry": dict(entry), "revision": new_rev, "unchanged": False, "stale_dependents": stale_ids}
+    note = _solution_note(fld) if is_correction else None
+    if note:
+        out["solution_note"] = note
+    return out
 
 
 def correct_base_fact(
@@ -376,6 +449,7 @@ def correct_base_fact(
         cur_rev = int(doc.get("revision") or 0)
         active_entries = [dict(e) for e in doc["entries"] if e.get("status") == "active"]
         if expected_revision is not None and int(expected_revision) != cur_rev:
+            _record_conflict(log, scope, scope_kind, "correct", int(expected_revision), cur_rev)
             raise RevisionConflictError(
                 scope=scope_kind, scope_id=scope_id,
                 expected_revision=int(expected_revision), current_revision=cur_rev,
@@ -398,7 +472,7 @@ def correct_base_fact(
             kind="fact",
             scope=scope_kind,
             scope_id=scope_id,
-            text=cleaned,
+            text=_memory_text(home, scope_kind, scope_id, cleaned, new_rev),
             source=f"correction:{old['item_id']}",
             who=author,
             at=now_ts,
@@ -421,7 +495,7 @@ def correct_base_fact(
             "kind": "fact",
             "subject": old.get("subject", target),
             "field": old.get("field", "fact"),
-            "text": written_item.text,
+            "text": cleaned,
             "source": f"correction:{old['entry_id']}",
             "source_type": "user_correction",
             "source_id": new_id,
@@ -452,8 +526,13 @@ def correct_base_fact(
         )
         _write_doc_unlocked(path, doc)
 
+    _record_stale(log, scope, scope_kind, doc, stale_ids)
     _invalidate_summary_best_effort(home, scope)
-    return {"entry": dict(entry), "superseded": dict(old), "revision": new_rev, "stale_dependents": stale_ids}
+    out = {"entry": dict(entry), "superseded": dict(old), "revision": new_rev, "stale_dependents": stale_ids}
+    note = _solution_note(old.get("field"))
+    if note:
+        out["solution_note"] = note
+    return out
 
 
 def retire_base_fact(
@@ -480,6 +559,7 @@ def retire_base_fact(
         cur_rev = int(doc.get("revision") or 0)
         active_entries = [dict(e) for e in doc["entries"] if e.get("status") == "active"]
         if expected_revision is not None and int(expected_revision) != cur_rev:
+            _record_conflict(log, scope, scope_kind, "retire", int(expected_revision), cur_rev)
             raise RevisionConflictError(
                 scope=scope_kind, scope_id=scope_id,
                 expected_revision=int(expected_revision), current_revision=cur_rev,
@@ -510,8 +590,13 @@ def retire_base_fact(
         )
         _write_doc_unlocked(path, doc)
 
+    _record_stale(log, scope, scope_kind, doc, stale_ids)
     _invalidate_summary_best_effort(home, scope)
-    return {"entry": dict(old), "revision": new_rev, "stale_dependents": stale_ids}
+    out = {"entry": dict(old), "revision": new_rev, "stale_dependents": stale_ids}
+    note = _solution_note(old.get("field")) if old.get("kind") == "fact" else None
+    if note:
+        out["solution_note"] = note
+    return out
 
 
 def record_material_event(
@@ -734,6 +819,7 @@ def confirm_draft(
         doc = _read_doc_unlocked(path, scope_kind, scope_id, scope)
         cur_rev = int(doc.get("revision") or 0)
         if expected_revision is not None and int(expected_revision) != cur_rev:
+            _record_conflict(log, scope, scope_kind, f"confirm:{action}", int(expected_revision), cur_rev)
             raise RevisionConflictError(
                 scope=scope_kind, scope_id=scope_id,
                 expected_revision=int(expected_revision), current_revision=cur_rev,
@@ -746,6 +832,9 @@ def confirm_draft(
         if draft.get("status") != "draft":
             raise Refused(f"only a pending draft can be confirmed; status is {draft.get('status')!r}")
         if action == "accept" and draft.get("stale") and not allow_stale:
+            _record(log, "decision.refused", scope, {"point": f"memory.base.{scope_kind}.confirm", "choice": str(entry_id),
+                                                     "rule": "stale_dependency",
+                                                     "reason": str(draft.get("stale_reason") or "source changed")[:300]}, actor="person")
             raise StaleDependencyError(
                 f"draft {entry_id} is stale ({draft.get('stale_reason') or 'source changed'}) and must be rechecked before confirmation",
                 changed_sources=list(draft.get("changed_sources") or []),
@@ -785,38 +874,65 @@ def confirm_draft(
     return {"entry": dict(draft), "revision": new_rev}
 
 
-def purge_scope(home: Path, scope_kind: str, scope_id: str, *, workspace_id: str = "local",
+PURGED_DIR = BASES_DIR / "purged"
+
+
+def _belongs(doc: Mapping[str, Any], scope_kind: str, scope_id: str, project_id: Optional[str], problem_id: Optional[str]) -> bool:
+    """A base ledger of what was deleted: its own scope, or (for a project) every base of that project, matched on the raw
+    project id. The folder is one workspace's, so the workspace stamp is not compared (a folder workspace keys its bases
+    ``local`` while its record goes by ``w…``)."""
+    if doc.get("scope") == scope_kind and doc.get("scope_id") == scope_id:
+        return True
+    if project_id and str(doc.get("project_id") or "") == str(project_id):
+        return scope_kind == "project" or (problem_id is not None and str(doc.get("problem_id") or "") == str(problem_id))
+    return False
+
+
+def _keep_purged(path: Path, doc: dict[str, Any], *, reason: str) -> Path:
+    """Move a deleted scope's base ledger to ``bases/purged/`` with a tombstone: never read again by any base, summary or
+    agent, and never deleted (only the owner's audited store forget removes data)."""
+    folder = path.parent / "purged"
+    folder.mkdir(parents=True, exist_ok=True)
+    doc = {**doc, "purged": {"at": _now(), "reason": reason, "from": path.name}}
+    target = folder / path.name
+    if target.exists():  # the same scope purged before: keep both
+        target = folder / f"{path.stem}.{secrets.token_hex(3)}{path.suffix}"
+    _write_doc_unlocked(target, doc)
+    path.unlink()
+    return target
+
+
+def purge_scope(home: Path, scope_kind: str, scope_id: str, *, workspace_id: Optional[str] = None,
                 project_id: Optional[str] = None, problem_id: Optional[str] = None, log: Any = None) -> dict[str, int]:
-    """Purge a deleted project or problem scope: retire MemoryStore items, remove base index, summary, and vectors."""
+    """Purge a deleted project or problem scope: retire its memory items (new versions; the old ones stay), move its base
+    ledgers to ``bases/purged/`` with a tombstone (hidden from every read, never deleted), and delete only what is derived
+    from them (summaries and cached search vectors). Matched on the raw project id, whatever workspace id the caller holds."""
     from ..filelock import held
 
+    if scope_kind == "project" and not project_id:
+        project_id = scope_id
     retired_items = 0
     retired_texts: list[str] = []
+
+    def _of_project(i: MemoryItem) -> bool:
+        if not project_id:
+            return False
+        if i.scope == "project":
+            return i.scope_id == project_id or i.scope_id.endswith(f":{project_id}")
+        if i.scope == "problem":
+            parts = i.scope_id.split(":")
+            return len(parts) == 3 and parts[1] == project_id and (scope_kind == "project" or parts[2] == problem_id)
+        return False
+
     if (Path(home) / "memory" / "items.jsonl").is_file() or os.environ.get("DCLAB_DATABASE_URL"):
         try:
             store = open_memory(home)
             all_latest = latest(store.log())
-            for item in all_latest:
-                if item.status == "retired":
-                    continue
-                if (item.scope == scope_kind and item.scope_id == scope_id) or (
-                    scope_kind == "project" and project_id and (
-                        (item.scope == "project" and (item.scope_id == project_id or item.scope_id.endswith(f":{project_id}")))
-                        or (item.scope == "problem" and f":{project_id}:" in item.scope_id)
-                    )
-                ):
-                    retired_texts.append(item.text)
-            retired_items = retire_scope(store, scope_kind, scope_id, log=log)
-            if scope_kind == "project" and project_id:
-                extra_scopes = {
-                    (i.scope, i.scope_id) for i in all_latest
-                    if i.status != "retired" and (
-                        (i.scope == "project" and (i.scope_id == project_id or i.scope_id.endswith(f":{project_id}")))
-                        or (i.scope == "problem" and f":{project_id}:" in i.scope_id)
-                    ) and (i.scope, i.scope_id) != (scope_kind, scope_id)
-                }
-                for sk, sid in extra_scopes:
-                    retired_items += retire_scope(store, sk, sid, log=log)
+            scopes = {(i.scope, i.scope_id) for i in all_latest
+                      if i.status != "retired" and ((i.scope == scope_kind and i.scope_id == scope_id) or _of_project(i))}
+            retired_texts.extend(i.text for i in all_latest if i.status != "retired" and (i.scope, i.scope_id) in scopes)
+            for sk, sid in sorted(scopes):
+                retired_items += retire_scope(store, sk, sid, log=log)
         except Exception:  # noqa: BLE001
             retired_items = 0
 
@@ -824,31 +940,23 @@ def purge_scope(home: Path, scope_kind: str, scope_id: str, *, workspace_id: str
     bdir = _lock_dir(home)
     if bdir.is_dir():
         with held(bdir):
-            path = _base_file(home, scope_kind, scope_id)
-            if path.is_file():
+            for path in sorted(bdir.glob("*.json")):
                 try:
                     doc = json.loads(path.read_text(encoding="utf-8"))
-                    retired_texts.extend(str(e.get("text") or "") for e in (doc.get("entries") or []) if e.get("text"))
                 except (OSError, ValueError):
-                    pass
-                path.unlink()
+                    continue
+                if not isinstance(doc, dict) or not _belongs(doc, scope_kind, scope_id, project_id, problem_id):
+                    continue
+                retired_texts.extend(str(e.get("text") or "") for e in (doc.get("entries") or []) if e.get("text"))
+                _keep_purged(path, doc, reason=f"{scope_kind} deleted")
                 removed_base += 1
-            if scope_kind == "project" and project_id:
-                for p in list(bdir.glob("*.json")):
-                    try:
-                        doc = json.loads(p.read_text(encoding="utf-8"))
-                    except (OSError, ValueError):
-                        continue
-                    if doc.get("project_id") == project_id and (not workspace_id or doc.get("workspace_id") == workspace_id):
-                        retired_texts.extend(str(e.get("text") or "") for e in (doc.get("entries") or []) if e.get("text"))
-                        p.unlink()
-                        removed_base += 1
 
     removed_summaries = 0
     try:
         from . import summary as summary_mod
 
-        removed_summaries = summary_mod.purge_summary(home, workspace_id, project_id, problem_id, purged_texts=retired_texts)
+        removed_summaries = summary_mod.purge_summary(home, workspace_id or "", project_id,
+                                                      problem_id if scope_kind == "problem" else None, purged_texts=retired_texts)
     except Exception:  # noqa: BLE001
         pass
 
@@ -856,7 +964,7 @@ def purge_scope(home: Path, scope_kind: str, scope_id: str, *, workspace_id: str
 
 
 __all__ = [
-    "BASES_DIR", "OUTCOME_STATUSES", "RevisionConflictError", "StaleDependencyError",
+    "BASES_DIR", "OUTCOME_STATUSES", "PURGED_DIR", "SOLUTION_FIELDS", "RevisionConflictError", "StaleDependencyError",
     "base_revision", "confirm_draft", "correct_base_fact", "propose_draft", "purge_scope",
     "read_base", "record_material_event", "retire_base_fact", "upsert_base_fact",
 ]

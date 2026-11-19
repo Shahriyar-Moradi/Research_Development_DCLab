@@ -168,6 +168,17 @@ def secret(text: str) -> bool:
     return bool(SECRET.search(text or ""))
 
 
+def project_of(item: MemoryItem) -> str | None:
+    """The raw project id an item belongs to: a project item's own id, a problem item's middle part
+    (``workspace:project:problem``); a project id written with a workspace prefix (``w…:project``) read as its project."""
+    if item.scope == "project":
+        return item.scope_id.rsplit(":", 1)[-1] or None
+    if item.scope == "problem":
+        parts = item.scope_id.split(":")
+        return parts[1] if len(parts) == 3 and parts[1] else None
+    return None
+
+
 def event(log: Any, kind: str, item: MemoryItem, *, reason: str = "", by: str | None = None, by_item: str | None = None, origin: str = "",
           link: bool = True) -> None:
     """One memory event in the workspace's record (35.3): the item's id, kind, scope and source; its text for a write or a
@@ -186,7 +197,8 @@ def event(log: Any, kind: str, item: MemoryItem, *, reason: str = "", by: str | 
                 payload.update(status=item.status, correction="yes" if item.correction else "no", supersedes=item.supersedes or "", reason=reason)
             else:
                 payload["from"] = origin or "agent"
-        ids = {"project": item.scope_id} if item.scope == "project" and link else {}
+        project = project_of(item)
+        ids = {"project": project} if project and link else {}
         experience.record(kind, actor, payload, log=log, **ids)
     except Exception as exc:  # noqa: BLE001
         print(f"memory: could not record {kind}: {type(exc).__name__}", file=sys.stderr, flush=True)
@@ -200,4 +212,4 @@ def view(store: MemoryStore | None, chain: list[tuple[str, str]], read: Iterable
     return resolve([*stored, *read], chain)
 
 
-__all__ = ["FILE", "Refused", "MemoryStore", "latest", "FileMemory", "PgMemory", "open_memory", "remember", "retire_scope", "event", "view"]
+__all__ = ["FILE", "Refused", "MemoryStore", "latest", "FileMemory", "PgMemory", "open_memory", "remember", "retire_scope", "project_of", "event", "view"]

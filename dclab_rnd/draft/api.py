@@ -1745,7 +1745,7 @@ def build_project(drafts: DraftStore, projects, draft_id: str) -> dict[str, Any]
         from ..memory import scope as memory_scope
 
         who = current_principal()
-        ws = str(getattr(projects, "workspace_id", None) or getattr(who, "workspace_id", None) or "local")
+        ws = memory_scope.workspace_of(projects)  # the one workspace id the memory routes and Home use too
         by = str(getattr(who, "user_id", None) or "owner")
         prob = memory_scope.ensure_default_problem(projects, pid, workspace_id=ws, by=by, name=name, draft_id=draft_id)
         problem_id = prob["problem_id"]

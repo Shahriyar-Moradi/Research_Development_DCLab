@@ -1,13 +1,16 @@
 """Host-resolved identity, durable problem bindings, and authorized scope checks (Package A3).
 
 Every memory read, write, summary build, and background job resolves an :class:`AuthorizedScope` from validated server
-state. Local single-user fallback (``owner``) applies only in explicit no-auth mode (when ``DCLAB_AUTH`` is unset and
-no authenticated principal is active). When authentication is enabled or a worker runs on behalf of a user, missing
-identity, revoked membership, cross-workspace/project/problem references, or guessed IDs fail closed.
+state. Local single-user fallback (``owner``) applies only in explicit no-auth mode (when ``DCLAB_AUTH`` is unset; the
+Admin sign-in there is still the machine's owner). When authentication is enabled or a worker runs on behalf of a user
+(``require_principal``), missing identity, revoked membership, cross-workspace/project/problem references, or guessed
+IDs fail closed. A read never creates a problem (:class:`NoProblemError`); write routes and the build do, under the
+project's lock, and each creation is recorded.
 """
 
 from __future__ import annotations
 
+import contextlib
 import os
 import secrets
 from dataclasses import dataclass
@@ -16,12 +19,20 @@ from typing import Any, Callable, Mapping, Optional
 
 from dclab_core.memory import problem_scope_id
 
-WRITE_ROLES = frozenset({"owner", "data_scientist", "reviewer", "admin", "editor"})
-READ_ROLES = WRITE_ROLES | frozenset({"viewer"})
+from ..accounts.roles import PERMISSIONS, ROLES
+
+# The Router's own role sets (accounts/roles.py): who may write a workspace, and who may read it. A reviewer reads here;
+# a base edit is a write, as every other project write is.
+WRITE_ROLES = PERMISSIONS["write"]
+READ_ROLES = frozenset(ROLES)
 
 
 class AccessDenied(PermissionError):
     """Raised when a principal lacks verified access to a workspace, project, problem, draft, or write action."""
+
+
+class NoProblemError(AccessDenied):
+    """Raised when a read finds a project with no bound problem: a read never creates one (a write route or the build does)."""
 
 
 class AmbiguousProblemError(ValueError):
@@ -43,25 +54,41 @@ def auth_enabled() -> bool:
     return bool(os.environ.get("DCLAB_AUTH", "").strip())
 
 
+def workspace_of(store: Any) -> str:
+    """The one workspace id every memory caller uses: the store's own (PostgreSQL's ``w…``), else ``local`` (a folder
+    workspace). The router, Home, the build, the intern's brief and the tools all ask this, so they agree."""
+    return str(getattr(store, "workspace_id", None) or "local")
+
+
+def _same_workspace(recorded: Any, workspace_id: str) -> bool:
+    """A document stamped with no workspace, or with ``local`` (a folder workspace, or one migrated from it), belongs to the
+    store it was read from: that store already holds one workspace's documents. Only another named workspace refuses."""
+    stamp = str(recorded or "").strip()
+    return not stamp or stamp == "local" or stamp == str(workspace_id)
+
+
+# Person, project and session scope ids stay the raw ids every writer has always used (a project's notes, the build's
+# hand-off, a person's preferences): the store is already one workspace's (its folder, or its rows), so a workspace
+# prefix would only hide what was written before. Only the problem scope carries its parent chain (dclab_core's key).
 def person_scope_id(workspace_id: str, principal_id: str) -> str:
-    ws, uid = str(workspace_id or "local").strip(), str(principal_id or "").strip()
+    uid = str(principal_id or "").strip()
     if not uid:
         raise AccessDenied("principal_id is required")
-    return uid if ws == "local" else f"{ws}:{uid}"
+    return uid
 
 
 def project_scope_id(workspace_id: str, project_id: str) -> str:
-    ws, pid = str(workspace_id or "local").strip(), str(project_id or "").strip()
+    pid = str(project_id or "").strip()
     if not pid:
         raise AccessDenied("project_id is required")
-    return pid if ws == "local" else f"{ws}:{pid}"
+    return pid
 
 
 def session_scope_id(workspace_id: str, session_id: str) -> str:
-    ws, sid = str(workspace_id or "local").strip(), str(session_id or "").strip()
+    sid = str(session_id or "").strip()
     if not sid:
         raise AccessDenied("session_id is required")
-    return f"{ws}:{sid}"
+    return sid
 
 
 @dataclass(frozen=True)
@@ -74,6 +101,7 @@ class AuthorizedScope:
     draft_id: Optional[str] = None
     session_id: Optional[str] = None
     auth_mode: str = "local"  # "local" (explicit no-auth mode) or "authenticated"
+    problem_workspace: Optional[str] = None  # the workspace the problem was bound in (its key survives a move to PostgreSQL)
 
     @property
     def can_write(self) -> bool:
@@ -91,7 +119,7 @@ class AuthorizedScope:
     def problem_key(self) -> Optional[str]:
         if not (self.project_id and self.problem_id):
             return None
-        return problem_scope_id(self.workspace_id, self.project_id, self.problem_id)
+        return problem_scope_id(self.problem_workspace or self.workspace_id, self.project_id, self.problem_id)
 
     @property
     def session_key(self) -> Optional[str]:
@@ -108,8 +136,6 @@ class AuthorizedScope:
             out.append(("problem", self.problem_key))  # type: ignore[arg-type]
         if include_session and self.session_id:
             out.append(("session", self.session_key))  # type: ignore[arg-type]
-            if self.workspace_id == "local":
-                out.append(("session", self.session_id))
         return out
 
     def shared_chain(self) -> list[tuple[str, str]]:
@@ -130,24 +156,69 @@ class AuthorizedScope:
             "draft_id": self.draft_id,
             "session_id": self.session_id,
             "auth_mode": self.auth_mode,
+            "problem_workspace": self.problem_workspace,
         }
 
 
 # ------------------------------------------------------------------ Durable Problem Identity on Projects
 
 def _project_workspace(project: Mapping[str, Any], default_workspace: str) -> str:
-    return str(project.get("workspace_id") or default_workspace or "local")
+    return str(default_workspace or project.get("workspace_id") or "local")
 
 
 def _active_problems(project: Mapping[str, Any]) -> list[dict[str, Any]]:
     return [dict(p) for p in (project.get("problems") or []) if isinstance(p, Mapping) and p.get("status", "active") == "active"]
 
 
+def _check_project_workspace(project: Mapping[str, Any], project_id: str, workspace_id: str) -> None:
+    if not _same_workspace(project.get("workspace_id"), workspace_id):
+        raise AccessDenied(f"project {project_id!r} does not belong to workspace {workspace_id!r}")
+
+
+def _locked(projects: Any, project_id: str):
+    """The project's own write lock (both stores' ``turn``, re-entrant with their ``update``), so a read-modify-write of
+    its problem list never loses a concurrent one; a store without it (a test double) runs unlocked."""
+    turn = getattr(projects, "turn", None)
+    return turn(project_id) if callable(turn) else contextlib.nullcontext()
+
+
+def _record_problem(log: Any, action: str, prob: Mapping[str, Any], by: str) -> None:
+    """A problem created or a draft bound to one, in the workspace's record (ids only, never the person's words)."""
+    try:
+        from .. import experience
+
+        actor = "person" if by and by not in ("system", "agent") else "system"
+        experience.record("decision.accepted", actor, {"point": f"problem.{action}", "choice": str(prob.get("problem_id") or ""),
+                                                      "by": f"person:{by}" if actor == "person" else str(by or "system")},
+                          log=log, project=str(prob.get("project_id") or "") or None,
+                          **({"conversation": str(prob["draft_id"])} if prob.get("draft_id") else {}))
+    except Exception:  # noqa: BLE001 - the binding stands; its record is best effort
+        pass
+
+
+def _new_problem(project: Mapping[str, Any], project_id: str, ws: str, *, name: str, by: str, draft_id: Optional[str],
+                 description: Optional[str] = None) -> dict[str, Any]:
+    prob = {
+        "problem_id": "prob_" + secrets.token_hex(6),
+        "name": str(name or "Untitled problem").strip()[:120],
+        "workspace_id": ws,  # the problem's own identity: its memory key keeps this even after a move to PostgreSQL
+        "project_id": project_id,
+        "draft_id": draft_id,
+        "status": "active",
+        "revision": 1,
+        "created_at": _now(),
+        "updated_at": _now(),
+        "created_by": by,
+    }
+    if description is not None:
+        prob["description"] = str(description or "").strip()[:400]
+    return prob
+
+
 def list_problems(projects: Any, project_id: str, *, workspace_id: str = "local") -> list[dict[str, Any]]:
     """Return active problems bound to this project in this workspace."""
     project = projects.get(project_id)
-    if project.get("workspace_id") and str(project["workspace_id"]) != str(workspace_id):
-        raise AccessDenied(f"project {project_id!r} does not belong to workspace {workspace_id!r}")
+    _check_project_workspace(project, project_id, workspace_id)
     return _active_problems(project)
 
 
@@ -159,43 +230,34 @@ def ensure_default_problem(
     by: str = "owner",
     name: Optional[str] = None,
     draft_id: Optional[str] = None,
+    log: Any = None,
 ) -> dict[str, Any]:
-    """Lazily create/bind the single default problem for a legacy or newly built project, idempotently by draft_id."""
-    project = projects.get(project_id)
-    ws = _project_workspace(project, workspace_id)
-    if project.get("workspace_id") and str(project["workspace_id"]) != str(workspace_id):
-        raise AccessDenied(f"project {project_id!r} does not belong to workspace {workspace_id!r}")
+    """Create/bind the single default problem for a legacy or newly built project, idempotently by draft_id, under the
+    project's write lock. Called by write routes and the build only (a read never creates one); each change is recorded."""
+    with _locked(projects, project_id):
+        project = projects.get(project_id)
+        _check_project_workspace(project, project_id, workspace_id)
+        ws = _project_workspace(project, workspace_id)
+        existing = list(project.get("problems") or [])
+        if draft_id:
+            for entry in existing:
+                if isinstance(entry, Mapping) and entry.get("draft_id") == draft_id:
+                    return dict(entry)
+        active = [e for e in existing if isinstance(e, Mapping) and e.get("status", "active") == "active"]
+        if active:
+            chosen = dict(active[0])
+            if draft_id and not chosen.get("draft_id"):
+                chosen["draft_id"] = draft_id
+                chosen["updated_at"] = _now()
+                updated = [chosen if isinstance(e, Mapping) and e.get("problem_id") == chosen["problem_id"] else e for e in existing]
+                projects.update(project_id, problems=updated, default_problem_id=project.get("default_problem_id") or chosen["problem_id"])
+                _record_problem(log, "bound", chosen, by)
+            return chosen
 
-    existing = list(project.get("problems") or [])
-    if draft_id:
-        for entry in existing:
-            if isinstance(entry, Mapping) and entry.get("draft_id") == draft_id:
-                return dict(entry)
-    active = [e for e in existing if isinstance(e, Mapping) and e.get("status", "active") == "active"]
-    if active:
-        chosen = dict(active[0])
-        if draft_id and not chosen.get("draft_id"):
-            chosen["draft_id"] = draft_id
-            chosen["updated_at"] = _now()
-            updated = [chosen if e.get("problem_id") == chosen["problem_id"] else e for e in existing]
-            projects.update(project_id, problems=updated, workspace_id=ws,
-                            default_problem_id=project.get("default_problem_id") or chosen["problem_id"])
-        return chosen
-
-    prob = {
-        "problem_id": "prob_" + secrets.token_hex(6),
-        "name": str(name or project.get("name") or "Primary problem").strip()[:120],
-        "workspace_id": ws,
-        "project_id": project_id,
-        "draft_id": draft_id,
-        "status": "active",
-        "revision": 1,
-        "created_at": _now(),
-        "updated_at": _now(),
-        "created_by": by,
-    }
-    existing.append(prob)
-    projects.update(project_id, workspace_id=ws, problems=existing, default_problem_id=prob["problem_id"])
+        prob = _new_problem(project, project_id, ws, name=str(name or project.get("name") or "Primary problem"), by=by, draft_id=draft_id)
+        existing.append(prob)
+        projects.update(project_id, problems=existing, default_problem_id=prob["problem_id"])
+    _record_problem(log, "created", prob, by)
     return dict(prob)
 
 
@@ -208,33 +270,23 @@ def create_problem(
     by: str = "owner",
     draft_id: Optional[str] = None,
     description: str = "",
+    log: Any = None,
 ) -> dict[str, Any]:
-    """Create a new sibling problem inside a project (idempotent when the same draft_id is already bound)."""
-    project = projects.get(project_id)
-    ws = _project_workspace(project, workspace_id)
-    if project.get("workspace_id") and str(project["workspace_id"]) != str(workspace_id):
-        raise AccessDenied(f"project {project_id!r} does not belong to workspace {workspace_id!r}")
-    existing = list(project.get("problems") or [])
-    if draft_id:
-        for entry in existing:
-            if isinstance(entry, Mapping) and entry.get("draft_id") == draft_id:
-                return dict(entry)
-    prob = {
-        "problem_id": "prob_" + secrets.token_hex(6),
-        "name": str(name or "Untitled problem").strip()[:120],
-        "description": str(description or "").strip()[:400],
-        "workspace_id": ws,
-        "project_id": project_id,
-        "draft_id": draft_id,
-        "status": "active",
-        "revision": 1,
-        "created_at": _now(),
-        "updated_at": _now(),
-        "created_by": by,
-    }
-    existing.append(prob)
-    projects.update(project_id, workspace_id=ws, problems=existing,
-                    default_problem_id=project.get("default_problem_id") or prob["problem_id"])
+    """Create a new sibling problem inside a project (idempotent when the same draft_id is already bound), under the
+    project's write lock; recorded."""
+    with _locked(projects, project_id):
+        project = projects.get(project_id)
+        _check_project_workspace(project, project_id, workspace_id)
+        ws = _project_workspace(project, workspace_id)
+        existing = list(project.get("problems") or [])
+        if draft_id:
+            for entry in existing:
+                if isinstance(entry, Mapping) and entry.get("draft_id") == draft_id:
+                    return dict(entry)
+        prob = _new_problem(project, project_id, ws, name=name, by=by, draft_id=draft_id, description=description)
+        existing.append(prob)
+        projects.update(project_id, problems=existing, default_problem_id=project.get("default_problem_id") or prob["problem_id"])
+    _record_problem(log, "created", prob, by)
     return dict(prob)
 
 
@@ -246,20 +298,18 @@ def resolve_problem(
     draft_id: Optional[str] = None,
     workspace_id: str = "local",
     by: str = "owner",
-    auto_create_legacy: bool = True,
+    auto_create_legacy: bool = False,
 ) -> dict[str, Any]:
     """Resolve the active problem from validated server state; raises AmbiguousProblemError when >1 active problems exist."""
     project = projects.get(project_id)
-    ws = _project_workspace(project, workspace_id)
-    if project.get("workspace_id") and str(project["workspace_id"]) != str(workspace_id):
-        raise AccessDenied(f"project {project_id!r} does not belong to workspace {workspace_id!r}")
+    _check_project_workspace(project, project_id, workspace_id)
 
     active = _active_problems(project)
     if problem_id:
         found = next((p for p in active if p.get("problem_id") == problem_id), None)
         if found is None:
             raise AccessDenied(f"problem {problem_id!r} is not bound to project {project_id!r}")
-        if str(found.get("project_id") or "") != str(project_id) or str(found.get("workspace_id") or ws) != str(workspace_id):
+        if str(found.get("project_id") or "") != str(project_id) or not _same_workspace(found.get("workspace_id"), workspace_id):
             raise AccessDenied(f"problem {problem_id!r} parentage check failed")
         return dict(found)
 
@@ -270,7 +320,7 @@ def resolve_problem(
 
     if not active:
         if not auto_create_legacy:
-            raise AccessDenied(f"project {project_id!r} has no bound problem")
+            raise NoProblemError(f"project {project_id!r} has no bound problem yet")
         return ensure_default_problem(projects, project_id, workspace_id=workspace_id, by=by, draft_id=draft_id)
 
     if len(active) == 1:
@@ -306,8 +356,7 @@ def _check_workspace_membership(principal: Any, workspace_id: str, membership_ch
 
 def _check_project_access(project: Mapping[str, Any], workspace_id: str, principal_id: str, role: str) -> None:
     """Verify project workspace binding and optional per-project member ACL."""
-    p_ws = project.get("workspace_id")
-    if p_ws is not None and str(p_ws) != str(workspace_id):
+    if not _same_workspace(project.get("workspace_id"), workspace_id):
         raise AccessDenied(f"project {project.get('id')!r} belongs to another workspace")
     # Optional per-project member ACL: if configured, non-members (even within workspace) are denied.
     members = project.get("members")
@@ -330,14 +379,16 @@ def resolve_scope(
     require_write: bool = False,
     require_principal: bool = False,
     require_problem: bool = False,
-    auto_create_legacy_problem: bool = True,
+    auto_create_legacy_problem: bool = False,
     membership_checker: Optional[Callable[[str, str], Optional[str]]] = None,
 ) -> AuthorizedScope:
     """Resolve and verify an AuthorizedScope from validated server state. Fails closed on every violation."""
     from ..accounts.principal import current
 
     who = principal if principal is not None else current()
-    is_auth = auth_enabled() or require_principal or (who is not None and getattr(who, "via", "local") != "local")
+    # Sign-in decides the mode, never how the principal arrived: with DCLAB_AUTH off the Admin sign-in (via "admin") is
+    # still the machine's owner, and a worker that carries a person asks for the check with require_principal.
+    is_auth = auth_enabled() or require_principal
 
     if not is_auth:
         # Explicit no-auth local single-user mode only.
@@ -365,12 +416,13 @@ def resolve_scope(
     # Validate draft binding if draft_id is supplied.
     resolved_project_id = project_id
     resolved_problem_id = problem_id
+    problem_ws: Optional[str] = None
     if draft_id and drafts is not None:
         try:
             draft = drafts.get(draft_id)
         except KeyError as exc:
             raise AccessDenied(f"draft {draft_id!r} not found") from exc
-        if draft.get("workspace_id") and str(draft["workspace_id"]) != ws:
+        if not _same_workspace(draft.get("workspace_id"), ws):
             raise AccessDenied(f"draft {draft_id!r} does not belong to workspace {ws!r}")
         bound_proj = draft.get("project_id")
         bound_prob = draft.get("problem_id")
@@ -404,9 +456,11 @@ def resolve_scope(
             prob = resolve_problem(
                 projects, resolved_project_id, resolved_problem_id,
                 draft_id=draft_id, workspace_id=ws, by=uid,
-                auto_create_legacy=auto_create_legacy_problem,
+                # only a writer's write creates a legacy project's first problem; a read (and a viewer) never writes the project
+                auto_create_legacy=auto_create_legacy_problem and require_write and role in WRITE_ROLES,
             )
             resolved_problem_id = prob["problem_id"]
+            problem_ws = str(prob.get("workspace_id") or "") or None
 
     return AuthorizedScope(
         workspace_id=ws,
@@ -417,7 +471,29 @@ def resolve_scope(
         draft_id=draft_id,
         session_id=session_id,
         auth_mode=auth_mode,
+        problem_workspace=problem_ws,
     )
+
+
+def live_membership(url: Optional[str] = None) -> Optional[Callable[[str, str], Optional[str]]]:
+    """The person's role in a workspace as the accounts database says it now (``Accounts.role_of``), or None when there is
+    no database to ask. A failed lookup answers None, so a revoked or unreachable membership fails closed."""
+    from ..storage import db
+
+    url = url or db.database_url(required=False)
+    if not url:
+        return None
+
+    def _role(uid: str, wid: str) -> Optional[str]:
+        try:
+            from ..accounts.store import Accounts
+
+            role = Accounts(url).role_of(str(uid), str(wid))
+        except Exception:  # noqa: BLE001 - the database cannot say: no verified role
+            return None
+        return str(role) if role else None
+
+    return _role
 
 
 def revalidate_job_scope(
@@ -433,9 +509,10 @@ def revalidate_job_scope(
 
     user = job.get("user")
     payload = job.get("payload") or {}
+    # The job acts in its worker's workspace (the env's store): the person's role is checked there, not where they were.
     workspace_id = str(
-        (user.get("workspace_id") if isinstance(user, Mapping) else None)
-        or getattr(env, "workspace_id", None)
+        getattr(env, "workspace_id", None)
+        or (user.get("workspace_id") if isinstance(user, Mapping) else None)
         or "local"
     )
     principal = None
@@ -448,24 +525,11 @@ def revalidate_job_scope(
             name=str(user.get("name") or ""),
             via="job",
         )
-    elif auth_enabled() or (isinstance(user, Mapping) and user.get("via") != "local"):
+    elif auth_enabled():
         raise AccessDenied("background job is missing an authenticated initiating principal")
 
     if membership_checker is None and auth_enabled():
-        try:
-            from ..accounts import store as account_store
-            from ..storage import db
-
-            url = db.database_url(required=False)
-            if url:
-                def _live_member(uid: str, wid: str) -> Optional[str]:
-                    members = account_store.members(wid, url=url)
-                    found = next((m for m in members if str(m.get("user_id")) == str(uid)), None)
-                    return str(found["role"]) if found and found.get("role") else None
-
-                membership_checker = _live_member
-        except Exception:  # noqa: BLE001
-            membership_checker = None
+        membership_checker = live_membership()
 
     return resolve_scope(
         workspace_id=workspace_id,
@@ -479,13 +543,14 @@ def revalidate_job_scope(
         require_write=require_write,
         require_principal=auth_enabled() or principal is not None,
         require_problem=require_problem,
+        auto_create_legacy_problem=False,  # a check never writes the project
         membership_checker=membership_checker,
     )
 
 
 __all__ = [
-    "AccessDenied", "AmbiguousProblemError", "AuthorizedScope", "READ_ROLES", "WRITE_ROLES",
-    "auth_enabled", "create_problem", "ensure_default_problem", "list_problems",
+    "AccessDenied", "AmbiguousProblemError", "AuthorizedScope", "NoProblemError", "READ_ROLES", "WRITE_ROLES",
+    "auth_enabled", "create_problem", "ensure_default_problem", "list_problems", "live_membership",
     "person_scope_id", "problem_scope_id", "project_scope_id", "resolve_problem",
-    "resolve_scope", "revalidate_job_scope", "session_scope_id",
+    "resolve_scope", "revalidate_job_scope", "session_scope_id", "workspace_of",
 ]

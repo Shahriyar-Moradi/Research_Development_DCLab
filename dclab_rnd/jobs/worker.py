@@ -242,7 +242,10 @@ class Worker:
             try:
                 with _acting(self.env, job):  # the job's workspace and the person who started it (package 10.2)
                     from .. import experience
+                    from ..memory.scope import auth_enabled, revalidate_job_scope
 
+                    if auth_enabled():  # A3: the person is checked again now (a revoked member's queued job fails closed)
+                        revalidate_job_scope(self.env, job)
                     experience.record("job.started", "system", {"kind": job["kind"], "key": str(job.get("key") or "")[:120]})
                     h.run(self.env, job.get("payload") or {})
             finally:

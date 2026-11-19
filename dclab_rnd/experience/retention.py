@@ -283,8 +283,8 @@ def forget(*, project: str | None = None, draft: str | None = None, visit: str |
             from ..storage import db
 
             if db.database_url(required=False) or (Path(home) / "memory").is_dir():  # a file workspace with no memory gets no folder
-                ws = getattr(log, "workspace", None) or getattr(ledger, "workspace", None) or "local"
-                purged = memory_bases.purge_scope(Path(home), "project", project, workspace_id=str(ws), project_id=project, log=log)
+                # matched on the raw project id: the log goes by ``w…`` while a folder workspace's bases say ``local``
+                purged = memory_bases.purge_scope(Path(home), "project", project, project_id=project, log=log)
                 out["memory"] = purged["retired_items"]
         except Exception as exc:  # noqa: BLE001
             out.setdefault("failed", []).append("memory")

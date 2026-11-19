@@ -109,15 +109,29 @@ def hand_off(store: Any, draft: dict[str, Any], project_id: str, log: Any = None
         who_p = current()
         person = getattr(who_p, "user_id", None) or "owner"
         role = getattr(who_p, "role", None) or "owner"
-        ws = str(getattr(who_p, "workspace_id", None) or workspace_id or "local")
     except Exception:  # noqa: BLE001 - no accounts: the workspace's owner
-        person, role, ws = "owner", "owner", str(workspace_id or "local")
+        person, role = "owner", "owner"
+    # the one workspace id the memory routes, Home and the build use (the store's own, else "local"); a caller's own
+    # workspace_id is kept only for a store that names none
+    ws = memory_scope.workspace_of(store) if getattr(store, "workspace_id", None) else str(workspace_id or "local")
     bound_prob = problem_id or draft.get("problem_id")
-    auth_scope = (
-        memory_scope.AuthorizedScope(workspace_id=ws, principal_id=person, role=role, project_id=project_id,
-                                     problem_id=str(bound_prob), draft_id=draft.get("id"))
-        if bound_prob else None
-    )
+    auth_scope = None
+    if bound_prob:
+        problem_ws = None
+        try:  # the problem keeps the workspace it was bound in as its key (a folder workspace moved to PostgreSQL)
+            from .. import context
+
+            projects = getattr(context.services(), "projects", None)
+            if projects is not None:
+                found = next((p for p in projects.get(project_id).get("problems") or []
+                              if isinstance(p, dict) and p.get("problem_id") == str(bound_prob)), None)
+                problem_ws = str((found or {}).get("workspace_id") or "") or None
+        except Exception:  # noqa: BLE001 - no project store here: the workspace's own id
+            problem_ws = None
+        auth_scope = memory_scope.AuthorizedScope(workspace_id=ws, principal_id=person, role=role, project_id=project_id,
+                                                  problem_id=str(bound_prob), draft_id=draft.get("id"),
+                                                  auth_mode="authenticated" if memory_scope.auth_enabled() else "local",
+                                                  problem_workspace=problem_ws)
     written = 0
     for line, confirmed in confirmed_facts(draft):
         try:  # a memory write never fails a build (the review of H5): any error is said and the next line goes on

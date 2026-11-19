@@ -364,6 +364,7 @@ class BaseMutationResult(Doc):
     revision: Any = None
     unchanged: Any = None
     stale_dependents: list[Any] | None = None
+    solution_note: Any = None  # a change to the prediction moment, the target or the forbidden columns: the signed solution still has the old value
 
 
 class ProblemSummaryView(Doc):

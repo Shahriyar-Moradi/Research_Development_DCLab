@@ -45,6 +45,7 @@
    *  @property {*=} revision
    *  @property {*=} unchanged
    *  @property {(Array<*>|null)=} stale_dependents
+   *  @property {*=} solution_note
    */
   /** @typedef {Object} BaseView
    *  @property {*=} scope

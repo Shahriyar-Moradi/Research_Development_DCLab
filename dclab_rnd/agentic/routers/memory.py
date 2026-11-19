@@ -30,7 +30,9 @@ def _person() -> str:
 
 
 def _resolve(s: Services, *, project_id: str | None = None, problem_id: str | None = None,
-             require_write: bool = False, require_problem: bool = False, auto_create_legacy: bool = True) -> mem_scope.AuthorizedScope:
+             require_write: bool = False, require_problem: bool = False, auto_create_legacy: bool | None = None) -> mem_scope.AuthorizedScope:
+    """The host-resolved scope of this request. A legacy project's first problem is created by a write route only
+    (``auto_create_legacy`` follows ``require_write`` unless said), never by a read."""
     try:
         return mem_scope.resolve_scope(
             workspace_id=_workspace(s),
@@ -40,10 +42,12 @@ def _resolve(s: Services, *, project_id: str | None = None, problem_id: str | No
             problem_id=problem_id,
             require_write=require_write,
             require_problem=require_problem,
-            auto_create_legacy_problem=auto_create_legacy,
+            auto_create_legacy_problem=require_write if auto_create_legacy is None else auto_create_legacy,
         )
     except mem_scope.AmbiguousProblemError as exc:
         raise HTTPException(409, {"error": "ambiguous_problem", "message": str(exc), "candidates": exc.candidates}) from None
+    except mem_scope.NoProblemError as exc:  # a read never creates one: the person (or the build) does, with a write
+        raise HTTPException(409, {"error": "no_problem", "message": f"{exc}; create one first (POST /api/projects/{project_id}/problems)"}) from None
     except mem_scope.AccessDenied as exc:
         raise HTTPException(403, str(exc)) from None
     except KeyError:
@@ -62,7 +66,18 @@ def _audit(s: Services, request: Request, move: str, args: dict[str, Any], messa
 
 
 def _workspace(s: Services) -> str:
-    return s.workspace_id or "local"
+    return mem_scope.workspace_of(s.projects)  # the one id Home, the build, the brief and the tools use too
+
+
+def _expected(body: Any) -> int:
+    """A base edit names the revision it was made against (the optimistic check): missing or not a number is a 422."""
+    value = getattr(body, "expected_revision", None)
+    if value is None or isinstance(value, bool):
+        raise HTTPException(422, "expected_revision is required: the base revision this change was made against (0 for a new base)")
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        raise HTTPException(422, "expected_revision must be a whole number") from None
 
 
 def _read(s: Services, project_id: str | None) -> list:
@@ -162,12 +177,11 @@ async def memory_propose(body: MemoryProposal, s: Services = Depends(services)) 
 
 @router.get("/api/projects/{project_id}/problems", response_model=ProblemsView)
 async def project_problems_list(project_id: str, s: Services = Depends(services)):
-    """List durable active problems bound to a project (creates a single default problem lazily for legacy projects)."""
+    """List durable active problems bound to a project. A read never writes the project: a legacy project lists none until
+    a write route (a base edit, ``POST .../problems``) or the build creates one."""
     auth = _resolve(s, project_id=project_id, require_problem=False, auto_create_legacy=False)
     try:
         probs = mem_scope.list_problems(s.projects, project_id, workspace_id=auth.workspace_id)
-        if not probs:
-            probs = [mem_scope.ensure_default_problem(s.projects, project_id, workspace_id=auth.workspace_id, by=auth.principal_id)]
         proj = s.projects.get(project_id)
     except KeyError:
         raise HTTPException(404, "No such project") from None
@@ -185,7 +199,7 @@ async def project_problems_create(project_id: str, body: ProblemCreate, request:
             s.projects, project_id, str(body.name or "Untitled problem"),
             workspace_id=auth.workspace_id, by=auth.principal_id,
             draft_id=str(body.draft_id) if body.draft_id else None,
-            description=str(body.description or ""),
+            description=str(body.description or ""), log=s.experience,
         )
     except KeyError:
         raise HTTPException(404, "No such project") from None
@@ -201,7 +215,7 @@ async def project_memory_base_view(project_id: str, target: str = "problem", pro
     """View the editable Project Base or Problem Base with source, scope, active revision, and pending drafts."""
     if target not in ("project", "problem"):
         raise HTTPException(422, "target must be 'project' or 'problem'")
-    auth = _resolve(s, project_id=project_id, problem_id=problem_id, require_problem=(target == "problem"))
+    auth = _resolve(s, project_id=project_id, problem_id=problem_id, require_problem=(target == "problem"), auto_create_legacy=False)
     return bases.read_base(s.store.home, auth, target=target)
 
 
@@ -211,6 +225,7 @@ async def project_memory_base_upsert(project_id: str, body: BaseFactUpsert, requ
     target = str(body.target or "problem")
     if target not in ("project", "problem"):
         raise HTTPException(422, "target must be 'project' or 'problem'")
+    expected = _expected(body)
     auth = _resolve(s, project_id=project_id, problem_id=(str(body.problem_id) if body.problem_id else None),
                     require_write=True, require_problem=(target == "problem"))
     try:
@@ -218,7 +233,7 @@ async def project_memory_base_upsert(project_id: str, body: BaseFactUpsert, requ
             s.store.home, auth, target=target,
             subject=str(body.subject or target), field=str(body.field or "fact"),
             text=str(body.text or ""), source=str(body.source or f"ui:{target}_base"),
-            expected_revision=(int(body.expected_revision) if body.expected_revision is not None else None),
+            expected_revision=expected,
             reason=str(body.reason or ""), log=s.experience,
         )
     except bases.RevisionConflictError as exc:
@@ -240,12 +255,13 @@ async def project_memory_base_correct(project_id: str, entry_id: str, body: Base
     target = str(body.target or "problem")
     if target not in ("project", "problem"):
         raise HTTPException(422, "target must be 'project' or 'problem'")
+    expected = _expected(body)
     auth = _resolve(s, project_id=project_id, problem_id=(str(body.problem_id) if body.problem_id else None),
                     require_write=True, require_problem=(target == "problem"))
     try:
         res = bases.correct_base_fact(
             s.store.home, auth, entry_id, str(body.text or ""), target=target,
-            expected_revision=(int(body.expected_revision) if body.expected_revision is not None else None),
+            expected_revision=expected,
             reason=str(body.reason or ""), log=s.experience,
         )
     except KeyError:
@@ -269,12 +285,13 @@ async def project_memory_base_retire(project_id: str, entry_id: str, body: BaseF
     target = str(body.target or "problem")
     if target not in ("project", "problem"):
         raise HTTPException(422, "target must be 'project' or 'problem'")
+    expected = _expected(body)
     auth = _resolve(s, project_id=project_id, problem_id=(str(body.problem_id) if body.problem_id else None),
                     require_write=True, require_problem=(target == "problem"))
     try:
         res = bases.retire_base_fact(
             s.store.home, auth, entry_id, target=target,
-            expected_revision=(int(body.expected_revision) if body.expected_revision is not None else None),
+            expected_revision=expected,
             reason=str(body.reason or ""), log=s.experience,
         )
     except KeyError:
@@ -298,12 +315,13 @@ async def project_memory_base_confirm(project_id: str, entry_id: str, body: Base
     target = str(body.target or "problem")
     if target not in ("project", "problem"):
         raise HTTPException(422, "target must be 'project' or 'problem'")
+    expected = _expected(body)
     auth = _resolve(s, project_id=project_id, problem_id=(str(body.problem_id) if body.problem_id else None),
                     require_write=True, require_problem=(target == "problem"))
     try:
         res = bases.confirm_draft(
             s.store.home, auth, entry_id, action=str(body.action or "accept"), target=target,
-            expected_revision=(int(body.expected_revision) if body.expected_revision is not None else None),
+            expected_revision=expected,
             allow_stale=bool(body.allow_stale), log=s.experience,
         )
     except KeyError:
@@ -324,7 +342,7 @@ async def project_memory_base_confirm(project_id: str, entry_id: str, body: Base
 @router.get("/api/projects/{project_id}/memory/summary", response_model=ProblemSummaryView)
 async def project_memory_summary(project_id: str, problem_id: str | None = None, s: Services = Depends(services)):
     """Read the active versioned resumable summary for a problem, with resume URL and viewer-only personal overlay."""
-    auth = _resolve(s, project_id=project_id, problem_id=problem_id, require_problem=True)
+    auth = _resolve(s, project_id=project_id, problem_id=problem_id, require_problem=True, auto_create_legacy=False)
     doc = mem_summary.read_summary(s.store.home, auth, auto_rebuild=True, include_personal_overlay=True)
     doc["resume_url"] = f"/projects/{project_id}?problem={auth.problem_id}"
     return doc

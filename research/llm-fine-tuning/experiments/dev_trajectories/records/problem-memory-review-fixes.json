@@ -1,0 +1,209 @@
+{
+ "package": "problem-memory-review-fixes",
+ "title": "Problem-scoped memory keeps raw project and person ids, never writes on a read, and keeps a deleted project's base ledger",
+ "date": "2026-11-19",
+ "request": "The owner asked to fix the reviewer's confirmed findings on problem-scoped active memory (7d5751bd), skipping finding 10 (a PostgreSQL table for bases and summaries).",
+ "spec": "Fix findings 1-9, 11, 13-15 of the review with a test each; no dclab_core change; regenerate the API client when the API models change.",
+ "plan": [
+  "read the reviewer's probes",
+  "fix scope ids and the workspace helper",
+  "lock problem binding and stop reads from writing",
+  "purge by raw project id with a kept ledger",
+  "record bindings, conflicts and stale marks",
+  "tests",
+  "regenerate api.js"
+ ],
+ "decisions": [
+  {
+   "decision": "Person, project and session scope ids are raw ids; only the problem scope keeps dclab_core's composite key",
+   "why": "the store is already one workspace's; the prefix hid every item written before (project notes, hand-off facts, preferences)"
+  },
+  {
+   "decision": "A problem keeps the workspace it was bound in as part of its key (AuthorizedScope.problem_workspace)",
+   "why": "a folder workspace moved to PostgreSQL would otherwise lose its Problem Base and problem items"
+  },
+  {
+   "decision": "A document stamped with no workspace or 'local' belongs to the store it was read from",
+   "why": "the store already holds one workspace's documents; only another named workspace refuses"
+  },
+  {
+   "decision": "resolve_scope and resolve_problem never create a problem by default; only a writer's write does",
+   "why": "a read (and a viewer) must not write the project outside the graph validator"
+  },
+  {
+   "decision": "Problem binding runs inside the store's own turn lock",
+   "why": "both stores' turn is re-entrant with their update, so the read-modify-write cannot lose a concurrent one"
+  },
+  {
+   "decision": "Bindings, conflicts and stale marks reuse decision.accepted and decision.refused",
+   "why": "no new experience kind (dclab_core) was needed; point names say what it was"
+  },
+  {
+   "decision": "Undoing a correction writes a memory item that says it was restored at its revision",
+   "why": "an item's id is the hash of its words and retirement is final; the base keeps the person's own words"
+  },
+  {
+   "decision": "The worker revalidates a job's person only when sign-in is on",
+   "why": "without accounts a job carries no person; the check would refuse every local job"
+  }
+ ],
+ "change": "dclab_rnd/memory/scope.py, bases.py, summary.py, tools.py, __init__.py (project_of); dclab_rnd/experience/retention.py; dclab_rnd/agentic/routers/memory.py; dclab_rnd/agentic/api_models.py (solution_note) and the generated api.js; dclab_rnd/draft/api.py, case_home.py, memory.py; dclab_rnd/intern/loop.py (AccessDenied around the brief's chain); dclab_rnd/jobs/worker.py; tests/test_problem_memory_active.py; tests/test_problem_memory_review_fixes.py.",
+ "findings": [
+  {
+   "id": "PM-1",
+   "source": "reviewer",
+   "severity": "latent",
+   "verdict": "confirmed",
+   "defect": "Deleting a project left its Problem Base, summary and fact events (file mode).",
+   "scenario": "forget with the workspace's real log (w...) while bases and summaries were keyed 'local'; memory.written had project=None.",
+   "cause": "purge matched the workspace id; problem items were not linked to a project",
+   "fix": "purge and invalidate_summary match the raw project id; memory events link problem items to their project",
+   "test": "tests/test_problem_memory_review_fixes.py ProblemsAndBasesTests; tests/test_problem_memory_active.py purge test with a real log"
+  },
+  {
+   "id": "PM-2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "Existing memory was invisible on any workspace not named 'local', and a person got a 403 reviewing their own preference.",
+   "scenario": "a store with workspace_id 'wabc': the chain asked for 'wabc:pid' and 'wabc:dana' while writers wrote raw ids.",
+   "cause": "the commit prefixed project and person ids with the workspace",
+   "fix": "raw ids for project, person and session; composite only for problem",
+   "test": "tests/test_problem_memory_review_fixes.py test_project_and_person_ids_stay_raw_on_a_named_workspace, test_a_person_reviews_their_own_preference_on_a_named_workspace"
+  },
+  {
+   "id": "PM-3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "The owner's Admin session with DCLAB_AUTH off got a 403.",
+   "scenario": "Principal(role owner, via admin) and GET /api/memory.",
+   "cause": "is_auth was decided from via != 'local'",
+   "fix": "is_auth = auth_enabled() or require_principal",
+   "test": "tests/test_problem_memory_review_fixes.py test_admin_sign_in_without_accounts_is_the_owner"
+  },
+  {
+   "id": "PM-4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "Projects stamped workspace_id 'local' broke after a move to PostgreSQL (AccessDenied in the intern brief).",
+   "scenario": "a project and problem stamped 'local' served by a store going by 'wabc123'.",
+   "cause": "the project document was stamped and compared strictly",
+   "fix": "no stamp on the project; missing or 'local' is the store's own; the intern brief catches AccessDenied",
+   "test": "tests/test_problem_memory_review_fixes.py test_a_project_stamped_local_keeps_working_under_another_store_id, test_the_intern_brief_survives_a_refused_project"
+  },
+  {
+   "id": "PM-5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "Home and the API used different workspace ids.",
+   "scenario": "Home took the principal's workspace, the router the services', the build the store's.",
+   "cause": "no single helper",
+   "fix": "scope.workspace_of(store) used by the router, tools, build, Home and the hand-off",
+   "test": "tests/test_problem_memory_review_fixes.py test_one_workspace_helper"
+  },
+  {
+   "id": "PM-6",
+   "source": "reviewer",
+   "severity": "privacy",
+   "verdict": "confirmed",
+   "defect": "revalidate_job_scope was never called, and its default checker called a nonexistent account function.",
+   "scenario": "a member removed after queueing a job, with sign-in on.",
+   "cause": "dead code and a wrong API (members returns 'id')",
+   "fix": "live_membership uses Accounts(url).role_of; the worker revalidates before running when sign-in is on",
+   "test": "tests/test_problem_memory_review_fixes.py JobRevalidationTests"
+  },
+  {
+   "id": "PM-7",
+   "source": "reviewer",
+   "severity": "latent",
+   "verdict": "confirmed",
+   "defect": "ensure_default_problem and create_problem lost an update under concurrency.",
+   "scenario": "two first reads of a legacy project at once left two problems, then an ambiguous project.",
+   "cause": "read-modify-write without a lock",
+   "fix": "inside the store's turn lock",
+   "test": "tests/test_problem_memory_review_fixes.py test_two_first_bindings_at_once_leave_one_problem"
+  },
+  {
+   "id": "PM-8",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "GET routes wrote the project, also for a viewer, outside the graph validator.",
+   "scenario": "a viewer's GET /problems and GET summary on a legacy project.",
+   "cause": "auto_create_legacy defaulted to True on reads",
+   "fix": "reads never create (NoProblemError, 409 no_problem); only a writer's write route or the build creates, recorded",
+   "test": "tests/test_problem_memory_review_fixes.py test_reads_never_create_a_problem_and_a_base_edit_names_its_revision"
+  },
+  {
+   "id": "PM-9",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "expected_revision was optional on the HTTP base routes.",
+   "scenario": "a POST without it overwrote without the optimistic check.",
+   "cause": "the route passed None through",
+   "fix": "the four write routes return 422 when it is missing, before any write",
+   "test": "tests/test_problem_memory_review_fixes.py test_reads_never_create_a_problem_and_a_base_edit_names_its_revision"
+  },
+  {
+   "id": "PM-11",
+   "source": "reviewer",
+   "severity": "latent",
+   "verdict": "confirmed",
+   "defect": "Purge deleted the base ledger permanently.",
+   "scenario": "forget on a project with a Problem Base.",
+   "cause": "path.unlink on the ledger",
+   "fix": "the ledger moves to bases/purged/ with a tombstone, hidden from reads; only summaries and vectors are deleted",
+   "test": "tests/test_problem_memory_active.py test_summary_cas_rejects_stale_worker_and_purge_clears_vectors_and_summary"
+  },
+  {
+   "id": "PM-13",
+   "source": "reviewer",
+   "severity": "gap",
+   "verdict": "confirmed",
+   "defect": "Problem creation and binding, base conflicts and stale marks left no record.",
+   "scenario": "a conflict 409 and a correction that made a draft stale.",
+   "cause": "not wired (see the change and its test)",
+   "fix": "decision.accepted (problem.created, problem.bound) and decision.refused (revision_conflict, stale_dependency) under the raw project id",
+   "test": "tests/test_problem_memory_review_fixes.py test_conflicts_stale_marks_and_fact_events_are_recorded_under_the_project"
+  },
+  {
+   "id": "PM-14",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "A prediction_moment correction in the Problem Base never reached the signed solution, silently.",
+   "scenario": "correct prediction_moment; the next run used the solution's old moment.",
+   "cause": "the base and the solution are separate",
+   "fix": "solution_note on a change to prediction_moment, target or forbidden (the solution is not changed here)",
+   "test": "tests/test_problem_memory_review_fixes.py test_solution_note_only_for_the_solution_fields"
+  },
+  {
+   "id": "PM-15",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "WRITE_ROLES had nonexistent roles and reviewer writes the Router denies; undoing a correction returned 422.",
+   "scenario": "a reviewer edited a base; A to B to A was refused.",
+   "cause": "hand-written role set; retired item ids are final",
+   "fix": "WRITE_ROLES and READ_ROLES from accounts.roles; a restored value gets a memory item saying so",
+   "test": "tests/test_problem_memory_review_fixes.py test_write_roles_are_the_routers, test_undoing_a_correction_back_to_the_earlier_words"
+  }
+ ],
+ "measurements": [],
+ "outcome": "Fixed findings 1-9, 11 and 13-15; finding 10 (a PostgreSQL table for bases and summaries) skipped as asked. The 13 listed test files and the new one pass.",
+ "lessons": [
+  "A scope key is an identity: changing its shape hides everything written under the old shape.",
+  "A read path that can write must be closed by default, not by each caller.",
+  "Test deletion with the workspace's real log, not a double with the id the code expects."
+ ],
+ "risks": [
+  "Stale marks are recorded as decision.refused; a dedicated experience kind would be clearer (dclab_core).",
+  "Bases and summaries stay files beside a PostgreSQL workspace (finding 10).",
+  "Case Home without installed services builds its scope without the host's project check."
+ ],
+ "commits": []
+}

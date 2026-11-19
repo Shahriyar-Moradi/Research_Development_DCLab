@@ -379,8 +379,10 @@ def read_summary(
     return out
 
 
-def invalidate_summary(home: Path, workspace_id: str, project_id: Optional[str], problem_id: Optional[str] = None) -> int:
-    """Delete cached summaries affected by a base change so the next read rebuilds from current sources."""
+def invalidate_summary(home: Path, workspace_id: Optional[str], project_id: Optional[str], problem_id: Optional[str] = None) -> int:
+    """Delete cached summaries affected by a base change so the next read rebuilds from current sources. Matched on the raw
+    project (and problem) id: the folder is one workspace's, and its callers do not all name it alike (a file workspace's
+    scopes say ``local`` while its record says ``w…``), so ``workspace_id`` is not compared."""
     from ..filelock import held
 
     sdir = _lock_dir(home)
@@ -388,20 +390,17 @@ def invalidate_summary(home: Path, workspace_id: str, project_id: Optional[str],
         return 0
     removed = 0
     with held(sdir):
-        if problem_id:
-            p = _summary_file(home, workspace_id, project_id, problem_id, "shared")
-            if p.is_file():
-                p.unlink()
-                removed += 1
-        else:
-            for p in list(sdir.glob("sum_*.json")):
-                try:
-                    doc = json.loads(p.read_text(encoding="utf-8"))
-                except (OSError, ValueError):
-                    continue
-                if doc.get("workspace_id") == workspace_id and doc.get("project_id") == project_id:
-                    p.unlink()
-                    removed += 1
+        for p in list(sdir.glob("sum_*.json")):
+            try:
+                doc = json.loads(p.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                continue
+            if str(doc.get("project_id") or "") != str(project_id):
+                continue
+            if problem_id and str(doc.get("problem_id") or "") != str(problem_id):
+                continue
+            p.unlink()
+            removed += 1
     return removed
 
 
@@ -438,7 +437,7 @@ def purge_vectors_for_texts(home: Path, texts: Iterable[str]) -> int:
     return removed
 
 
-def purge_summary(home: Path, workspace_id: str, project_id: Optional[str], problem_id: Optional[str] = None,
+def purge_summary(home: Path, workspace_id: Optional[str], project_id: Optional[str], problem_id: Optional[str] = None,
                   purged_texts: Iterable[str] = ()) -> int:
     """Delete derived summaries and any cached vectors when a source project or problem is purged."""
     removed = invalidate_summary(home, workspace_id, project_id, problem_id)

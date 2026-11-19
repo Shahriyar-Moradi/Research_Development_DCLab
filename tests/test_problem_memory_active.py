@@ -279,7 +279,18 @@ class A4A5BasesAndSummaryTests(unittest.TestCase):
         key = hashlib.sha256("title: none | text: \0Prediction moment: at order creation.".encode()).hexdigest()[:24]
         vec_file.write_text(json.dumps({key: [0.1, 0.2], "keep_other": [0.9, 0.8]}), encoding="utf-8")
 
-        retention.forget(project=pid, log=type("L", (), {"home": home, "workspace": "local"})(), ledger=None)
+        # the workspace's real log, as Services opens it on files: it goes by "w…" while the bases say "local"
+        from dclab_rnd import experience
+
+        log = experience.open_log(home)
+        self.assertNotEqual(log.workspace, "local")
+        out = retention.forget(project=pid, log=log, ledger=None)
+        self.assertNotIn("failed", out)
+        self.assertEqual(sorted(x.name for x in (home / "memory" / "summaries").glob("*.json")), [])
+        self.assertEqual(sorted(x.name for x in (home / "memory" / "bases").glob("*.json")), [])  # hidden from reads
+        kept = list((home / "memory" / "bases" / "purged").glob("*.json"))
+        self.assertTrue(kept)  # the ledger is kept with a tombstone, never deleted
+        self.assertTrue(all(json.loads(k.read_text(encoding="utf-8"))["purged"]["reason"] == "project deleted" for k in kept))
         rebuilt = mem_summary.read_summary(home, sc, auto_rebuild=True)
         self.assertEqual(rebuilt["active_facts"], [])
         remaining_vecs = json.loads(vec_file.read_text(encoding="utf-8"))
@@ -308,8 +319,13 @@ class A6AcceptanceStoryEndToEndTests(unittest.TestCase):
 
         # Step 1: Dana records prediction moment "after dispatch" on active problem via API route.
         with _as_user(dana):
+            # a read never creates a problem (finding 8): the legacy project lists none until a write makes one
+            self.assertEqual(client.get(f"/api/projects/{p['id']}/problems").json()["problems"], [])
+            made = client.post(f"/api/projects/{p['id']}/problems", json={"name": "Delivery ETA"})
+            self.assertEqual(made.status_code, 200, made.text)
             probs = client.get(f"/api/projects/{p['id']}/problems").json()
             prob_eta = probs["problems"][0]["problem_id"]
+            self.assertEqual(prob_eta, made.json()["problem_id"])
             up = client.post(f"/api/projects/{p['id']}/memory/base", json={
                 "target": "problem", "problem_id": prob_eta, "subject": "problem",
                 "field": "prediction_moment", "text": "Delivery ETA is predicted after dispatch.",

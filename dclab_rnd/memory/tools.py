@@ -23,11 +23,13 @@ def workspace_home(projects: Any) -> Path:
 
 
 def chain(projects: Any, project_id: str | None, problem_id: str | None = None, *, session_id: str | None = None) -> list[tuple[str, str]]:
-    from .scope import auth_enabled, project_scope_id, resolve_scope
+    """The (scope, id) pairs this person's agents read, resolved and checked by the host: the store's workspace
+    (``scope.workspace_of``), the person's raw id, the project's raw id, and the problem's composite key. A read: it never
+    creates a problem. Raises ``AccessDenied`` when the person may not read the project (the caller decides what to show)."""
+    from .scope import auth_enabled, project_scope_id, resolve_scope, workspace_of
 
-    ws = str(getattr(projects, "workspace_id", None) or "local")
-    has_store = hasattr(projects, "get")
-    if project_id and not has_store and not auth_enabled():
+    ws = workspace_of(projects)
+    if project_id and not hasattr(projects, "get") and not auth_enabled():  # no store to check against, no sign-in: the raw id
         resolved = resolve_scope(workspace_id=ws, session_id=session_id, require_problem=False, auto_create_legacy_problem=False)
         return resolved.chain(include_personal=True, include_session=bool(session_id)) + [("project", project_scope_id(ws, project_id))]
     resolved = resolve_scope(
@@ -48,16 +50,18 @@ def lessons_read(projects: Any) -> list:
         from .. import lessons
 
         store = lessons.installed()
-        return readers.from_lessons(store.list(status="accepted"), getattr(projects, "workspace_id", None) or "local") if store else []
+        from .scope import workspace_of
+
+        return readers.from_lessons(store.list(status="accepted"), workspace_of(projects)) if store else []
     except Exception:  # noqa: BLE001
         return []
 
 
 def _recall(box: Any, question: str, project_id: str | None = None) -> dict[str, Any]:
     from .reading import enabled
-    from .scope import AccessDenied, AmbiguousProblemError, resolve_scope
+    from .scope import AccessDenied, AmbiguousProblemError, resolve_scope, workspace_of
 
-    ws = getattr(box.projects, "workspace_id", None) or "local"
+    ws = workspace_of(box.projects)
     try:
         resolved = resolve_scope(
             workspace_id=str(ws),

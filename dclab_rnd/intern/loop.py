@@ -311,7 +311,13 @@ class Intern:
                 store = open_memory(workspace_home(self.toolbox.projects))
             except Exception:  # noqa: BLE001 - no memory store: the project's own notes still count
                 store = None
-        b = brief(store, chain(self.toolbox.projects, project_id), read, ids={"conversation": session_id, "project": project_id})
+        from dclab_rnd.memory.scope import AccessDenied
+
+        try:  # the host decides what this person may read; a refusal costs the brief its stored lines, never the session
+            scopes = chain(self.toolbox.projects, project_id)
+        except AccessDenied:
+            scopes, read = [], []
+        b = brief(store, scopes, read, ids={"conversation": session_id, "project": project_id})
         return b.text, b.items
 
     def _exhausted(self, session: dict[str, Any], started: float) -> str | None:
