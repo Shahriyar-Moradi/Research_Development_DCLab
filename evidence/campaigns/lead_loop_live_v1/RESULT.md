@@ -22,3 +22,13 @@ its tool calls often fail on their arguments.
 
 **Conclusion: the loop does not help; it hurts. Keep the switch off.** Eight people, one repeat: the direction is clear
 (no person better), the size is not precise. Every call kept its thinking (113, 55, 34 of each run's calls).
+
+## A second set of eight people, after the fixes (dev2)
+
+| Run | Loop | Understanding | Planning | Accepted | Spent |
+|---|---|---|---|---|---|
+| HAB-068 | off | 3.75 | 3.5 | 7 of 8 | EUR 0.149 |
+| HAB-069 | on, fixed | 3.125 | 2.625 | 5 of 8 | EUR 0.076 |
+
+Planning lower on 5 people, higher on 2, equal on 1 (mean -0.875). Over both sets (16 people), the fixed loop's
+planning is lower on 11, higher on 2, equal on 3. The fixes narrowed the gap but did not close it: **keep it off.**
