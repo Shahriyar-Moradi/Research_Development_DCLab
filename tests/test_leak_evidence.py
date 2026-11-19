@@ -159,18 +159,92 @@ class StandardPlanTests(unittest.TestCase):
     def weigh(self, t, suggestion=None, **kw):
         from dclab_rnd.intern.loop import Intern
 
-        return Intern._weigh_suspects(t, "minutes", kw.get("proposal") or frame_proposal(t), suggestion or {"text_columns": ["review_text"]},
+        return Intern._weigh_suspects(t, kw.get("target", "minutes"), kw.get("proposal") or frame_proposal(t), suggestion or {"text_columns": ["review_text"]},
                                       {"proven": {}}, {"at", "order_id"}, "at")
 
-    def test_only_columns_suspected_by_their_name_are_weighed(self):
-        """Not a proven leak, a role, a text column, or a column flagged by a signal of its values (often an honest strong feature)."""
+    def test_name_suspects_and_signal_suspects_are_weighed_and_an_honest_strong_feature_stays(self):
+        """Not a proven leak, a role or a text column. A column flagged by a signal of its values is weighed since
+        2026-11-19 (a neutrally named late column was caught by no plan), but an honest strong feature stays in: a signal
+        is no evidence, only late or too good keeps it out."""
         e = self.weigh(table().assign(review_text="ok"))
-        self.assertEqual([c["column"] for c in e["columns"]], ["delivered_at", "noise_rating"])
+        self.assertEqual([c["column"] for c in e["columns"]][:2], ["delivered_at", "noise_rating"])
+        weighed = {c["column"]: c for c in e["columns"]}
+        self.assertNotIn("review_text", weighed)
+        if "distance" in weighed:  # the honest strongest column: weighed by its signal, kept in
+            self.assertEqual(weighed["distance"]["decision"], "keep_in")
         plain = table().drop(columns=["delivered_at", "noise_rating"])  # no name sounds late
         self.assertIsNone(self.weigh(plain, proposal={"task": "regression", "forbidden": []}))
         # the product's words alone find an event's own time; a plain number named "rating" waits for the audit's own flag
         by_words = self.weigh(table(), proposal={"task": "regression", "forbidden": []})
         self.assertEqual([c["column"] for c in by_words["columns"]], ["delivered_at"])
+
+    def test_a_late_column_with_a_neutral_name_is_found_by_its_signal_and_kept_out(self):
+        """The planning exams: no plan caught a late column named neutrally (late_fee_charged). Its values give it away;
+        the evidence (too good) keeps it out, and the person is told why."""
+        t = table()
+        rng = np.random.default_rng(8)
+        t["settled_fee"] = t["minutes"] * 0.5 + rng.normal(0, 0.5, len(t))  # written after delivery, named like any amount
+        e = self.weigh(t, proposal={"task": "regression", "forbidden": []})
+        c = {x["column"]: x for x in e["columns"]}["settled_fee"]
+        self.assertEqual(c["decision"], "keep_out")
+        self.assertIn("predicts better than every other column", c["why"])
+
+    def test_signal_suspects_are_read_on_the_engines_own_training_rows(self):
+        """The review: late "pending" outcomes moved the 75% cut, so holdout rows were read. A regression outcome that is
+        not a number is dropped first, as the engine drops it."""
+        from dclab_rnd.intern import loop
+
+        t = table()
+        t["minutes"] = t["minutes"].astype(object)
+        t.loc[600:, "minutes"] = "pending"  # the latest rows have no number yet
+        seen = {}
+        from dclab_core import modifiers
+
+        real = modifiers.provisional_reading
+
+        def spy(index, times=None):
+            seen["rows"] = list(index)
+            return real(index, times)
+
+        with unittest.mock.patch.object(modifiers, "provisional_reading", side_effect=spy):
+            loop._signal_suspects(t, "minutes", "regression", ["distance", "load"], "at")
+        self.assertEqual(max(seen["rows"]), 599)  # only rows with a number go into the cut
+
+    def test_two_honest_extreme_columns_are_not_each_too_good_against_a_weak_rest(self):
+        """The review: a metered fare's distance and its quoted price both looked too good beside a weekday."""
+        rng = np.random.default_rng(11)
+        n = 800
+        distance = rng.uniform(1, 30, n)
+        t = pd.DataFrame({"at": pd.date_range("2026-01-01", periods=n, freq="h"), "distance_km": distance,
+                          "quoted_price": 3 + 2 * distance + rng.normal(0, 0.05, n), "weekday": rng.integers(0, 7, n)})
+        t["fare"] = 3 + 2 * distance + rng.normal(0, 0.1, n)
+        e = self.weigh(t, proposal={"task": "regression", "forbidden": []}, target="fare")
+        decisions = {c["column"]: c["decision"] for c in (e or {}).get("columns") or []}
+        self.assertFalse(decisions.get("distance_km") == "keep_out" and decisions.get("quoted_price") == "keep_out")  # never both dropped
+
+    def test_a_column_that_breaks_the_scan_never_fails_the_plan(self):
+        t = table()
+        t["tags"] = [["a", "b"]] * len(t)  # a column of lists (from parquet)
+        e = self.weigh(t)
+        self.assertIsNotNone(e)
+        self.assertNotIn("tags", {c["column"] for c in e["columns"]})
+
+    def test_a_signal_suspect_whose_check_fails_stays_in_and_is_said(self):
+        t = table()
+        rng = np.random.default_rng(8)
+        t["settled_fee"] = t["minutes"] * 0.5 + rng.normal(0, 0.5, len(t))
+        real = L.weigh
+
+        def weigh(frame, target, task, suspects, *a, **k):
+            if "settled_fee" in suspects:
+                raise TypeError("boom")
+            return real(frame, target, task, suspects, *a, **k)
+
+        with unittest.mock.patch.object(L, "weigh", side_effect=weigh):
+            e = self.weigh(t, proposal={"task": "regression", "forbidden": []})
+        c = {x["column"]: x for x in e["columns"]}["settled_fee"]
+        self.assertEqual(c["decision"], "keep_in")
+        self.assertIn("could not run", c["why"])
 
     def test_a_column_named_with_the_products_after_outcome_words_is_weighed_too(self):
         """2026-11-19: a ticket's first_response_minutes was never a suspect (the audit's name list misses it) and stayed in."""
@@ -204,7 +278,9 @@ class StandardPlanTests(unittest.TestCase):
         with unittest.mock.patch.object(L, "weigh", side_effect=TypeError("boom")):
             e = self.weigh(table())
         self.assertEqual(e["error"], "TypeError")
-        self.assertEqual({c["decision"] for c in e["columns"]}, {"keep_out"})
+        by = {c["column"]: c["decision"] for c in e["columns"]}
+        self.assertEqual({by["delivered_at"], by["noise_rating"]}, {"keep_out"})  # suspected by name: out on the safe side
+        self.assertTrue(all(d == "keep_in" for c, d in by.items() if c not in ("delivered_at", "noise_rating")))  # by a signal alone: stays
         self.assertIn("could not run (TypeError)", Intern._report(None, "p1", {}, e))
 
     def test_the_report_tells_the_person_each_decision_and_which_rows(self):

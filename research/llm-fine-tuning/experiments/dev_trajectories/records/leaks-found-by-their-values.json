@@ -1,0 +1,140 @@
+{
+ "package": "leaks-found-by-their-values",
+ "title": "The unattended build finds late columns by their values, not only by their names",
+ "date": "2026-11-19",
+ "request": "The owner said yes to connecting the Leakage Advisor's data checks to the unattended build, after hp_gate_v3 caught no held-out late column.",
+ "spec": "Suspects from the leakage stage's own data heuristics on the rows read before the holdout; decided by leak_evidence; a signal alone is no evidence; the person told.",
+ "plan": [
+  "find the heuristics",
+  "feed them to _weigh_suspects",
+  "practice set",
+  "review",
+  "fix",
+  "rerun"
+ ],
+ "decisions": [
+  {
+   "decision": "Only extreme signals, exact copies and arithmetic identities are suspects",
+   "why": "a strong honest main driver read as too good beside weaker columns"
+  },
+  {
+   "decision": "An honest extreme column found too good is kept out and the cost is said",
+   "why": "leakage is the top risk: a leak kept in fails silently in use; a dropped honest column shows its cost and can be put back"
+  }
+ ],
+ "change": "dclab_rnd/intern/loop.py (_signal_suspects, _weigh_suspects, the report), tests/test_leak_evidence.py.",
+ "findings": [
+  {
+   "id": "LV-M1",
+   "source": "measurement",
+   "severity": "gap",
+   "verdict": "confirmed",
+   "defect": "No plan caught a held-out late column named neutrally.",
+   "scenario": "hp_gate_v3: late columns 0% for both arms.",
+   "cause": "suspects came from names only",
+   "fix": "the stage's data heuristics name suspects too",
+   "test": "tests/test_leak_evidence.py test_a_late_column_with_a_neutral_name_is_found_by_its_signal_and_kept_out"
+  },
+  {
+   "id": "LV-S1",
+   "source": "self",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "A strong honest main driver was kept out as too good.",
+   "scenario": "the test table's distance, beside load only.",
+   "cause": "a strong signal as a suspect, the rest weak",
+   "fix": "extreme signals only",
+   "test": "tests/test_leak_evidence.py test_name_suspects_and_signal_suspects_are_weighed_and_an_honest_strong_feature_stays"
+  },
+  {
+   "id": "LV-R1",
+   "source": "reviewer",
+   "severity": "leakage",
+   "verdict": "confirmed",
+   "defect": "Holdout rows were read when late regression outcomes were text.",
+   "scenario": "400 later rows 'pending': the 75% cut covered rows of the engine's holdout.",
+   "cause": "the cut taken before non-numbers were dropped",
+   "fix": "rows kept as the engine keeps them",
+   "test": "tests/test_leak_evidence.py test_signal_suspects_are_read_on_the_engines_own_training_rows"
+  },
+  {
+   "id": "LV-R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "Two honest extreme columns were each too good against a weak rest.",
+   "scenario": "distance_km and quoted_price beside weekday: both kept out.",
+   "cause": "the rest excluded every signal suspect",
+   "fix": "each suspect weighed against the rest with the other signals in",
+   "test": "tests/test_leak_evidence.py test_two_honest_extreme_columns_are_not_each_too_good_against_a_weak_rest"
+  },
+  {
+   "id": "LV-R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "Time grew without limit on large tables.",
+   "scenario": "400,000 rows by 200 columns: 391 s before any build.",
+   "cause": "every provisional row scored, pairs of columns",
+   "fix": "sampled to 60,000 rows as the stage does",
+   "test": "tests/test_leak_evidence.py test_signal_suspects_are_read_on_the_engines_own_training_rows"
+  },
+  {
+   "id": "LV-R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "One unusual column failed the whole session.",
+   "scenario": "a parquet column of lists: TypeError, the session failed.",
+   "cause": "the scan ran outside any guard",
+   "fix": "guarded; the report says the scan could not run",
+   "test": "tests/test_leak_evidence.py test_a_column_that_breaks_the_scan_never_fails_the_plan"
+  },
+  {
+   "id": "LV-R5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "The report could say no rows were checked.",
+   "scenario": "the name part failed, the signal part ran: by_time from the failed part.",
+   "cause": "metadata from the first part",
+   "fix": "metadata from a part that ran",
+   "test": "tests/test_leak_evidence.py test_a_signal_suspect_whose_check_fails_stays_in_and_is_said"
+  },
+  {
+   "id": "LV-R6",
+   "source": "reviewer",
+   "severity": "gap",
+   "verdict": "confirmed",
+   "defect": "Two new tests tested nothing.",
+   "scenario": "the test table has no signal suspect: the checks looped over nothing.",
+   "cause": "written before checking the table",
+   "fix": "tests that exercise each path",
+   "test": "tests/test_leak_evidence.py test_a_signal_suspect_whose_check_fails_stays_in_and_is_said"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "Practice set v1, rules arm, after the change",
+   "gate": "none: a practice set read by the fixer",
+   "fixed_before_run": false,
+   "result": "late columns kept out 8 to 12 of 16; honest columns kept out 0 of 29; failed builds 0; all traps 32 of 48 (18 in the morning)",
+   "verdict": "not scored",
+   "cost_eur": 0.0,
+   "next": "a fresh held-out exam (v4) to judge it",
+   "limits": [
+    "read by the fixer",
+    "late_fee_charged and n_followups (strong signals only) still missed"
+   ]
+  }
+ ],
+ "outcome": "Late columns with neutral names are now found by their values and kept out when the data shows they are too good, with the cost said.",
+ "lessons": [
+  "A strong honest driver and a leak look alike to a single-column test: only extreme signals are safe suspects.",
+  "Read a heuristic's rows the way the engine keeps them."
+ ],
+ "risks": [
+  "An honest near-deterministic column (a metered fare's distance) is kept out; the person is told the cost."
+ ],
+ "commits": []
+}

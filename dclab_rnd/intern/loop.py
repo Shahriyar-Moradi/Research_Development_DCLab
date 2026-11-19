@@ -110,6 +110,46 @@ def _event_value(series: Any, name: str) -> bool:
     return _unit(name) in ("minutes", "hours", "days", "weeks", "seconds")
 
 
+SIGNAL_REASONS = {"exact_target_proxy": "its values copy the outcome", "arithmetic_target_identity": "it adds up to the outcome with another column",
+                  "extreme_univariate_signal": "its values alone predict the outcome almost perfectly"}
+# a strong (not extreme) signal is left out on purpose: an honest main driver (a delivery's distance) has one, and beside
+# weaker columns it reads as too good (found by the test of 2026-11-19); the stage's own block rule uses these three
+
+
+def _signal_suspects(table: Any, target: str, task: Any, columns: list[Any], time_column: Any) -> dict[str, str]:
+    """Columns the leakage stage's own data signals flag (an exact copy, an arithmetic identity, an extreme single-column
+    signal), read only on the rows a build may read before its holdout (the rows the engine itself keeps: a regression
+    outcome that is not a number is dropped first), at most 60,000 of them as the stage samples. Column name to the
+    reason in words. An identifier-like column is left to its own rules."""
+    import pandas as pd
+
+    from dclab_core.modifiers import provisional_reading
+    from dclab_rnd.expansion import runner as rn
+
+    if not columns or target not in table:
+        return {}
+    known = table[target].notna() & (pd.to_numeric(table[target], errors="coerce").notna() if task == "regression" else True)
+    present = table.index[known]  # as the engine keeps them before its split (the review: "pending" rows moved the cut)
+    rows, _ = provisional_reading(present, table.loc[present, time_column] if time_column and time_column in table else None)
+    frame = table.loc[rows]
+    if len(frame) > 60000:  # as stage_leakage samples: the pair check grows with the square of the columns
+        frame = frame.sample(60000, random_state=42)
+    y = frame[target]
+    if task == "regression":
+        y = pd.to_numeric(y, errors="coerce")
+    else:
+        y = pd.Series(pd.factorize(y.astype(str))[0], index=y.index)
+    kind = {"binary": "binary_imbalanced", "multiclass": "multiclass", "regression": "timeseries_regression"}[task]
+    if len(frame) < 30:
+        return {}
+    out: dict[str, str] = {}
+    for finding in rn.suspicious_features(frame[columns], y, kind):
+        said = [SIGNAL_REASONS[r] for r in finding["reasons"] if r in SIGNAL_REASONS]
+        if said and "identifier_like" not in finding["reasons"]:
+            out[str(finding["feature"])] = said[0] + " on the rows read before the holdout"
+    return out
+
+
 def step_record(n: int, tool: str, arguments: dict[str, Any], result: Any, seconds: float) -> dict[str, Any]:
     """One tool call as the session keeps it: the line the transcript shows (``summary``) and the whole result (``result``,
     the keys that quote the table's cells removed, as in the trace), so a trajectory built from the session is never cut."""
@@ -562,8 +602,9 @@ class Intern:
                         roles: set[Any], time_column: Any) -> dict[str, Any] | None:
         """The proposal's columns suspected by their name alone, and the columns the product's after-outcome words name
         that read as an event's own time or duration, weighed by ``dclab_core.leak_evidence`` (its contract as
-        JSON). Only the name: a column flagged by a signal of its values (it separates the classes, it is unique on most
-        rows) is often an honest strong feature and stays as before (the review: breast_cancer's measurements). None for
+        JSON). A name is a suspicion with the safe default (unsure: kept out). A column flagged only by a signal of its
+        values (2026-11-19) is weighed too, but is often an honest strong feature (the review: breast_cancer's measurements),
+        so it is kept out only when the data shows it is late or too good, and stays in when it cannot tell. None for
         a studied sample (the R&D decided its columns) or when there is no such column. When the check cannot run, the
         suspects are kept out on the safe side and the error is named, never silently kept in."""
         from dclab_core import leak_evidence
@@ -586,18 +627,46 @@ class Intern:
             words = after_outcome_words(str(c))
             if free(c) and c not in named and words and _event_value(table[c], str(c)):
                 named[c] = f"its name says {words}, which is usually written after the event"
-        if not named:
-            return None
-        features = [c for c in table.columns if c != target and c not in known and c not in roles and c not in text and c not in named]
+        # 2026-11-19 (the planning exams): a late column with a neutral name (late_fee_charged, rework_minutes) was caught by
+        # no plan. The leakage stage's own data signals find it, so they name suspects too, read on the rows a build may
+        # read before its holdout. A signal alone is no evidence (an honest strong feature has one): such a column is kept
+        # out only when it is late or too good, and stays in when the data cannot tell.
+        scan_error = None
         try:
-            return leak_evidence.weigh(table, target, proposal["task"], list(named), features, time_column or None,
-                                       suspected_because=named
-                                       ).model_dump(mode="json")
-        except Exception as error:  # noqa: BLE001  (a failed check keeps the suspects out and says why)
-            why = (f"The check of this column could not run ({type(error).__name__}); its name sounds like it is filled in after "
-                   "the event, so it is kept out of the model on the safe side. If it is known when you predict, put it back.")
-            return {"error": type(error).__name__, "by_time": None,
-                    "columns": [{"column": c, "decision": "keep_out", "basis": "unsure", "why": why} for c in named]}
+            signalled = _signal_suspects(table, target, proposal.get("task"), [c for c in table.columns if free(c) and c not in named],
+                                         time_column) if proposal.get("task") in ("binary", "multiclass", "regression") else {}
+        except Exception as error:  # noqa: BLE001 - an unusual column never fails the plan: said in the report, nothing kept out by it
+            signalled, scan_error = {}, type(error).__name__
+        if not named and not signalled:
+            return {"columns": [], "signal_scan_error": scan_error, "by_time": None} if scan_error else None
+        features = [c for c in table.columns if c != target and c not in known and c not in roles and c not in text
+                    and c not in named and c not in signalled]
+        parts: list[dict[str, Any]] = []
+        groups = ([(named, "keep_out", features)] if named else []) + [  # each signal suspect against the rest, the other signals included
+            ({c: why}, "keep_in", features + [o for o in signalled if o != c]) for c, why in signalled.items()]
+        for suspects, unsure, rest in groups:
+            try:
+                parts.append(leak_evidence.weigh(table, target, proposal["task"], list(suspects), rest, time_column or None,
+                                                 unsure=unsure, suspected_because=suspects).model_dump(mode="json"))
+            except Exception as error:  # noqa: BLE001  (a failed check: a name suspect is kept out, a signal suspect stays, both said)
+                out = unsure == "keep_out"
+                why = (f"The check of this column could not run ({type(error).__name__}); "
+                       + ("its name sounds like it is filled in after the event, so it is kept out of the model on the safe side. "
+                          "If it is known when you predict, put it back." if out else
+                          "its values alone predict the outcome very well, which can mean it is filled in after the event; it stays in. "
+                          "If it is only known after the outcome, keep it out."))
+                parts.append({"error": type(error).__name__, "by_time": None,
+                              "columns": [{"column": c, "decision": "keep_out" if out else "keep_in", "basis": "unsure", "why": why} for c in suspects]})
+        ran = [part for part in parts if not part.get("error")]
+        merged = dict(ran[0] if ran else parts[0])  # rows read and by_time from a part that ran (the review)
+        merged["columns"] = [c for part in parts for c in part.get("columns") or []]
+        errors = sorted({part["error"] for part in parts if part.get("error")})
+        merged.pop("error", None)
+        if errors:
+            merged["error"] = errors[0]
+        if scan_error:
+            merged["signal_scan_error"] = scan_error
+        return merged
 
     def _report(self, pid: str, results: dict[str, Any], leak_evidence: dict[str, Any] | None = None, time_note: str | None = None) -> str:
         lines = [f"Project #project/{pid} is ready in the notebook."]
@@ -608,6 +677,9 @@ class Intern:
                     "75% of the rows drawn at random, which a random holdout may overlap" if leak_evidence.get("by_time") is False else "no rows")
             lines.append(f"Columns suspected of being filled in after the prediction moment, checked on {rows}:")
             lines.extend(f"- `{c['column']}`: {c['why']}" for c in leak_evidence["columns"])
+        if leak_evidence and leak_evidence.get("signal_scan_error"):
+            lines.append(f"The scan of the columns' values for leaks could not run ({leak_evidence['signal_scan_error']}): only the columns "
+                         "suspected by their name were checked.")
         for stage, record in results.items():
             if not record or "error" in (record or {}):
                 lines.append(f"- {stage}: {record.get('error') if record else 'not run'}")
