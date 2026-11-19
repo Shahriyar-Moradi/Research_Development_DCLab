@@ -1,0 +1,183 @@
+{
+ "package": "lead-loop-review-fixes",
+ "title": "The bounded Lead choice loop compares on the provisional training rows, shows only checked words, never crashes and records its decisions",
+ "date": "2026-11-19",
+ "request": "Fix the confirmed review findings in the bounded Lead choice loop (commits 7f7800ec, 504e313f), within decision_loop.py, case_agent.py, the agents registry and the loop's test file.",
+ "spec": "Ten findings: training compare leaking the holdout, shown text bypassing the native checks, crashes, decision events refused, idempotency keyed on the menu, the problem memory in every request, compare and revise unguarded, revise applied before approval, a person's stop ignored, the model's reason in the shared problem record.",
+ "plan": [
+  "read the loop, the native turn and the probes",
+  "fix each finding in the loop",
+  "share the native checks through case_agent",
+  "test each trigger",
+  "run the neighbouring suites"
+ ],
+ "decisions": [
+  {
+   "decision": "Compare on dclab_core.modifiers.provisional_reading rows, with time-ordered folds by the data card's time column and grouped folds by an entity whose rows share the outcome",
+   "why": "the same rows the proposal and the journeys read; the earliest by time never include a latest-by-time holdout"
+  },
+  {
+   "decision": "Replace the hard-coded holdout_touched with later_rows_unseen and a note",
+   "why": "without a time column a seeded share is read and a random holdout drawn at the build overlaps it; the claim is true only by time"
+  },
+  {
+   "decision": "Refuse identifier and leak-suspect columns from the data card, the leakage check's columns and personal columns, naming each with its reason",
+   "why": "dropping them silently would let the model report a set it did not compare"
+  },
+  {
+   "decision": "Record decisions as the existing decision.proposed and decision.refused kinds, not a new agent.decision kind",
+   "why": "a new kind changes the experience_event schema shape, so the contract moves to v18 with a baseline, published schemas, four tests pinned to v17, the data catalog and adapters: outside the files this fix may touch"
+  },
+  {
+   "decision": "compare and revise run through runtime.run on a registry of the loop's own with its own guard",
+   "why": "registering them in default_registry() changes the case scope test_case_agent pins to TOOL_NAMES and the tool fingerprint the prompt gate hashes"
+  },
+  {
+   "decision": "A proposed revision is kept in the decisions log and applied only by the person's next yes",
+   "why": "the checkpoint is case_session's and its fields are fixed; the decisions list is already persisted"
+  },
+  {
+   "decision": "checked_message in case_agent: the native turn's checks without the rewrite request",
+   "why": "one place for the number check, length cap and confirmation trims; the native turn now calls the extracted capped_parts"
+  }
+ ],
+ "change": "dclab_rnd/agents/decision_loop.py (training compare, revise pending, own registry and guard, idempotency, stop, persistence, parsing of every tool call, checked text, never raising), dclab_rnd/agents/case_agent.py (capped_parts extracted, checked_message, MEMORY_NOTE only with the switch on), tests/test_lead_bounded_choice.py.",
+ "findings": [
+  {
+   "id": "LL-1",
+   "source": "reviewer",
+   "severity": "leakage",
+   "verdict": "confirmed",
+   "defect": "The training compare read the last 20% in file order and accepted identifiers and post-outcome columns; holdout_touched False was hard-coded.",
+   "scenario": "probe2: order_id, delivered_at and courier_rating scored.",
+   "cause": "a split of its own instead of the provisional rows; no column check",
+   "fix": "provisional_reading rows, time-ordered or grouped folds, refused columns with reasons, the claim made conditional",
+   "test": "test_compare_refuses_identifiers_and_leak_suspects_and_survives_odd_tables; test_compare_runs_on_training_folds_only_and_is_idempotent_on_retry"
+  },
+  {
+   "id": "LL-2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "Text shown to the person skipped checked, capped and unconfirmed; a words-only reply became Could not validate; only the first tool call ran; max_tokens 1200.",
+   "scenario": "probe1 case 5: a stop message with 47 minutes and 83% reached the person.",
+   "cause": "the loop built its own text",
+   "fix": "checked_message for every shown word; words-only reply is say-and-stop; every call of a reply runs; the native max_tokens",
+   "test": "test_every_word_shown_passes_the_native_checks_and_every_call_of_a_reply_runs"
+  },
+  {
+   "id": "LL-3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "int() on a model's revision, an unguarded compare and a zone-aware time column raised through run_bounded_turn.",
+   "scenario": "probe1 cases 3 and 4.",
+   "cause": "no guard (see the change and its test)",
+   "fix": "_as_int (a non-integer is stale), compare in try/except, zoned times made naive, run_bounded_turn never raises",
+   "test": "test_a_failure_inside_the_turn_is_a_safe_reply_and_a_word_revision_is_stale"
+  },
+  {
+   "id": "LL-4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "agent.decision is not an experience kind: every decision event was refused.",
+   "scenario": "probe1 case 1.",
+   "cause": "an unknown kind",
+   "fix": "decision.proposed for every choice, decision.refused for a blocked one, names and a fixed template only",
+   "test": "test_decisions_are_recorded_as_events_and_the_problem_base_gets_a_template"
+  },
+  {
+   "id": "LL-5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "The idempotency key held the menu revision, so a compare ran twice; a model key replayed another choice's result.",
+   "scenario": "probe1 cases 2 and 8.",
+   "cause": "keyed on what every observation moves",
+   "fix": "key on case, fact fingerprint, choice and bound arguments; replay only for read-like choices with the same choice and argument digest",
+   "test": "test_replay_needs_the_same_choice_and_arguments_and_survives_a_new_menu"
+  },
+  {
+   "id": "LL-6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "With the switch off every Lead request carried the problem memory, other members' words included.",
+   "scenario": "probe3: a fact asking to call request_build reached another person's request.",
+   "cause": "the note was built before the switch was read",
+   "fix": "the note only with the switch on, marked as other members' data",
+   "test": "test_problem_memory_reaches_a_request_only_with_the_switch_on_and_as_data"
+  },
+  {
+   "id": "LL-7",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "open",
+   "defect": "compare and revise changed state with no guard or trace.",
+   "scenario": "code reading",
+   "cause": "called directly",
+   "fix": "run through runtime.run with the loop's own registry and guard; not in default_registry (it would break the case scope pin and the prompt gate)",
+   "test": "test_compare_refuses_identifiers_and_leak_suspects_and_survives_odd_tables"
+  },
+  {
+   "id": "LL-8",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "revise overwrote the plan while saying it needs approval.",
+   "scenario": "test of A2 saw the plan changed at once.",
+   "cause": "applied in the handler",
+   "fix": "kept pending, asked, applied on the person's yes, dropped on a no",
+   "test": "test_observation_changes_next_action_revises_on_leak_and_stops_on_clean"
+  },
+  {
+   "id": "LL-9",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "A person's stop was computed and never used.",
+   "scenario": "probe1 case 7: inspect ran after 'Stop here'.",
+   "cause": "unused flag",
+   "fix": "the menu offers ask and stop only; dispatch blocks other choices",
+   "test": "test_a_stop_from_the_person_leaves_only_stop_and_ask"
+  },
+  {
+   "id": "LL-10",
+   "source": "reviewer",
+   "severity": "privacy",
+   "verdict": "confirmed",
+   "defect": "The model's free-text reason was saved as a shared problem episode.",
+   "scenario": "code reading",
+   "cause": "reason in the template",
+   "fix": "a fixed template: choice, status, tool",
+   "test": "test_decisions_are_recorded_as_events_and_the_problem_base_gets_a_template"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "Tests after the fixes: neighbouring suites",
+   "gate": "none: scripted tests",
+   "fixed_before_run": false,
+   "result": "{\"what\": \"neighbouring suites\", \"value\": \"test_lead_bounded_choice 14, test_case_agent 115, test_case_home 56, test_agent_harness 15, test_prompt_gate 4, test_harness_gate 1, test_core_experience 16, test_core_contracts 27, test_problem_memory_active 6: all pass\", \"verdict\": \"not scored\"}",
+   "verdict": "not scored",
+   "cost_eur": 0.0,
+   "next": "commit after review",
+   "limits": [
+    "scripted tests only"
+   ]
+  }
+ ],
+ "outcome": "Nine findings fixed; the seventh partly (guarded and traced through runtime.run, not in default_registry). The decision events use existing kinds; a new kind is the owner's contract change.",
+ "lessons": [
+  "A shown word must go through the same checks whatever loop produced it: share the function, do not copy it.",
+  "A claim in a result (holdout untouched) must be computed, never written as a constant.",
+  "A new event kind is a contract version: check the schema baseline before adding one."
+ ],
+ "risks": [
+  "Without a time column the compare reads a seeded share that a random holdout overlaps; the result says so.",
+  "dclab_core.datacard.purposes raises on a table with a zone-aware and a naive time column; the loop makes times naive first, the library is unchanged.",
+  "STOP_WORDS is broad: 'don't run the model before checking leakage' also stops the turn."
+ ],
+ "commits": []
+}

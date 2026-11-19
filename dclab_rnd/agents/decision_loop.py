@@ -35,6 +35,12 @@ MAX_REVISIONS = 4
 MAX_EXPERIMENTS = 4
 OBSERVATION_STATUSES = ("succeeded", "blocked", "waiting_for_person", "stopped", "failed")
 STOP_WORDS = re.compile(r"\b(?:stop|pause|hold on|do not run|don't run|cancel|wait here)\b", re.I)
+COMPARE_TOOL = "training_compare"
+REVISE_TOOL = "plan_revise"
+# A replay returns the stored result without running again. Only for choices whose result is all they do: a question, options
+# or a note replayed would reach the person as nothing (their words are written by the tool into this turn's state).
+REPLAYABLE = frozenset({"compare", "consult", "inspect", "read_table", "query"})
+NO_TO_PLAN = re.compile(r"^\W*(?:no|nope|not (?:yet|now|that)|don'?t|do not|keep the (?:old|current|first) plan)\b", re.I)
 
 
 def _now() -> str:
@@ -162,6 +168,7 @@ class Observation:
     committed_effects: int = 0
     idempotency_key: Optional[str] = None
     replayed: bool = False
+    arguments_digest: Optional[str] = None  # the choice's host-bound arguments, hashed: a replay needs the same choice and arguments
     at: str = field(default_factory=_now)
 
     def to_record(self) -> dict[str, Any]:
@@ -179,6 +186,7 @@ class Observation:
             "committed_effects": self.committed_effects,
             "idempotency_key": self.idempotency_key,
             "replayed": self.replayed,
+            "arguments_digest": self.arguments_digest,
             "at": self.at,
         }
 
@@ -192,7 +200,7 @@ def _fact_fingerprint(state: Any) -> str:
         "case_version": getattr(case, "version", 0),
         "table": table_sig,
         "constraints": [f.value for f in (getattr(case, "constraints", None) or [])],
-        "unknowns": [u.field for u in (getattr(case, "unknowns", None) or []) if not u.resolved],
+        "unknowns": [u.field for u in (getattr(case, "unknowns", None) or [])],
         "findings": len(getattr(case, "findings", None) or []),
         "problem_revision": getattr(state, "problem_revision", None),
         "plan": str(getattr(state, "plan", "") or ""),
@@ -209,7 +217,7 @@ def state_revision(state: Any) -> str:
         "case_version": getattr(case, "version", 0),
         "table": table_sig,
         "constraints": [f.value for f in (getattr(case, "constraints", None) or [])],
-        "unknowns": [u.field for u in (getattr(case, "unknowns", None) or []) if not u.resolved],
+        "unknowns": [u.field for u in (getattr(case, "unknowns", None) or [])],
         "findings": len(getattr(case, "findings", None) or []),
         "decisions": len(getattr(state, "decisions", None) or []),
         "revisions": int(getattr(state, "decision_revisions", 0)),
@@ -306,6 +314,13 @@ def build_menu(state: Any, registry: Registry, *, allow_a2: bool = True, max_rev
         options.append(MenuOption(id="ask", tool="case_ask",
                                   summary="Ask the person one clarifying question (for example when prediction time is unknown)."))
 
+    if stop_requested:  # the person said stop: nothing runs; the Lead may only stop, or ask what they want next
+        options.append(MenuOption(id="stop", tool=None, summary="Pause or stop cleanly without running any tool or changing state."))
+        return Menu(revision=state_revision(state), options=tuple(options), evidence_refs=_evidence_refs(state),
+                    remaining_eur=remaining, approvals_pending=approvals_pending, stop_requested=True,
+                    problem_revision=(int(prob_rev) if isinstance(prob_rev, int) else None),
+                    problem_summary=prob_summary if isinstance(prob_summary, dict) else None)
+
     if state.table is not None and not approvals_pending:
         outcome = _outcome_candidate(state)
         if outcome and _has_tool(registry, "case_check_leakage"):
@@ -374,14 +389,17 @@ def build_menu(state: Any, registry: Registry, *, allow_a2: bool = True, max_rev
         if (getattr(state, "frame", None) is not None and outcome
                 and int(getattr(state, "decision_experiments", 0)) < max_experiments
                 and remaining >= 0.0):
-            options.append(MenuOption(id="compare", tool="training_compare",
-                                      summary="Run a budgeted training-fold comparison between two allowed feature sets (never reads holdout).",
+            options.append(MenuOption(id="compare", tool=COMPARE_TOOL,
+                                      summary=("Compare two feature sets on the provisional training rows (the earliest rows by time when "
+                                               "the table has a time column), with time-ordered or grouped folds. Identifiers, personal "
+                                               "columns and columns flagged as written after the outcome are refused."),
                                       defaults={"outcome": outcome}))
 
         has_evidence = bool(getattr(state, "decisions", None) or getattr(state.case, "findings", None) or getattr(state, "computed", None))
         if has_evidence and int(getattr(state, "decision_revisions", 0)) < max_revisions:
-            options.append(MenuOption(id="revise", tool="plan_revise",
-                                      summary="Revise the working investigation plan in response to new evidence (provisional, never auto-approves)."))
+            options.append(MenuOption(id="revise", tool=REVISE_TOOL,
+                                      summary=("Propose a revised working plan in response to new evidence. It is shown to the person and "
+                                               "used only after they say yes.")))
 
     options.append(MenuOption(id="stop", tool=None, summary="Pause or stop cleanly without running any tool or changing state."))
     return Menu(revision=state_revision(state), options=tuple(options), evidence_refs=_evidence_refs(state),
@@ -413,130 +431,331 @@ class _BoundOnceClient:
         return {"content": "", "tool_calls": [call], "usage": {}, "assistant_message": assistant_msg}
 
 
-def _idempotency_key(case_id: str, revision: str, choice: str, arguments: Mapping[str, Any]) -> str:
-    body = json.dumps({"case_id": case_id, "revision": revision, "choice": choice, "arguments": arguments}, sort_keys=True, default=str)
+def _args_digest(choice: str, arguments: Mapping[str, Any]) -> str:
+    body = json.dumps({"choice": choice, "arguments": arguments}, sort_keys=True, default=str)
     return hashlib.sha256(body.encode("utf-8")).hexdigest()[:20]
 
 
+def _idempotency_key(case_id: str, facts: str, choice: str, arguments: Mapping[str, Any]) -> str:
+    """The host's key of one choice: the case, the facts it was chosen on (never the menu's revision, which every observation
+    moves), the choice and its bound arguments. The same check on the same facts is one effect."""
+    body = json.dumps({"case_id": case_id, "facts": facts, "choice": choice, "arguments": arguments}, sort_keys=True, default=str)
+    return hashlib.sha256(body.encode("utf-8")).hexdigest()[:20]
+
+
+def _as_int(value: Any) -> Optional[int]:
+    """An integer revision, or None for anything else (a model may write "latest", 2.5 or true)."""
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str) and re.fullmatch(r"\s*-?\d+\s*", value):
+        return int(value)
+    return None
+
+
+# ------------------------------------------------------------------------------------------------ the training comparison
+
+REFUSED_PURPOSES = ("identifier", "leak_suspect")
+
+
+def _epoch_seconds(values: pd.Series) -> pd.Series:
+    """A time column as seconds since 1970, time zones dropped (a zone-aware column cannot be subtracted from a naive one)."""
+    stamps = pd.to_datetime(values, errors="coerce", utc=True).dt.tz_localize(None)
+    return (stamps - pd.Timestamp("1970-01-01")).dt.total_seconds().astype(float)
+
+
+def _leak_columns(frame: pd.DataFrame, outcome: str, rows: pd.Index) -> set[str]:
+    """The columns dclab_core's leakage check flags on the rows read: the later column of a recomputed target, else the
+    column (or the columns) a finding names."""
+    from dclab_core.analyse import analyse
+
+    found = analyse({"table": frame}, target=outcome, train_index=rows)
+    out: set[str] = set()
+    for f in found.findings:
+        if f.topic != "leakage":
+            continue
+        ev = f.evidence or {}
+        if ev.get("later"):
+            out.add(str(ev["later"]))
+        elif ev.get("column"):
+            out.add(str(ev["column"]))
+        else:
+            out.update(str(c) for c in (ev.get("columns") or []))
+    return out
+
+
 def _training_compare(state: Any, outcome: str, features_a: list[str], features_b: list[str]) -> dict[str, Any]:
-    """Host-owned training-only validation comparison: fold-local preprocessing, never touches any holdout split."""
+    """Two feature sets compared on the provisional training rows (dclab_core.modifiers.provisional_reading: the earliest 75 %
+    by the time column when the table has one, so a later holdout is never read; else a seeded 75 %, which a random holdout
+    drawn at the build overlaps, and the result says so). Folds follow the time, and keep an entity's rows together when the
+    data card says the rows of one entity share their outcome. Identifiers, personal columns and every column the data card
+    or the leakage check flags as written after the outcome are refused. Never raises: a failure is an error result."""
+    try:
+        return _training_compare_unchecked(state, outcome, features_a, features_b)
+    except Exception as exc:  # noqa: BLE001 - a table the comparison cannot read is a failed observation, never a crash
+        return {"error": f"the comparison could not run: {type(exc).__name__}"}
+
+
+def _training_compare_unchecked(state: Any, outcome: str, features_a: list[str], features_b: list[str]) -> dict[str, Any]:
     from sklearn.ensemble import HistGradientBoostingClassifier, HistGradientBoostingRegressor
-    from sklearn.model_selection import KFold, StratifiedKFold
+    from sklearn.model_selection import GroupKFold, KFold, StratifiedKFold, TimeSeriesSplit
+
+    from dclab_core.datacard import card_of
+    from dclab_core.modifiers import provisional_reading
 
     frame = getattr(state, "frame", None)
     if frame is None or not isinstance(frame, pd.DataFrame) or outcome not in frame.columns:
         return {"error": f"outcome {outcome!r} is not available in the attached table"}
-    clean = frame.dropna(subset=[outcome]).copy()
-    if len(clean) < 20:
+    frame = frame.rename(columns=str)
+    zoned = [c for c in frame.columns if isinstance(frame[c].dtype, pd.DatetimeTZDtype)]
+    if zoned:  # times in UTC without their zone: the data card subtracts one time column from another
+        frame = frame.assign(**{c: frame[c].dt.tz_convert(None) for c in zoned})
+    present = frame.index[frame[outcome].notna()]
+    if len(present) < 20:
         return {"error": "fewer than 20 labelled rows available for training-fold comparison"}
-    # Reserve the final 20% strictly untouched (holdout boundary) so comparison runs on training rows only.
-    train_cut = max(16, int(len(clean) * 0.8))
-    train = clean.iloc[:train_cut].reset_index(drop=True)
-    y_raw = train[outcome]
-    is_numeric = pd.api.types.is_numeric_dtype(y_raw) and y_raw.nunique(dropna=True) > 10
-    task = "regression" if is_numeric else "classification"
-    allowed_cols = [str(c) for c in train.columns if str(c) != outcome and str(c) not in (getattr(state, "personal", set()) or set())]
-    cols_a = [c for c in features_a if c in allowed_cols]
-    cols_b = [c for c in features_b if c in allowed_cols]
+    card = card_of({"table": frame.loc[present]}, target=outcome)
+    purposes = {c.name: (c.purpose, c.why) for c in card.tables[0].columns}
+    time_col = next((c for c, (p, _) in purposes.items() if p == "time" and c != outcome), None)
+    rows, by_time = provisional_reading(present, frame.loc[present, time_col] if time_col else None)
+    rows = pd.Index(rows)
+    if len(rows) < 16:
+        return {"error": "fewer than 16 provisional training rows to compare on"}
+    leaks = _leak_columns(frame, outcome, rows)
+    personal = {str(c) for c in (getattr(state, "personal", None) or set())}
+    refused: list[dict[str, str]] = []
+    for col in dict.fromkeys([*features_a, *features_b]):
+        why = None
+        if col == outcome:
+            why = "it is the outcome"
+        elif col not in frame.columns:
+            why = "the table has no such column"
+        elif col in personal:
+            why = "a personal column"
+        elif purposes.get(col, (None, ""))[0] in REFUSED_PURPOSES:
+            why = f"{purposes[col][0].replace('_', ' ')}: {purposes[col][1]}"
+        elif col in leaks:
+            why = "the leakage check flags it as written after the outcome"
+        if why:
+            refused.append({"column": col, "why": why[:200]})
+    if refused:
+        return {"error": "these columns may not be compared: " + ", ".join(r["column"] for r in refused), "refused": refused}
+    cols_a, cols_b = list(dict.fromkeys(features_a)), list(dict.fromkeys(features_b))
     if not cols_a or not cols_b:
         return {"error": "both feature sets must name at least one allowed non-target column"}
+    group_col = next((c for c, (p, why) in purposes.items() if p == "entity" and "split by it" in str(why)), None)
+
+    train = frame.loc[rows]
+    if by_time and time_col:
+        train = train.assign(_order=_epoch_seconds(train[time_col])).sort_values("_order", kind="stable").drop(columns="_order")
+    train = train.reset_index(drop=True)
+    y_raw = train[outcome]
+    is_numeric = pd.api.types.is_numeric_dtype(y_raw) and not pd.api.types.is_bool_dtype(y_raw) and y_raw.nunique(dropna=True) > 10
+    task = "regression" if is_numeric else "classification"
+    if task == "classification" and y_raw.astype(str).nunique() < 2:
+        return {"error": "the outcome has one value in the rows read: there is nothing to compare"}
+    groups = train[group_col].astype(str).to_numpy() if group_col else None
+
+    if by_time and time_col:
+        folds_kind = "time_ordered" + ("_grouped" if groups is not None else "")
+        splits = list(TimeSeriesSplit(n_splits=3).split(train))
+        if groups is not None:  # an entity's rows never on both sides of a fold
+            splits = [(fi[~np.isin(groups[fi], groups[vi])], vi) for fi, vi in splits]
+    elif groups is not None:
+        n_groups = len(set(groups))
+        if n_groups < 2:
+            return {"error": f"{group_col} has one entity in the rows read: grouped folds cannot be drawn"}
+        folds_kind = "grouped"
+        splits = list(GroupKFold(n_splits=min(3, n_groups)).split(train, groups=groups))
+    elif task == "classification":
+        counts = y_raw.astype(str).value_counts()
+        if int(counts.min()) >= 2:
+            folds_kind = "stratified"
+            splits = list(StratifiedKFold(n_splits=min(3, int(counts.min())), shuffle=True, random_state=0).split(train, y_raw.astype(str)))
+        else:
+            folds_kind = "shuffled"
+            splits = list(KFold(n_splits=3, shuffle=True, random_state=0).split(train))
+    else:
+        folds_kind = "shuffled"
+        splits = list(KFold(n_splits=3, shuffle=True, random_state=0).split(train))
 
     def _encode_fold(fit_df: pd.DataFrame, val_df: pd.DataFrame, cols: list[str]) -> tuple[pd.DataFrame, pd.DataFrame]:
         fit_parts, val_parts = {}, {}
         for col in cols:
             if pd.api.types.is_datetime64_any_dtype(fit_df[col]):
-                fit_parts[col] = (fit_df[col] - pd.Timestamp("1970-01-01")).dt.total_seconds().astype(float)
-                val_parts[col] = (val_df[col] - pd.Timestamp("1970-01-01")).dt.total_seconds().astype(float)
+                f, v = _epoch_seconds(fit_df[col]), _epoch_seconds(val_df[col])
+                med = float(f.median()) if f.notna().any() else 0.0
+                fit_parts[col], val_parts[col] = f.fillna(med), v.fillna(med)
             elif pd.api.types.is_numeric_dtype(fit_df[col]) or pd.api.types.is_bool_dtype(fit_df[col]):
-                med = float(pd.to_numeric(fit_df[col], errors="coerce").median()) if fit_df[col].notna().any() else 0.0
-                fit_parts[col] = pd.to_numeric(fit_df[col], errors="coerce").fillna(med).astype(float)
-                val_parts[col] = pd.to_numeric(val_df[col], errors="coerce").fillna(med).astype(float)
-            else:
-                # Fold-local frequency encoding learned strictly on fit_df only.
+                f = pd.to_numeric(fit_df[col], errors="coerce").astype(float)
+                v = pd.to_numeric(val_df[col], errors="coerce").astype(float)
+                med = float(f.median()) if f.notna().any() else 0.0
+                fit_parts[col], val_parts[col] = f.fillna(med), v.fillna(med)
+            else:  # fold-local frequency encoding, learned on the fit rows only
                 freq = fit_df[col].astype(str).value_counts(normalize=True).to_dict()
                 fit_parts[col] = fit_df[col].astype(str).map(freq).fillna(0.0).astype(float)
                 val_parts[col] = val_df[col].astype(str).map(freq).fillna(0.0).astype(float)
         return pd.DataFrame(fit_parts), pd.DataFrame(val_parts)
 
-    def _cv_score(cols: list[str]) -> float:
-        if task == "regression":
-            y = y_raw.astype(float).to_numpy()
-            splitter = KFold(n_splits=3, shuffle=False)
-            scores = []
-            for fi, vi in splitter.split(train):
-                xf, xv = _encode_fold(train.iloc[fi], train.iloc[vi], cols)
+    def _cv_score(cols: list[str]) -> Optional[float]:
+        y = y_raw.astype(float).to_numpy() if task == "regression" else y_raw.astype(str).to_numpy()
+        scores = []
+        for fi, vi in splits:
+            if len(fi) < 8 or len(vi) == 0 or (task == "classification" and len(set(y[fi])) < 2):
+                continue  # a fold with too few rows, or one class to learn, is skipped rather than fitted
+            xf, xv = _encode_fold(train.iloc[fi], train.iloc[vi], cols)
+            if task == "regression":
                 m = HistGradientBoostingRegressor(max_iter=20, random_state=0).fit(xf, y[fi])
                 scores.append(float(np.mean(np.abs(y[vi] - m.predict(xv)))))
-            return round(float(np.mean(scores)), 4)
-        y = y_raw.astype(str).to_numpy()
-        n_splits = min(3, max(2, int(pd.Series(y).value_counts().min())))
-        splitter = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=0)
-        scores = []
-        for fi, vi in splitter.split(train, y):
-            xf, xv = _encode_fold(train.iloc[fi], train.iloc[vi], cols)
-            m = HistGradientBoostingClassifier(max_iter=20, random_state=0).fit(xf, y[fi])
-            scores.append(float(np.mean(m.predict(xv) == y[vi])))
-        return round(float(np.mean(scores)), 4)
+            else:
+                m = HistGradientBoostingClassifier(max_iter=20, random_state=0).fit(xf, y[fi])
+                scores.append(float(np.mean(m.predict(xv) == y[vi])))
+        return round(float(np.mean(scores)), 4) if scores else None
 
-    metric = "mae" if task == "regression" else "accuracy"
     score_a, score_b = _cv_score(cols_a), _cv_score(cols_b)
+    if score_a is None or score_b is None:
+        return {"error": "no fold had enough rows (and both classes) to fit on"}
     return {
-        "scope": "training_folds_only",
-        "holdout_touched": False,
+        "scope": "provisional_training_rows",
+        "rows_read": "earliest_by_time" if by_time else "seeded_share",
+        "later_rows_unseen": bool(by_time),  # true only of a holdout of the latest rows by this time column (the build's when it splits by it)
+        "note": (f"Read the earliest rows by {time_col}: a holdout of the latest rows by {time_col} is never read; a random "
+                 "holdout drawn at the build would share rows with these." if by_time else
+                 "No column orders the rows in time, so a seeded share was read: a random holdout drawn at the build "
+                 "shares about three quarters of its rows with these."),
+        "time_column": time_col if by_time else None,
+        "group_column": group_col,
+        "folds": folds_kind,
         "train_rows": int(len(train)),
         "task": task,
-        "metric": metric,
+        "metric": "mae" if task == "regression" else "accuracy",
         "set_a": {"features": cols_a, "score": score_a},
         "set_b": {"features": cols_b, "score": score_b},
         "delta_b_minus_a": round(score_b - score_a, 4),
     }
 
 
-def _revise_plan(state: Any, arguments: Mapping[str, Any], reason: str) -> dict[str, Any]:
-    """Revise the provisional working plan using observed evidence; never auto-approves solution mutations."""
-    from ..tasks import catalog as task_catalog
+# ------------------------------------------------------------------------------------------------ the plan revision
 
+def _revise_plan(state: Any, arguments: Mapping[str, Any], reason: str) -> dict[str, Any]:
+    """A revised working plan, proposed: kept pending in the observation and used only after the person says yes
+    (``_resolve_pending_revision``); ``state.plan`` is never changed here."""
     excluded = [str(c) for c in (arguments.get("exclude_columns") or []) if c]
     next_steps = [str(s) for s in (arguments.get("steps") or []) if s]
-    current_plan = {"revisions": int(getattr(state, "decision_revisions", 0)), "steps": [s for s in str(getattr(state, "plan", "") or "").splitlines() if s.strip()]}
-    if current_plan["revisions"] >= MAX_REVISIONS:
+    if int(getattr(state, "decision_revisions", 0)) >= MAX_REVISIONS:
         return {"error": "revision limit reached"}
-    # Reuse tasks.catalog.replan_from_evidence when a structured catalog plan is active; otherwise update provisional plan directly.
-    revised_text_lines = []
-    if next_steps:
-        revised_text_lines.extend(f"{i + 1}. {step}" for i, step in enumerate(next_steps))
-    else:
-        revised_text_lines.append(f"1. Revised plan: {reason}")
+    if not next_steps and not excluded:
+        return {"error": "a revision names its steps or the columns it would leave out"}
+    lines = [f"{i + 1}. {step}" for i, step in enumerate(next_steps)]
     if excluded:
-        revised_text_lines.append("Provisional exclusions (pending approval): " + ", ".join(excluded))
-    catalog_plan = getattr(state, "catalog_plan", None)
-    catalog_out = None
-    if isinstance(catalog_plan, Mapping) and getattr(state, "table", None):
-        cols = [str(c.get("name")) for c in (state.table.get("columns") or []) if c.get("name")]
-        catalog_out = task_catalog.replan_from_evidence(
-            brief=str(getattr(getattr(state.case, "goal", None), "value", "") or reason),
-            tables={str(state.table.get("table") or "data"): cols},
-            known_facts={"excluded_suspects": excluded},
-            current_plan=catalog_plan,
-            stage_evidence=[d.get("result") or {} for d in (getattr(state, "decisions", None) or [])[-3:]],
-            project_id=str(getattr(state, "draft_id", None) or getattr(state.case, "case_id", "")),
-            gateway=getattr(state, "models", None),
-            max_revisions=MAX_REVISIONS,
-        )
-    state.plan = "\n".join(revised_text_lines)
+        lines.append("Leave out: " + ", ".join(excluded))
     state.decision_revisions = int(getattr(state, "decision_revisions", 0)) + 1
     return {
-        "revised": True,
+        "proposed": True,
+        "pending": True,
+        "applied": False,
         "revision": state.decision_revisions,
         "provisional_exclusions": excluded,
-        "plan": state.plan,
+        "plan": "\n".join(lines),
         "requires_approval": True,
-        "catalog_replan": bool(catalog_out and catalog_out.get("revised")),
     }
 
 
+def _pending_revision(state: Any) -> Optional[dict[str, Any]]:
+    """The last revision proposed and not yet answered by the person, or None."""
+    for rec in reversed(list(getattr(state, "decisions", None) or [])):
+        if rec.get("choice") != "revise" or rec.get("status") not in ("waiting_for_person", "succeeded", "stopped"):
+            continue
+        result = rec.get("result") or {}
+        return rec if rec.get("status") == "waiting_for_person" and result.get("pending") else None
+    return None
+
+
+def _resolve_pending_revision(state: Any, words: str) -> Optional[Observation]:
+    """The person's answer to a proposed revision: a yes applies its plan, a no drops it, anything else leaves it pending."""
+    pending = _pending_revision(state)
+    if pending is None:
+        return None
+    from . import case_agent
+
+    words = str(words or "")
+    yes = bool(getattr(state, "go_ahead", False)) or case_agent.says_yes(words)
+    no = bool(NO_TO_PLAN.search(words)) or case_agent.declines(words)
+    if yes == no:
+        return None
+    result = dict(pending.get("result") or {})
+    if yes:
+        state.plan = str(result.get("plan") or "")
+    obs = Observation(
+        decision_id="dec_" + secrets.token_hex(5), choice="revise", tool=REVISE_TOOL, status="succeeded" if yes else "stopped",
+        reason="the person approved the revised plan" if yes else "the person declined the revised plan",
+        evidence_refs=[f"decision:{pending.get('decision_id')}"], available_options=[], menu_revision=state_revision(state),
+        result={"pending": False, "applied": yes, "declined": not yes, "plan": result.get("plan"), "revision": result.get("revision"),
+                "answers": pending.get("decision_id")},
+        committed_effects=1 if yes else 0)
+    _persist_observation(state, obs)
+    return obs
+
+
+# ------------------------------------------------------------------------------------------------ the loop's own tools
+# Registered once, in a registry of the bounded loop's own: registering them in default_registry() would offer them to every
+# reader of the case scope and change the case tools' fingerprint (test_case_agent pins the case scope to TOOL_NAMES, the
+# prompt gate hashes it). They run through runtime.run like every other tool, so each call is guarded and traced.
+
+def _compare_tool(state: Any, outcome: str, features_a: Optional[list[str]] = None, features_b: Optional[list[str]] = None) -> dict[str, Any]:
+    if int(getattr(state, "decision_experiments", 0)) >= MAX_EXPERIMENTS:
+        return {"error": "experiment cap reached"}
+    res = _training_compare(state, str(outcome or ""), [str(c) for c in features_a or [] if c], [str(c) for c in features_b or [] if c])
+    if "error" not in res:
+        state.decision_experiments = int(getattr(state, "decision_experiments", 0)) + 1
+        state.computed.append(json.dumps(res, default=str))  # what code computed: its numbers may be said
+    return res
+
+
+def _revise_tool(state: Any, exclude_columns: Optional[list[str]] = None, steps: Optional[list[str]] = None) -> dict[str, Any]:
+    return _revise_plan(state, {"exclude_columns": exclude_columns or [], "steps": steps or []}, "")
+
+
+class _LeadGuard:
+    """The bounded loop's own writes: a case in hand, no rewrite under way, no approval pending, no stop asked for."""
+
+    def __call__(self, tool: Any, context: Any, arguments: dict[str, Any], proceed: Any) -> Any:
+        if getattr(context, "case", None) is None:
+            return {"error": "the Lead's tools need a case"}
+        if getattr(context, "rewriting", False):
+            return {"error": "no tool runs while the message is being written again"}
+        if getattr(context, "approvals_pending", False):
+            return {"error": "waiting for the person's approval: nothing else runs"}
+        return proceed()
+
+
+_OWN: dict[str, Registry] = {}
+
+
+def _own_registry() -> Registry:
+    if "registry" not in _OWN:
+        from .registry import Tool
+
+        reg = Registry()
+        A = {"type": "array", "items": {"type": "string"}}
+        reg.register(Tool(name=COMPARE_TOOL, description="Compare two feature sets on the provisional training rows.",
+                          parameters={"type": "object", "properties": {"outcome": {"type": "string"}, "features_a": A, "features_b": A},
+                                      "required": ["outcome", "features_a", "features_b"]},
+                          handler=_compare_tool, effect="write", scope="case", takes_context=True, move="lead.compare"))
+        reg.register(Tool(name=REVISE_TOOL, description="Propose a revised working plan; used only after the person says yes.",
+                          parameters={"type": "object", "properties": {"exclude_columns": A, "steps": A}},
+                          handler=_revise_tool, effect="write", scope="case", takes_context=True, move="lead.revise"))
+        reg.guards["case"] = _LeadGuard()
+        _OWN["registry"] = reg
+    return _OWN["registry"]
+
+
+# ------------------------------------------------------------------------------------------------ the record
+
 def _persist_observation(state: Any, obs: Observation) -> None:
-    """Persist decision + observation into state, checkpoint, experience log, and tracer before the next choice."""
+    """Persist decision + observation into state, checkpoint, experience log, and Problem Base before the next choice. The
+    experience events are dclab_core's decision kinds with names and codes only; the model's own words are never written
+    into the shared problem record."""
     from .. import experience
     from . import case_session
 
@@ -544,11 +763,19 @@ def _persist_observation(state: Any, obs: Observation) -> None:
     state.decisions.append(rec)
     if obs.idempotency_key and obs.committed_effects > 0:
         state.decision_effects[obs.idempotency_key] = rec
+    draft = getattr(state, "draft_id", None)
     try:
-        experience.record("agent.decision", "agent", rec, draft=getattr(state, "draft_id", None))
-    except Exception:  # noqa: BLE001 - tracing failure must not break the turn
+        experience.record("decision.proposed", "agent", {"point": "lead.choice", "by": "agent:lead",
+                                                         "choice": f"{obs.choice}:{obs.status}"[:120],
+                                                         "why": f"Lead chose {obs.choice}; {obs.status}; tool {obs.tool or 'none'}"},
+                          conversation=draft)
+        if obs.status == "blocked":
+            known = obs.blocked_reason if obs.blocked_reason and re.fullmatch(r"[a-z_]{1,60}", obs.blocked_reason) else "tool_refused"
+            experience.record("decision.refused", "system", {"point": "lead.choice", "choice": obs.choice[:120], "rule": known,
+                                                             "reason": str(obs.blocked_reason or "")[:200] or None}, conversation=draft)
+    except Exception:  # noqa: BLE001 - the record failing must not break the turn
         pass
-    # A4/A6: record material decisions/outcomes idempotently into the bound Problem Base.
+    # A4/A6: material decisions recorded idempotently into the bound Problem Base, as a fixed template (never the model's words).
     scope = getattr(state, "authorized_scope", None)
     home = getattr(state, "workspace_home", None)
     if (scope is not None and home is not None and getattr(scope, "project_id", None) and getattr(scope, "problem_id", None)
@@ -557,19 +784,22 @@ def _persist_observation(state: Any, obs: Observation) -> None:
             from ..memory import bases as mem_bases
 
             status_map = {"succeeded": "succeeded", "blocked": "blocked", "stopped": "stopped", "failed": "failed"}
-            summary_text = f"Lead {obs.choice} ({obs.status}): {obs.reason or obs.blocked_reason or 'completed'}"[:280]
+            summary_text = f"Lead {obs.choice}: {obs.status} (tool {obs.tool or 'none'})"
             mem_bases.record_material_event(
                 Path(home), scope, target="problem",
                 source_type="lead_decision", source_id=obs.decision_id,
                 source_revision=str(getattr(state, "problem_revision", 0) or 0),
                 text=summary_text, outcome_status=status_map.get(obs.status, "proposed"),
                 who="agent:lead",
-                depends_on_revision=int(getattr(state, "problem_revision", 0) or 0),
+                depends_on_revision=int(_as_int(getattr(state, "problem_revision", 0)) or 0),
             )
         except Exception:  # noqa: BLE001 - memory write must not fail the turn
             pass
     if getattr(state, "checkpoint", None):
-        case_session.save(state, state.checkpoint)
+        try:
+            case_session.save(state, state.checkpoint)
+        except Exception:  # noqa: BLE001 - a checkpoint that cannot be written loses this step only
+            pass
 
 
 def dispatch_choice(state: Any, menu: Menu, selection: Mapping[str, Any], registry: Registry) -> Observation:
@@ -589,53 +819,48 @@ def dispatch_choice(state: Any, menu: Menu, selection: Mapping[str, Any], regist
     refs = [str(r) for r in (selection.get("evidence_refs") or []) if r] or list(menu.evidence_refs[:4])
     args = dict(selection.get("arguments") or {}) if isinstance(selection.get("arguments"), Mapping) else {}
     supplied_rev = selection.get("menu_revision")
+
+    def blocked(why: str, code: str, tool: Optional[str] = None, result: Optional[dict[str, Any]] = None) -> Observation:
+        obs = Observation(decision_id=decision_id, choice=choice, tool=tool, status="blocked", reason=reason or why,
+                          evidence_refs=refs, available_options=available, menu_revision=menu.revision,
+                          result=result or {}, blocked_reason=code)
+        _persist_observation(state, obs)
+        return obs
+
+    if menu.stop_requested and choice not in ("stop", "ask"):
+        return blocked("the person asked to stop: only stopping or asking is allowed", "stop_requested")
     # A6: revalidate live problem revision before executing any action so a pending action on superseded facts cannot run unchecked.
     live_summary = _sync_problem_context(state)
-    live_prob_rev = getattr(state, "problem_revision", None)
-    dep_prob_rev = selection.get("depends_on_problem_revision", args.get("depends_on_problem_revision"))
-    if choice != "stop" and isinstance(live_prob_rev, int):
+    live_prob_rev = _as_int(getattr(state, "problem_revision", None))
+    raw_dep = selection.get("depends_on_problem_revision", args.get("depends_on_problem_revision"))
+    dep_prob_rev = _as_int(raw_dep)
+    if choice != "stop" and live_prob_rev is not None:
+        menu_rev = _as_int(menu.problem_revision)
         stale_dep = (
-            (dep_prob_rev is not None and int(dep_prob_rev) < live_prob_rev)
-            or (menu.problem_revision is not None and int(menu.problem_revision) < live_prob_rev)
+            (raw_dep is not None and dep_prob_rev is None)  # a revision that is not a number cannot be checked: stale
+            or (dep_prob_rev is not None and dep_prob_rev < live_prob_rev)
+            or (menu_rev is not None and menu_rev < live_prob_rev)
         )
         if stale_dep:
+            since = dep_prob_rev if dep_prob_rev is not None else (menu_rev or 0)
             changed = [
                 {"field": f.get("field"), "text": f.get("text"), "revision": f.get("revision"), "correction": bool(f.get("correction"))}
                 for f in ((live_summary or {}).get("active_facts") or [])
-                if int(f.get("revision") or 0) > int(dep_prob_rev if dep_prob_rev is not None else menu.problem_revision or 0)
+                if (_as_int(f.get("revision")) or 0) > since
             ]
-            obs = Observation(
-                decision_id=decision_id, choice=choice, tool=None, status="blocked",
-                reason=reason or "problem facts changed since this action was proposed",
-                evidence_refs=refs, available_options=available, menu_revision=menu.revision,
-                result={"stale": True, "old_problem_revision": dep_prob_rev if dep_prob_rev is not None else menu.problem_revision,
-                        "current_problem_revision": live_prob_rev, "changed_sources": changed},
-                blocked_reason="stale_problem_fact",
-            )
-            _persist_observation(state, obs)
-            return obs
+            return blocked("problem facts changed since this action was proposed", "stale_problem_fact",
+                           result={"stale": True, "old_problem_revision": dep_prob_rev if dep_prob_rev is not None else menu_rev,
+                                   "current_problem_revision": live_prob_rev, "changed_sources": changed})
     current_rev = state_revision(state)
     if menu.revision != current_rev or (supplied_rev is not None and str(supplied_rev) != current_rev):
-        obs = Observation(decision_id=decision_id, choice=choice, tool=None, status="blocked",
-                          reason=reason or "stale decision menu", evidence_refs=refs, available_options=available,
-                          menu_revision=menu.revision, blocked_reason="stale_menu_revision")
-        _persist_observation(state, obs)
-        return obs
+        return blocked("stale decision menu", "stale_menu_revision")
 
     option = menu.by_id(choice)
     if option is None:
-        obs = Observation(decision_id=decision_id, choice=choice, tool=None, status="blocked",
-                          reason=reason or f"choice {choice!r} is not in the allowed menu", evidence_refs=refs,
-                          available_options=available, menu_revision=menu.revision, blocked_reason="forbidden_choice")
-        _persist_observation(state, obs)
-        return obs
+        return blocked(f"choice {choice!r} is not in the allowed menu", "forbidden_choice")
 
     if option.requires_approval or (menu.approvals_pending and choice != "stop"):
-        obs = Observation(decision_id=decision_id, choice=choice, tool=option.tool, status="blocked",
-                          reason=reason or "waiting for explicit approval", evidence_refs=refs,
-                          available_options=available, menu_revision=menu.revision, blocked_reason="waiting_for_approval")
-        _persist_observation(state, obs)
-        return obs
+        return blocked("waiting for explicit approval", "waiting_for_approval", tool=option.tool)
 
     # Bind arguments strictly to the authenticated case in host code.
     bound_args: dict[str, Any] = {}
@@ -658,12 +883,7 @@ def dispatch_choice(state: Any, menu: Menu, selection: Mapping[str, Any], regist
         allowed_specs = list(option.defaults.get("allowed_specialists") or [])
         specialist = str(args.get("specialist") or option.defaults.get("specialist") or "leakage_auditor").strip()
         if allowed_specs and specialist not in allowed_specs:
-            obs = Observation(decision_id=decision_id, choice=choice, tool=option.tool, status="blocked",
-                              reason=reason or f"specialist {specialist!r} is not allowed in the current state",
-                              evidence_refs=refs, available_options=available, menu_revision=menu.revision,
-                              blocked_reason="specialist_not_allowed")
-            _persist_observation(state, obs)
-            return obs
+            return blocked(f"specialist {specialist!r} is not allowed in the current state", "specialist_not_allowed", tool=option.tool)
         question = str(args.get("question") or reason or "Review available columns against the prediction moment.").strip()
         bound_args = {"specialist": specialist, "question": question}
     elif choice == "compare":
@@ -679,76 +899,54 @@ def dispatch_choice(state: Any, menu: Menu, selection: Mapping[str, Any], regist
         bound_args = dict(args)
 
     case_id = str(getattr(state.case, "case_id", getattr(state.case, "id", "")))
-    idem_key = str(selection.get("idempotency_key") or _idempotency_key(case_id, menu.revision, choice, bound_args))
-    existing = (getattr(state, "decision_effects", None) or {}).get(idem_key)
+    digest = _args_digest(choice, bound_args)
+    idem_key = _idempotency_key(case_id, _fact_fingerprint(state), choice, bound_args)
+    model_key = str(selection.get("idempotency_key") or "").strip()[:120] or None
+    effects = getattr(state, "decision_effects", None) or {}
+    existing = None
+    if choice in REPLAYABLE:
+        for key in (idem_key, model_key):
+            found = effects.get(key) if key else None
+            if found is not None and found.get("choice") == choice and found.get("arguments_digest") == digest:
+                existing = found  # a replay only for the same choice with the same arguments (a key alone never replays another)
+                break
     if existing is not None:
         return Observation(
             decision_id=existing["decision_id"], choice=existing["choice"], tool=existing.get("tool"),
             status=existing["status"], reason=existing.get("reason", ""), evidence_refs=list(existing.get("evidence_refs") or []),
             available_options=available, menu_revision=menu.revision, result=dict(existing.get("result") or {}),
             blocked_reason=existing.get("blocked_reason"), committed_effects=0, idempotency_key=idem_key, replayed=True,
+            arguments_digest=digest,
         )
 
+    def record(obs: Observation) -> Observation:
+        obs.arguments_digest = digest
+        _persist_observation(state, obs)
+        if model_key and obs.committed_effects > 0 and choice in REPLAYABLE:
+            state.decision_effects[model_key] = obs.to_record()
+        return obs
+
     if choice == "stop":
-        msg = str(args.get("message") or reason or "Stopped without running any tool.").strip()
-        obs = Observation(decision_id=decision_id, choice="stop", tool=None, status="stopped",
-                          reason=reason or "stopped cleanly", evidence_refs=refs, available_options=available,
-                          menu_revision=menu.revision, result={"stopped": True, "message": msg},
-                          committed_effects=0, idempotency_key=idem_key)
-        _persist_observation(state, obs)
-        return obs
+        msg = str(args.get("message") or "").strip()
+        return record(Observation(decision_id=decision_id, choice="stop", tool=None, status="stopped",
+                                  reason=reason or "stopped cleanly", evidence_refs=refs, available_options=available,
+                                  menu_revision=menu.revision, result={"stopped": True, "message": msg},
+                                  committed_effects=0, idempotency_key=idem_key))
 
-    if choice == "compare":
-        if int(getattr(state, "decision_experiments", 0)) >= MAX_EXPERIMENTS:
-            obs = Observation(decision_id=decision_id, choice=choice, tool=option.tool, status="blocked",
-                              reason=reason or "experiment cap reached", evidence_refs=refs, available_options=available,
-                              menu_revision=menu.revision, blocked_reason="experiment_cap")
-            _persist_observation(state, obs)
-            return obs
-        res = _training_compare(state, bound_args["outcome"], bound_args["features_a"], bound_args["features_b"])
-        if "error" in res:
-            obs = Observation(decision_id=decision_id, choice=choice, tool=option.tool, status="failed",
-                              reason=reason, evidence_refs=refs, available_options=available, menu_revision=menu.revision,
-                              result=res, blocked_reason="compare_error", committed_effects=0, idempotency_key=idem_key)
-        else:
-            state.decision_experiments = int(getattr(state, "decision_experiments", 0)) + 1
-            state.computed.append(json.dumps(res, default=str))
-            obs = Observation(decision_id=decision_id, choice=choice, tool=option.tool, status="succeeded",
-                              reason=reason, evidence_refs=refs, available_options=available, menu_revision=menu.revision,
-                              result=res, committed_effects=1, idempotency_key=idem_key)
-        _persist_observation(state, obs)
-        return obs
-
-    if choice == "revise":
-        res = _revise_plan(state, bound_args, reason)
-        if "error" in res:
-            obs = Observation(decision_id=decision_id, choice=choice, tool=option.tool, status="blocked",
-                              reason=reason, evidence_refs=refs, available_options=available, menu_revision=menu.revision,
-                              result=res, blocked_reason="revision_limit", committed_effects=0, idempotency_key=idem_key)
-        else:
-            obs = Observation(decision_id=decision_id, choice=choice, tool=option.tool, status="succeeded",
-                              reason=reason, evidence_refs=refs, available_options=available, menu_revision=menu.revision,
-                              result=res, committed_effects=1, idempotency_key=idem_key)
-        _persist_observation(state, obs)
-        return obs
-
-    # Dispatch registered case tools exclusively through runtime.run so Registry, CaseGuard, and Tracer own every call.
-    if option.tool is None or not _has_tool(registry, option.tool):
-        obs = Observation(decision_id=decision_id, choice=choice, tool=option.tool, status="blocked",
-                          reason="tool not registered", evidence_refs=refs, available_options=available,
-                          menu_revision=menu.revision, blocked_reason="tool_unavailable")
-        _persist_observation(state, obs)
-        return obs
+    # Dispatch every tool through runtime.run so a registry, its scope's guard and the tracer own every call: the case tools
+    # through the shared registry, the loop's compare and revise through its own.
+    own = choice in ("compare", "revise")
+    run_registry = _own_registry() if own else registry
+    if option.tool is None or not _has_tool(run_registry, option.tool):
+        return blocked("tool not registered", "tool_unavailable", tool=option.tool)
 
     single = Policy(name="case", system="", tools=(option.tool,), max_steps=1, max_replies=1, stop_after=(option.tool,))
-    run_res = run_policy(single, _BoundOnceClient(option.tool, bound_args), registry, [{"role": "user", "content": reason or choice}],
-                         context=state, trace=state.trace)
+    run_res = run_policy(single, _BoundOnceClient(option.tool, bound_args), run_registry,
+                         [{"role": "user", "content": f"[DCLab bounded choice] {choice}"}], context=state, trace=state.trace)
     if not run_res.steps:
-        obs = Observation(decision_id=decision_id, choice=choice, tool=option.tool, status="failed",
-                          reason=reason, evidence_refs=refs, available_options=available, menu_revision=menu.revision,
-                          blocked_reason="no_step_executed", committed_effects=0, idempotency_key=idem_key)
-        _persist_observation(state, obs)
-        return obs
+        return record(Observation(decision_id=decision_id, choice=choice, tool=option.tool, status="failed",
+                                  reason=reason, evidence_refs=refs, available_options=available, menu_revision=menu.revision,
+                                  blocked_reason="no_step_executed", committed_effects=0, idempotency_key=idem_key))
 
     step = run_res.steps[-1]
     res = step.result if isinstance(step.result, dict) else {"value": step.result}
@@ -762,19 +960,22 @@ def dispatch_choice(state: Any, menu: Menu, selection: Mapping[str, Any], regist
             "problems": list(res.get("problems") or []),
             "evidence_refs": refs,
         }
-        obs = Observation(decision_id=decision_id, choice="consult", tool=option.tool, status="succeeded",
-                          reason=reason, evidence_refs=refs, available_options=available, menu_revision=menu.revision,
-                          result=advisory, committed_effects=1, idempotency_key=idem_key)
-        _persist_observation(state, obs)
-        return obs
+        return record(Observation(decision_id=decision_id, choice="consult", tool=option.tool, status="succeeded",
+                                  reason=reason, evidence_refs=refs, available_options=available, menu_revision=menu.revision,
+                                  result=advisory, committed_effects=1, idempotency_key=idem_key))
     if not step.ok or "error" in res:
-        status = "blocked" if any(w in str(res.get("error") or "").lower() for w in ("cannot", "forbidden", "refused", "not allowed", "budget", "already")) else "failed"
-        obs = Observation(decision_id=decision_id, choice=choice, tool=option.tool, status=status,
-                          reason=reason, evidence_refs=refs, available_options=available, menu_revision=menu.revision,
-                          result=res, blocked_reason=str(res.get("error") or "tool_error")[:200], committed_effects=0,
-                          idempotency_key=idem_key)
-        _persist_observation(state, obs)
-        return obs
+        error = str(res.get("error") or "tool_error")
+        if choice == "compare":
+            code = "experiment_cap" if "cap reached" in error else "compare_refused" if res.get("refused") else "compare_error"
+            status = "blocked" if code in ("experiment_cap", "compare_refused") else "failed"
+        elif choice == "revise":
+            code, status = ("revision_limit", "blocked") if "limit" in error else ("revision_invalid", "failed")
+        else:
+            status = "blocked" if any(w in error.lower() for w in ("cannot", "forbidden", "refused", "not allowed", "budget", "already")) else "failed"
+            code = error[:200]
+        return record(Observation(decision_id=decision_id, choice=choice, tool=option.tool, status=status,
+                                  reason=reason, evidence_refs=refs, available_options=available, menu_revision=menu.revision,
+                                  result=res, blocked_reason=code, committed_effects=0, idempotency_key=idem_key))
 
     if choice == "ask":
         obs = Observation(decision_id=decision_id, choice="ask", tool=option.tool, status="waiting_for_person",
@@ -782,6 +983,13 @@ def dispatch_choice(state: Any, menu: Menu, selection: Mapping[str, Any], regist
                           result={"question": bound_args["question"], **res}, committed_effects=1, idempotency_key=idem_key)
     elif choice == "propose":
         obs = Observation(decision_id=decision_id, choice="propose", tool=option.tool, status="waiting_for_person",
+                          reason=reason, evidence_refs=refs, available_options=available, menu_revision=menu.revision,
+                          result=res, committed_effects=1, idempotency_key=idem_key)
+    elif choice == "revise":
+        # A proposal waits for the person's yes; the question is code's, the plan's lines are the agent's (checked when shown).
+        state.said.append("I would change the working plan to this:\n" + str(res.get("plan") or "") + "\nShall I use it?")
+        state.asking = True
+        obs = Observation(decision_id=decision_id, choice="revise", tool=option.tool, status="waiting_for_person",
                           reason=reason, evidence_refs=refs, available_options=available, menu_revision=menu.revision,
                           result=res, committed_effects=1, idempotency_key=idem_key)
     elif choice == "consult":
@@ -801,39 +1009,39 @@ def dispatch_choice(state: Any, menu: Menu, selection: Mapping[str, Any], regist
         obs = Observation(decision_id=decision_id, choice=choice, tool=option.tool, status="succeeded",
                           reason=reason, evidence_refs=refs, available_options=available, menu_revision=menu.revision,
                           result=res, committed_effects=1, idempotency_key=idem_key)
-    _persist_observation(state, obs)
-    return obs
+    return record(obs)
 
 
-def _parse_model_selection(reply: Mapping[str, Any], menu: Menu) -> Optional[dict[str, Any]]:
-    """Accept either a structured JSON choice or a standard tool call from a scripted or live model."""
-    tool_calls = reply.get("tool_calls") or []
-    if tool_calls:
-        first = tool_calls[0]
-        name = str(first.get("name") or "")
-        args = first.get("arguments") or {}
-        if isinstance(args, str):
-            try:
-                args = json.loads(args)
-            except ValueError:
-                args = {}
-        if not isinstance(args, dict):
+def _call_parts(call: Mapping[str, Any]) -> tuple[str, dict[str, Any]]:
+    fn = call.get("function") if isinstance(call.get("function"), Mapping) else {}
+    name = str(call.get("name") or fn.get("name") or "")
+    args = call.get("arguments", fn.get("arguments")) or {}
+    if isinstance(args, str):
+        try:
+            args = json.loads(args)
+        except ValueError:
             args = {}
-        if name in ("choose_action", "decide"):
-            return args
-        by_tool = {o.tool: o.id for o in menu.options if o.tool}
-        if name in by_tool:
-            return {"choice": by_tool[name], "arguments": args, "reason": str(reply.get("content") or f"selected {by_tool[name]}").strip()[:300],
-                    "menu_revision": menu.revision}
-        if name in ("stop", "case_stop"):
-            return {"choice": "stop", "arguments": args, "reason": str(reply.get("content") or args.get("reason") or "stop").strip()[:300],
-                    "menu_revision": menu.revision}
-        return {"choice": name, "arguments": args, "reason": str(reply.get("content") or "").strip()[:300], "menu_revision": menu.revision}
-    text = str(reply.get("content") or "").strip()
-    if not text:
-        return None
-    start = text.find("{")
-    end = text.rfind("}")
+    return name, (args if isinstance(args, dict) else {})
+
+
+def _selection_of_call(call: Mapping[str, Any], menu: Menu, content: str = "") -> dict[str, Any]:
+    """One tool call of a reply as a menu selection."""
+    name, args = _call_parts(call)
+    if name in ("choose_action", "decide"):
+        return dict(args)
+    by_tool = {o.tool: o.id for o in menu.options if o.tool}
+    if name in by_tool:
+        return {"choice": by_tool[name], "arguments": args, "reason": (content or f"selected {by_tool[name]}")[:300],
+                "menu_revision": menu.revision}
+    if name in ("stop", "case_stop"):
+        return {"choice": "stop", "arguments": args, "reason": (content or str(args.get("reason") or "stop"))[:300],
+                "menu_revision": menu.revision}
+    return {"choice": name, "arguments": args, "reason": content[:300], "menu_revision": menu.revision}
+
+
+def _text_selection(text: str) -> Optional[dict[str, Any]]:
+    """A choice written as JSON in the reply's text."""
+    start, end = text.find("{"), text.rfind("}")
     if start != -1 and end > start:
         try:
             obj = json.loads(text[start:end + 1])
@@ -842,6 +1050,15 @@ def _parse_model_selection(reply: Mapping[str, Any], menu: Menu) -> Optional[dic
         except ValueError:
             pass
     return None
+
+
+def _parse_model_selection(reply: Mapping[str, Any], menu: Menu) -> Optional[dict[str, Any]]:
+    """The reply's first choice: a tool call, or a JSON choice in its text (None when it holds neither)."""
+    tool_calls = [c for c in (reply.get("tool_calls") or []) if isinstance(c, Mapping)]
+    content = str(reply.get("content") or "").strip()
+    if tool_calls:
+        return _selection_of_call(tool_calls[0], menu, content)
+    return _text_selection(content) if content else None
 
 
 def _choice_tools(menu: Menu, registry: Optional[Registry] = None) -> list[dict[str, Any]]:
@@ -885,97 +1102,155 @@ def _spent(client: Any) -> float:
         return 0.0
 
 
-def _summarize_observations(state: Any, observations: list[Observation], fallback_text: str = "") -> str:
-    if state.said:
-        return "\n\n".join(state.said)
+TURN_FAILED = ("Something went wrong on my side before I could finish this step, so I stopped here. Tell me how you would like "
+               "to go on.")
+OPTIONS_SHOWN = "Here are the options I see. Pick one, or tell me what to change."
+
+
+def _summarize_observations(observations: list[Observation], fallback_text: str = "") -> str:
+    """Code's words for a turn in which the agent wrote none: what ran and what came back (checked like any message)."""
     if not observations:
         return fallback_text or "No action was taken."
     last = observations[-1]
     if last.status == "stopped":
-        return str(last.result.get("message") or last.reason or "Stopped without running any tool.")
+        return str(last.result.get("message") or "") or fallback_text or "I stopped here without running anything else."
     if last.status == "blocked":
-        return f"Action blocked ({last.blocked_reason or 'not permitted'}): {last.reason or 'no change was made.'}"
+        return f"I could not run that step ({last.blocked_reason or 'not permitted'}), so nothing was changed."
     if last.status == "failed":
         return fallback_text or f"Could not complete the requested step ({last.blocked_reason or 'invalid choice'})."
+    if last.choice == "propose" and last.status == "waiting_for_person":
+        return OPTIONS_SHOWN
     parts = []
     for obs in observations:
         if obs.choice == "inspect":
             suspects = obs.result.get("suspects") or []
             if suspects:
-                cols = ", ".join(str(s.get("column")) for s in suspects[:6])
-                parts.append(f"Inspection flagged possible leakage columns: {cols}.")
+                cols = ", ".join(str(s.get("column") or s.get("statement") or "") for s in suspects[:6])
+                parts.append(f"The leakage check flagged columns that may be written after the outcome: {cols}.")
             else:
-                parts.append("Completed read-only table inspection.")
+                parts.append("I checked the table's columns for leakage.")
         elif obs.choice == "consult":
             if obs.result.get("insufficient_evidence"):
-                parts.append("Advisor reported insufficient evidence (provisional).")
+                parts.append("The specialist found too little evidence to say more (provisional).")
             else:
-                parts.append(f"Advisor ({obs.result.get('specialist')}) returned {len(obs.result.get('findings') or [])} provisional finding(s).")
-        elif obs.choice == "compare":
-            parts.append(f"Training-fold comparison ({obs.result.get('metric')}): set A {obs.result['set_a']['score']} vs set B {obs.result['set_b']['score']}.")
-        elif obs.choice == "revise":
-            parts.append(f"Revised provisional plan (revision {obs.result.get('revision')}): {obs.result.get('plan')}")
-    return " ".join(parts) or fallback_text or "Completed bounded investigation step."
+                parts.append(f"The specialist ({obs.result.get('specialist')}) came back with provisional findings.")
+        elif obs.choice == "compare" and "set_a" in obs.result:
+            parts.append(f"On the training rows ({obs.result.get('metric')}): set A {obs.result['set_a']['score']}, "
+                         f"set B {obs.result['set_b']['score']}.")
+        elif obs.choice == "revise" and obs.result.get("applied"):
+            parts.append("I am using the revised plan you approved.")
+        elif obs.choice == "revise" and obs.result.get("declined"):
+            parts.append("I kept the plan as it was.")
+    return " ".join(parts) or fallback_text or "I finished this step."
 
 
 def run_bounded_turn(state: Any, client: Any, registry: Registry, context_messages: list[dict[str, Any]], *,
                      max_decisions: int = MAX_DECISIONS) -> dict[str, Any]:
     """Run one bounded Lead turn: offer permitted menu, validate & dispatch choice, persist observation, repeat until
-    waiting_for_person, stopped, blocked, budget limit, unchanged repeat, or max_decisions."""
+    waiting_for_person, stopped, blocked, budget limit, unchanged repeat, or max_decisions. Never raises: a failure inside
+    the turn is a failed observation and a safe reply (its caller catches nothing but RuntimeError)."""
+    try:
+        return _bounded_turn(state, client, registry, context_messages, max_decisions=max_decisions)
+    except Exception as exc:  # noqa: BLE001 - the person gets a safe reply, the failure is recorded
+        obs = Observation(decision_id="dec_" + secrets.token_hex(5), choice="stop", tool=None, status="failed",
+                          reason=f"turn error: {type(exc).__name__}", evidence_refs=[], available_options=[], menu_revision="",
+                          blocked_reason="turn_error")
+        try:
+            _persist_observation(state, obs)
+        except Exception:  # noqa: BLE001
+            pass
+        try:
+            state.turns.append({"role": "assistant", "content": TURN_FAILED})
+        except Exception:  # noqa: BLE001
+            pass
+        return {"text": TURN_FAILED, "options": [], "route": getattr(getattr(state, "case", None), "route", None), "asking": False,
+                "cards": [], "observations": [obs.to_record()], "decisions": list(getattr(state, "decisions", None) or [])}
+
+
+def _bounded_turn(state: Any, client: Any, registry: Registry, context_messages: list[dict[str, Any]], *,
+                  max_decisions: int) -> dict[str, Any]:
+    from . import case_agent
+
     observations: list[Observation] = []
     ran_actions: set[tuple[str, str, str]] = set()
     messages = list(context_messages)
     fallback_text = ""
+    agent_words: list[dict[str, Any]] = []  # the agent's own words this turn, as replies (spoken() drops working notes)
+    queue: list[Mapping[str, Any]] = []  # a reply's later tool calls, each run on the menu as it is when its turn comes
+    words = next((str(t.get("content") or "") for t in reversed(getattr(state, "turns", None) or []) if t.get("role") == "user"), "")
+    max_tokens = case_agent.THINK_FIRST_TOKENS if case_agent.think_first() else case_agent.POLICY.max_tokens
+
+    answered = _resolve_pending_revision(state, words)  # a proposed revision answered by the person's latest words
+    if answered is not None:
+        observations.append(answered)
+
+    def ended(obs: Observation) -> None:
+        _persist_observation(state, obs)
+        observations.append(obs)
 
     for _ in range(max_decisions):
         menu = build_menu(state, registry)
-        if client is None:
-            obs = Observation(decision_id="dec_" + secrets.token_hex(5), choice="stop", tool=None, status="failed",
-                              reason="model unavailable", evidence_refs=list(menu.evidence_refs),
-                              available_options=[o.id for o in menu.options], menu_revision=menu.revision,
-                              blocked_reason="model_unavailable")
-            _persist_observation(state, obs)
-            observations.append(obs)
-            fallback_text = "The model is unavailable; no action was executed."
-            break
-
-        before_spend = _spent(client) + _spent(getattr(state, "specialist_client", None))
-        menu_msg = {"role": "user", "content": "[DCLab decision menu]\n" + json.dumps(menu.as_prompt_dict(), ensure_ascii=False)}
-        try:
-            reply = client.complete([*messages, menu_msg], _choice_tools(menu, registry), max_tokens=1200)
-        except Exception as exc:  # noqa: BLE001 - explicit typed failure on transport/budget exception
-            obs = Observation(decision_id="dec_" + secrets.token_hex(5), choice="stop", tool=None, status="failed",
-                              reason=f"model error: {type(exc).__name__}", evidence_refs=list(menu.evidence_refs),
-                              available_options=[o.id for o in menu.options], menu_revision=menu.revision,
-                              blocked_reason="model_unavailable")
-            _persist_observation(state, obs)
-            observations.append(obs)
-            fallback_text = f"Paused safely because the model could not answer ({type(exc).__name__})."
-            break
-        state.spent_eur += max(0.0, _spent(client) + _spent(getattr(state, "specialist_client", None)) - before_spend)
-
-        selection = _parse_model_selection(reply or {}, menu)
-        if selection is None:
-            # Bounded safe fallback on invalid reply: record traceable failure and surface a safe blocker without running tools.
-            obs = Observation(decision_id="dec_" + secrets.token_hex(5), choice="invalid", tool=None, status="failed",
-                              reason="model reply was not a valid menu choice", evidence_refs=list(menu.evidence_refs),
-                              available_options=[o.id for o in menu.options], menu_revision=menu.revision,
-                              blocked_reason="invalid_selection")
-            _persist_observation(state, obs)
-            observations.append(obs)
-            fallback_text = "Could not validate the proposed next action; please clarify what you want to check or run next."
-            break
+        if queue:
+            selection = _selection_of_call(queue.pop(0), menu)
+            selection["menu_revision"] = menu.revision  # checked again on this menu: the choice, the facts, the approvals
+        else:
+            if client is None:
+                ended(Observation(decision_id="dec_" + secrets.token_hex(5), choice="stop", tool=None, status="failed",
+                                  reason="model unavailable", evidence_refs=list(menu.evidence_refs),
+                                  available_options=[o.id for o in menu.options], menu_revision=menu.revision,
+                                  blocked_reason="model_unavailable"))
+                fallback_text = "The model is unavailable; no action was executed."
+                break
+            before_spend = _spent(client) + _spent(getattr(state, "specialist_client", None))
+            menu_msg = {"role": "user", "content": "[DCLab decision menu]\n" + json.dumps(menu.as_prompt_dict(), ensure_ascii=False)}
+            try:
+                reply = client.complete([*messages, menu_msg], _choice_tools(menu, registry), max_tokens=max_tokens)
+            except Exception as exc:  # noqa: BLE001 - explicit typed failure on transport/budget exception
+                ended(Observation(decision_id="dec_" + secrets.token_hex(5), choice="stop", tool=None, status="failed",
+                                  reason=f"model error: {type(exc).__name__}", evidence_refs=list(menu.evidence_refs),
+                                  available_options=[o.id for o in menu.options], menu_revision=menu.revision,
+                                  blocked_reason="model_unavailable"))
+                fallback_text = f"Paused safely because the model could not answer ({type(exc).__name__})."
+                break
+            state.spent_eur += max(0.0, _spent(client) + _spent(getattr(state, "specialist_client", None)) - before_spend)
+            reply = reply if isinstance(reply, Mapping) else {}
+            content = str(reply.get("content") or "").strip()
+            calls = [c for c in (reply.get("tool_calls") or []) if isinstance(c, Mapping)]
+            if calls:
+                selection = _selection_of_call(calls[0], menu, content)
+                queue = list(calls[1:])
+                if content:  # the agent's words beside its calls are for the person, unless they are only a working note
+                    names = []
+                    for c in calls:
+                        sel = _selection_of_call(c, menu)
+                        opt = menu.by_id(str(sel.get("choice") or ""))
+                        names.append({"name": (opt.tool if opt and opt.tool else _call_parts(c)[0])})
+                    agent_words.append({"role": "assistant", "content": content, "tool_calls": names})
+            elif content and _text_selection(content) is not None:
+                selection = _text_selection(content)
+            elif content:  # an answer in words, the native way to reply: said (after the checks) and the turn stops
+                agent_words.append({"role": "assistant", "content": content})
+                ended(Observation(decision_id="dec_" + secrets.token_hex(5), choice="say", tool=None, status="stopped",
+                                  reason="the agent answered in words", evidence_refs=list(menu.evidence_refs),
+                                  available_options=[o.id for o in menu.options], menu_revision=menu.revision,
+                                  result={"said": True}, committed_effects=0))
+                break
+            else:
+                ended(Observation(decision_id="dec_" + secrets.token_hex(5), choice="invalid", tool=None, status="failed",
+                                  reason="model reply was not a valid menu choice", evidence_refs=list(menu.evidence_refs),
+                                  available_options=[o.id for o in menu.options], menu_revision=menu.revision,
+                                  blocked_reason="invalid_selection"))
+                fallback_text = "Could not validate the proposed next action; please clarify what you want to check or run next."
+                break
 
         sig_args = json.dumps(selection.get("arguments") or {}, sort_keys=True, default=str)
         repeat_sig = (str(selection.get("choice") or ""), sig_args, _fact_fingerprint(state))
         if repeat_sig in ran_actions:
-            obs = Observation(decision_id="dec_" + secrets.token_hex(5), choice="stop", tool=None, status="stopped",
+            ended(Observation(decision_id="dec_" + secrets.token_hex(5), choice="stop", tool=None, status="stopped",
                               reason="stopped repeated identical choice with unchanged evidence",
                               evidence_refs=list(menu.evidence_refs), available_options=[o.id for o in menu.options],
-                              menu_revision=menu.revision, result={"stopped": True, "message": "Stopped repeated unchanged choice."},
-                              blocked_reason="repeated_unchanged_choice")
-            _persist_observation(state, obs)
-            observations.append(obs)
+                              menu_revision=menu.revision, result={"stopped": True, "message": ""},
+                              blocked_reason="repeated_unchanged_choice"))
             break
         ran_actions.add(repeat_sig)
 
@@ -983,6 +1258,8 @@ def run_bounded_turn(state: Any, client: Any, registry: Registry, context_messag
         obs = dispatch_choice(state, menu, selection, registry)
         state.spent_eur += max(0.0, _spent(getattr(state, "specialist_client", None)) - before_dispatch_spend)
         observations.append(obs)
+        if obs.choice == "stop" and str(obs.result.get("message") or "").strip():
+            agent_words.append({"role": "assistant", "content": str(obs.result["message"]).strip()})
         messages.append({"role": "assistant", "content": json.dumps({"choice": obs.choice, "reason": obs.reason})})
         messages.append({"role": "user", "content": "[DCLab observation]\n" + json.dumps(obs.to_record(), default=str)})
 
@@ -990,17 +1267,28 @@ def run_bounded_turn(state: Any, client: Any, registry: Registry, context_messag
             break
         if state.spent_eur >= state.cap_eur:
             state.waiting_on_budget = True
-            budget_obs = Observation(decision_id="dec_" + secrets.token_hex(5), choice="stop", tool=None, status="stopped",
-                                     reason="run budget cap reached", evidence_refs=list(menu.evidence_refs),
-                                     available_options=[o.id for o in menu.options], menu_revision=state_revision(state),
-                                     result={"stopped": True, "message": "Stopped at the run budget cap."},
-                                     blocked_reason="budget_exhausted")
-            _persist_observation(state, budget_obs)
-            observations.append(budget_obs)
+            ended(Observation(decision_id="dec_" + secrets.token_hex(5), choice="stop", tool=None, status="stopped",
+                              reason="run budget cap reached", evidence_refs=list(menu.evidence_refs),
+                              available_options=[o.id for o in menu.options], menu_revision=state_revision(state),
+                              result={"stopped": True, "message": "Stopped at the run budget cap."},
+                              blocked_reason="budget_exhausted"))
             break
 
-    text = _summarize_observations(state, observations, fallback_text)
-    state.turns.append({"role": "assistant", "content": text})
+    texts = case_agent.spoken(agent_words) if agent_words else []
+    if not texts and not state.said:
+        texts = [_summarize_observations(observations, fallback_text)]
+    plan_before = state.plan
+    text = case_agent.checked_message(state, texts, words)  # every word shown passes the native turn's checks
+    if _pending_revision(state) is not None:
+        state.plan = plan_before  # a plan shown for the person's yes is not the working plan until they give it
+    state.turns.append({"role": "assistant", "content": text + ("\n(Options: " + "; ".join(o.title for o in state.shown) + ")" if state.shown else "")})
+    if getattr(state, "checkpoint", None):
+        from . import case_session
+
+        try:
+            case_session.save(state, state.checkpoint)
+        except Exception:  # noqa: BLE001
+            pass
     return {
         "text": text,
         "options": list(state.shown),
