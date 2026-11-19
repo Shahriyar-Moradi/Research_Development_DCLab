@@ -18,10 +18,11 @@ column (a benchmark's, a challenge's, a sealed set's), however it is written. No
 from __future__ import annotations
 
 import hashlib
+import json
 import re
 import unicodedata
 from datetime import datetime, timezone
-from typing import Literal, Optional
+from typing import Any, ClassVar, Literal, Optional
 
 from pydantic import Field, field_validator, model_validator
 
@@ -30,11 +31,11 @@ from .contracts import CONTRACTS, Contract, Versioned, _version
 TEXT = 300                 # characters of one item
 BRIEF_TOKENS = 800         # tokens of the brief an agent reads at the start of a session
 KINDS = ("fact", "episode", "know_how", "knowledge")
-SCOPES = ("global", "workspace", "person", "project", "session")  # wide to narrow
+SCOPES = ("global", "workspace", "person", "project", "problem", "session")  # wide to narrow
 STATUSES = ("draft", "active", "retired")
 GLOBAL_KINDS = ("know_how", "knowledge")  # DCLab's own: never a fact about one person or project
 Kind = Literal["fact", "episode", "know_how", "knowledge"]
-Scope = Literal["global", "workspace", "person", "project", "session"]
+Scope = Literal["global", "workspace", "person", "project", "problem", "session"]
 Status = Literal["draft", "active", "retired"]
 ID = r"^M-[0-9a-f]{12}$"
 
@@ -63,6 +64,16 @@ def _utc(value: str) -> str:
     return moment.astimezone(timezone.utc).isoformat(timespec="seconds")
 
 
+def problem_scope_id(workspace_id: str, project_id: str, problem_id: str) -> str:
+    """Canonical composite scope id for a problem, carrying its full parent chain (workspace, project, problem)."""
+    ws, proj, prob = str(workspace_id or "").strip(), str(project_id or "").strip(), str(problem_id or "").strip()
+    if not (ws and proj and prob):
+        raise ValueError("problem_scope_id requires non-empty workspace_id, project_id, and problem_id")
+    if any(":" in part for part in (ws, proj, prob)):
+        raise ValueError("scope id segments may not contain ':'")
+    return f"{ws}:{proj}:{prob}"
+
+
 def item_id(kind: str, scope: str, scope_id: str, text: str) -> str:
     return "M-" + hashlib.sha256(f"{kind}:{scope}:{scope_id}:{_norm(text)}".encode()).hexdigest()[:12]
 
@@ -74,9 +85,10 @@ class Counters(Contract):
 
 
 class MemoryItem(Versioned):
-    """One remembered line (v1)."""
+    """One remembered line (v2: adds the ``problem`` scope while keeping all v1 items readable)."""
 
-    schema_version: Literal["dclab_core.memory_item.v1"] = _version("memory_item")
+    schema_version: Literal["dclab_core.memory_item.v2"] = _version("memory_item", 2)
+    READS: ClassVar[frozenset[str]] = frozenset({"dclab_core.memory_item.v1"})
     id: str = Field(pattern=ID)
     kind: Kind
     scope: Scope
@@ -93,6 +105,13 @@ class MemoryItem(Versioned):
     last_used_at: Optional[str] = Field(default=None, max_length=40)
     vector: Optional[list[float]] = Field(default=None, max_length=8192)
     vector_model: Optional[str] = Field(default=None, max_length=160)
+
+    @classmethod
+    def read(cls, document: Any):
+        data = json.loads(document) if isinstance(document, (str, bytes)) else dict(document)
+        if data.get("schema_version") == "dclab_core.memory_item.v1":
+            data = {**data, "schema_version": cls.model_fields["schema_version"].default}
+        return super().read(data)
 
     @field_validator("text")
     @classmethod
@@ -262,5 +281,5 @@ def retire(item: MemoryItem, by: str | None = None) -> MemoryItem:
 CONTRACTS["memory_item"] = MemoryItem
 CONTRACTS["memory_brief"] = Brief
 
-__all__ = ["TEXT", "BRIEF_TOKENS", "KINDS", "SCOPES", "STATUSES", "GLOBAL_KINDS", "tokens", "item_id", "Counters", "MemoryItem", "Brief",
-           "new", "named", "check", "resolve", "select", "cited", "counted", "retire"]
+__all__ = ["TEXT", "BRIEF_TOKENS", "KINDS", "SCOPES", "STATUSES", "GLOBAL_KINDS", "tokens", "problem_scope_id", "item_id", "Counters",
+           "MemoryItem", "Brief", "new", "named", "check", "resolve", "select", "cited", "counted", "retire"]

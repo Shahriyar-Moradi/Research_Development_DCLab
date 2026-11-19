@@ -49,6 +49,9 @@ def snapshot(state: Any) -> dict[str, Any]:
             "decision_experiments": int(getattr(state, "decision_experiments", 0)),
             "approvals_pending": bool(getattr(state, "approvals_pending", False)),
             "problem_revision": getattr(state, "problem_revision", None),
+            "project_id": getattr(state, "project_id", None),
+            "problem_id": getattr(state, "problem_id", None),
+            "pending_recommendations": list(getattr(state, "pending_recommendations", []) or []),
             "trace_n": getattr(getattr(state, "trace", None), "n", 0), "trace_reply": getattr(getattr(state, "trace", None), "last_reply", -1)}
 
 
@@ -98,6 +101,9 @@ def restore(state: Any, doc: dict[str, Any]) -> None:
     state.decision_experiments = int(doc.get("decision_experiments") or 0)
     state.approvals_pending = bool(doc.get("approvals_pending", False))
     state.problem_revision = doc.get("problem_revision")
+    state.project_id = doc.get("project_id")
+    state.problem_id = doc.get("problem_id")
+    state.pending_recommendations = list(doc.get("pending_recommendations") or [])
     if doc.get("run_id"):
         trace = tracer("case", run_id=doc["run_id"])
         trace.n = int(doc.get("trace_n") or 0)

@@ -85,13 +85,15 @@ def confirmed_facts(draft: dict[str, Any]) -> list[tuple[str, bool]]:
     return [(line, ok) for line, ok in out if not (line in seen or seen.add(line))]
 
 
-def hand_off(store: Any, draft: dict[str, Any], project_id: str, log: Any = None) -> int:
-    """H5: when a conversation becomes a project, what the person stated becomes the project's memory (dclab_rnd.memory, one
-    fact per line, source home brief:<draft>). Best effort: a refused line (a key, a password) or no memory is skipped."""
+def hand_off(store: Any, draft: dict[str, Any], project_id: str, log: Any = None, *, problem_id: str | None = None,
+             workspace_id: str = "local") -> int:
+    """H5 + A6: when a conversation becomes a project, what the person stated becomes the project's memory and
+    (when a problem_id is bound) the Problem Base, with source attribution. Best effort: refused lines are skipped."""
     from pathlib import Path
 
     try:
         from .. import memory as project_memory
+        from ..memory import bases as memory_bases, scope as memory_scope
         from ..memory.writing import record_fact
     except ImportError:
         return 0
@@ -104,14 +106,38 @@ def hand_off(store: Any, draft: dict[str, Any], project_id: str, log: Any = None
 
     try:
         from ..accounts.principal import current
-        person = getattr(current(), "user_id", None) or "owner"
+        who_p = current()
+        person = getattr(who_p, "user_id", None) or "owner"
+        role = getattr(who_p, "role", None) or "owner"
+        ws = str(getattr(who_p, "workspace_id", None) or workspace_id or "local")
     except Exception:  # noqa: BLE001 - no accounts: the workspace's owner
-        person = "owner"
+        person, role, ws = "owner", "owner", str(workspace_id or "local")
+    bound_prob = problem_id or draft.get("problem_id")
+    auth_scope = (
+        memory_scope.AuthorizedScope(workspace_id=ws, principal_id=person, role=role, project_id=project_id,
+                                     problem_id=str(bound_prob), draft_id=draft.get("id"))
+        if bound_prob else None
+    )
     written = 0
     for line, confirmed in confirmed_facts(draft):
         try:  # a memory write never fails a build (the review of H5): any error is said and the next line goes on
             record_fact(book, scope="project", scope_id=project_id, text=line, source=f"home brief:{draft['id']}",
                         who=f"person:{person}" if confirmed else "agent:home", log=log)
+            if auth_scope is not None:
+                field_label = line.split(":", 1)[0].strip().lower().replace(" ", "_") if ":" in line else "fact"
+                field_map = {"prediction_made": "prediction_moment", "outcome_predicted": "target"}
+                field_name = field_map.get(field_label, field_label)
+                if confirmed:
+                    memory_bases.upsert_base_fact(
+                        Path(home), auth_scope, target="problem", subject="problem", field=field_name,
+                        text=line, source=f"home brief:{draft['id']}", log=log,
+                    )
+                else:
+                    memory_bases.propose_draft(
+                        Path(home), auth_scope, target="problem", subject="problem", field=field_name,
+                        text=line, source_type="home_brief", source_id=str(draft["id"]), source_revision="1",
+                        author="agent:home", log=log,
+                    )
             written += 1
         except Exception as error:  # noqa: BLE001
             print(f"home memory: a line was not kept ({type(error).__name__})", file=sys.stderr)

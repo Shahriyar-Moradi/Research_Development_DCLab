@@ -277,14 +277,15 @@ def forget(*, project: str | None = None, draft: str | None = None, visit: str |
             out["exchanges"] = exchanges(home, project=project, draft=draft)
         except Exception:  # noqa: BLE001
             out.setdefault("failed", []).append("exchanges")
-    if home is not None and project:  # 35.2: a deleted project's memory items retired (new versions; the store keeps the old ones)
+    if home is not None and project:  # 35.2 + A4/A5: retire project & problem memory items and purge derived bases/summaries/vectors
         try:
-            from ..memory import open_memory, retire_scope
-
+            from ..memory import bases as memory_bases
             from ..storage import db
 
             if db.database_url(required=False) or (Path(home) / "memory").is_dir():  # a file workspace with no memory gets no folder
-                out["memory"] = retire_scope(open_memory(Path(home)), "project", project, log=log)
+                ws = getattr(log, "workspace", None) or getattr(ledger, "workspace", None) or "local"
+                purged = memory_bases.purge_scope(Path(home), "project", project, workspace_id=str(ws), project_id=project, log=log)
+                out["memory"] = purged["retired_items"]
         except Exception as exc:  # noqa: BLE001
             out.setdefault("failed", []).append("memory")
             print(f"retention: could not retire the memory of what was deleted: {type(exc).__name__}", file=sys.stderr, flush=True)

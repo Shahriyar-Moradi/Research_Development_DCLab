@@ -363,7 +363,12 @@ class CaseState:
     decision_revisions: int = 0  # A2: plan revisions performed in this case
     decision_experiments: int = 0  # A2: training-fold comparisons performed in this case
     approvals_pending: bool = False  # A1-A2: pending approval blocks gated execution
-    problem_revision: Optional[str] = None  # A5-A6: active problem summary cursor when memory is attached
+    problem_revision: Optional[Any] = None  # A5-A6: active problem summary revision when memory is attached
+    project_id: Optional[str] = None  # A6: bound project id when resuming or linked to a project
+    problem_id: Optional[str] = None  # A6: bound problem id when linked to a project problem
+    authorized_scope: Any = None  # A3-A6: host-resolved AuthorizedScope (never persisted in checkpoint)
+    problem_summary: Optional[dict[str, Any]] = None  # A5-A6: latest active versioned resumable summary
+    pending_recommendations: list[dict[str, Any]] = field(default_factory=list)  # A6: Advisor recommendations with pinned dependencies
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "recorded", self.case.version)  # what the case already held is not a new event (a resumed case)

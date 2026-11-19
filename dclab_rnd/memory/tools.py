@@ -22,13 +22,24 @@ def workspace_home(projects: Any) -> Path:
     return Path(files_for(projects).root)
 
 
-def chain(projects: Any, project_id: str | None) -> list[tuple[str, str]]:
-    from ..accounts.principal import current
+def chain(projects: Any, project_id: str | None, problem_id: str | None = None, *, session_id: str | None = None) -> list[tuple[str, str]]:
+    from .scope import auth_enabled, project_scope_id, resolve_scope
 
-    who = current()
-    person = who.user_id if who is not None and who.user_id else "owner"
-    out = [("global", "dclab"), ("workspace", getattr(projects, "workspace_id", None) or "local"), ("person", person)]
-    return out + ([("project", project_id)] if project_id else [])
+    ws = str(getattr(projects, "workspace_id", None) or "local")
+    has_store = hasattr(projects, "get")
+    if project_id and not has_store and not auth_enabled():
+        resolved = resolve_scope(workspace_id=ws, session_id=session_id, require_problem=False, auto_create_legacy_problem=False)
+        return resolved.chain(include_personal=True, include_session=bool(session_id)) + [("project", project_scope_id(ws, project_id))]
+    resolved = resolve_scope(
+        workspace_id=ws,
+        projects=projects if project_id else None,
+        project_id=project_id,
+        problem_id=problem_id,
+        session_id=session_id,
+        require_problem=False,
+        auto_create_legacy_problem=False,
+    )
+    return resolved.chain(include_personal=True, include_session=bool(session_id))
 
 
 def lessons_read(projects: Any) -> list:
@@ -44,6 +55,31 @@ def lessons_read(projects: Any) -> list:
 
 def _recall(box: Any, question: str, project_id: str | None = None) -> dict[str, Any]:
     from .reading import enabled
+    from .scope import AccessDenied, AmbiguousProblemError, resolve_scope
+
+    ws = getattr(box.projects, "workspace_id", None) or "local"
+    try:
+        resolved = resolve_scope(
+            workspace_id=str(ws),
+            projects=box.projects if project_id else None,
+            project_id=project_id,
+            require_problem=False,
+            auto_create_legacy_problem=False,
+        )
+    except (AccessDenied, AmbiguousProblemError) as exc:
+        return {"error": str(exc), "items": [], "found": 0}
+    # If project has a single active problem, attach it automatically for problem-scoped recall.
+    if project_id and resolved.problem_id is None:
+        try:
+            proj = box.projects.get(project_id)
+            active_probs = [p for p in (proj.get("problems") or []) if isinstance(p, dict) and p.get("status", "active") == "active"]
+            if len(active_probs) == 1:
+                resolved = resolve_scope(
+                    workspace_id=str(ws), projects=box.projects, project_id=project_id,
+                    problem_id=active_probs[0]["problem_id"], require_problem=True, auto_create_legacy_problem=False,
+                )
+        except Exception:  # noqa: BLE001
+            pass
 
     read = lessons_read(box.projects) if enabled() else []
     if project_id:
@@ -52,7 +88,7 @@ def _recall(box: Any, question: str, project_id: str | None = None) -> dict[str,
     from .vectors import embedder_for
 
     embedder = embedder_for(workspace_home(box.projects), project_id) if enabled() else None  # 35.5: by meaning when a local model serves
-    found = recall(store, question, chain(box.projects, project_id), read, ids={"project": project_id}, embedder=embedder)
+    found = recall(store, question, resolved.chain(include_personal=True), read, ids={"project": project_id}, embedder=embedder)
     return {"items": [{"id": i.id, "kind": i.kind, "scope": i.scope, "text": i.text} for i in found], "found": len(found)}
 
 

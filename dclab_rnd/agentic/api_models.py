@@ -293,6 +293,97 @@ class MemoryProposal(Doc):
     source: Any = None
 
 
+class ProblemCreate(Doc):
+    name: Any = ""
+    description: Any = ""
+    draft_id: Any = None
+
+
+class ProblemDoc(Doc):
+    problem_id: Any = None
+    name: Any = None
+    project_id: Any = None
+    workspace_id: Any = None
+    status: Any = None
+    revision: Any = None
+
+
+class ProblemsView(Doc):
+    project_id: Any = None
+    default_problem_id: Any = None
+    problems: list[Any] | None = None
+
+
+class BaseFactUpsert(Doc):
+    target: Any = "problem"
+    problem_id: Any = None
+    subject: Any = "problem"
+    field: Any = "fact"
+    text: Any = ""
+    source: Any = "ui:memory_base"
+    expected_revision: Any = None
+    reason: Any = ""
+
+
+class BaseFactCorrect(Doc):
+    target: Any = "problem"
+    problem_id: Any = None
+    text: Any = ""
+    expected_revision: Any = None
+    reason: Any = ""
+
+
+class BaseFactRetire(Doc):
+    target: Any = "problem"
+    problem_id: Any = None
+    expected_revision: Any = None
+    reason: Any = ""
+
+
+class BaseDraftConfirm(Doc):
+    target: Any = "problem"
+    problem_id: Any = None
+    action: Any = "accept"
+    expected_revision: Any = None
+    allow_stale: Any = False
+
+
+class BaseView(Doc):
+    scope: Any = None
+    scope_id: Any = None
+    project_id: Any = None
+    problem_id: Any = None
+    revision: Any = None
+    active: list[Any] | None = None
+    drafts: list[Any] | None = None
+    retired: list[Any] | None = None
+
+
+class BaseMutationResult(Doc):
+    entry: Any = None
+    revision: Any = None
+    unchanged: Any = None
+    stale_dependents: list[Any] | None = None
+
+
+class ProblemSummaryView(Doc):
+    schema_version: Any = None
+    project_id: Any = None
+    problem_id: Any = None
+    project_revision: Any = None
+    problem_revision: Any = None
+    resume_url: Any = None
+    active_facts: list[Any] | None = None
+    recent_decisions: list[Any] | None = None
+    open_questions: list[Any] | None = None
+    pending_approvals: list[Any] | None = None
+    pending_drafts: list[Any] | None = None
+    next_proposed_action: Any = None
+    personal_preferences: list[Any] | None = None
+    omitted_count: Any = None
+    text: Any = None
+
+
 class Lessons(Doc):
     lessons: list[Any] | None = None
     label: Any = None

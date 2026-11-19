@@ -109,12 +109,14 @@ class Menu:
     remaining_eur: float
     approvals_pending: bool
     stop_requested: bool
+    problem_revision: Optional[int] = None
+    problem_summary: Optional[dict[str, Any]] = None
 
     def by_id(self, choice_id: str) -> Optional[MenuOption]:
         return next((o for o in self.options if o.id == choice_id), None)
 
     def as_prompt_dict(self) -> dict[str, Any]:
-        return {
+        out: dict[str, Any] = {
             "menu_revision": self.revision,
             "remaining_eur": round(self.remaining_eur, 4),
             "approvals_pending": self.approvals_pending,
@@ -122,6 +124,27 @@ class Menu:
             "evidence_refs": list(self.evidence_refs),
             "options": [{"id": o.id, "tool": o.tool, "summary": o.summary, "defaults": o.defaults} for o in self.options],
         }
+        if self.problem_revision is not None:
+            out["problem_revision"] = self.problem_revision
+        if isinstance(self.problem_summary, Mapping):
+            out["problem_context"] = {
+                "project_id": self.problem_summary.get("project_id"),
+                "problem_id": self.problem_summary.get("problem_id"),
+                "problem_revision": self.problem_summary.get("problem_revision"),
+                "resume_url": self.problem_summary.get("resume_url"),
+                "text": self.problem_summary.get("text", ""),
+                "active_facts": [
+                    {"field": f.get("field"), "text": f.get("text"), "revision": f.get("revision"), "correction": bool(f.get("correction"))}
+                    for f in (self.problem_summary.get("active_facts") or [])
+                ],
+                "stale_drafts": [
+                    {"entry_id": d.get("entry_id"), "field": d.get("field"), "stale_reason": d.get("stale_reason"),
+                     "changed_sources": d.get("changed_sources") or []}
+                    for d in (self.problem_summary.get("pending_drafts") or []) if d.get("stale")
+                ],
+                "personal_preferences": [p.get("text") for p in (self.problem_summary.get("personal_preferences") or [])],
+            }
+        return out
 
 
 @dataclass
@@ -246,9 +269,33 @@ def _has_tool(registry: Registry, name: str) -> bool:
         return False
 
 
+def _sync_problem_context(state: Any) -> Optional[dict[str, Any]]:
+    """Read the live versioned resumable summary for a bound problem and revalidate pending Advisor recommendations."""
+    scope = getattr(state, "authorized_scope", None)
+    home = getattr(state, "workspace_home", None)
+    if scope is None or home is None or not (getattr(scope, "project_id", None) and getattr(scope, "problem_id", None)):
+        return getattr(state, "problem_summary", None)
+    try:
+        from ..core_advisor import check_recommendation_freshness
+        from ..memory import summary as mem_summary
+
+        doc = mem_summary.read_summary(Path(home), scope, auto_rebuild=True, include_personal_overlay=True)
+        doc["resume_url"] = f"/projects/{scope.project_id}?problem={scope.problem_id}"
+        state.problem_summary = doc
+        state.problem_revision = int(doc.get("problem_revision") or 0)
+        pending = list(getattr(state, "pending_recommendations", None) or [])
+        if pending:
+            state.pending_recommendations = [check_recommendation_freshness(r, doc) for r in pending]
+        return doc
+    except Exception:  # noqa: BLE001 - never break non-memory sessions if summary is unavailable
+        return getattr(state, "problem_summary", None)
+
+
 def build_menu(state: Any, registry: Registry, *, allow_a2: bool = True, max_revisions: int = MAX_REVISIONS,
                max_experiments: int = MAX_EXPERIMENTS) -> Menu:
     """Construct the host-authorized choice menu from registered tools, workflow state, approvals, and budget."""
+    prob_summary = _sync_problem_context(state)
+    prob_rev = int(prob_summary["problem_revision"]) if isinstance(prob_summary, Mapping) and prob_summary.get("problem_revision") is not None else getattr(state, "problem_revision", None)
     remaining = max(0.0, float(getattr(state, "cap_eur", 0.0)) - float(getattr(state, "spent_eur", 0.0)))
     approvals_pending = bool(getattr(state, "approvals_pending", False))
     last_user = next((str(t.get("content") or "") for t in reversed(getattr(state, "turns", None) or []) if t.get("role") == "user"), "")
@@ -305,7 +352,9 @@ def build_menu(state: Any, registry: Registry, *, allow_a2: bool = True, max_rev
 
     options.append(MenuOption(id="stop", tool=None, summary="Pause or stop cleanly without running any tool or changing state."))
     return Menu(revision=state_revision(state), options=tuple(options), evidence_refs=_evidence_refs(state),
-                remaining_eur=remaining, approvals_pending=approvals_pending, stop_requested=stop_requested)
+                remaining_eur=remaining, approvals_pending=approvals_pending, stop_requested=stop_requested,
+                problem_revision=(int(prob_rev) if isinstance(prob_rev, int) else None),
+                problem_summary=prob_summary if isinstance(prob_summary, dict) else None)
 
 
 class _BoundOnceClient:
@@ -466,6 +515,26 @@ def _persist_observation(state: Any, obs: Observation) -> None:
         experience.record("agent.decision", "agent", rec, draft=getattr(state, "draft_id", None))
     except Exception:  # noqa: BLE001 - tracing failure must not break the turn
         pass
+    # A4/A6: record material decisions/outcomes idempotently into the bound Problem Base.
+    scope = getattr(state, "authorized_scope", None)
+    home = getattr(state, "workspace_home", None)
+    if (scope is not None and home is not None and getattr(scope, "project_id", None) and getattr(scope, "problem_id", None)
+            and obs.choice in ("inspect", "compare", "revise", "consult") and obs.status in ("succeeded", "blocked")):
+        try:
+            from ..memory import bases as mem_bases
+
+            status_map = {"succeeded": "succeeded", "blocked": "blocked", "stopped": "stopped", "failed": "failed"}
+            summary_text = f"Lead {obs.choice} ({obs.status}): {obs.reason or obs.blocked_reason or 'completed'}"[:280]
+            mem_bases.record_material_event(
+                Path(home), scope, target="problem",
+                source_type="lead_decision", source_id=obs.decision_id,
+                source_revision=str(getattr(state, "problem_revision", 0) or 0),
+                text=summary_text, outcome_status=status_map.get(obs.status, "proposed"),
+                who="agent:lead",
+                depends_on_revision=int(getattr(state, "problem_revision", 0) or 0),
+            )
+        except Exception:  # noqa: BLE001 - memory write must not fail the turn
+            pass
     if getattr(state, "checkpoint", None):
         case_session.save(state, state.checkpoint)
 
@@ -487,6 +556,31 @@ def dispatch_choice(state: Any, menu: Menu, selection: Mapping[str, Any], regist
     refs = [str(r) for r in (selection.get("evidence_refs") or []) if r] or list(menu.evidence_refs[:4])
     args = dict(selection.get("arguments") or {}) if isinstance(selection.get("arguments"), Mapping) else {}
     supplied_rev = selection.get("menu_revision")
+    # A6: revalidate live problem revision before executing any action so a pending action on superseded facts cannot run unchecked.
+    live_summary = _sync_problem_context(state)
+    live_prob_rev = getattr(state, "problem_revision", None)
+    dep_prob_rev = selection.get("depends_on_problem_revision", args.get("depends_on_problem_revision"))
+    if choice != "stop" and isinstance(live_prob_rev, int):
+        stale_dep = (
+            (dep_prob_rev is not None and int(dep_prob_rev) < live_prob_rev)
+            or (menu.problem_revision is not None and int(menu.problem_revision) < live_prob_rev)
+        )
+        if stale_dep:
+            changed = [
+                {"field": f.get("field"), "text": f.get("text"), "revision": f.get("revision"), "correction": bool(f.get("correction"))}
+                for f in ((live_summary or {}).get("active_facts") or [])
+                if int(f.get("revision") or 0) > int(dep_prob_rev if dep_prob_rev is not None else menu.problem_revision or 0)
+            ]
+            obs = Observation(
+                decision_id=decision_id, choice=choice, tool=None, status="blocked",
+                reason=reason or "problem facts changed since this action was proposed",
+                evidence_refs=refs, available_options=available, menu_revision=menu.revision,
+                result={"stale": True, "old_problem_revision": dep_prob_rev if dep_prob_rev is not None else menu.problem_revision,
+                        "current_problem_revision": live_prob_rev, "changed_sources": changed},
+                blocked_reason="stale_problem_fact",
+            )
+            _persist_observation(state, obs)
+            return obs
     current_rev = state_revision(state)
     if menu.revision != current_rev or (supplied_rev is not None and str(supplied_rev) != current_rev):
         obs = Observation(decision_id=decision_id, choice=choice, tool=None, status="blocked",

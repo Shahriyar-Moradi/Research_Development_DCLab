@@ -76,6 +76,28 @@ class CaseHome(HomeAgent):
         state.models = self.models
         state.draft_id = draft["id"]
         state.workspace_home = getattr(self.store, "files_home", None) or (Path(self.store.home).parent if getattr(self.store, "home", None) else None)
+        state.project_id = draft.get("project_id") or getattr(state, "project_id", None)
+        state.problem_id = draft.get("problem_id") or getattr(state, "problem_id", None)
+        if state.project_id and state.problem_id and state.workspace_home is not None:
+            try:
+                from ..accounts.principal import current as current_principal
+                from ..memory import scope as mem_scope, summary as mem_summary
+
+                who = current_principal()
+                ws = str(getattr(who, "workspace_id", None) or draft.get("workspace_id") or "local")
+                uid = str(getattr(who, "user_id", None) or "owner")
+                role = str(getattr(who, "role", None) or "owner")
+                auth_mode = "authenticated" if (mem_scope.auth_enabled() or (who is not None and getattr(who, "via", "local") != "local")) else "local"
+                state.authorized_scope = mem_scope.AuthorizedScope(
+                    workspace_id=ws, principal_id=uid, role=role,
+                    project_id=str(state.project_id), problem_id=str(state.problem_id),
+                    draft_id=str(draft["id"]), auth_mode=auth_mode,
+                )
+                doc = mem_summary.read_summary(Path(state.workspace_home), state.authorized_scope, auto_rebuild=True, include_personal_overlay=True)
+                state.problem_summary = doc
+                state.problem_revision = int(doc.get("problem_revision") or 0)
+            except Exception:  # noqa: BLE001 - draft still works if summary is unavailable
+                pass
         state.no_data_solution = draft.get("no_data_solution")
         state.specialist_client = self.models.client("case_specialist", draft_id=draft["id"]) if self.models is not None else None
         # the plan's step 1: Home gets the cheap route check the exam measured (before, only the exam's arm had it)

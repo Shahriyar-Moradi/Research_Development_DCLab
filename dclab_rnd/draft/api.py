@@ -1738,8 +1738,24 @@ def build_project(drafts: DraftStore, projects, draft_id: str) -> dict[str, Any]
             if heard_to_add(draft, stated, heard_in):
                 _add_decision(projects, pid, stated)
 
+    # A3: idempotently bind this draft to a durable problem identity inside the project.
+    problem_id = None
+    try:
+        from ..accounts.principal import current as current_principal
+        from ..memory import scope as memory_scope
+
+        who = current_principal()
+        ws = str(getattr(projects, "workspace_id", None) or getattr(who, "workspace_id", None) or "local")
+        by = str(getattr(who, "user_id", None) or "owner")
+        prob = memory_scope.ensure_default_problem(projects, pid, workspace_id=ws, by=by, name=name, draft_id=draft_id)
+        problem_id = prob["problem_id"]
+    except Exception:  # noqa: BLE001 - build still succeeds even if problem binding is unavailable
+        problem_id = None
+
     def done(d):
         d["status"], d["project_id"] = "built", pid
+        if problem_id:
+            d["problem_id"] = problem_id
     drafts.update(draft_id, done)
-    drafts.emit(draft_id, "status", {"built": True, "project_id": pid})
+    drafts.emit(draft_id, "status", {"built": True, "project_id": pid, **({"problem_id": problem_id} if problem_id else {})})
     return projects.get(pid)

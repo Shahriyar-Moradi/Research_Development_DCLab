@@ -10,7 +10,56 @@ from __future__ import annotations
 import json
 import time
 from collections.abc import Mapping
+from pathlib import Path
 from typing import Any, Optional
+
+GATED_ADVISORY_ROLES = ("problem_analyst", "data_investigator", "solution_planner")
+
+
+def check_recommendation_freshness(recommendation: Mapping[str, Any], current_summary: Mapping[str, Any]) -> dict[str, Any]:
+    """Compare an Advisor recommendation's pinned dependencies against the current problem summary.
+
+    Catches both corrections made after advice was stored AND delayed Advisor responses returning after a correction.
+    """
+    rec = dict(recommendation)
+    deps = dict(rec.get("dependencies") or {})
+    cur_prob_rev = int(current_summary.get("problem_revision") or 0)
+    cur_proj_rev = int(current_summary.get("project_revision") or 0)
+    dep_prob_rev = deps.get("problem_revision")
+    dep_proj_rev = deps.get("project_revision")
+    dep_fields = dict(deps.get("fields") or {})
+    cur_facts_by_field = {
+        str(f.get("field") or ""): f for f in (current_summary.get("active_facts") or []) if isinstance(f, Mapping)
+    }
+
+    changed: list[dict[str, Any]] = []
+    if dep_prob_rev is not None and int(dep_prob_rev) < cur_prob_rev:
+        for fld, old_info in dep_fields.items():
+            old_id = old_info.get("entry_id") if isinstance(old_info, Mapping) else old_info
+            old_text = old_info.get("text", "") if isinstance(old_info, Mapping) else ""
+            cur = cur_facts_by_field.get(fld)
+            if cur is None:
+                changed.append({"field": fld, "change": "retired", "old_entry_id": old_id, "old_text": old_text,
+                                "from_revision": int(dep_prob_rev), "to_revision": cur_prob_rev})
+            elif cur.get("entry_id") != old_id:
+                changed.append({"field": fld, "change": "corrected", "old_entry_id": old_id, "old_text": old_text,
+                                "new_entry_id": cur.get("entry_id"), "new_text": cur.get("text", ""),
+                                "from_revision": int(dep_prob_rev), "to_revision": cur_prob_rev})
+        if not changed:
+            changed.append({"field": "problem_base", "change": "updated",
+                            "from_revision": int(dep_prob_rev), "to_revision": cur_prob_rev})
+    if dep_proj_rev is not None and int(dep_proj_rev) < cur_proj_rev:
+        changed.append({"field": "project_base", "change": "updated",
+                        "from_revision": int(dep_proj_rev), "to_revision": cur_proj_rev})
+
+    stale = bool(changed)
+    rec["stale"] = stale
+    rec["may_execute"] = not stale
+    rec["changed_sources"] = changed
+    if stale:
+        names = ", ".join(c["field"] for c in changed)
+        rec["stale_reason"] = f"Recommendation depends on superseded source(s): {names}."
+    return rec
 
 
 class GatewayAdvisor:
@@ -90,6 +139,120 @@ class GatewayAdvisor:
                 made = experience.last_model_request()
                 harness.role_step(purpose, time.monotonic() - clock, verdict, model_request=made if made != before else None,
                                   project=self.project_id, conversation=self.draft_id)
+
+    def advise_on_problem(
+        self,
+        question: str,
+        *,
+        summary: Mapping[str, Any],
+        evidence: Mapping[str, Any],
+        purpose: str = "problem_analyst",
+        store_home: Optional[Path] = None,
+        scope: Any = None,
+    ) -> dict[str, Any]:
+        """Request provisional advice pinned to the current problem summary revision; detects delayed stale replies."""
+        active_facts = [dict(f) for f in (summary.get("active_facts") or []) if isinstance(f, Mapping)]
+        deps = {
+            "workspace_id": summary.get("workspace_id"),
+            "project_id": summary.get("project_id"),
+            "problem_id": summary.get("problem_id"),
+            "project_revision": int(summary.get("project_revision") or 0),
+            "problem_revision": int(summary.get("problem_revision") or 0),
+            "fact_ids": [f.get("item_id") for f in active_facts if f.get("item_id")],
+            "fields": {
+                str(f.get("field") or ""): {"entry_id": f.get("entry_id"), "text": f.get("text", "")}
+                for f in active_facts if f.get("field")
+            },
+        }
+        payload = {
+            "question": str(question),
+            "problem_revision": deps["problem_revision"],
+            "active_facts": [{"field": f.get("field"), "text": f.get("text"), "source": f.get("source"),
+                              "revision": f.get("revision")} for f in active_facts],
+            "evidence": dict(evidence),
+        }
+        raw = self.ask(purpose, payload)
+        if not isinstance(raw, Mapping):
+            rec: dict[str, Any] = {
+                "provisional": True,
+                "carries_approval": False,
+                "advisory_only": True,
+                "purpose": purpose,
+                "question": str(question),
+                "recommendation": None,
+                "reason": "insufficient evidence or advisor unavailable",
+                "uncertainty": "high",
+                "suggested_check": "Confirm missing business facts or inspect permitted diagnostics.",
+                "insufficient_evidence": True,
+                "dependencies": deps,
+                "evidence_refs": [f"problem:rev:{deps['problem_revision']}", *[f"fact:{i}" for i in deps["fact_ids"][:6]]],
+                "stale": False,
+                "may_execute": False,
+                "changed_sources": [],
+            }
+        else:
+            rec = {
+                "provisional": True,
+                "carries_approval": False,
+                "advisory_only": True,
+                "purpose": purpose,
+                "question": str(question),
+                "recommendation": raw.get("recommendation") or raw.get("choice") or raw.get("summary") or dict(raw),
+                "reason": str(raw.get("reason") or raw.get("rationale") or "").strip(),
+                "uncertainty": str(raw.get("uncertainty") or "stated").strip(),
+                "suggested_check": str(raw.get("suggested_check") or raw.get("next_check") or "").strip(),
+                "insufficient_evidence": bool(raw.get("insufficient_evidence")),
+                "dependencies": deps,
+                "evidence_refs": list(raw.get("evidence_refs") or [f"problem:rev:{deps['problem_revision']}"]),
+                "stale": False,
+                "may_execute": not bool(raw.get("insufficient_evidence")),
+                "changed_sources": [],
+                "raw": dict(raw),
+            }
+        # Revalidate immediately against live summary in case a correction landed while the Advisor was answering!
+        if store_home is not None and scope is not None:
+            from dclab_rnd.memory import summary as mem_summary
+
+            live = mem_summary.read_summary(Path(store_home), scope, auto_rebuild=True, include_personal_overlay=False)
+            rec = check_recommendation_freshness(rec, live)
+        return rec
+
+    def advise_gated_role(
+        self,
+        role: str,
+        evidence: Mapping[str, Any],
+        *,
+        home: Optional[Path] = None,
+        summary: Optional[Mapping[str, Any]] = None,
+        scope: Any = None,
+    ) -> dict[str, Any]:
+        """Run one of the three individually-gated roles in advisory-only mode when workspace switch allows it."""
+        from dclab_rnd.agents import decision_loop
+
+        if role not in GATED_ADVISORY_ROLES:
+            return {"advisory_enabled": False, "provisional": True, "carries_approval": False,
+                    "error": f"role {role!r} is not approved for advisory-only execution"}
+        if not decision_loop.advisory_roles_enabled(home):
+            return {"advisory_enabled": False, "provisional": True, "carries_approval": False,
+                    "role": role, "reason": "advisory_gated_roles switch is off"}
+        if summary is not None:
+            out = self.advise_on_problem(
+                f"Advisory review for {role}", summary=summary, evidence=evidence,
+                purpose=role, store_home=home, scope=scope,
+            )
+            out["advisory_enabled"] = True
+            out["role"] = role
+            return out
+        raw = self.ask(role, evidence)
+        return {
+            "advisory_enabled": True,
+            "advisory_only": True,
+            "provisional": True,
+            "carries_approval": False,
+            "role": role,
+            "recommendation": dict(raw) if isinstance(raw, Mapping) else None,
+            "insufficient_evidence": not isinstance(raw, Mapping),
+        }
 
 
 def _first_object(text: str) -> Optional[dict[str, Any]]:

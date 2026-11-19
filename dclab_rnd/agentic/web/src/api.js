@@ -10,6 +10,52 @@
    */
   /** @typedef {Object} AnyObject
    */
+  /** @typedef {Object} BaseDraftConfirm
+   *  @property {*=} target
+   *  @property {*=} problem_id
+   *  @property {*=} action
+   *  @property {*=} expected_revision
+   *  @property {*=} allow_stale
+   */
+  /** @typedef {Object} BaseFactCorrect
+   *  @property {*=} target
+   *  @property {*=} problem_id
+   *  @property {*=} text
+   *  @property {*=} expected_revision
+   *  @property {*=} reason
+   */
+  /** @typedef {Object} BaseFactRetire
+   *  @property {*=} target
+   *  @property {*=} problem_id
+   *  @property {*=} expected_revision
+   *  @property {*=} reason
+   */
+  /** @typedef {Object} BaseFactUpsert
+   *  @property {*=} target
+   *  @property {*=} problem_id
+   *  @property {*=} subject
+   *  @property {*=} field
+   *  @property {*=} text
+   *  @property {*=} source
+   *  @property {*=} expected_revision
+   *  @property {*=} reason
+   */
+  /** @typedef {Object} BaseMutationResult
+   *  @property {*=} entry
+   *  @property {*=} revision
+   *  @property {*=} unchanged
+   *  @property {(Array<*>|null)=} stale_dependents
+   */
+  /** @typedef {Object} BaseView
+   *  @property {*=} scope
+   *  @property {*=} scope_id
+   *  @property {*=} project_id
+   *  @property {*=} problem_id
+   *  @property {*=} revision
+   *  @property {(Array<*>|null)=} active
+   *  @property {(Array<*>|null)=} drafts
+   *  @property {(Array<*>|null)=} retired
+   */
   /** @typedef {Object} Config
    *  @property {(string|null)=} csrf
    *  @property {(boolean|null)=} api_key_configured
@@ -123,6 +169,41 @@
    *  @property {*=} reuse_reason
    */
   /** @typedef {Object} Page
+   */
+  /** @typedef {Object} ProblemCreate
+   *  @property {*=} name
+   *  @property {*=} description
+   *  @property {*=} draft_id
+   */
+  /** @typedef {Object} ProblemDoc
+   *  @property {*=} problem_id
+   *  @property {*=} name
+   *  @property {*=} project_id
+   *  @property {*=} workspace_id
+   *  @property {*=} status
+   *  @property {*=} revision
+   */
+  /** @typedef {Object} ProblemSummaryView
+   *  @property {*=} schema_version
+   *  @property {*=} project_id
+   *  @property {*=} problem_id
+   *  @property {*=} project_revision
+   *  @property {*=} problem_revision
+   *  @property {*=} resume_url
+   *  @property {(Array<*>|null)=} active_facts
+   *  @property {(Array<*>|null)=} recent_decisions
+   *  @property {(Array<*>|null)=} open_questions
+   *  @property {(Array<*>|null)=} pending_approvals
+   *  @property {(Array<*>|null)=} pending_drafts
+   *  @property {*=} next_proposed_action
+   *  @property {(Array<*>|null)=} personal_preferences
+   *  @property {*=} omitted_count
+   *  @property {*=} text
+   */
+  /** @typedef {Object} ProblemsView
+   *  @property {*=} project_id
+   *  @property {*=} default_problem_id
+   *  @property {(Array<*>|null)=} problems
    */
   /** @typedef {Object} Project
    *  @property {(string|null)=} id
@@ -361,7 +442,7 @@
     ledgerSummary: ["GET", "/ledger/summary", [], []],
     listLessons: ["GET", "/lessons", [], ["project_id", "status"]],
     reviewLesson: ["POST", "/lessons/{lesson_id}/review", ["lesson_id"], []],
-    memoryView: ["GET", "/memory", [], ["project_id"]],
+    memoryView: ["GET", "/memory", [], ["project_id", "problem_id"]],
     memoryPropose: ["POST", "/memory/proposals", [], []],
     memoryCorrect: ["POST", "/memory/{item_id}/correct", ["item_id"], []],
     memoryRetire: ["POST", "/memory/{item_id}/retire", ["item_id"], []],
@@ -413,6 +494,12 @@
     getImprovements: ["GET", "/projects/{project_id}/improvements", ["project_id"], []],
     projectLessons: ["POST", "/projects/{project_id}/lessons", ["project_id"], []],
     projectLineage: ["GET", "/projects/{project_id}/lineage", ["project_id"], ["path"]],
+    projectMemoryBaseView: ["GET", "/projects/{project_id}/memory/base", ["project_id"], ["target", "problem_id"]],
+    projectMemoryBaseUpsert: ["POST", "/projects/{project_id}/memory/base", ["project_id"], []],
+    projectMemoryBaseConfirm: ["POST", "/projects/{project_id}/memory/base/{entry_id}/confirm", ["project_id", "entry_id"], []],
+    projectMemoryBaseCorrect: ["POST", "/projects/{project_id}/memory/base/{entry_id}/correct", ["project_id", "entry_id"], []],
+    projectMemoryBaseRetire: ["POST", "/projects/{project_id}/memory/base/{entry_id}/retire", ["project_id", "entry_id"], []],
+    projectMemorySummary: ["GET", "/projects/{project_id}/memory/summary", ["project_id"], ["problem_id"]],
     removeMemoryNote: ["DELETE", "/projects/{project_id}/memory/{note_id}", ["project_id", "note_id"], []],
     uploadNewerRows: ["PUT", "/projects/{project_id}/newer-rows/{name}", ["project_id", "name"], ["filename"]],
     addOwnCell: ["POST", "/projects/{project_id}/notebook/cells", ["project_id"], []],
@@ -425,6 +512,8 @@
     recordOutcome: ["POST", "/projects/{project_id}/outcome", ["project_id"], []],
     projectPipeline: ["GET", "/projects/{project_id}/pipeline", ["project_id"], ["path"]],
     rerunPipelineStep: ["POST", "/projects/{project_id}/pipeline/rerun", ["project_id"], ["step", "wait"]],
+    projectProblemsList: ["GET", "/projects/{project_id}/problems", ["project_id"], []],
+    projectProblemsCreate: ["POST", "/projects/{project_id}/problems", ["project_id"], []],
     getProgramme: ["GET", "/projects/{project_id}/programme", ["project_id"], []],
     dropProgrammeLeaf: ["POST", "/projects/{project_id}/programme/drop", ["project_id"], []],
     runProgramme: ["POST", "/projects/{project_id}/programme/run", ["project_id"], ["wait"]],
@@ -1166,7 +1255,7 @@
   client.reviewLesson = (...args) => call('reviewLesson', args);
   client.path.reviewLesson = (...args) => build('reviewLesson', args).path;
   /** GET /api/memory: Memory View
-   *  @param {{query?: {project_id?: *}, headers?: Object}} [opts]
+   *  @param {{query?: {project_id?: *, problem_id?: *}, headers?: Object}} [opts]
    *  @returns {Promise<MemoryView>} */
   client.memoryView = (...args) => call('memoryView', args);
   client.path.memoryView = (...args) => build('memoryView', args).path;
@@ -1492,6 +1581,47 @@
   client.projectLineage = (...args) => call('projectLineage', args);
   client.path.projectLineage = (...args) => build('projectLineage', args).path;
   client.href.projectLineage = (...args) => '/api' + build('projectLineage', args).path;
+  /** GET /api/projects/{project_id}/memory/base: Project Memory Base View
+   *  @param {string} project_id
+   *  @param {{query?: {target?: *, problem_id?: *}, headers?: Object}} [opts]
+   *  @returns {Promise<BaseView>} */
+  client.projectMemoryBaseView = (...args) => call('projectMemoryBaseView', args);
+  client.path.projectMemoryBaseView = (...args) => build('projectMemoryBaseView', args).path;
+  client.href.projectMemoryBaseView = (...args) => '/api' + build('projectMemoryBaseView', args).path;
+  /** POST /api/projects/{project_id}/memory/base: Project Memory Base Upsert
+   *  @param {string} project_id
+   *  @param {{body: BaseFactUpsert, headers?: Object}} [opts]
+   *  @returns {Promise<BaseMutationResult>} */
+  client.projectMemoryBaseUpsert = (...args) => call('projectMemoryBaseUpsert', args);
+  client.path.projectMemoryBaseUpsert = (...args) => build('projectMemoryBaseUpsert', args).path;
+  /** POST /api/projects/{project_id}/memory/base/{entry_id}/confirm: Project Memory Base Confirm
+   *  @param {string} project_id
+   *  @param {string} entry_id
+   *  @param {{body: BaseDraftConfirm, headers?: Object}} [opts]
+   *  @returns {Promise<BaseMutationResult>} */
+  client.projectMemoryBaseConfirm = (...args) => call('projectMemoryBaseConfirm', args);
+  client.path.projectMemoryBaseConfirm = (...args) => build('projectMemoryBaseConfirm', args).path;
+  /** POST /api/projects/{project_id}/memory/base/{entry_id}/correct: Project Memory Base Correct
+   *  @param {string} project_id
+   *  @param {string} entry_id
+   *  @param {{body: BaseFactCorrect, headers?: Object}} [opts]
+   *  @returns {Promise<BaseMutationResult>} */
+  client.projectMemoryBaseCorrect = (...args) => call('projectMemoryBaseCorrect', args);
+  client.path.projectMemoryBaseCorrect = (...args) => build('projectMemoryBaseCorrect', args).path;
+  /** POST /api/projects/{project_id}/memory/base/{entry_id}/retire: Project Memory Base Retire
+   *  @param {string} project_id
+   *  @param {string} entry_id
+   *  @param {{body: BaseFactRetire, headers?: Object}} [opts]
+   *  @returns {Promise<BaseMutationResult>} */
+  client.projectMemoryBaseRetire = (...args) => call('projectMemoryBaseRetire', args);
+  client.path.projectMemoryBaseRetire = (...args) => build('projectMemoryBaseRetire', args).path;
+  /** GET /api/projects/{project_id}/memory/summary: Project Memory Summary
+   *  @param {string} project_id
+   *  @param {{query?: {problem_id?: *}, headers?: Object}} [opts]
+   *  @returns {Promise<ProblemSummaryView>} */
+  client.projectMemorySummary = (...args) => call('projectMemorySummary', args);
+  client.path.projectMemorySummary = (...args) => build('projectMemorySummary', args).path;
+  client.href.projectMemorySummary = (...args) => '/api' + build('projectMemorySummary', args).path;
   /** DELETE /api/projects/{project_id}/memory/{note_id}: Remove Memory Note
    *  @param {string} project_id
    *  @param {string} note_id
@@ -1570,6 +1700,19 @@
    *  @returns {Promise<Page>} */
   client.rerunPipelineStep = (...args) => call('rerunPipelineStep', args);
   client.path.rerunPipelineStep = (...args) => build('rerunPipelineStep', args).path;
+  /** GET /api/projects/{project_id}/problems: Project Problems List
+   *  @param {string} project_id
+   *  @param {{headers?: Object}} [opts]
+   *  @returns {Promise<ProblemsView>} */
+  client.projectProblemsList = (...args) => call('projectProblemsList', args);
+  client.path.projectProblemsList = (...args) => build('projectProblemsList', args).path;
+  client.href.projectProblemsList = (...args) => '/api' + build('projectProblemsList', args).path;
+  /** POST /api/projects/{project_id}/problems: Project Problems Create
+   *  @param {string} project_id
+   *  @param {{body: ProblemCreate, headers?: Object}} [opts]
+   *  @returns {Promise<ProblemDoc>} */
+  client.projectProblemsCreate = (...args) => call('projectProblemsCreate', args);
+  client.path.projectProblemsCreate = (...args) => build('projectProblemsCreate', args).path;
   /** GET /api/projects/{project_id}/programme: Get Programme
    *  @param {string} project_id
    *  @param {{headers?: Object}} [opts]
