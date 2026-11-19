@@ -78,13 +78,111 @@ Extend the [Studio decision service](../../dclab_rnd/studio/decision.py), [proje
 
 **Acceptance.** From a project, enter +5% and +10%, choose the target, see the comparison, assumptions, support and unavailable fields. Repeat without a model, with a fixed historical price and with an unauthorized project. Check that input data, fitted model and final-stage record remain unchanged. Run a focused route/UI check and the existing decision what-if regression.
 
-## 4. What to build next if the first version works
+## 4. Simulation datasets, tests and measured comparisons
+
+The simulator must answer a question that historical sales alone cannot: how far is each method's estimate from the known response to changing the price? Use invented customers and realistic linked tables. Keep the simulator's hidden answers in the evaluator. The first two tables below contain results from actual development runs. They provide a reproducible starting point for the fuller product benchmark.
+
+### First measured comparison: customer purchases
+
+Each invented customer receives one offer. Half have used discounts on two of their last five purchases; half on four. Within each group, assign equal numbers to prices 100, 105 and 110. The simulator sets purchase probabilities to 20%, 18%, 16% in the first group and 40%, 30%, 20% in the second. Each assigned offer produces one random observed outcome. Fit three simple frequency models on 4,800 offers and evaluate all three on the same 1,800 separately generated offers. Use the same test audience for scoring each alternative price. A Brier score is the average squared error of the assigned-price probability against the observed purchase; smaller is better.
+
+| Method | Test Brier score | Expected purchases per 100 at 100 | At 105 | At 110 | Estimated change from 100 to 110, percentage points |
+|---|---:|---:|---:|---:|---:|
+| Flat training purchase rate | 0.19295 | 23.65 | 23.65 | 23.65 | 0.00 |
+| Training rate by price | 0.18995 | 29.44 | 22.62 | 18.88 | −10.56 |
+| Training rate by price and last-five discount group | 0.18396 | 29.44 | 22.62 | 18.88 | −10.56 |
+| Simulator truth for the fixed audience | — | 30.00 | 24.00 | 18.00 | −12.00 |
+
+In this balanced run, history improves individual prediction while leaving the overall estimated price effect unchanged. Both price-aware methods miss the true change by about 1.44 percentage points. This tiny benchmark exercises the calculation. It uses complete five-event histories, disjoint invented people and one pair of seeds. It does not establish performance for real customers, churn or the Studio entry point.
+
+<details>
+<summary>Reproduce the table with Python 3 (standard library only)</summary>
+
+```python
+from collections import defaultdict
+from random import Random
+
+prices = (100, 105, 110)
+truth = ((0.20, 0.18, 0.16), (0.40, 0.30, 0.20))
+
+def offers(per_cell, seed):
+    rng = Random(seed)
+    rows = []
+    for group in (0, 1):
+        for _ in range(per_cell):
+            assignments = list(range(3))
+            rng.shuffle(assignments)
+            for arm in assignments:
+                last_five = [0, 0, 0, 1, 1] if group == 0 else [0, 1, 1, 1, 1]
+                bought = int(rng.random() < truth[group][arm])
+                rows.append((arm, int(sum(last_five) >= 3), bought))
+    return rows
+
+train, future = offers(800, 19), offers(300, 20)
+for name, key in (("Flat rate", lambda a, g: ()),
+                  ("Price only", lambda a, g: (a,)),
+                  ("Price and history", lambda a, g: (a, g))):
+    cells = defaultdict(list)
+    for arm, group, outcome in train:
+        cells[key(arm, group)].append(outcome)
+    rates = {k: sum(v) / len(v) for k, v in cells.items()}
+    def p(arm, group):
+        return rates[key(arm, group)]
+    brier = sum((p(a, g) - y) ** 2 for a, g, y in future) / len(future)
+    counts = [100 * sum(p(a, g) for _, g, _ in future) / len(future)
+              for a in range(len(prices))]
+    print(name, round(brier, 5), [round(x, 2) for x in counts],
+          round(counts[2] - counts[0], 2))
+```
+
+</details>
+
+### Existing Studio pricing logic: measured support checks
+
+Run `PYTHONPATH=tests .venv/bin/python -m unittest test_core_decide.PriceTest` from the repository root. The [price test class](../../tests/test_core_decide.py) and [ride-pricing generator](../../dclab_core/replicas/ride_pricing.py) reproduce the following checks with seed 0. Each row represents 6,000 invented courier offers. Here the platform pays a fee to the courier.
+
+| Simulation world | Accepted offers | Known best fee multiplier | Estimated best and bootstrap interval | Test outcome |
+|---|---:|---:|---|---|
+| Random variation around the usual fee | 3,432 | 1.0200 | 1.0291 [1.0082, 1.0500] | Passed. The known best falls inside the interval. |
+| Fee determined by the usual formula | 3,295 | 1.0200 in the simulator | Withheld | Passed. The public table cannot identify an independent fee effect. |
+
+All three tests in the class passed, including the separate variation check. These are development simulations. The locked product holdout was not used.
+
+### Dataset contract for the full benchmark
+
+| Physical table | One row per | Minimum columns and purpose |
+|---|---|---|
+| Offers | Eligible offer or renewal opportunity | Offer ID, customer ID, offer time, price, currency, assignment arm, source of assignment, eligibility, split. Include declined offers. |
+| Events | Customer event | Event ID, customer ID, occurrence time, available time, type, discount indicator. Generate short histories, late arrivals and same-time events. |
+| Outcomes | Offer and outcome horizon | Offer ID, observation end, outcome availability, purchase or defined churn indicator and realized revenue. Incomplete follow-up stays unknown. |
+| Private simulation truth | Eligible offer and candidate price | True purchase or churn probability and expected value at each price. Only the evaluator may read this table, after predictions are fixed. |
+| Predictions and test results | Run, method, world, split, seed, offer and price | Prediction or refusal, reason, provenance, diagnostic-only flag, plus aggregate metrics linked to these rows. |
+
+Use actual CSV or Parquet fixtures and the normal import, feature, scoring and report paths for the integration test. Preserve a generator version, schema, seeds, row counts, checksums, cohort definition and split manifest. Run every candidate on identical saved test rows. Assert unique keys and expected joins. Fail the run if the truth table or any post-offer field enters a deployable feature set. A separately authorized historical table can later exercise the same import path and factual metrics. Its unobserved alternative outcomes remain unknown.
+
+### Required worlds, comparisons and gates
+
+| World | Test | Evidence the generated report must show |
+|---|---|---|
+| Randomized prices for sales and, separately, renewals | Compare flat rate, price only, price plus safe last-five history and the assigned-arm effect estimate. | Factual Brier score, expected sales or churn at all three prices, expected revenue where defined, effect error versus truth, counts by arm and group. |
+| Discount-sensitive segment and a second world with zero effect | Compare subgroup effects; forecast a fixed cohort at all three prices. | Segment counts, uncertainty, estimated and true differences, and frequency of false effect claims across seeds. |
+| Prices confounded by season or segment; fixed price or missing overlap | Compare the unadjusted estimate with adjustment from pre-offer context and the support guard. | Paired effect errors where supported; counts and reasons for refusals elsewhere. A causal claim in the fixed-price world fails the gate. |
+| Short or delayed histories, incomplete labels and a planted future signal | Compare safe baseline and safe engineered features. Score a separate diagnostic with a future signal on synthetic development rows only. | Matched factual scores, excluded or immature counts, time-cutoff checks and an explicit refusal to serve the diagnostic. |
+| Shared demand shock | Compare the reported probability of missing the revenue target with the frequency across independently simulated futures from the same world. | Risk error, uncertainty and the assumed dependence model. Report unavailable risk if the implemented model cannot represent the dependence. |
+
+**How to finish this benchmark.** Freeze generator, split, seeds, methods, metric tolerances and interval targets before inspecting comparative scores. Keep test customers and future periods out of model fitting, and train only on labels mature by that split's cutoff. Use development simulations for debugging. For the frozen simulation comparison, run at least 30 independent worlds per stochastic setting on prespecified seeds, pair methods within each seed, and report the mean paired difference with a 95% interval across worlds. Check the Monte Carlo precision before interpreting nominal coverage. Run timing, safety and support gates separately from statistical improvement. Keep inconclusive comparisons and negative results.
+
+The coding deliverable includes the dataset manifest, per-offer predictions, a machine-readable results table and the corresponding Markdown table generated from the same rows. Include method, world, split, sample size, metric, estimate, interval, truth or reference, difference and pass/fail/unavailable reason. Preserve denominators when methods abstain. The exact arithmetic, time-cutoff, immutable-label and refusal tests must all pass. Publication of a model-quality gain requires the prespecified improvement criterion and its uncertainty. Empty result cells require an explanation. Replaying one recorded seed must reproduce its tables. The two measured examples above do not mark the full benchmark complete.
+
+## 5. What to build next if the first version works
 
 1. **Find the break-even point.** Compare each model prediction with the minimum sales or retention needed to meet a revenue target. Useful before credible price-response estimates exist.
 2. **Compare customer groups.** Show response and uncertainty for a few predefined groups with enough comparable offers. Include group size and coverage beside every number.
 3. **Design a price experiment.** When evidence is weak, draft two price arms, randomization unit, primary outcome, sample-size assumptions and observation window. Keep real experiment launch a separate business decision.
 4. **Check the forecast later.** Once outcomes mature, compare predictions with realized purchases or churn in each deployed arm. Report calibration changes, audience mix and coverage. Use a comparison group for claims about policy impact.
 
-## 5. Handoff prompt for the coding model
+## 6. Handoff prompt for the coding model
+
+Deliver the simulation dataset and measured comparison in section 4 alongside P1–P5. Start with the reproducible purchase example and existing pricing support checks. Complete the linked-table benchmark as product features become available and attach its generated results before closing the implementation.
 
 Implement P1 first, then P2 as the first usable calculator. Read the repository's AGENTS.md and the closest existing decision and feature tests. Start with the worked revenue example and the point-in-time history fixture. Reuse established contracts and add the smallest behavior needed for each acceptance check. Keep the core calculation reusable outside Studio. Wire subsequent packages through existing Studio entry points. Use synthetic fixtures, frozen seeds and development data. Run only the affected tests, using the repository's targeted runner. Relevant starting points include [core decision tests](../../tests/test_core_decide.py), [feature tests](../../tests/test_core_features.py), [uplift tests](../../tests/test_core_uplift.py) and [what-if compatibility tests](../../tests/test_core_decide_whatif.py). Deliver each package with the exact checks run, their outputs, known limits and next package. Completion requires both an honest answer when evidence is sufficient and an honest unavailable result when it is insufficient.
