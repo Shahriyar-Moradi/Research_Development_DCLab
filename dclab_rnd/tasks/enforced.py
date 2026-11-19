@@ -19,7 +19,7 @@ as "not enforceable by code" and never as enforced.
 from __future__ import annotations
 
 import re
-from typing import Any, Iterable, Mapping, Optional, Sequence
+from typing import Any, Callable, Iterable, Mapping, Optional, Sequence
 
 FORBID = re.compile(r"^(?:post_outcome|leak(?:age)?|target_leak|label_leak|future_information)(?:_|$)")
 GROUP = re.compile(r"^(?:grouped_split|repeated_entity_leak|entity_leak|group_leak)(?:_|$)")
@@ -88,14 +88,15 @@ MAX_SHARE = 3  # at most a third of the table's columns are kept out on the plan
 
 
 def changes(traps: Iterable[str], calls: Iterable[Mapping[str, Any]], solution: Mapping[str, Any], columns: Sequence[str],
-            time_candidates: Sequence[str] = ()) -> list[dict[str, Any]]:
+            time_candidates: Sequence[str] = (), can_group: Optional[Callable[[str, Optional[str]], bool]] = None) -> list[dict[str, Any]]:
     """What a plan's catches ask of the solution, before the first stage runs (stage H2): for each trap code can
     enforce, the one field to change, or the question to ask when code cannot tell what would enforce it.
 
     Every change makes the evaluation stricter, never looser: a column kept out, rows of one entity kept on one side, a
     split by time. So code applies it on the plan's word, says so, and the person can put it back. A change code cannot
     make by itself is a question (no column named, two candidates, a group already set to another column, too many
-    columns at once). The outcome column and a column the table does not have are never touched.
+    columns at once, or a group the engine cannot split on beside the time column: ``can_group(group, time)``, given by
+    the caller that reads the table). The outcome column and a column the table does not have are never touched.
 
     ``{"trap", "kind", "action": "apply" | "ask" | "none", "field", "value", "why"}``."""
     columns = [str(c) for c in columns]
@@ -145,6 +146,13 @@ def changes(traps: Iterable[str], calls: Iterable[Mapping[str, Any]], solution: 
             elif current:
                 record.update(action="ask", field="group_column", value=column,
                               why=f"The plan asks to keep the rows of one `{column}` on one side of the split; the solution groups by `{current}`. Which one keeps related rows together?")
+            elif can_group is not None and not can_group(column, will_time):
+                # every entity in every period: the engine cannot split by time and keep entities apart, and the build would
+                # fail with nothing built (the practice set, 2026-11-19). The split stays by time; the person chooses
+                record.update(action="ask", field="group_column", value=column,
+                              why=f"The plan asks to keep the rows of one `{column}` on one side of the split (the model must serve new ones), and "
+                                  f"the split is by time on `{will_time}`. Every `{column}` appears in both periods, so both cannot hold: the split "
+                                  f"stays by time. To test on unseen `{column}` values instead, set `{column}` as the group column and remove the time column.")
             else:
                 record.update(action="apply", field="group_column", value=column, why=f"the plan caught rows of one `{column}` on both sides of the split ({trap})")
         else:

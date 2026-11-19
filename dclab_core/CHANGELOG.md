@@ -4,6 +4,14 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.163.0 (2026-11-19)
+
+- `split_hints` (new): `new_entities(brief)` reads whether a problem statement asks the model to serve entities it has
+  not seen (new stores, new presses, next year's intake) and names the kind; `entity_candidates` and `entity_column`
+  name the key column for them (named as a key, ten or more values, two or more rows each; the one the noun names, else
+  the finest); `first_known_time(frame, names)` picks, of several date columns in the same period, the one known first on
+  95 % of rows or more. Pure functions, no contract: what they decide is written into the host's own solution.
+
 ## 0.162.0 (2026-11-19)
 
 - `leak_evidence` (new): `weigh(frame, target, task, suspects, features, time_column, unsure)` weighs each column

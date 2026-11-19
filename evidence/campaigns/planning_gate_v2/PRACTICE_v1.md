@@ -34,3 +34,24 @@ in the brief that the model must work for new machines, buildings, students or s
 held-out exam may count the same kind of case, so part of its "one in three" can be the test's definition.
 
 Rows: `agent_runs/practice/2026-11-19T123440-planning-practice/rows.json` (not committed).
+
+## After fixes 1, 2 and 4 (the owner's choice; dclab-core 0.163.0)
+
+Rerun `agent_runs/practice/2026-11-19T130846-planning-practice`: **24 of 48 enforced** (was 18), 0 builds failed, 0
+stopped wrongly.
+
+| Trap kind | Before | After | What changed |
+|---|---|---|---|
+| time order | 10 of 16 | 16 of 16 | of two dates, the one known first on every row orders the split, and the report says so |
+| same entity | 0 of 16 | 0 applied, 2 asked | read only when the brief says new entities; applied only when the engine can split by time and entity at once, else asked |
+| late column | 8 of 16 | 8 of 16 | not in scope (fix 3) |
+| named outcome lost | 2 stops | 0 | a column named right after "predict" breaks a tie |
+
+Why the entity traps are asked, not applied: in every practice table each entity appears in every period, so the
+engine cannot hold out unseen entities in the latest period; applying it failed every one of those builds. pr05
+("new presses", `machine_serial`) and pr08 ("buildings", `meter_id`) are not read at all: the noun names no column, and
+the review showed a guess picks the wrong entity (a customer split for "the stores we open").
+
+What this does not prove: the rules were written after reading this set, so the gain here is not evidence. A fresh
+held-out exam (another session's cases) must judge it. Entity splits for new entities need an engine split that holds
+out entities and scores their later rows; that is a separate change.

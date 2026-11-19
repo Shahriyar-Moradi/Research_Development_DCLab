@@ -39,7 +39,7 @@ def _finite(value: Any) -> Any:
 
 
 def found_time_column(suggestion: dict[str, Any], proposal: dict[str, Any], profile: dict[str, Any] | None = None,
-                      frame: Any = None) -> str | None:
+                      frame: Any = None, why: dict[str, Any] | None = None) -> str | None:
     """The column the split follows: the one the table's known solution names, else the only time column the proposal found
     itself (a blind table gives no known solution). Ordering by time is the safe default: a time split never flatters the
     score, a random one can. A found column is taken only when it really orders the rows: a date column, or a number that
@@ -48,7 +48,8 @@ def found_time_column(suggestion: dict[str, Any], proposal: dict[str, Any], prof
     the table). A column the audit flagged qualifies as such a counter, or as a full date whose name says nothing of after
     the outcome: an event date whose outcome rate drifts is flagged too and is exactly what must order the split, while a
     ``resolved_at`` never does (the engine derives calendar features from the time key). Two or more such columns are left
-    to a person: picking one would be a guess."""
+    to a person, unless they are all dates and one is known first on almost every row in the same period
+    (``split_hints.first_known_time``: booked before the appointment)."""
     if suggestion.get("time_column"):
         return suggestion["time_column"]
     flagged = {f.get("column") for f in [*(proposal.get("forbidden") or []), *(suggestion.get("forbidden") or [])] if isinstance(f, dict)}
@@ -76,7 +77,18 @@ def found_time_column(suggestion: dict[str, Any], proposal: dict[str, Any], prof
         return full_date(name) and after_outcome_words(name) is None
 
     found = [c for c in proposal.get("time_candidates") or [] if c != proposal.get("target") and orders(c)]
-    return found[0] if len(found) == 1 else None
+    if len(found) == 1:
+        return found[0]
+    if len(found) > 1 and all(full_date(c) for c in found):
+        # 2026-11-19, the planning practice set: two dates (booked and appointment, invoiced and due) were left to a
+        # person nobody asked, so the split was random. The one known first on every row is when the row exists.
+        from dclab_core.split_hints import first_known_time
+
+        chosen = first_known_time(frame, found)
+        if chosen and why is not None:
+            why["among"] = [c for c in found if c != chosen]  # the dates it was chosen over, for the note to the person
+        return chosen
+    return None
 
 
 SUMMARY_WORDS = frozenset({"count", "n", "num", "number", "rate", "ratio", "avg", "mean", "median", "total", "sum", "prev",
@@ -489,11 +501,16 @@ class Intern:
 
             project = self.toolbox.projects.get(pid)
             table = studio_data.load_table(studio_data.data_path(self.toolbox.projects, project))
-            time_column = found_time_column(suggestion, proposal, (project.get("data") or {}).get("profile"), table)
+            chosen_over: dict[str, Any] = {}
+            time_column = found_time_column(suggestion, proposal, (project.get("data") or {}).get("profile"), table, chosen_over)
             roles = {time_column, suggestion.get("group_column"), *proposal.get("identifiers", []), *suggestion.get("identifiers", [])}
             known = {c: f for c, f in known.items() if c not in roles}
             # 2026-11-19: a column suspected by its name alone used to stay in, since nobody is here to answer. It is
             # now weighed on the rows read before the holdout (timing, too good, with and without) and the person is told.
+            if chosen_over.get("among"):  # chosen among several dates by which is known first: say which and why
+                session["time_note"] = (f"The split is ordered by `{time_column}`, the date known first on almost every row; "
+                                        + ", ".join(f"`{c}`" for c in chosen_over["among"][:3]) + " comes later. If you predict at "
+                                        "another moment, set that date as the time column.")
             if not time_column:  # say why the rows are split at random when a full date was set aside for its name
                 from dclab_core.datacard import after_outcome_words
 

@@ -493,7 +493,7 @@ def _enough_unseen(unseen: int, later: int) -> bool:
     return unseen >= max(30, 0.1 * later)
 
 
-def time_group_feasible(times: Any, groups: Any) -> tuple[bool, int, int]:
+def time_group_feasible(times: Any, groups: Any, folds: int = CV_FOLDS) -> tuple[bool, int, int]:
     """Whether the engine can split these rows forward in time with every entity on one side (``time_group``): the rows in
     time order, the last ``HOLDOUT_FRACTION`` as the holdout, and enough of them from entities unseen before. Returns
     (feasible, unseen rows, holdout rows). The engine raises on the same test; a caller proposing the split asks first
@@ -505,7 +505,15 @@ def time_group_feasible(times: Any, groups: Any) -> tuple[bool, int, int]:
     n_test = int(round(HOLDOUT_FRACTION * n))
     later = groups[n - n_test:]
     unseen = int((~np.isin(later, groups[:n - n_test])).sum())
-    return _enough_unseen(unseen, len(later)), unseen, len(later)
+    ok = _enough_unseen(unseen, len(later))
+    train = groups[:n - n_test]
+    if ok:  # the engine's second test: two or more time-ordered folds that each keep ten rows of entities their fit never saw
+        from sklearn.model_selection import TimeSeriesSplit  # (the review, 2026-11-19: the holdout alone said yes, the build failed)
+
+        usable = 0 if len(train) <= folds else sum(
+            int((~np.isin(train[b], train[a])).sum()) >= 10 for a, b in TimeSeriesSplit(n_splits=folds).split(np.arange(len(train))))
+        ok = usable >= 2
+    return ok, unseen, len(later)
 
 
 def downloads_dir(root: Path) -> Path:

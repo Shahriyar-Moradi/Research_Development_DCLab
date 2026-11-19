@@ -636,7 +636,10 @@ class TaskDispatcher:
             _, tables, _, _, frames = project_catalog_inputs(self.projects, project)
             columns = [str(c.get("name") if isinstance(c, dict) else c) for c in (project.get("data") or {}).get("columns") or []]
             columns = columns or [c for cols in tables.values() for c in cols]
-            wanted = enforced.changes(plan.get("caught_traps") or [], plan.get("calls") or [], solution, columns, self._time_candidates(frames, columns))
+            from dclab_rnd.tasks.path import group_fits
+
+            wanted = enforced.changes(plan.get("caught_traps") or [], plan.get("calls") or [], solution, columns, self._time_candidates(frames, columns),
+                                      can_group=group_fits(self.projects, project))
             record = plan.setdefault("enforcement", {"applied": [], "waived": [], "asked": [], "too_late": []})
             settled = {(w["kind"], w["value"]) for w in record["waived"]}
             wanted = [c for c in wanted if (c["kind"], c["value"]) not in settled]

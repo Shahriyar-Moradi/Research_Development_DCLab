@@ -811,6 +811,17 @@ def project_catalog_inputs(projects: Any, project: Mapping[str, Any]) -> tuple[s
             facts[key] = hints[key]
     if solution.get("group_column"):
         facts["entity_key"] = solution.get("group_column")
+    elif main_name in frames:
+        # 2026-11-19, the planning practice set: a brief saying the model must also serve new stores or presses was never
+        # read, so their rows sat on both sides of the split (0 of 16). Only on those words: for the same customers again,
+        # a split in time with the customer on both sides is the honest test.
+        from dclab_core.split_hints import entity_column, new_entities
+
+        noun = new_entities(brief)
+        kept_out = {str(x.get("column") if isinstance(x, Mapping) else x) for x in (solution.get("forbidden") or [])}
+        entity = entity_column(frames[main_name], cols, noun, exclude=[target, solution.get("time_column"), *kept_out]) if noun is not None else None
+        if entity:
+            facts["entity_key"] = entity
     if solution.get("positive_rate") is not None:
         facts["positive_rate"] = solution.get("positive_rate")
     elif target and main_name in frames and target in frames[main_name].columns:

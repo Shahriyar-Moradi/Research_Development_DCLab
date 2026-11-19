@@ -1,0 +1,206 @@
+{
+ "package": "planning-practice-and-split-fixes",
+ "title": "A planning practice set finds why traps are missed; fixes for new entities, two dates and a named outcome",
+ "date": "2026-11-19",
+ "request": "The planning exam hp_gate_v2 failed and its rows may not be read. The owner asked for a practice set to find why, then chose fixes 1 (entity split for new entities), 2 (two dates) and 4 (named outcome).",
+ "spec": "Practice cases written by a session that never read the planner; the exam's builder unchanged (its hash is pinned); rules arm only, no model; every fix makes the evaluation stricter or asks; rules in dclab_core, wiring in dclab_rnd.",
+ "plan": [
+  "write the practice set independently",
+  "a free runner that explains each planted trap",
+  "find the causes",
+  "fix 1, 2, 4",
+  "review, fix the review's findings",
+  "rerun"
+ ],
+ "decisions": [
+  {
+   "decision": "Entity split only when the brief says new entities",
+   "why": "for the same customers again a time split with the customer on both sides is the honest test (the end-to-end future set lesson)"
+  },
+  {
+   "decision": "Ask, never apply, an entity split the engine cannot make beside time",
+   "why": "applying it failed every such build: a failed build is worse than an open question"
+  },
+  {
+   "decision": "Never guess the entity when the brief's noun names no column",
+   "why": "the review showed a customer split chosen for 'the stores we open'"
+  },
+  {
+   "decision": "Fix 3 (leaks found by data, not name) left out",
+   "why": "testing every column for too-good would drop honest strong columns like last week's footfall"
+  }
+ ],
+ "change": "dclab_core/split_hints.py (new, 0.163.0), dclab_rnd/tasks/catalog.py (entity_key from the brief and the data), dclab_rnd/tasks/enforced.py (can_group), dclab_rnd/tasks/path.py (group_fits), dclab_rnd/tasks/dispatch.py (the same guard), dclab_rnd/expansion/datasets.py (time_group_feasible reads the folds), dclab_rnd/intern/loop.py (first-known date, its note), dclab_rnd/studio/data.py (predict X breaks a tie); practice set and runner; tests/test_split_hints.py, tests/test_planning_practice.py.",
+ "findings": [
+  {
+   "id": "PP-M1",
+   "source": "measurement",
+   "severity": "gap",
+   "verdict": "confirmed",
+   "defect": "The rules plan never kept new entities apart.",
+   "scenario": "Practice set: 0 of 16 entity traps.",
+   "cause": "an entity key came only from a declared fact or a joined table's _id key",
+   "fix": "entity_key from the brief's new-entity words and the main table",
+   "test": "tests/test_split_hints.py test_new_stores_get_an_entity_split_when_the_engine_can_make_it"
+  },
+  {
+   "id": "PP-M2",
+   "source": "measurement",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "Two date columns gave a random split with no question.",
+   "scenario": "booking_date and appt_date; ts and due_date; booking_date and arrival_date: 6 of 6 time misses.",
+   "cause": "found_time_column returned None for two candidates",
+   "fix": "the date known first on 95% of rows in the same period orders the split, with a note",
+   "test": "tests/test_split_hints.py test_the_standard_plan_orders_two_dates_by_the_first_known"
+  },
+  {
+   "id": "PP-M3",
+   "source": "measurement",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "An outcome named in backticks was lost to an everyday word.",
+   "scenario": "'still on the line ... Predict `defect`': line and defect matched, the build stopped on both seeds.",
+   "cause": "two column names in the words left the outcome unnamed",
+   "fix": "a column named right after predict, forecast or estimate breaks the tie",
+   "test": "tests/test_split_hints.py test_a_name_in_backticks_wins_over_an_everyday_word"
+  },
+  {
+   "id": "PP-M4",
+   "source": "measurement",
+   "severity": "gap",
+   "verdict": "confirmed",
+   "defect": "Leaks are found by name only.",
+   "scenario": "late_fee_charged, n_followups, days_to_resolve, rework_minutes: 8 of 16 missed, three in the final model.",
+   "cause": "leak evidence weighs only name-suspected columns",
+   "fix": "not fixed (the owner's choice)",
+   "test": "none"
+  },
+  {
+   "id": "PS-M5",
+   "source": "measurement",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "Applying the entity split beside a time split failed every build.",
+   "scenario": "pr05, pr08, pr09, pr12: 'With both ts and meter_id declared ... leaving 0 to test on'.",
+   "cause": "every entity appears in every period",
+   "fix": "asked instead (can_group)",
+   "test": "tests/test_split_hints.py test_when_every_store_is_in_every_week_it_is_asked_and_the_build_is_not_broken"
+  },
+  {
+   "id": "PS-R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "The guard read only the holdout rule; the engine's fold rule then failed the build.",
+   "scenario": "30 stores every week and 10 new ones in the last 4 weeks: guard yes, prepare_bundle fails on folds.",
+   "cause": "time_group_feasible mirrored only the holdout",
+   "fix": "it reads the training folds too, on rows with an outcome and a readable time, with the project's fold count",
+   "test": "tests/test_split_hints.py test_the_engines_fold_rule_is_read_too"
+  },
+  {
+   "id": "PS-R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "The task-execution path applied the entity split with no guard.",
+   "scenario": "enforce_plan on a store-every-week project set time and group; the first stage failed.",
+   "cause": "the guard lived in path.py only",
+   "fix": "the guard is a callback of enforced.changes, passed by both paths",
+   "test": "tests/test_split_hints.py test_a_group_the_engine_cannot_split_beside_time_is_a_question_on_every_path"
+  },
+  {
+   "id": "PS-R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "first_known_time raised on dates with and without a zone.",
+   "scenario": "created_at 2025-01-01T00:00:00Z beside due_date 2025-01-04: TypeError; before, a random split.",
+   "cause": "two parsings",
+   "fix": "every column parsed with utc=True; any error returns None",
+   "test": "tests/test_split_hints.py test_dates_with_and_without_a_zone_are_read_one_way_and_never_raise"
+  },
+  {
+   "id": "PS-R4",
+   "source": "reviewer",
+   "severity": "leakage",
+   "verdict": "confirmed",
+   "defect": "A sign-up date could order the split instead of the row's snapshot date.",
+   "scenario": "signup 2018-2025 beside six months of snapshots: signup chosen; training holds later snapshots.",
+   "cause": "overlap was measured against the shorter span",
+   "fix": "overlap of at least half of the longer span",
+   "test": "tests/test_split_hints.py test_a_sign_up_date_beside_the_rows_snapshot_date_is_not_the_rows_time"
+  },
+  {
+   "id": "PS-R5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "Briefs not about unseen entities were read as new entities.",
+   "scenario": "'our New York stores', 'new stores are out of scope', 'we do not open new branches', 'additional fields', 'fraud on new accounts', 'unseen categories'.",
+   "cause": "the pattern ignored places, negations and kinds of rows",
+   "fix": "case, negation and kind-of-row checks; bare 'unseen' and 'fields' removed",
+   "test": "tests/test_split_hints.py test_a_new_thing_that_is_no_entity_is_not_read_as_one"
+  },
+  {
+   "id": "PS-R6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "The wrong entity could be chosen.",
+   "scenario": "'stores we open' with no store column chose customer_id; num_items read as a key.",
+   "cause": "fallback to the finest key; num and number as key words",
+   "fix": "no column named by the noun: none; num, number removed; no only as the last word",
+   "test": "tests/test_split_hints.py test_a_count_or_a_flag_is_no_entity"
+  },
+  {
+   "id": "PS-R7",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "A quoted name beat an outcome named in plain words.",
+   "scenario": "'Predict churn next month. Note: `plan_type` was renamed' returned plan_type.",
+   "cause": "backticks were read first",
+   "fix": "only a name after predict, forecast or estimate breaks a tie",
+   "test": "tests/test_split_hints.py test_a_name_in_backticks_wins_over_an_everyday_word"
+  },
+  {
+   "id": "PS-R8",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "The time note claimed a choice that was never made.",
+   "scenario": "order_date with a gappy birth_date: the note said birth_date comes later.",
+   "cause": "the note was written whenever other dates existed",
+   "fix": "written only when first_known_time chose",
+   "test": "tests/test_split_hints.py test_the_standard_plan_orders_two_dates_by_the_first_known"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "Practice set v1, rules arm, 12 cases x 2 seeds, before and after the fixes",
+   "gate": "none: a practice set read by the fixer",
+   "fixed_before_run": false,
+   "result": "enforced 18 to 24 of 48; time 10 to 16 of 16; entity 0 to 0 applied, 2 asked; late 8 to 8; builds failed 0, wrong stops 2 to 0",
+   "verdict": "not scored",
+   "cost_eur": 0.0,
+   "next": "a fresh held-out exam written by another session; an engine split for new entities in a later period",
+   "limits": [
+    "the rules were written after reading this set",
+    "12 cases"
+   ]
+  }
+ ],
+ "outcome": "The planner now orders two-date tables by the first-known date and no longer loses a named outcome. An entity split for new entities is read from the brief and applied only when the engine can make it, else asked; on the practice tables it is asked.",
+ "lessons": [
+  "A guard must copy every test of the code it protects, not the first one.",
+  "A rule meant to help must never guess: a wrong entity split is worse than none.",
+  "Read a planted trap against real use before calling it a miss."
+ ],
+ "risks": [
+  "Fitted to a set the fixer read: unproven until a fresh exam.",
+  "New-entity words are a word list: other phrasings are missed.",
+  "needs_model_planning now routes some new-entity projects to the model planner when a model is configured."
+ ],
+ "commits": []
+}

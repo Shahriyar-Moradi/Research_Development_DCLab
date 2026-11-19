@@ -1468,3 +1468,17 @@ In the main product, the call belongs where an unattended run fixes its features
 leakage audit names the suspects: pass the audit's suspects, the features it would train on and its prediction time
 column, then store each `ColumnEvidence` beside the governed decision for that column and show its `why`. A person's
 answer always wins over this evidence. No main-product field is mapped yet; the wiring is that repository's change.
+
+## Split hints: new entities and the first-known date (2026-11-19, dclab-core 0.163.0)
+
+`dclab_core.split_hints` reads how a holdout should be split when nobody is there to ask. `new_entities(brief)` says
+whether the person's words ask the model to serve entities it has not seen (new stores, presses, next year's intake);
+`entity_column(frame, columns, noun, exclude)` names the key column for them (named as a key, repeating, the one the
+noun names, else the finest). `first_known_time(frame, names)` picks, of several date columns in the same period, the
+one known first on almost every row (booked before the appointment). The R&D host uses them in two places: the
+planner's facts (`dclab_rnd/tasks/catalog.py` `project_catalog_inputs` sets `entity_key` only on those words), whose
+entity split `tasks/path.py` applies only when the engine can split by time and entity at once and asks otherwise; and
+the unattended standard plan's time column (`dclab_rnd/intern/loop.py` `found_time_column`), with a note to the person
+naming the date chosen. In the main product the calls belong where a run chooses its validation split before training:
+pass the problem statement and the training rows, and show the person the choice and its reason. No main-product field
+is mapped yet; the wiring is that repository's change.

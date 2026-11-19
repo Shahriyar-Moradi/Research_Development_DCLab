@@ -188,6 +188,13 @@ def named_outcome(profile: dict[str, Any], text: str = "") -> str | None:
     said = [c["name"] for c in columns if f" {str(c['name']).lower()} " in words]
     if len(said) == 1:
         return said[0]
+    if len(said) > 1:
+        # two columns named: the one the person asks to predict wins ("still on the line ... Predict `defect`", 2026-11-19);
+        # a name merely quoted elsewhere never does ("Note: `plan_type` was renamed")
+        asked = {m.lower() for m in re.findall(r"\b(?:predict|forecast|estimate)\s+`?([A-Za-z0-9_]+)`?", str(text), re.I)}
+        chosen = [c for c in said if str(c).lower() in asked]
+        if len(chosen) == 1:
+            return chosen[0]
     own = [c["name"] for c in columns if OUTCOME_NAMES.match(str(c["name"]))]
     return own[0] if len(own) == 1 else None
 

@@ -59,6 +59,40 @@ def _group_candidates(frames: dict[str, Any], columns: list[str], target: Any) -
     return out
 
 
+def group_fits(projects: Any, project: dict[str, Any]) -> Any:
+    """``can_group(group, time)`` for ``enforced.changes``: can the engine split this project's rows by time and keep each
+    entity on one side? Read as the engine reads it (``expansion.datasets.time_group_feasible``: the rows with an outcome
+    and a readable time, the holdout and the training folds). Unreadable here: no, so it is asked."""
+    from dclab_rnd.studio import engine
+
+    target = (project.get("solution") or {}).get("target")
+    seen: dict[tuple[str, str], bool] = {}
+
+    def can_group(group: str, time_column: Optional[str]) -> bool:
+        if not time_column:
+            return True  # a group alone is the engine's plain grouped split
+        if (group, time_column) not in seen:
+            import pandas as pd
+
+            from dclab_rnd.expansion.datasets import time_group_feasible
+            from dclab_rnd.studio import data as studio_data
+
+            try:
+                frame = studio_data.load_table(studio_data.data_path(projects, project))
+                if target in frame:
+                    frame = frame[frame[target].notna()]
+                times = frame[time_column]
+                if not pd.api.types.is_numeric_dtype(times):
+                    times = pd.to_datetime(times, errors="coerce", utc=True, format="mixed").dt.tz_localize(None)
+                keep = times.notna()
+                seen[(group, time_column)] = time_group_feasible(times[keep], frame.loc[keep, group], folds=engine.cv_folds(project))[0]
+            except Exception:  # noqa: BLE001
+                seen[(group, time_column)] = False
+        return seen[(group, time_column)]
+
+    return can_group
+
+
 def _confirmed(plan: dict[str, Any], main: str, column: str) -> Optional[bool]:
     """Did a check of this plan, on this very column of the main table, find by code that the column is known only after
     the outcome? None when no check of the plan is about this column at all (a catch about a related table's column,
@@ -149,7 +183,8 @@ def plan_project(projects: Any, project_id: str, *, gateway: Any = None, use_mod
         def ask(change: dict[str, Any], question: str, **more: Any) -> None:
             record["asked"].append({"trap": change["trap"], "kind": change["kind"], "field": change["field"], "value": change["value"], "question": question, **more})
 
-        for change in enforced.changes(plan.get("caught_traps") or [], plan.get("calls") or [], solution, columns, times):
+        for change in enforced.changes(plan.get("caught_traps") or [], plan.get("calls") or [], solution, columns, times,
+                                       can_group=group_fits(projects, project)):
             field, value = change["field"], change["value"]
             if change["action"] == "none" or (field == "forbidden" and value in stays):
                 continue
