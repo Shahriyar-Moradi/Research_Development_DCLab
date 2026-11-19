@@ -1,0 +1,624 @@
+{
+ "schema": "dclab_rnd.planning_gate_v3.held.v1",
+ "split": "held",
+ "seeds": [
+  63071,
+  63072
+ ],
+ "cases": [
+  {
+   "id": "hg3_01",
+   "stratum": "group_noun_mismatch_with_late",
+   "replica": "make_hg3_01",
+   "needs_model_planning": true,
+   "brief": "We're taking over the farming of several vineyards next season, on land we've never worked. In midsummer I'd like a yield estimate, in tonnes per hectare, for each of those new blocks, so the winery can book its tanks.",
+   "tables": {
+    "blocks.csv": [
+     "parcel_code",
+     "vintage",
+     "grape_variety",
+     "slope_class",
+     "area_ha",
+     "vine_age_years",
+     "winter_rain_mm",
+     "frost_damage_pct",
+     "clusters_per_vine_sample",
+     "bins_delivered",
+     "yield_t_per_ha"
+    ]
+   },
+   "known_facts": {
+    "target": "yield_t_per_ha",
+    "horizon_days": null,
+    "unit": "block_vintage"
+   },
+   "expected_tasks": [
+    "define_target",
+    "confirm_prediction_moment",
+    "leakage_audit",
+    "group_split_check",
+    "baseline",
+    "error_in_business_units"
+   ],
+   "expected_traps": [
+    "late_column_neutral_name:bins_delivered",
+    "unseen_parcels_need_grouped_holdout",
+    "frost_damage_known_in_spring_is_honest"
+   ],
+   "expected_subproblems": [
+    "regression"
+   ],
+   "forbidden_actions": [
+    "use_bins_delivered_as_input",
+    "random_split_holdout_sharing_parcels",
+    "drop_frost_damage_as_leak"
+   ],
+   "enforceable_traps": [
+    {
+     "kind": "late_column",
+     "column": "bins_delivered",
+     "why": "The bins are counted off the weighbridge at harvest, after the outcome, and their number is the yield times the area."
+    },
+    {
+     "kind": "group_split",
+     "column": "parcel_code",
+     "why": "The model must serve blocks the company has never farmed, and each parcel has its own soil, so the holdout must hold parcels never seen in training."
+    }
+   ]
+  },
+  {
+   "id": "hg3_02",
+   "stratum": "two_dates_recurring_seller",
+   "replica": "make_hg3_02",
+   "needs_model_planning": true,
+   "brief": "We run a weekly trade auction for used cars and vans. When a vehicle is catalogued, the seller asks us what it will fetch, and we'd like to give a better answer than our gut. lots.csv has two years of sales.",
+   "tables": {
+    "lots.csv": [
+     "lot_no",
+     "catalogued_on",
+     "sale_date",
+     "seller_id",
+     "make",
+     "body_type",
+     "age_years",
+     "odometer_km",
+     "previous_owners",
+     "accident_on_record",
+     "condition_grade",
+     "reserve_price",
+     "bid_count",
+     "hammer_price"
+    ]
+   },
+   "known_facts": {
+    "target": "hammer_price",
+    "horizon_days": null,
+    "unit": "lot"
+   },
+   "expected_tasks": [
+    "define_target",
+    "confirm_prediction_moment",
+    "leakage_audit",
+    "time_split_check",
+    "baseline",
+    "error_in_business_units"
+   ],
+   "expected_traps": [
+    "late_column_neutral_name:bid_count",
+    "prices_drift_down_over_time",
+    "catalogued_before_sale_date",
+    "repeat_sellers_no_new_seller_requirement",
+    "reserve_price_set_before_sale_is_honest"
+   ],
+   "expected_subproblems": [
+    "regression"
+   ],
+   "forbidden_actions": [
+    "use_bid_count_as_input",
+    "random_split_holdout",
+    "order_by_sale_date_instead_of_catalogued_on"
+   ],
+   "enforceable_traps": [
+    {
+     "kind": "late_column",
+     "column": "bid_count",
+     "why": "Bids are placed during the sale, after cataloguing, and hot lots draw many bids and fetch more."
+    },
+    {
+     "kind": "time_split",
+     "column": "catalogued_on",
+     "why": "The estimate is given at cataloguing and used prices fall over the two years, so the holdout must be the latest catalogued lots."
+    }
+   ],
+   "no_group_needed": "seller_id"
+  },
+  {
+   "id": "hg3_03",
+   "stratum": "recurring_person_late_balance",
+   "replica": "make_hg3_03",
+   "needs_model_planning": true,
+   "brief": "Our blood service needs more repeat donors. Right after someone gives blood, we'd like to know who is unlikely to come back within six months, so the team can phone them first.",
+   "tables": {
+    "donations.csv": [
+     "donation_date",
+     "donor_number",
+     "age",
+     "sex",
+     "blood_group",
+     "previous_donations",
+     "site_type",
+     "haemoglobin_g_dl",
+     "post_donation_reaction",
+     "points_balance",
+     "gave_again_6m"
+    ]
+   },
+   "known_facts": {
+    "target": "gave_again_6m",
+    "horizon_days": 182,
+    "unit": "donation"
+   },
+   "expected_tasks": [
+    "define_target",
+    "confirm_prediction_moment",
+    "leakage_audit",
+    "time_split_check",
+    "baseline",
+    "capacity_based_metric"
+   ],
+   "expected_traps": [
+    "late_column_neutral_name:points_balance",
+    "return_rate_falls_after_mid_2023",
+    "repeat_donors_no_new_donor_requirement",
+    "reaction_at_donation_is_honest"
+   ],
+   "expected_subproblems": [
+    "classification"
+   ],
+   "forbidden_actions": [
+    "use_points_balance_as_input",
+    "random_split_holdout",
+    "drop_post_donation_reaction_as_leak"
+   ],
+   "enforceable_traps": [
+    {
+     "kind": "late_column",
+     "column": "points_balance",
+     "why": "The card's points are the balance at the export and include the points of every later donation, so they give the return away."
+    },
+    {
+     "kind": "time_split",
+     "column": "donation_date",
+     "why": "Donors are judged as they give and the return rate fell after mid-2023, so the holdout must be the latest donations."
+    }
+   ],
+   "no_group_needed": "donor_number"
+  },
+  {
+   "id": "hg3_04",
+   "stratum": "late_category",
+   "replica": "make_hg3_04",
+   "needs_model_planning": true,
+   "brief": "We make a puzzle game for phones. At the end of a new player's first day we want to guess who will buy something in their first two weeks, to decide who gets the starter offer.",
+   "tables": {
+    "players.csv": [
+     "player_id",
+     "install_ts",
+     "platform",
+     "country",
+     "acquisition_source",
+     "day1_levels_cleared",
+     "day1_minutes_played",
+     "day1_rewarded_ads",
+     "tutorial_completed",
+     "club_tier",
+     "paid_within_14d"
+    ]
+   },
+   "known_facts": {
+    "target": "paid_within_14d",
+    "horizon_days": 14,
+    "unit": "player"
+   },
+   "expected_tasks": [
+    "define_target",
+    "confirm_prediction_moment",
+    "leakage_audit",
+    "time_split_check",
+    "baseline",
+    "class_imbalance_metric"
+   ],
+   "expected_traps": [
+    "late_category_neutral_name:club_tier",
+    "payer_rate_jumps_after_store_change",
+    "rewarded_ads_on_day_one_are_honest"
+   ],
+   "expected_subproblems": [
+    "classification"
+   ],
+   "forbidden_actions": [
+    "use_club_tier_as_input",
+    "random_split_holdout",
+    "judge_by_accuracy_only"
+   ],
+   "enforceable_traps": [
+    {
+     "kind": "late_column",
+     "column": "club_tier",
+     "why": "The club shown on the profile at export rises above bronze with the first purchase, so it gives the answer away."
+    },
+    {
+     "kind": "time_split",
+     "column": "install_ts",
+     "why": "Players are scored a day after install and the share of payers jumped after a store change, so the holdout must be the latest installs."
+    }
+   ]
+  },
+  {
+   "id": "hg3_05",
+   "stratum": "recurring_site_forecast",
+   "replica": "make_hg3_05",
+   "needs_model_planning": true,
+   "brief": "We have about thirty bakery shops and throw away too much bread. Each evening I'd like a number for how many loaves each shop will have left over tomorrow, so the bakers can bake less.",
+   "tables": {
+    "shop_days.csv": [
+     "sale_date",
+     "shop_code",
+     "shop_format",
+     "weekday",
+     "weather_forecast",
+     "planned_bake",
+     "yesterday_unsold",
+     "promo_flag",
+     "closing_count",
+     "unsold_loaves"
+    ]
+   },
+   "known_facts": {
+    "target": "unsold_loaves",
+    "horizon_days": 1,
+    "unit": "shop_day"
+   },
+   "expected_tasks": [
+    "define_target",
+    "confirm_prediction_moment",
+    "leakage_audit",
+    "time_split_check",
+    "baseline",
+    "error_in_business_units"
+   ],
+   "expected_traps": [
+    "late_column_neutral_name:closing_count",
+    "waste_rises_after_new_line",
+    "repeat_shops_no_new_shop_requirement",
+    "yesterday_unsold_lag_is_honest"
+   ],
+   "expected_subproblems": [
+    "regression",
+    "forecast"
+   ],
+   "forbidden_actions": [
+    "use_closing_count_as_input",
+    "random_split_holdout",
+    "drop_yesterday_unsold_as_leak"
+   ],
+   "enforceable_traps": [
+    {
+     "kind": "late_column",
+     "column": "closing_count",
+     "why": "The last-hour shelf count is taken on the day itself, after the forecast is needed, and the leftovers are most of it."
+    },
+    {
+     "kind": "time_split",
+     "column": "sale_date",
+     "why": "The forecast is made the evening before and waste rises after a new line launches, so the holdout must be the latest days."
+    }
+   ],
+   "no_group_needed": "shop_code"
+  },
+  {
+   "id": "hg3_06",
+   "stratum": "group_and_time_two_dates",
+   "replica": "make_hg3_06",
+   "needs_model_planning": true,
+   "brief": "We're opening offices in new parts of the county, so most of next year's listings will be in areas we've never sold in. When a house goes on our books, I'd like to know whether it will sell inside two months.",
+   "tables": {
+    "listings.csv": [
+     "listing_ref",
+     "listed_on",
+     "photos_taken_on",
+     "area_code",
+     "property_type",
+     "bedrooms",
+     "asking_price",
+     "energy_rating",
+     "chain_free",
+     "viewings_total",
+     "sold_within_60d"
+    ]
+   },
+   "known_facts": {
+    "target": "sold_within_60d",
+    "horizon_days": 60,
+    "unit": "listing"
+   },
+   "expected_tasks": [
+    "define_target",
+    "confirm_prediction_moment",
+    "leakage_audit",
+    "group_split_check",
+    "time_split_check",
+    "baseline"
+   ],
+   "expected_traps": [
+    "late_column_neutral_name:viewings_total",
+    "unseen_areas_need_grouped_holdout",
+    "quick_sales_fall_after_rates_rise",
+    "listed_before_photos_taken"
+   ],
+   "expected_subproblems": [
+    "classification"
+   ],
+   "forbidden_actions": [
+    "use_viewings_total_as_input",
+    "random_split_holdout",
+    "order_by_photos_taken_on"
+   ],
+   "enforceable_traps": [
+    {
+     "kind": "late_column",
+     "column": "viewings_total",
+     "why": "Viewings are booked over the listing's whole life, after it goes on the books, and houses that sell quickly draw many."
+    },
+    {
+     "kind": "group_split",
+     "column": "area_code",
+     "why": "Next year's listings are mostly in areas never sold in, and each area has its own pull, so the holdout must hold areas never seen in training."
+    },
+    {
+     "kind": "time_split",
+     "column": "listed_on",
+     "why": "A house is scored when it is listed and quick sales fell once mortgage rates rose, so the holdout must be the latest listings."
+    }
+   ]
+  },
+  {
+   "id": "hg3_07",
+   "stratum": "group_noun_mismatch_and_time",
+   "replica": "make_hg3_07",
+   "needs_model_planning": true,
+   "brief": "We're buying in a batch of heifers from another farm this autumn. I'd like to predict each animal's weekly milk from what we record about it, so I can plan the processor contract before we have any history on them.",
+   "tables": {
+    "herd_weeks.csv": [
+     "week_start",
+     "ear_tag",
+     "breed",
+     "parity",
+     "days_in_milk",
+     "concentrate_kg_day",
+     "mastitis_treated",
+     "payout_eur",
+     "milk_kg_week"
+    ]
+   },
+   "known_facts": {
+    "target": "milk_kg_week",
+    "horizon_days": 7,
+    "unit": "cow_week"
+   },
+   "expected_tasks": [
+    "define_target",
+    "confirm_prediction_moment",
+    "leakage_audit",
+    "group_split_check",
+    "time_split_check",
+    "baseline"
+   ],
+   "expected_traps": [
+    "late_column_neutral_name:payout_eur",
+    "unseen_animals_need_grouped_holdout",
+    "yields_fall_through_summer",
+    "mastitis_treated_before_milking_is_honest"
+   ],
+   "expected_subproblems": [
+    "regression"
+   ],
+   "forbidden_actions": [
+    "use_payout_eur_as_input",
+    "random_split_holdout_sharing_animals",
+    "drop_mastitis_treated_as_leak"
+   ],
+   "enforceable_traps": [
+    {
+     "kind": "late_column",
+     "column": "payout_eur",
+     "why": "The processor's payment comes a fortnight later and is the week's milk times the price."
+    },
+    {
+     "kind": "group_split",
+     "column": "ear_tag",
+     "why": "The model must serve animals bought in with no history here, and each animal has its own genetics, so the holdout must hold animals never seen in training."
+    },
+    {
+     "kind": "time_split",
+     "column": "week_start",
+     "why": "Yields fall week by week as the grazing dries out, so the holdout must be the latest weeks."
+    }
+   ]
+  },
+  {
+   "id": "hg3_08",
+   "stratum": "two_dates_recurring_member",
+   "replica": "make_hg3_08",
+   "needs_model_planning": true,
+   "brief": "Our library loses a lot of items to late returns. When someone borrows something at the desk, we'd like to know if it's likely to come back late, so staff can have a word.",
+   "tables": {
+    "loans.csv": [
+     "loan_id",
+     "checkout_date",
+     "due_date",
+     "member_no",
+     "branch",
+     "item_type",
+     "age_band",
+     "previous_late_returns",
+     "renewal_allowed",
+     "notices_sent",
+     "returned_late"
+    ]
+   },
+   "known_facts": {
+    "target": "returned_late",
+    "horizon_days": null,
+    "unit": "loan"
+   },
+   "expected_tasks": [
+    "define_target",
+    "confirm_prediction_moment",
+    "leakage_audit",
+    "time_split_check",
+    "baseline",
+    "capacity_based_metric"
+   ],
+   "expected_traps": [
+    "late_column_neutral_name:notices_sent",
+    "late_rate_rises_after_fines_end",
+    "checkout_before_due_date",
+    "repeat_members_no_new_member_requirement",
+    "previous_late_returns_is_honest"
+   ],
+   "expected_subproblems": [
+    "classification"
+   ],
+   "forbidden_actions": [
+    "use_notices_sent_as_input",
+    "random_split_holdout",
+    "drop_previous_late_returns_as_leak"
+   ],
+   "enforceable_traps": [
+    {
+     "kind": "late_column",
+     "column": "notices_sent",
+     "why": "Overdue notices go out only once a loan is late, after checkout, so their count gives the answer away."
+    },
+    {
+     "kind": "time_split",
+     "column": "checkout_date",
+     "why": "Loans are judged at checkout and late returns rose once fines ended, so the holdout must be the latest loans."
+    }
+   ],
+   "no_group_needed": "member_no"
+  },
+  {
+   "id": "hg3_09",
+   "stratum": "group_noun_mismatch_no_late",
+   "replica": "make_hg3_09",
+   "needs_model_planning": true,
+   "brief": "We're taking over a smaller haulier's fleet next month, and none of their trucks have run on our routes yet. When we plan a trip, I want an estimate of the fuel it will burn per 100 km.",
+   "tables": {
+    "trips.csv": [
+     "trip_id",
+     "departed_at",
+     "unit_no",
+     "axle_config",
+     "emission_class",
+     "planned_km",
+     "payload_t",
+     "motorway_share",
+     "forecast_temp_c",
+     "litres_per_100km"
+    ]
+   },
+   "known_facts": {
+    "target": "litres_per_100km",
+    "horizon_days": null,
+    "unit": "trip"
+   },
+   "expected_tasks": [
+    "define_target",
+    "confirm_prediction_moment",
+    "group_split_check",
+    "baseline",
+    "error_in_business_units"
+   ],
+   "expected_traps": [
+    "unseen_vehicles_need_grouped_holdout",
+    "no_post_trip_column_to_drop",
+    "forecast_temperature_is_honest"
+   ],
+   "expected_subproblems": [
+    "regression"
+   ],
+   "forbidden_actions": [
+    "random_split_holdout_sharing_vehicles",
+    "drop_payload_or_temperature_as_leak"
+   ],
+   "enforceable_traps": [
+    {
+     "kind": "group_split",
+     "column": "unit_no",
+     "why": "The model must serve trucks that have never run here, and each vehicle has its own wear, so the holdout must hold vehicles never seen in training."
+    }
+   ]
+  },
+  {
+   "id": "hg3_10",
+   "stratum": "late_money_column",
+   "replica": "make_hg3_10",
+   "needs_model_planning": true,
+   "brief": "We're a charity, and twice a year we write to supporters who've stopped giving. Printing and postage cost a lot, so before the next mailing I want to know which lapsed supporters are worth writing to.",
+   "tables": {
+    "appeal_mailings.csv": [
+     "appeal_mailed",
+     "supporter_ref",
+     "region",
+     "last_gift_gbp",
+     "months_since_last_gift",
+     "lifetime_gifts",
+     "mail_pack",
+     "unsubscribe_requests",
+     "relief_claimed_gbp",
+     "responded"
+    ]
+   },
+   "known_facts": {
+    "target": "responded",
+    "horizon_days": null,
+    "unit": "supporter_appeal"
+   },
+   "expected_tasks": [
+    "define_target",
+    "confirm_prediction_moment",
+    "leakage_audit",
+    "time_split_check",
+    "baseline",
+    "capacity_based_metric"
+   ],
+   "expected_traps": [
+    "late_column_neutral_name:relief_claimed_gbp",
+    "response_falls_each_year",
+    "mailing_budget_not_given"
+   ],
+   "expected_subproblems": [
+    "classification"
+   ],
+   "forbidden_actions": [
+    "use_relief_claimed_gbp_as_input",
+    "random_split_holdout",
+    "judge_by_accuracy_only"
+   ],
+   "enforceable_traps": [
+    {
+     "kind": "late_column",
+     "column": "relief_claimed_gbp",
+     "why": "Tax relief is reclaimed only on gifts made after the appeal, so the column gives the response away."
+    },
+    {
+     "kind": "time_split",
+     "column": "appeal_mailed",
+     "why": "Supporters are chosen before each mailing and fewer answer every year, so the holdout must be the latest appeal."
+    }
+   ]
+  }
+ ]
+}

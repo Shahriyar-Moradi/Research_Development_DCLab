@@ -58,11 +58,11 @@ SETS = {"dev": ("cases_dev.json", "answer_key_dev.json", "cases_dev.sha256"), "d
         # evaluation, with keys written by the runner's author. "nodata_held": written in another session, held out.
         "nodata": ("cases_nodata.json", "answer_key_nodata.json", "cases_nodata.sha256"),
         "nodata_held": ("cases_nodata_held.json", "answer_key_nodata_held.json", "cases_nodata_held.sha256"),
-        "plan_held": ("cases_plan_held.json", "answer_key_plan_held.json", "cases_plan_held.sha256")}
+        "plan_held": ("cases_plan_held.json", "answer_key_plan_held.json", "cases_plan_held.sha256"), "plan_held_v3": ("cases_plan_held_v3.json", "answer_key_plan_held_v3.json", "cases_plan_held_v3.sha256")}
 # "dev3" (2026-11-16) is held out: eight people by an independent agent, written after the developer had read the first two
 # sets' failures. Nobody who changes the lead agent reads its people, its key or a person's result; only its means are
 # read, and it is played once at the end of a stage (the benchmark shows no table by person for it).
-HELD_OUT = ("dev3", "nodata_held", "plan_held")
+HELD_OUT = ("dev3", "nodata_held", "plan_held", "plan_held_v3")
 SET = "dev"
 
 

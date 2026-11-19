@@ -1,0 +1,211 @@
+{
+ "hp3-01": {
+  "must_understand": [
+   "two different questions: whether app customers are worth more (a question about customers and their value) and a demand forecast by category and emirate",
+   "value has to be measured per customer, not per order or per channel total, and the same customer can buy through several channels, so customers cannot simply be labelled by channel",
+   "even if app customers spend more, that does not show that moving ad money to the app would bring more value: they may be the keen customers who would buy anyway",
+   "orders that were refunded or cancelled, repeated rows and missing amounts must be handled before any revenue figure, and a forecast for each category and emirate from about fifteen months of orders needs a range"
+  ],
+  "acceptable_approaches": [
+   "define revenue first (status, repeated rows, missing amounts), then compare spend per customer by the channels each customer uses, said to be a description",
+   "suggest a test (a share of the budget moved for a period or a region) to learn what the app spend actually brings",
+   "a simple seasonal forecast per category and emirate, with a range and its limits, pooling small emirates when their numbers are thin"
+  ],
+  "forbidden": [
+   "tells the COO that moving the budget to the app will raise revenue, from channel averages",
+   "compares channels by order totals without looking at customers who buy through more than one channel",
+   "gives single forecast numbers with no range"
+  ],
+  "right_is_model": false,
+  "in_six_tracks": true,
+  "route": "analysis",
+  "also_right": [
+   "business",
+   "prediction",
+   "reporting"
+  ],
+  "adaptation_check": null
+ },
+ "hp3-02": {
+  "must_understand": [
+   "the outcome is leaving next month, and the prediction is made at the start of the month, before any of that month's events",
+   "the person thinks the ticket count may run up to the day of cancelling: that must be checked, because tickets raised while cancelling would give the answer away",
+   "a list of who is at risk is not the same as knowing who an offer will keep: a call can only be judged by a test with a group not called",
+   "the team can only call so many customers, so the model should be judged on the customers it puts at the top of the list, not on accuracy"
+  ],
+  "acceptable_approaches": [
+   "ask or check when the ticket window ends, and leave the column out or rebuild it to stop before the prediction moment if it is unclear",
+   "a classification model with a holdout that respects time, judged on the share of leavers caught in the top of the list the team can call",
+   "propose a small test with a random group not called to measure what the offer keeps"
+  ],
+  "forbidden": [
+   "uses the ticket count as an input without checking when it is counted",
+   "judges the model by accuracy alone",
+   "claims the calls will keep a given number of customers, from the model's scores alone"
+  ],
+  "right_is_model": true,
+  "in_six_tracks": true,
+  "route": "prediction",
+  "also_right": [
+   "business",
+   "advice"
+  ],
+  "adaptation_check": null
+ },
+ "hp3-03": {
+  "must_understand": [
+   "two steps in order: cleaning the bookings so they can be added up, then a monthly report built on the clean table",
+   "the price is stored as text with the currency in it and has to become a number, and some rows are test bookings that must not count",
+   "the person's claim that the export is ready to use is wrong and must be checked, not trusted",
+   "the report must say which date it groups by (booking date or travel date), because cancelled revenue by month changes with that choice"
+  ],
+  "acceptable_approaches": [
+   "profile the table first and list each fix with how many rows it touches (price text, test rows, repeated bookings)",
+   "state the definition of cancelled revenue and the month it is grouped by, then build the monthly table by destination",
+   "keep the cleaning as steps that can be rerun on the next export"
+  ],
+  "forbidden": [
+   "adds up the price column as it is, or drops prices it cannot read without saying so",
+   "keeps the test bookings in the report",
+   "builds a model when the person asked for clean data and a report"
+  ],
+  "right_is_model": false,
+  "in_six_tracks": true,
+  "route": "preparation",
+  "also_right": [
+   "reporting",
+   "analysis"
+  ],
+  "adaptation_check": null
+ },
+ "hp3-04": {
+  "must_understand": [
+   "the unit is a pipe (or a stretch of main) and the outcome is a burst within a set period, such as the next year, judged before that period starts",
+   "the person's test of success is flawed: a replaced pipe is new, so its bursts fall whatever the model did; success has to be judged against pipes not replaced, or against the model's ranking on years it did not see",
+   "the burst records may only include pipes still in the register: pipes already replaced or removed are missing, which can bias the history",
+   "the budget fixes how many pipes can be chosen, so the model is judged on how many bursts its top two percent would have caught"
+  ],
+  "acceptable_approaches": [
+   "a burst-risk model per pipe with a holdout of later years, judged on bursts caught in the top two percent",
+   "a simple baseline first (age and material, and past bursts on the same pipe) to compare against",
+   "a way to judge the programme: compare the ranked pipes with similar pipes not replaced, or keep part of the choice outside the model"
+  ],
+  "forbidden": [
+   "accepts that falling bursts on replaced pipes prove the model works",
+   "uses a random split of pipe-years so later bursts help predict earlier ones",
+   "promises a number of bursts avoided before any data has been seen"
+  ],
+  "right_is_model": true,
+  "in_six_tracks": true,
+  "route": "prediction",
+  "also_right": [
+   "advice",
+   "business"
+  ],
+  "adaptation_check": null
+ },
+ "hp3-05": {
+  "must_understand": [
+   "a good placement has to be defined, for example still in the job after three months, and it is only known for people who were interviewed and placed",
+   "past decisions chose who got a label: a model trained only on placed people learns the recruiters' old choices, and says nothing reliable about the people never interviewed",
+   "using the score to decide who gets an interview affects people's access to work, so personal traits such as age, sex or origin, and fields that stand in for them, need care and checking for unfair differences",
+   "the score should be judged at the moment of application, on later applicants than it was trained on, and on the forty the recruiters can see"
+  ],
+  "acceptable_approaches": [
+   "define the outcome and the moment of prediction, and say which applicants have a known outcome",
+   "a model with a time-ordered holdout, a check of how its ranking differs across groups of applicants, and a human still making the interview choice",
+   "suggest interviewing a small random share outside the ranking to learn about the people the old process never saw"
+  ],
+  "forbidden": [
+   "treats applicants who were never interviewed as bad placements",
+   "builds the ranking without any check for unfair differences between groups",
+   "lets the score decide alone who gets an interview, with no person in the loop"
+  ],
+  "right_is_model": true,
+  "in_six_tracks": true,
+  "route": "prediction",
+  "also_right": [
+   "advice",
+   "business"
+  ],
+  "adaptation_check": null
+ },
+ "hp3-06": {
+  "must_understand": [
+   "two parts: a dashboard of churn by city over time, and a grouping of customers for marketing",
+   "the table is one snapshot with a single churn flag for next month, so it cannot show how churn moved month by month; that needs a history of monthly snapshots",
+   "monthly spend has missing values, and business and consumer customers behave differently, which both matter for the grouping",
+   "groups made for marketing are a description and need to be checked to be stable and useful, not taken as true types of customer"
+  ],
+  "acceptable_approaches": [
+   "say what the dashboard can show from this table (churn rate by city and plan now, with its uncertainty) and what history is needed for a trend",
+   "a simple grouping from tenure, plan, spend and segment, handled for missing spend, with each group described in plain words",
+   "propose saving a monthly snapshot from now on so the trend can be built"
+  ],
+  "forbidden": [
+   "draws a churn trend over time from the single snapshot, for example by signup month as if it were churn month",
+   "fills missing spend with zero without saying so",
+   "presents the groups as a model of who will churn"
+  ],
+  "right_is_model": false,
+  "in_six_tracks": true,
+  "route": "reporting",
+  "also_right": [
+   "analysis",
+   "business"
+  ],
+  "adaptation_check": null
+ },
+ "hp3-07": {
+  "must_understand": [
+   "two parts: forecasting demand per sailing, and choosing a fare from it; the second needs to know how demand reacts to price",
+   "fares were raised by hand on the sailings expected to be busy, so in the history high fares go with high demand: the history cannot show how people react to price on its own",
+   "the demand forecast has to be made at the moment the fare is set, before the booking curve is known, and judged on later sailings",
+   "capacity caps what was booked, so a full sailing hides how many more wanted to travel"
+  ],
+  "acceptable_approaches": [
+   "a demand forecast per sailing from what is known at fare-setting time, with a holdout of later sailings",
+   "measure price response with small planned fare changes on comparable sailings, rather than from the hand-set history",
+   "treat full sailings as at least that much demand, not exactly that much"
+  ],
+  "forbidden": [
+   "reads from the history that higher fares bring more passengers, or fits price response from it without saying it is confounded",
+   "sets automatic fares from the model with no test or limit",
+   "treats bookings on full sailings as the true demand"
+  ],
+  "right_is_model": false,
+  "in_six_tracks": true,
+  "route": "business",
+  "also_right": [
+   "prediction",
+   "advice"
+  ],
+  "adaptation_check": null
+ },
+ "hp3-08": {
+  "must_understand": [
+   "two parts: checking the claim about how late British customers book, and forecasting trips by travel month",
+   "the claim has to be checked in the data, with the spread of lead times, not just an average; in this table British lead times are close to everyone else's",
+   "the latest travel months are still filling up: bookings for them keep arriving, so their counts are incomplete and cannot be read as falling demand",
+   "test bookings and cancelled bookings have to be handled before counting trips"
+  ],
+  "acceptable_approaches": [
+   "compare lead times by nationality with their spread and the number of bookings, and say plainly whether the claim holds",
+   "forecast travel months from how far each month had filled at the same lead time in the past, with a range",
+   "state whether cancelled bookings count as sold trips, and drop the test rows"
+  ],
+  "forbidden": [
+   "agrees that British customers book much later without checking",
+   "reads the low counts of the latest travel months as a fall in demand",
+   "gives a single forecast number per month with no range"
+  ],
+  "right_is_model": false,
+  "in_six_tracks": true,
+  "route": "analysis",
+  "also_right": [
+   "prediction",
+   "business"
+  ],
+  "adaptation_check": null
+ }
+}
