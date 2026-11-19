@@ -1,0 +1,220 @@
+{
+ "set": "memory_day2_dev_v1",
+ "split": "dev",
+ "written": "2026-11-19, invented business cases for memory_day2.py; tables are made by code from a seed, never a real file",
+ "stories": [
+  {
+   "id": "MD2-01", "split": "dev", "person": "maya", "title": "Food delivery time", "table": "food_orders", "rows": 240, "seed": 101,
+   "outcome_column": "delivery_minutes",
+   "columns": [
+    {"name": "order_id", "kind": "id", "prefix": "o"},
+    {"name": "placed_at", "kind": "datetime", "start": "2026-09-01T11:00:00", "hours": 1200},
+    {"name": "restaurant_area", "kind": "cat", "choices": ["Baixa", "Alfama", "Belem", "Parque", "Campo"]},
+    {"name": "distance_km", "kind": "float", "low": 0.5, "high": 12},
+    {"name": "items", "kind": "int", "low": 1, "high": 8},
+    {"name": "prep_minutes_est", "kind": "int", "low": 5, "high": 40},
+    {"name": "couriers_online", "kind": "int", "low": 3, "high": 60},
+    {"name": "raining", "kind": "bool", "p": 0.2},
+    {"name": "delivery_minutes", "kind": "float", "low": 12, "high": 90},
+    {"name": "courier_rating", "kind": "float", "low": 1, "high": 5}
+   ],
+   "day1": "Hi, I'm Maya. We run food delivery in Lisbon and want to show customers how long their order will take. The prediction is made the moment the customer places the order, before any courier is assigned. The thing to predict is delivery_minutes: the minutes from the order being placed to the food at the door. Each row is one order, and the answer is in minutes.",
+   "facts": [
+    {"key": "moment", "text": "Prediction made: the moment the customer places the order, before any courier is assigned.",
+     "ask_keywords": ["order is placed", "places the order", "courier is assigned"],
+     "named_keywords": ["places the order", "order is placed", "order placement", "before any courier", "before a courier", "at checkout"]},
+    {"key": "outcome", "text": "Outcome predicted: delivery_minutes, the minutes from the order being placed to the food at the door.",
+     "ask_keywords": ["delivery_minutes"], "named_keywords": ["delivery_minutes"]},
+    {"key": "unit", "text": "Unit and horizon: one row per order; the answer is in minutes.",
+     "ask_keywords": ["per order", "in minutes"], "named_keywords": ["per order", "each order", "in minutes"]}
+   ],
+   "day2": "Good morning. Let's build the model now."
+  },
+  {
+   "id": "MD2-02", "split": "dev", "person": "omar", "title": "Mobile customers leaving", "table": "subscribers", "rows": 300, "seed": 102,
+   "outcome_column": "churned_90d",
+   "columns": [
+    {"name": "customer_id", "kind": "id", "prefix": "c"},
+    {"name": "snapshot_date", "kind": "monthly", "start": "2025-01-01", "months": 12},
+    {"name": "tenure_months", "kind": "int", "low": 1, "high": 96},
+    {"name": "plan", "kind": "cat", "choices": ["basic", "plus", "max", "family"]},
+    {"name": "monthly_bill_eur", "kind": "float", "low": 8, "high": 85},
+    {"name": "data_gb_last_month", "kind": "float", "low": 0, "high": 60},
+    {"name": "support_calls_90d", "kind": "int", "low": 0, "high": 9},
+    {"name": "contract_end_in_days", "kind": "int", "low": 0, "high": 720},
+    {"name": "churned_90d", "kind": "bool", "p": 0.12},
+    {"name": "cancel_reason", "kind": "cat", "choices": ["", "price", "coverage", "moved", "competitor"]}
+   ],
+   "day1": "Hello, Omar here, from a mobile operator. We want to know which customers will leave so the retention team can call them. We make the prediction on the first day of each month, using only what we know on that day. The outcome is churned_90d, whether the customer cancels. One row is one customer in one month, and we look at cancelling within the next 90 days.",
+   "facts": [
+    {"key": "moment", "text": "Prediction made: on the first day of each month, using only what is known on that day.",
+     "ask_keywords": ["first day of", "first of the month", "each month"],
+     "named_keywords": ["first day of", "first of the month", "start of each month", "start of the month", "beginning of each month", "beginning of the month"]},
+    {"key": "outcome", "text": "Outcome predicted: churned_90d, whether the customer cancels.",
+     "ask_keywords": ["churned_90d"], "named_keywords": ["churned_90d"]},
+    {"key": "unit", "text": "Unit and horizon: one row per customer per month; cancelling within the next 90 days.",
+     "ask_keywords": ["90 days", "per customer"], "named_keywords": ["90 days", "90-day", "per customer", "customer-month", "customer per month"]}
+   ],
+   "day2": "Hi again. Please start building the model."
+  },
+  {
+   "id": "MD2-03", "split": "dev", "person": "lena", "title": "Bike share demand", "table": "station_hours", "rows": 360, "seed": 103,
+   "outcome_column": "bikes_rented",
+   "columns": [
+    {"name": "station_id", "kind": "cat", "choices": ["S01", "S02", "S03", "S04", "S05", "S06"]},
+    {"name": "hour_start", "kind": "datetime", "start": "2026-05-01T00:00:00", "hours": 720},
+    {"name": "temperature_c", "kind": "float", "low": 2, "high": 31},
+    {"name": "rain_mm", "kind": "float", "low": 0, "high": 6},
+    {"name": "weekday", "kind": "cat", "choices": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]},
+    {"name": "is_holiday", "kind": "bool", "p": 0.05},
+    {"name": "docks_total", "kind": "int", "low": 10, "high": 40},
+    {"name": "bikes_rented", "kind": "int", "low": 0, "high": 35},
+    {"name": "bikes_returned", "kind": "int", "low": 0, "high": 35}
+   ],
+   "day1": "I'm Lena, I plan the bike trucks for our city bike share. We decide at 6 pm the evening before where to move bikes, so that is when the prediction is made. We want to predict bikes_rented, the number of bikes rented. One row is one station for one hour, and we need every hour of the next day.",
+   "facts": [
+    {"key": "moment", "text": "Prediction made: at 6 pm the evening before, to plan the bike trucks for the next day.",
+     "ask_keywords": ["6 pm", "6pm", "evening before", "day before"],
+     "named_keywords": ["6 pm", "6pm", "18:00", "evening before", "the day before", "previous evening"]},
+    {"key": "outcome", "text": "Outcome predicted: bikes_rented, the number of bikes rented.",
+     "ask_keywords": ["bikes_rented"], "named_keywords": ["bikes_rented"]},
+    {"key": "unit", "text": "Unit and horizon: one row per station per hour, for every hour of the next day.",
+     "ask_keywords": ["per station", "per hour", "next day"],
+     "named_keywords": ["per station", "per hour", "station and hour", "station-hour", "every hour of the next day", "each hour of the next day"]}
+   ],
+   "day2": "OK, let's train the first model today."
+  },
+  {
+   "id": "MD2-04", "split": "dev", "person": "ravi", "title": "Loans not paid back", "table": "loans", "rows": 280, "seed": 104,
+   "outcome_column": "defaulted_12m",
+   "columns": [
+    {"name": "loan_id", "kind": "id", "prefix": "L"},
+    {"name": "approved_on", "kind": "date", "start": "2024-01-01", "days": 540},
+    {"name": "amount_eur", "kind": "int", "low": 500, "high": 25000},
+    {"name": "term_months", "kind": "cat", "choices": [6, 12, 24, 36]},
+    {"name": "income_eur", "kind": "int", "low": 900, "high": 7000},
+    {"name": "existing_debt_eur", "kind": "int", "low": 0, "high": 30000},
+    {"name": "region", "kind": "cat", "choices": ["north", "south", "east", "west"]},
+    {"name": "credit_score", "kind": "int", "low": 300, "high": 850},
+    {"name": "defaulted_12m", "kind": "bool", "p": 0.08},
+    {"name": "days_late_max", "kind": "int", "low": 0, "high": 200}
+   ],
+   "day1": "Ravi here, from a small lender. We want a risk score for each new loan. The score is made when the loan application is approved, before any money is paid out. The outcome is defaulted_12m, whether the borrower stops paying. Each row is one loan, and default means within 12 months of approval.",
+   "facts": [
+    {"key": "moment", "text": "Prediction made: when the loan application is approved, before any money is paid out.",
+     "ask_keywords": ["application is approved", "paid out", "at approval"],
+     "named_keywords": ["application is approved", "at approval", "time of approval", "before any money", "paid out"]},
+    {"key": "outcome", "text": "Outcome predicted: defaulted_12m, whether the borrower stops paying.",
+     "ask_keywords": ["defaulted_12m"], "named_keywords": ["defaulted_12m"]},
+    {"key": "unit", "text": "Unit and horizon: one row per loan; default within 12 months of approval.",
+     "ask_keywords": ["12 months", "twelve months", "per loan"], "named_keywords": ["12 months", "12-month", "twelve months", "per loan", "each loan"]}
+   ],
+   "day2": "Let's get the model built."
+  },
+  {
+   "id": "MD2-05", "split": "dev", "person": "grace", "title": "Missed clinic appointments", "table": "appointments", "rows": 320, "seed": 105,
+   "outcome_column": "no_show",
+   "columns": [
+    {"name": "appointment_id", "kind": "id", "prefix": "a"},
+    {"name": "booked_on", "kind": "date", "start": "2026-03-01", "days": 150},
+    {"name": "appointment_date", "kind": "date", "start": "2026-03-10", "days": 160},
+    {"name": "lead_days", "kind": "int", "low": 0, "high": 60},
+    {"name": "age", "kind": "int", "low": 1, "high": 92},
+    {"name": "clinic", "kind": "cat", "choices": ["central", "riverside", "hilltop"]},
+    {"name": "previous_no_shows", "kind": "int", "low": 0, "high": 5},
+    {"name": "sms_reminder_sent", "kind": "bool", "p": 0.6},
+    {"name": "no_show", "kind": "bool", "p": 0.15},
+    {"name": "checked_in_at", "kind": "datetime", "start": "2026-03-10T08:00:00", "hours": 3800}
+   ],
+   "day1": "Hi, I'm Grace and I run three clinics. Too many patients miss their appointments. We decide two days before the appointment who gets a reminder call, so that is when we predict. The outcome is no_show, whether the patient misses the appointment. One row is one appointment.",
+   "facts": [
+    {"key": "moment", "text": "Prediction made: two days before the appointment, when the team decides who gets a reminder call.",
+     "ask_keywords": ["two days before", "2 days before", "reminder call"],
+     "named_keywords": ["two days before", "2 days before", "48 hours before", "reminder call"]},
+    {"key": "outcome", "text": "Outcome predicted: no_show, whether the patient misses the appointment.",
+     "ask_keywords": ["no_show"], "named_keywords": ["no_show"]},
+    {"key": "unit", "text": "Unit and horizon: one row per appointment; only that appointment counts.",
+     "ask_keywords": ["per appointment"], "named_keywords": ["per appointment", "each appointment"]}
+   ],
+   "day2": "Hello, can we build the model now?"
+  },
+  {
+   "id": "MD2-06", "split": "dev", "person": "tom", "title": "Weekly store sales", "table": "store_weeks", "rows": 260, "seed": 106,
+   "outcome_column": "units_sold",
+   "columns": [
+    {"name": "store_id", "kind": "cat", "choices": ["st01", "st02", "st03", "st04", "st05"]},
+    {"name": "week_start", "kind": "weekly", "start": "2025-06-02", "weeks": 52},
+    {"name": "promo_items", "kind": "int", "low": 0, "high": 40},
+    {"name": "price_index", "kind": "float", "low": 0.9, "high": 1.15},
+    {"name": "footfall_last_week", "kind": "int", "low": 2000, "high": 15000},
+    {"name": "region", "kind": "cat", "choices": ["city", "suburb", "rural"]},
+    {"name": "holiday_week", "kind": "bool", "p": 0.1},
+    {"name": "units_sold", "kind": "int", "low": 3000, "high": 26000},
+    {"name": "stockouts", "kind": "int", "low": 0, "high": 30}
+   ],
+   "day1": "Tom from a grocery chain. We order stock for each store every Sunday night, before the week starts, and that is when we need the forecast. We predict units_sold, the total units a store sells in the week. One row is one store for one week, and we predict one week ahead.",
+   "facts": [
+    {"key": "moment", "text": "Prediction made: on Sunday night, before the week starts, when stock is ordered.",
+     "ask_keywords": ["sunday", "before the week"], "named_keywords": ["sunday", "before the week starts", "before each week"]},
+    {"key": "outcome", "text": "Outcome predicted: units_sold, the total units a store sells in the week.",
+     "ask_keywords": ["units_sold"], "named_keywords": ["units_sold"]},
+    {"key": "unit", "text": "Unit and horizon: one row per store per week; one week ahead.",
+     "ask_keywords": ["per store", "per week", "one week ahead"],
+     "named_keywords": ["per store", "per week", "one week ahead", "week ahead", "store-week", "store and week"]}
+   ],
+   "day2": "Let's build the model now."
+  },
+  {
+   "id": "MD2-07", "split": "dev", "person": "ana", "title": "Machine breakdowns", "table": "machine_days", "rows": 300, "seed": 107,
+   "outcome_column": "failure_7d",
+   "columns": [
+    {"name": "machine_id", "kind": "cat", "choices": ["M1", "M2", "M3", "M4", "M5", "M6", "M7", "M8"]},
+    {"name": "day", "kind": "date", "start": "2026-01-01", "days": 300},
+    {"name": "temperature_avg", "kind": "float", "low": 35, "high": 85},
+    {"name": "vibration_rms", "kind": "float", "low": 0.1, "high": 4.5},
+    {"name": "hours_run", "kind": "float", "low": 0, "high": 24},
+    {"name": "age_years", "kind": "int", "low": 1, "high": 18},
+    {"name": "last_service_days", "kind": "int", "low": 0, "high": 400},
+    {"name": "line", "kind": "cat", "choices": ["A", "B", "C"]},
+    {"name": "failure_7d", "kind": "bool", "p": 0.06},
+    {"name": "repair_cost_eur", "kind": "int", "low": 0, "high": 9000}
+   ],
+   "day1": "I'm Ana, maintenance lead at a packaging plant. Every night at midnight we look at the sensor readings of the day that just ended, and that is when we want the prediction. The outcome is failure_7d, whether the machine breaks down. One row is one machine on one day, and a breakdown counts if it happens within the next 7 days.",
+   "facts": [
+    {"key": "moment", "text": "Prediction made: every night at midnight, from the sensor readings of the day just ended.",
+     "ask_keywords": ["midnight", "every night"], "named_keywords": ["midnight", "every night", "each night", "end of each day", "end of the day"]},
+    {"key": "outcome", "text": "Outcome predicted: failure_7d, whether the machine breaks down.",
+     "ask_keywords": ["failure_7d"], "named_keywords": ["failure_7d"]},
+    {"key": "unit", "text": "Unit and horizon: one row per machine per day; a breakdown within the next 7 days.",
+     "ask_keywords": ["7 days", "seven days", "per machine"], "named_keywords": ["7 days", "seven days", "7-day", "per machine", "machine-day"]}
+   ],
+   "day2": "Morning! Time to build the model."
+  },
+  {
+   "id": "MD2-08", "split": "dev", "person": "ben", "title": "Car insurance claim cost", "table": "claims", "rows": 260, "seed": 108,
+   "outcome_column": "claim_cost_eur",
+   "columns": [
+    {"name": "claim_id", "kind": "id", "prefix": "k"},
+    {"name": "reported_on", "kind": "date", "start": "2025-02-01", "days": 400},
+    {"name": "vehicle_age", "kind": "int", "low": 0, "high": 20},
+    {"name": "driver_age", "kind": "int", "low": 18, "high": 85},
+    {"name": "claim_type", "kind": "cat", "choices": ["collision", "glass", "theft", "fire", "parking"]},
+    {"name": "region", "kind": "cat", "choices": ["north", "south", "coast", "capital"]},
+    {"name": "police_report", "kind": "bool", "p": 0.3},
+    {"name": "photos_uploaded", "kind": "int", "low": 0, "high": 12},
+    {"name": "claim_cost_eur", "kind": "int", "low": 80, "high": 22000},
+    {"name": "days_to_settle", "kind": "int", "low": 3, "high": 180}
+   ],
+   "day1": "Ben here, from a car insurer. We want to estimate what each claim will cost so we can set money aside. The estimate is made when the claim is first reported, on the first call. The outcome is claim_cost_eur, the total we pay for the claim. One row is one claim, and the cost is in euros.",
+   "facts": [
+    {"key": "moment", "text": "Prediction made: when the claim is first reported, on the first call.",
+     "ask_keywords": ["first reported", "first call"], "named_keywords": ["first reported", "first call", "first notice", "claim is reported"]},
+    {"key": "outcome", "text": "Outcome predicted: claim_cost_eur, the total paid for the claim.",
+     "ask_keywords": ["claim_cost_eur"], "named_keywords": ["claim_cost_eur"]},
+    {"key": "unit", "text": "Unit and horizon: one row per claim; the cost in euros.",
+     "ask_keywords": ["per claim", "in euros"], "named_keywords": ["per claim", "each claim", "in euros"]}
+   ],
+   "day2": "Let's build the model now, please."
+  }
+ ]
+}

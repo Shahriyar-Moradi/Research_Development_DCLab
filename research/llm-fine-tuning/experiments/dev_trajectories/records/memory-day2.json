@@ -1,0 +1,96 @@
+{
+ "package": "memory-day2",
+ "title": "Problem memory gets its own switch and a day-2 check of whether the Lead re-asks stored facts",
+ "date": "2026-11-19",
+ "request": "Give the Lead's problem memory note a switch of its own (DCLAB_LEAD_PROBLEM_MEMORY), move its words into a prompt file, and measure live, small and capped, whether memory alone stops the Lead from asking a person again for facts they stated on day 1.",
+ "spec": "Note present only with a switch on, framed as data, read from dclab_rnd/prompts/lead_problem_memory.md; eight invented dev stories, the Lead's first day-2 turn with memory off and on, qwen/qwen3.8-flash, scored by code (re-asked facts, questions, named facts), at most EUR 0.30.",
+ "plan": [
+  "add the memory switch beside the bounded loop's in lead_choice.json and the environment",
+  "move the note's words into a prompt file and rerun the prompt and harness gates",
+  "write tests for the switch, the framing and the prompt file",
+  "write eight dev stories with facts and keywords, and the scoring by code",
+  "dry run with a scripted client, then one live run under the cap",
+  "read every question by hand and write the result for a non-expert"
+ ],
+ "decisions": [
+  {
+   "decision": "The memory switch lives in decision_loop.settings beside the loop's switch",
+   "why": "set_settings rewrites lead_choice.json from settings(); a key kept elsewhere would be dropped every time the loop's switch is written"
+  },
+  {
+   "decision": "The note's words were moved unchanged, with no new instruction to avoid re-asking",
+   "why": "the check measures memory as it is; adding an instruction would measure a new prompt instead"
+  },
+  {
+   "decision": "Day 1 writes the facts the way Home's hand-off does, without a live day-1 conversation",
+   "why": "the same Problem Base lines and field names as draft/memory.py hand_off, with no spend and no noise from a day-1 model"
+  },
+  {
+   "decision": "The code score is reported as fixed, and a hand reading is reported beside it",
+   "why": "the rule was fixed before the run; changing it after seeing the replies would tune the scorer to the answer"
+  }
+ ],
+ "change": "decision_loop: MEMORY_ENV, problem_memory in settings/set_settings, problem_memory_enabled. case_agent: memory_note() from the prompt file lead_problem_memory, sent when the loop or the memory switch is on. agent_eval/memory_day2.py with its stories file; tests/test_lead_problem_memory.py; AEV-129 and HRN-139 rerun for the new prompt's hash.",
+ "findings": [
+  {
+   "id": "MD2-1",
+   "source": "measurement",
+   "severity": "gap",
+   "verdict": "confirmed",
+   "defect": "The code rule counts a question that only mentions a stored fact as a re-ask of it.",
+   "scenario": "MD2-02 with memory on asked 'when the model says a customer will cancel within 90 days, what actually happens?'; the rule counted the horizon as asked again, though the question built on it.",
+   "cause": "the re-ask test is any question sentence holding a fact's keywords; the value words (90 days, Sunday night) appear when the Lead uses the fact",
+   "fix": "not fixed in this run; next: a re-ask must ask for the fact (an interrogative about it, or alternatives offered for it), checked on these replies before a new run",
+   "test": "agent_runs/live_tests/20261119T165904Z-memory-day2 replies, read by hand: 5 of the 6 code matches are of this kind"
+  },
+  {
+   "id": "MD2-2",
+   "source": "measurement",
+   "severity": "gap",
+   "verdict": "confirmed",
+   "defect": "The code rule misses a re-ask of the outcome written in plain words.",
+   "scenario": "MD2-03 with memory off asked 'should the number it predicts be bikes rented, bikes returned, or the net imbalance?'; the keyword bikes_rented did not match the plain words.",
+   "cause": "story keywords hold the column name only, not its words without underscores",
+   "fix": "not fixed in this run; next: match a column name with spaces as well as underscores",
+   "test": "agent_runs/live_tests/20261119T165904Z-memory-day2/stories/MD2-03/off/turn.json"
+  },
+  {
+   "id": "MD2-3",
+   "source": "measurement",
+   "severity": "behaviour",
+   "verdict": "open",
+   "defect": "Without memory the Lead asks again for facts the person already gave.",
+   "scenario": "Memory off, read by hand: MD2-03 and MD2-06 asked which column to predict, MD2-04 asked whether it scores new applications or loans on the book; with memory on none did clearly.",
+   "cause": "the stored facts are not in the request when memory is off; the case file starts empty on day 2",
+   "fix": "the switch exists, off by default; turning it on is the owner's decision after a fixed scorer and a fresh run",
+   "test": "evidence/campaigns/memory_day2_v1/results/MD2-001_dev.json and RESULT.md"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "Memory day 2: the Lead's first day-2 turn, memory off against on, 8 invented dev stories",
+   "gate": "none: a paired count to read; fewer re-asked facts with memory on would mean memory helps",
+   "fixed_before_run": true,
+   "result": "code: re-asked 2 (off) and 4 (on) of 24 facts, 0 better, 2 worse, 6 equal; by hand: 3 (off) and 0 (on, 1 borderline); questions 12 and 9; 84 of 84 calls kept with thinking",
+   "verdict": "not scored",
+   "cost_eur": 0.0575,
+   "next": "fix the re-ask rule (ask for, not mention; column words), check it on these replies, then run fresh dev stories with two repeats",
+   "limits": [
+    "8 stories, one repeat, one model",
+    "hand reading by the builder after the run, no blind second reader",
+    "the code rule is known to be wrong in both directions"
+   ]
+  }
+ ],
+ "outcome": "Memory now has its own switch, off by default, with its words in a prompt file under the prompt gate. Live, the code score said memory made re-asking worse (2 against 4), but a hand reading shows the rule counted questions that used the stored facts; read by hand memory removed the clear re-asks (3 against 0). The check needs a better rule before its number can be trusted.",
+ "lessons": [
+  "A keyword re-ask rule penalises the arm that uses the facts: it must test asking for a fact, not mentioning it",
+  "Read the replies before believing a code score, even a score fixed before the run",
+  "Most day-2 questions were about the decision and who reads the output, which no one had stored"
+ ],
+ "risks": [
+  "The code score alone would have led to the wrong conclusion that memory hurts",
+  "The hand count is small and unblinded"
+ ],
+ "commits": []
+}

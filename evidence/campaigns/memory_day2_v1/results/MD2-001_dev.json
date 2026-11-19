@@ -1,0 +1,410 @@
+{
+ "id": "MD2-001",
+ "campaign_id": "memory_day2_v1",
+ "split": "dev",
+ "set": "memory_day2_dev_v1",
+ "run": "MD2-001",
+ "at": "2026-11-19T16:59:04+00:00",
+ "model": "qwen/qwen3.8-flash",
+ "thinking_effort": "high",
+ "cap_eur": 0.3,
+ "arms": [
+  "off",
+  "on"
+ ],
+ "stories": [
+  "MD2-01",
+  "MD2-02",
+  "MD2-03",
+  "MD2-04",
+  "MD2-05",
+  "MD2-06",
+  "MD2-07",
+  "MD2-08"
+ ],
+ "rules_sha256": "91b060293d572d94429bd779f2957f52aea7eda83a11ee00a15e3ee624291e85",
+ "code": {
+  "commit": "4dc043967a548068806e220f5507250e6a9df502",
+  "dirty": [
+   "dclab_rnd/agents/case_agent.py",
+   "dclab_rnd/agents/decision_loop.py",
+   "dclab_rnd/prompts/lead_problem_memory.md"
+  ],
+  "diff_sha256": "a957a448cf8d4e09fcae6e4af12e50b1261eb06a9cf3dddafc3a588c427187f6",
+  "untracked_sha256": "a75012108a054fb8b4721548f7a7cfe1fb04c84c8d640638e4f515396a60dcbc",
+  "untracked_files": 1
+ },
+ "fixed_before_run": "facts, keywords and scoring rules in memory_day2_stories.json and GENERIC_ASK, hashed in rules_sha256",
+ "spent_eur": 0.0575,
+ "kept": "agent_runs/live_tests/20261119T165904Z-memory-day2",
+ "capture": {
+  "exchanges": 84,
+  "ok": 84,
+  "whole": 84,
+  "with_thinking": 84,
+  "thinking_redacted": 0,
+  "without_thinking": [],
+  "purposes": [
+   "case_agent",
+   "route_check"
+  ]
+ },
+ "rows": [
+  {
+   "story": "MD2-01",
+   "arm": "off",
+   "score": {
+    "reasked": [],
+    "questions": 1,
+    "named": [
+     "outcome"
+    ],
+    "matched_questions": {}
+   },
+   "note_sent": false,
+   "asking": true,
+   "options": 0,
+   "route": null,
+   "spent_eur": 0.00528
+  },
+  {
+   "story": "MD2-01",
+   "arm": "on",
+   "score": {
+    "reasked": [],
+    "questions": 1,
+    "named": [
+     "moment",
+     "outcome",
+     "unit"
+    ],
+    "matched_questions": {}
+   },
+   "note_sent": true,
+   "asking": true,
+   "options": 0,
+   "route": null,
+   "spent_eur": 0.00387
+  },
+  {
+   "story": "MD2-02",
+   "arm": "on",
+   "score": {
+    "reasked": [
+     "unit"
+    ],
+    "questions": 1,
+    "named": [],
+    "matched_questions": {
+     "unit": [
+      "First, one question: when the model says a customer will cancel within 90 days, what actually happens — does someone on your team contact them with an offer, and is it you choosing that list?"
+     ]
+    }
+   },
+   "note_sent": true,
+   "asking": true,
+   "options": 0,
+   "route": null,
+   "spent_eur": 0.00273
+  },
+  {
+   "story": "MD2-02",
+   "arm": "off",
+   "score": {
+    "reasked": [],
+    "questions": 2,
+    "named": [
+     "unit"
+    ],
+    "matched_questions": {}
+   },
+   "note_sent": false,
+   "asking": true,
+   "options": 0,
+   "route": null,
+   "spent_eur": 0.00454
+  },
+  {
+   "story": "MD2-03",
+   "arm": "off",
+   "score": {
+    "reasked": [],
+    "questions": 3,
+    "named": [],
+    "matched_questions": {}
+   },
+   "note_sent": false,
+   "asking": true,
+   "options": 0,
+   "route": null,
+   "spent_eur": 0.00335
+  },
+  {
+   "story": "MD2-03",
+   "arm": "on",
+   "score": {
+    "reasked": [],
+    "questions": 1,
+    "named": [],
+    "matched_questions": {}
+   },
+   "note_sent": true,
+   "asking": true,
+   "options": 0,
+   "route": null,
+   "spent_eur": 0.00271
+  },
+  {
+   "story": "MD2-04",
+   "arm": "on",
+   "score": {
+    "reasked": [],
+    "questions": 1,
+    "named": [],
+    "matched_questions": {}
+   },
+   "note_sent": true,
+   "asking": true,
+   "options": 0,
+   "route": null,
+   "spent_eur": 0.00477
+  },
+  {
+   "story": "MD2-04",
+   "arm": "off",
+   "score": {
+    "reasked": [],
+    "questions": 1,
+    "named": [
+     "unit"
+    ],
+    "matched_questions": {}
+   },
+   "note_sent": false,
+   "asking": false,
+   "options": 0,
+   "route": null,
+   "spent_eur": 0.00323
+  },
+  {
+   "story": "MD2-05",
+   "arm": "off",
+   "score": {
+    "reasked": [],
+    "questions": 2,
+    "named": [
+     "moment",
+     "outcome"
+    ],
+    "matched_questions": {}
+   },
+   "note_sent": false,
+   "asking": true,
+   "options": 0,
+   "route": null,
+   "spent_eur": 0.00432
+  },
+  {
+   "story": "MD2-05",
+   "arm": "on",
+   "score": {
+    "reasked": [
+     "moment"
+    ],
+    "questions": 3,
+    "named": [
+     "moment",
+     "unit"
+    ],
+    "matched_questions": {
+     "moment": [
+      "Before I train anything, one thing changes the whole design: when the model flags an appointment as likely to be missed two days out, what does your team actually do about it, and who does it — a reminder call from the front desk, a slot fr"
+     ]
+    }
+   },
+   "note_sent": true,
+   "asking": true,
+   "options": 0,
+   "route": null,
+   "spent_eur": 0.00445
+  },
+  {
+   "story": "MD2-06",
+   "arm": "on",
+   "score": {
+    "reasked": [
+     "moment"
+    ],
+    "questions": 1,
+    "named": [
+     "moment"
+    ],
+    "matched_questions": {
+     "moment": [
+      "**What decision does this forecast drive, and who reads it?** For example, is it you (or a replenishment planner) setting each store's stock order on Sunday night — in which case I care most about the weeks where a miss costs sales or leave"
+     ]
+    }
+   },
+   "note_sent": true,
+   "asking": false,
+   "options": 0,
+   "route": null,
+   "spent_eur": 0.00325
+  },
+  {
+   "story": "MD2-06",
+   "arm": "off",
+   "score": {
+    "reasked": [
+     "outcome"
+    ],
+    "questions": 2,
+    "named": [
+     "outcome",
+     "unit"
+    ],
+    "matched_questions": {
+     "outcome": [
+      "One thing I need before I run it: which column should the model predict — units_sold (how many units a store will sell next week, for ordering and staffing) or stockouts (which store-weeks are likely to run dry, to protect sales)?"
+     ]
+    }
+   },
+   "note_sent": false,
+   "asking": true,
+   "options": 0,
+   "route": null,
+   "spent_eur": 0.00363
+  },
+  {
+   "story": "MD2-07",
+   "arm": "off",
+   "score": {
+    "reasked": [
+     "unit"
+    ],
+    "questions": 1,
+    "named": [
+     "outcome",
+     "unit"
+    ],
+    "matched_questions": {
+     "unit": [
+      "One thing before I do: when the model says a machine is likely to fail in the next 7 days, what actually happens on your side — does someone send a technician, book a service slot, or slow the line down — and who makes that call?"
+     ]
+    }
+   },
+   "note_sent": false,
+   "asking": true,
+   "options": 0,
+   "route": null,
+   "spent_eur": 0.00345
+  },
+  {
+   "story": "MD2-07",
+   "arm": "on",
+   "score": {
+    "reasked": [
+     "unit"
+    ],
+    "questions": 1,
+    "named": [
+     "unit"
+    ],
+    "matched_questions": {
+     "unit": [
+      "What happens to a machine it flags — does someone on your maintenance side get to fit a preventive intervention in before the week is out, or is that window too short and you'd rather use the score for planning spares and crew?"
+     ]
+    }
+   },
+   "note_sent": true,
+   "asking": true,
+   "options": 0,
+   "route": null,
+   "spent_eur": 0.00117
+  },
+  {
+   "story": "MD2-08",
+   "arm": "on",
+   "score": {
+    "reasked": [],
+    "questions": 0,
+    "named": [
+     "moment",
+     "outcome",
+     "unit"
+    ],
+    "matched_questions": {}
+   },
+   "note_sent": true,
+   "asking": false,
+   "options": 3,
+   "route": null,
+   "spent_eur": 0.00248
+  },
+  {
+   "story": "MD2-08",
+   "arm": "off",
+   "score": {
+    "reasked": [],
+    "questions": 0,
+    "named": [
+     "moment",
+     "outcome"
+    ],
+    "matched_questions": {}
+   },
+   "note_sent": false,
+   "asking": false,
+   "options": 2,
+   "route": null,
+   "spent_eur": 0.00427
+  }
+ ],
+ "paired": {
+  "stories": 8,
+  "facts": 24,
+  "reasked": {
+   "off": 2,
+   "on": 4
+  },
+  "reasked_by_fact": {
+   "off": {
+    "moment": 0,
+    "outcome": 1,
+    "unit": 1
+   },
+   "on": {
+    "moment": 2,
+    "outcome": 0,
+    "unit": 2
+   }
+  },
+  "questions": {
+   "off": 12,
+   "on": 9
+  },
+  "named": {
+   "off": 11,
+   "on": 10
+  },
+  "better": [],
+  "worse": [
+   "MD2-02",
+   "MD2-05"
+  ],
+  "equal": [
+   "MD2-01",
+   "MD2-03",
+   "MD2-04",
+   "MD2-06",
+   "MD2-07",
+   "MD2-08"
+  ]
+ },
+ "incomplete": null,
+ "note_check": {
+  "off": [],
+  "on": []
+ },
+ "rule": "Eight invented dev stories, one turn each arm, one repeat: counts with no interval; never a claim about other conversations or production readiness."
+}

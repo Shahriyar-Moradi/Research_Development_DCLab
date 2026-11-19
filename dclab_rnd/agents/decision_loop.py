@@ -7,6 +7,8 @@ binds arguments to the authenticated case, executes at most one committed effect
 persists the typed observation, and either stops or offers a fresh choice based on the new evidence.
 
 Behind a workspace switch (``lead_choice.json`` / ``DCLAB_LEAD_BOUNDED_CHOICE``), initially off.
+The problem memory note has its own switch (``problem_memory`` in the same file / ``DCLAB_LEAD_PROBLEM_MEMORY``), also
+off: with it on, the Lead reads the bound problem's memory even with the loop off, so memory can be measured alone.
 """
 
 from __future__ import annotations
@@ -29,6 +31,7 @@ from .runtime import Policy, run as run_policy
 
 SWITCH_ENV = "DCLAB_LEAD_BOUNDED_CHOICE"
 ADVISORY_ENV = "DCLAB_ADVISORY_GATED_ROLES"
+MEMORY_ENV = "DCLAB_LEAD_PROBLEM_MEMORY"
 SETTINGS_FILE = "lead_choice.json"
 MAX_DECISIONS = 10
 MAX_REVISIONS = 4
@@ -47,9 +50,14 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
+def _env_switch(name: str) -> Optional[bool]:
+    value = os.environ.get(name, "").strip().lower()
+    return True if value in ("1", "true", "on", "yes") else False if value in ("0", "false", "off", "no") else None
+
+
 def settings(home: Path | None = None) -> dict[str, bool]:
-    """Workspace switches for bounded Lead choice and advisory gated roles (both initially off)."""
-    out = {"enabled": False, "advisory_gated_roles": False}
+    """Workspace switches for bounded Lead choice, advisory gated roles and the Lead's problem memory note (all initially off)."""
+    out = {"enabled": False, "advisory_gated_roles": False, "problem_memory": False}
     if home is not None:
         path = Path(home) / SETTINGS_FILE
         if path.is_file():
@@ -60,6 +68,8 @@ def settings(home: Path | None = None) -> dict[str, bool]:
                         out["enabled"] = stored["enabled"]
                     if isinstance(stored.get("advisory_gated_roles"), bool):
                         out["advisory_gated_roles"] = stored["advisory_gated_roles"]
+                    if isinstance(stored.get("problem_memory"), bool):
+                        out["problem_memory"] = stored["problem_memory"]
             except (OSError, ValueError):
                 pass
     env = os.environ.get(SWITCH_ENV, "").strip().lower()
@@ -72,6 +82,9 @@ def settings(home: Path | None = None) -> dict[str, bool]:
         out["advisory_gated_roles"] = True
     elif adv in ("0", "false", "off", "no"):
         out["advisory_gated_roles"] = False
+    memory = _env_switch(MEMORY_ENV)
+    if memory is not None:
+        out["problem_memory"] = memory
     return out
 
 
@@ -83,9 +96,17 @@ def advisory_roles_enabled(home: Path | None = None) -> bool:
     return settings(home)["advisory_gated_roles"]
 
 
-def set_settings(home: Path, *, enabled: Optional[bool] = None, advisory_gated_roles: Optional[bool] = None) -> dict[str, bool]:
+def problem_memory_enabled(home: Path | None = None) -> bool:
+    """The Lead reads the bound problem's memory note even with the bounded loop off (its own switch, initially off)."""
+    return settings(home)["problem_memory"]
+
+
+def set_settings(home: Path, *, enabled: Optional[bool] = None, advisory_gated_roles: Optional[bool] = None,
+                 problem_memory: Optional[bool] = None) -> dict[str, bool]:
     """Persist workspace switches atomically without touching orchestra/team.json."""
     current = settings(home)
+    if problem_memory is not None:
+        current["problem_memory"] = bool(problem_memory)
     if enabled is not None:
         current["enabled"] = bool(enabled)
     if advisory_gated_roles is not None:
