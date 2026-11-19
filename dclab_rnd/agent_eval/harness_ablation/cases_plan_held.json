@@ -1,0 +1,50 @@
+[
+ {
+  "id": "hpl-01",
+  "stratum": "multi_part_with_false_claim",
+  "upload": "sales",
+  "opening": "I'm the commercial lead at an online shop in the UAE. The board meets in two weeks and wants three things from me: which regions are growing, whether the app is eating into the web shop's sales, and a revenue number for next quarter. The table I shared is our order export, one row per order. Finance told me refunds are already netted out of the amounts, so you can ignore the status column."
+ },
+ {
+  "id": "hpl-02",
+  "stratum": "model_plus_action_vague_horizon",
+  "upload": "customers",
+  "opening": "I head customer success at a subscription company. I want to predict which customers will churn over the coming period, and I also need to decide what to do about it: we have budget for one retention programme next quarter, either a loyalty discount or a dedicated account manager for bigger accounts. The table I shared has one row per customer. Tenure is fine to use, I assume."
+ },
+ {
+  "id": "hpl-03",
+  "stratum": "two_units_one_problem",
+  "upload": "bookings",
+  "opening": "I'm the revenue manager at a travel agency. For the summer I need two things: how many cancellations to expect per destination per month, so we can overbook, and a list of the bookings most likely to cancel this week, so agents can call those customers. The bookings log is attached; lead time is in there. Prices should be in dirham but some rows look odd to me."
+ },
+ {
+  "id": "hpl-04",
+  "stratum": "no_data_three_parts_confounded_pilot",
+  "upload": null,
+  "opening": "I run six dental clinics. Missed appointments are hurting us badly. I want to cut the no-shows, maybe double-book the slots that usually go empty, and find out whether the SMS reminders work: we started sending them in two of the clinics last spring. I can get the appointment export from our booking system, I just haven't yet. Where do we start?"
+ },
+ {
+  "id": "hpl-05",
+  "stratum": "preparation_with_target_leak",
+  "upload": "sales",
+  "opening": "I'm going to build a customer lifetime value model next month and I need the order data ready before then. Could you clean the sales export and turn it into one row per customer with what they've spent? Just use everything up to today."
+ },
+ {
+  "id": "hpl-06",
+  "stratum": "report_plus_targeting_no_outcome",
+  "upload": "customers",
+  "opening": "I'm the marketing director at a subscription company. I need two things: a monthly dashboard of churn by segment and city for the board, and a list of customers we should push to upgrade to premium. The dashboard goes to the board; the upgrade list goes to sales. The table I shared is our customer table."
+ },
+ {
+  "id": "hpl-07",
+  "stratum": "no_data_moment_and_late_field",
+  "upload": null,
+  "opening": "We're a logistics startup. We want to predict delivery delays for our business clients and also show them an arrival time. We have about eight months of trips in our database, the drivers' GPS, and a delay reason field the dispatchers fill in. Horizon? Whatever is most useful. I haven't exported anything yet."
+ },
+ {
+  "id": "hpl-08",
+  "stratum": "causal_claim_plus_ambiguous_period",
+  "upload": "bookings",
+  "opening": "Our CEO says free cancellation is bringing in more bookings from London and wants to offer it on every trip. I'm the analyst. Can you check whether that's true, and also tell me how much revenue we lost to cancellations last year? The bookings export is attached."
+ }
+]

@@ -1,0 +1,209 @@
+{
+ "hpl-01": {
+  "must_understand": [
+   "these are three different questions, each with its own method: a breakdown of growth by region, a question about cause (is the app taking sales from the web), and a forecast",
+   "the claim that refunds are netted out has to be checked: the status column still marks refunded and cancelled orders, and repeated rows and missing amounts change revenue too",
+   "order totals by channel cannot show that the app takes sales from the web shop: that needs the same customers' behaviour before and after they used the app, or a test",
+   "a forecast from about fifteen months of orders has seen one year's season only, and the latest month may be incomplete, so it needs a range and a stated basis"
+  ],
+  "acceptable_approaches": [
+   "define revenue first (status, repeated rows, missing amounts), then break it down by region and month",
+   "look at customers who order through both channels to describe switching, said to be a description, not proof",
+   "a simple seasonal forecast with a range, with its limits stated"
+  ],
+  "forbidden": [
+   "ignores the status column because the person said refunds were netted out, without checking it",
+   "states as a fact that the app takes sales from the web shop, from channel totals",
+   "gives a single revenue figure for next quarter with no range"
+  ],
+  "right_is_model": false,
+  "in_six_tracks": true,
+  "route": "analysis",
+  "also_right": [
+   "reporting",
+   "business",
+   "prediction"
+  ],
+  "adaptation_check": null
+ },
+ "hpl-02": {
+  "must_understand": [
+   "the table's outcome is churn in the next month only: 'the coming period' must be agreed, and a quarter-long horizon cannot be learned from this table",
+   "a churn model ranks who is at risk; it cannot say whether a discount or an account manager would keep them, since neither was ever tried",
+   "choosing the programme needs a small test of each, or at least a stated assumption, with value judged by what the kept customers spend",
+   "the table is one snapshot with no date of measurement, so the model can only be checked on customers held aside, and what that cannot show must be said"
+  ],
+  "acceptable_approaches": [
+   "build a one-month churn risk model, judged on the top of its list, kept apart from the programme choice",
+   "propose a randomised pilot of the two programmes on at-risk customers",
+   "rank by risk together with monthly spend for the account manager option"
+  ],
+  "forbidden": [
+   "claims the model shows which programme will reduce churn",
+   "gives a number of customers or money the programme will save",
+   "silently treats the one-month outcome as the quarter the person asked about"
+  ],
+  "right_is_model": true,
+  "in_six_tracks": true,
+  "route": "prediction",
+  "also_right": [
+   "business",
+   "advice"
+  ],
+  "adaptation_check": null
+ },
+ "hpl-03": {
+  "must_understand": [
+   "there are two units here, a destination-month count and a single booking's chance, and the plan must say how one model or two serve both",
+   "bookings whose trips have not happened yet are marked as not cancelled but can still cancel: they are left out of training or cut by a rule",
+   "the model is checked on bookings made later than the ones it learned from, and the counts per destination need trustworthy probabilities, not only a ranking",
+   "the data needs cleaning first: price is text with a currency, and some rows are test bookings"
+  ],
+  "acceptable_approaches": [
+   "a booking-level model with calibrated probabilities, summed by destination and month for the overbooking count",
+   "split by booking date and drop unresolved trips",
+   "clean the price, drop test rows and identifiers before modelling"
+  ],
+  "forbidden": [
+   "validates on a random split with no word about time",
+   "treats trips that have not happened yet as not cancelled without saying so",
+   "gives an expected number of cancellations for the summer without having run anything"
+  ],
+  "right_is_model": true,
+  "in_six_tracks": true,
+  "route": "prediction",
+  "also_right": [
+   "analysis"
+  ],
+  "adaptation_check": null
+ },
+ "hpl-04": {
+  "must_understand": [
+   "there are three parts: measuring no-shows, deciding double-booking, and judging the reminders, and they come in that order",
+   "the two clinics with reminders were not chosen at random and the change came with a season, so comparing them with the other four, or spring with before, does not show the reminders' effect",
+   "a no-show has to be defined (late cancellations, rebooked visits) and its cost set against the cost of a double-booked slot where both patients come",
+   "the first step is to export the appointments and measure the no-show rate by clinic, weekday and time, before any model"
+  ],
+  "acceptable_approaches": [
+   "export the appointments and measure the rate first",
+   "compare the change in the two clinics with the change in the other four over the same months, said to be weaker than a test, or run reminders at random",
+   "a per-slot probability later, only if the measurement shows enough no-shows to double-book against"
+  ],
+  "forbidden": [
+   "states the effect of the SMS reminders as a number nobody gave",
+   "presents the two clinics against the other four as the effect of the reminders",
+   "proposes training a model as the first step"
+  ],
+  "right_is_model": false,
+  "in_six_tracks": true,
+  "route": "business",
+  "also_right": [
+   "advice",
+   "analysis"
+  ],
+  "adaptation_check": null
+ },
+ "hpl-05": {
+  "must_understand": [
+   "for a lifetime value model, one row per customer needs a cutoff date: what the customer did before it are the inputs, what they spend after it is the value; totals over everything up to today mix the two",
+   "the length of 'lifetime' has to be agreed, and the export spans about fifteen months, so only a short horizon can be labelled",
+   "revenue must be defined before it is summed: refunded and cancelled orders, repeated rows and missing amounts",
+   "the work asked for is preparation; the model comes later, so the output is a clean table and a written description of each column"
+  ],
+  "acceptable_approaches": [
+   "clean the orders (status, repeated rows, missing amounts), then build per-customer features up to a cutoff and the spend after it",
+   "ask or state the horizon and the cutoff before building the table",
+   "report what was removed or filled and how many rows"
+  ],
+  "forbidden": [
+   "builds per-customer totals over the whole period and offers them as both the inputs and the value to predict",
+   "drops or fills missing amounts without saying so",
+   "trains a lifetime value model when only preparation was asked for"
+  ],
+  "right_is_model": false,
+  "in_six_tracks": true,
+  "route": "preparation",
+  "also_right": [
+   "prediction",
+   "analysis"
+  ],
+  "adaptation_check": null
+ },
+ "hpl-06": {
+  "must_understand": [
+   "the table is one snapshot: it can show today's churn by segment and city, but a month-by-month dashboard needs a monthly export",
+   "some groups are small (a city with few customers), so their rates must be shown with their counts or merged",
+   "there is no record of anyone being offered an upgrade, so no model can learn who accepts one: a list built from customers who look like premium ones is a rule, and a small test would show whether it works",
+   "the two deliverables are separate pieces of work with different readers"
+  ],
+  "acceptable_approaches": [
+   "a first board view from the snapshot with counts, and a request for monthly exports to make it a trend",
+   "a look-alike or rule-based upgrade list, said to be a starting rule, with a test to learn from",
+   "leave identifiers out and handle missing spend before either"
+  ],
+  "forbidden": [
+   "draws a monthly trend from the single snapshot",
+   "presents a look-alike score as the chance a customer accepts an upgrade",
+   "reports a churn rate for a small group with no count"
+  ],
+  "right_is_model": false,
+  "in_six_tracks": true,
+  "route": "reporting",
+  "also_right": [
+   "analysis",
+   "business"
+  ],
+  "adaptation_check": null
+ },
+ "hpl-07": {
+  "must_understand": [
+   "the moment of prediction has to be fixed first (when the order is placed, at dispatch, or on the way), because what is known differs at each",
+   "the delay reason is filled in by dispatchers after a delay happens, so it cannot be an input",
+   "an arrival time and a delay flag are two targets; the plan says which comes first and how a delay is defined (minutes late against what promise)",
+   "with eight months of trips the model is checked on the latest weeks, not on a random sample of trips"
+  ],
+  "acceptable_approaches": [
+   "ask or state the prediction moment and the definition of a delay before any model",
+   "export the trips and measure today's delay rate and the promise against actual times as a baseline",
+   "a time-based split and a simple baseline (the average delay by route and hour) to beat"
+  ],
+  "forbidden": [
+   "uses the delay reason as an input",
+   "lays out a model pipeline without stating or asking when the prediction is made",
+   "promises an accuracy or a reduction in delays"
+  ],
+  "right_is_model": true,
+  "in_six_tracks": true,
+  "route": "prediction",
+  "also_right": [
+   "advice",
+   "business"
+  ],
+  "adaptation_check": null
+ },
+ "hpl-08": {
+  "must_understand": [
+   "free cancellation was not given at random, so London bookings with and without it differ in other ways too: the table can describe the difference but not prove the CEO's claim",
+   "'last year' must be fixed: by booking date or by travel date, and trips not yet travelled are not settled",
+   "revenue lost needs a definition (the price of cancelled bookings, minus any fee kept) and the price has to be cleaned from text with a currency, with test bookings removed",
+   "the two questions are separate: one is about cause, the other a sum"
+  ],
+  "acceptable_approaches": [
+   "describe free cancellation's share and cancellation rate by destination, naming what else differs",
+   "propose a randomised test of free cancellation if the decision matters",
+   "compute lost revenue for a stated year and definition, with the cleaning described"
+  ],
+  "forbidden": [
+   "states from the table that free cancellation causes more London bookings",
+   "gives a lost revenue figure without saying how the price was cleaned and which year was counted"
+  ],
+  "right_is_model": false,
+  "in_six_tracks": true,
+  "route": "analysis",
+  "also_right": [
+   "business",
+   "reporting"
+  ],
+  "adaptation_check": null
+ }
+}

@@ -1,0 +1,522 @@
+{
+ "schema": "dclab_rnd.planning_gate_v2.held.v1",
+ "split": "held",
+ "seeds": [
+  52031,
+  52032
+ ],
+ "cases": [
+  {
+   "id": "hg2_01",
+   "stratum": "hidden_late_column",
+   "replica": "make_hg2_01",
+   "needs_model_planning": true,
+   "brief": "Our claims team is drowning. I want the dodgy claims flagged the moment they're filed so the investigators look at the right ones first. Everything is in claims.csv.",
+   "tables": {
+    "claims.csv": [
+     "claim_id",
+     "policyholder_id",
+     "filed_at",
+     "incident_type",
+     "claim_amount",
+     "policy_age_days",
+     "prior_claims_count",
+     "channel",
+     "investigation_hours",
+     "is_fraud"
+    ]
+   },
+   "known_facts": {
+    "target": "is_fraud",
+    "horizon_days": null,
+    "unit": "claim"
+   },
+   "expected_tasks": [
+    "define_target",
+    "confirm_prediction_moment",
+    "leakage_audit",
+    "time_split_check",
+    "baseline",
+    "capacity_based_metric"
+   ],
+   "expected_traps": [
+    "late_column_neutral_name:investigation_hours",
+    "repeat_policyholders",
+    "fraud_rate_drifts_over_time",
+    "investigator_capacity_not_given"
+   ],
+   "expected_subproblems": [
+    "classification"
+   ],
+   "forbidden_actions": [
+    "use_investigation_hours_as_input",
+    "random_split_holdout",
+    "judge_by_accuracy_only"
+   ],
+   "enforceable_traps": [
+    {
+     "kind": "late_column",
+     "column": "investigation_hours",
+     "why": "The investigators log their hours only when their review closes, weeks after filing, and fraud reviews run long, so the column gives the answer away."
+    },
+    {
+     "kind": "time_split",
+     "column": "filed_at",
+     "why": "Claims are flagged as they are filed and the fraud rate drifts over the years, so the holdout must be the latest claims."
+    }
+   ]
+  },
+  {
+   "id": "hg2_02",
+   "stratum": "multi_table_group",
+   "replica": "make_hg2_02",
+   "needs_model_planning": true,
+   "brief": "Machines on our lines keep breaking down and maintenance always finds out too late. Can we warn the crew in time? I've attached the sensor readings and the machine list. We are adding about twenty new machines next quarter and want it working on those too.",
+   "tables": {
+    "readings.csv": [
+     "reading_id",
+     "machine_id",
+     "reading_time",
+     "temperature_c",
+     "vibration_mm_s",
+     "pressure_bar",
+     "runtime_hours",
+     "previous_failure_count",
+     "downtime_minutes",
+     "failure_within_7d"
+    ],
+    "machines.csv": [
+     "machine_id",
+     "model",
+     "site",
+     "install_date"
+    ]
+   },
+   "known_facts": {
+    "target": null,
+    "horizon_days": null,
+    "unit": null
+   },
+   "expected_tasks": [
+    "confirm_unit_and_horizon",
+    "define_target",
+    "ask_owner",
+    "check_join_key",
+    "leakage_audit",
+    "group_split_check"
+   ],
+   "expected_traps": [
+    "missing_horizon",
+    "late_column_neutral_name:downtime_minutes",
+    "overlapping_label_windows",
+    "new_machines_at_deployment",
+    "honest_scary_name:previous_failure_count"
+   ],
+   "expected_subproblems": [
+    "classification"
+   ],
+   "forbidden_actions": [
+    "use_downtime_minutes_as_input",
+    "drop_previous_failure_count_as_leak",
+    "holdout_shares_machines_with_training",
+    "assume_horizon_without_check"
+   ],
+   "enforceable_traps": [
+    {
+     "kind": "late_column",
+     "column": "downtime_minutes",
+     "why": "The crew logs downtime for the seven days after each reading, so it is written after the failure it should predict."
+    },
+    {
+     "kind": "group_split",
+     "column": "machine_id",
+     "why": "Each machine gives about fifty readings that share its own wear and frailty, and the model must work on machines it has never seen."
+    }
+   ]
+  },
+  {
+   "id": "hg2_03",
+   "stratum": "honest_scary_names",
+   "replica": "make_hg2_03",
+   "needs_model_planning": true,
+   "brief": "Credit committee wants an automatic first opinion on personal loan applications: which ones go bad within a year. applications.csv covers 2022 to now; the data was pulled at the end of June 2025.",
+   "tables": {
+    "applications.csv": [
+     "application_id",
+     "applied_on",
+     "branch",
+     "income_monthly",
+     "loan_amount",
+     "term_months",
+     "employment_years",
+     "debt_to_income",
+     "previous_default_flag",
+     "score_v2",
+     "defaulted_12m"
+    ]
+   },
+   "known_facts": {
+    "target": "defaulted_12m",
+    "horizon_days": 365,
+    "unit": "application"
+   },
+   "expected_tasks": [
+    "define_target",
+    "label_maturity_check",
+    "leakage_audit",
+    "time_split_check",
+    "baseline",
+    "cost_of_errors"
+   ],
+   "expected_traps": [
+    "late_column_neutral_name:score_v2",
+    "immature_labels_last_12_months",
+    "economic_drift_2023_2024",
+    "honest_scary_name:previous_default_flag",
+    "rare_positive_class"
+   ],
+   "expected_subproblems": [
+    "classification"
+   ],
+   "forbidden_actions": [
+    "use_score_v2_as_input",
+    "drop_previous_default_flag_as_leak",
+    "count_immature_applications_as_good",
+    "random_split_holdout"
+   ],
+   "enforceable_traps": [
+    {
+     "kind": "late_column",
+     "column": "score_v2",
+     "why": "The collections system computes this score only once an account is 90 days behind and back-fills the rest, so it is written after the default."
+    },
+    {
+     "kind": "time_split",
+     "column": "applied_on",
+     "why": "The model scores new applications and default rates move with the economy, so the holdout must be the latest applications whose year has passed."
+    }
+   ]
+  },
+  {
+   "id": "hg2_04",
+   "stratum": "group_and_late",
+   "replica": "make_hg2_04",
+   "needs_model_planning": true,
+   "brief": "Ward managers want to know at discharge who is likely to bounce back within a month, so a nurse can call them. admissions.csv is every admission since 2022. The nurses can make about 40 calls a week.",
+   "tables": {
+    "admissions.csv": [
+     "admission_id",
+     "patient_id",
+     "admitted_at",
+     "discharged_at",
+     "age",
+     "sex",
+     "diagnosis_group",
+     "length_of_stay_days",
+     "n_prior_admissions",
+     "discharge_to",
+     "meds_on_discharge",
+     "followup_visits_30d",
+     "readmitted_30d"
+    ]
+   },
+   "known_facts": {
+    "target": "readmitted_30d",
+    "horizon_days": 30,
+    "unit": "discharge"
+   },
+   "expected_tasks": [
+    "define_target",
+    "confirm_prediction_moment",
+    "leakage_audit",
+    "group_split_check",
+    "capacity_based_metric",
+    "baseline"
+   ],
+   "expected_traps": [
+    "late_column:followup_visits_30d",
+    "repeat_patients",
+    "capacity_40_calls_a_week"
+   ],
+   "expected_subproblems": [
+    "classification"
+   ],
+   "forbidden_actions": [
+    "use_followup_visits_30d_as_input",
+    "holdout_shares_patients_with_training",
+    "judge_by_accuracy_only"
+   ],
+   "enforceable_traps": [
+    {
+     "kind": "late_column",
+     "column": "followup_visits_30d",
+     "why": "The clinic counts visits in the 30 days after discharge, the same window as the outcome, so it is not known at discharge."
+    },
+    {
+     "kind": "group_split",
+     "column": "patient_id",
+     "why": "Many patients come back several times and share their own frailty, so a patient's admissions must not sit on both sides of the split."
+    }
+   ]
+  },
+  {
+   "id": "hg2_05",
+   "stratum": "multi_table_unit",
+   "replica": "make_hg2_05",
+   "needs_model_planning": true,
+   "brief": "Returns are killing our margins. Which orders are going to come back? We'd act at checkout, maybe by not offering free returns. Two exports: orders and order lines.",
+   "tables": {
+    "orders.csv": [
+     "order_id",
+     "customer_id",
+     "ordered_at",
+     "channel",
+     "shipping_country",
+     "order_total",
+     "contact_count_total",
+     "returned"
+    ],
+    "order_lines.csv": [
+     "line_id",
+     "order_id",
+     "sku",
+     "category",
+     "size",
+     "unit_price",
+     "quantity",
+     "discount_pct"
+    ]
+   },
+   "known_facts": {
+    "target": "returned",
+    "horizon_days": null,
+    "unit": null
+   },
+   "expected_tasks": [
+    "confirm_unit_and_horizon",
+    "check_join_key",
+    "aggregate_lines_to_orders",
+    "leakage_audit",
+    "time_split_check",
+    "policy_change_check"
+   ],
+   "expected_traps": [
+    "order_vs_line_unit",
+    "late_column_neutral_name:contact_count_total",
+    "free_returns_policy_change_2024_10",
+    "size_bracketing_signal_in_lines",
+    "repeat_customers"
+   ],
+   "expected_subproblems": [
+    "classification"
+   ],
+   "forbidden_actions": [
+    "use_contact_count_total_as_input",
+    "join_lines_without_aggregating",
+    "random_split_holdout"
+   ],
+   "enforceable_traps": [
+    {
+     "kind": "late_column",
+     "column": "contact_count_total",
+     "why": "Most of these customer-service contacts are return requests made after delivery, so the count is written after the outcome."
+    },
+    {
+     "kind": "time_split",
+     "column": "ordered_at",
+     "why": "The model acts at checkout on future orders and the return rate jumped when free returns began in October 2024, so the holdout must be the latest orders."
+    }
+   ]
+  },
+  {
+   "id": "hg2_06",
+   "stratum": "vague_brief_late_category",
+   "replica": "make_hg2_06",
+   "needs_model_planning": true,
+   "brief": "My sales reps waste half their week on cold leads. I want a score after a lead's first week so they call the good ones. leads.csv, exported end of March.",
+   "tables": {
+    "leads.csv": [
+     "lead_id",
+     "created_at",
+     "source",
+     "industry",
+     "company_size",
+     "country",
+     "pages_viewed_first_week",
+     "demo_requested",
+     "prior_churned_account",
+     "sales_stage_max",
+     "converted_90d"
+    ]
+   },
+   "known_facts": {
+    "target": null,
+    "horizon_days": null,
+    "unit": "lead"
+   },
+   "expected_tasks": [
+    "define_target",
+    "confirm_unit_and_horizon",
+    "label_maturity_check",
+    "leakage_audit",
+    "time_split_check",
+    "baseline"
+   ],
+   "expected_traps": [
+    "missing_target_definition",
+    "late_column_neutral_name:sales_stage_max",
+    "immature_labels_last_90_days",
+    "honest_scary_name:prior_churned_account"
+   ],
+   "expected_subproblems": [
+    "classification"
+   ],
+   "forbidden_actions": [
+    "use_sales_stage_max_as_input",
+    "drop_prior_churned_account_as_leak",
+    "count_open_recent_leads_as_lost"
+   ],
+   "enforceable_traps": [
+    {
+     "kind": "late_column",
+     "column": "sales_stage_max",
+     "why": "The furthest pipeline stage is read from the CRM on the export day, so a lead that converted already shows a late stage."
+    },
+    {
+     "kind": "time_split",
+     "column": "created_at",
+     "why": "Leads are scored as they arrive and the newest leads have not had their 90 days, so the holdout must be the latest leads whose window has passed."
+    }
+   ]
+  },
+  {
+   "id": "hg2_07",
+   "stratum": "forecast_group_and_time",
+   "replica": "make_hg2_07",
+   "needs_model_planning": true,
+   "brief": "We buy power a day ahead and keep getting the amount wrong. Can you forecast tomorrow's use per household? daily_usage.csv is our 40 pilot homes since November. If it works we roll it out to 3,000 new homes next year.",
+   "tables": {
+    "daily_usage.csv": [
+     "meter_id",
+     "reading_date",
+     "household_size",
+     "tariff",
+     "heating_type",
+     "temp_forecast_c",
+     "is_holiday",
+     "previous_day_kwh",
+     "peak_kw",
+     "kwh"
+    ]
+   },
+   "known_facts": {
+    "target": "kwh",
+    "horizon_days": 1,
+    "unit": "meter_day"
+   },
+   "expected_tasks": [
+    "define_target",
+    "confirm_prediction_moment",
+    "leakage_audit",
+    "group_split_check",
+    "time_split_check",
+    "naive_forecast_baseline"
+   ],
+   "expected_traps": [
+    "late_column:peak_kw",
+    "new_homes_at_deployment",
+    "seasonal_trend",
+    "lag_feature_is_honest:previous_day_kwh"
+   ],
+   "expected_subproblems": [
+    "regression",
+    "forecasting"
+   ],
+   "forbidden_actions": [
+    "use_peak_kw_as_input",
+    "drop_previous_day_kwh_as_leak",
+    "random_split_holdout",
+    "holdout_shares_meters_with_training"
+   ],
+   "enforceable_traps": [
+    {
+     "kind": "late_column",
+     "column": "peak_kw",
+     "why": "The day's peak demand is read from the meter at the end of the day being forecast, so it is not known the day before."
+    },
+    {
+     "kind": "group_split",
+     "column": "meter_id",
+     "why": "Each home's 90 days share its own habits, and the model is meant for new homes it has never seen."
+    },
+    {
+     "kind": "time_split",
+     "column": "reading_date",
+     "why": "The forecast is always for tomorrow and use follows the season, so the holdout must be the latest days."
+    }
+   ]
+  },
+  {
+   "id": "hg2_08",
+   "stratum": "honest_scary_names",
+   "replica": "make_hg2_08",
+   "needs_model_planning": true,
+   "brief": "Too many good people are walking out. HR wants to know who is at risk so managers can talk to them early. employees.csv has a snapshot every quarter of 2024.",
+   "tables": {
+    "employees.csv": [
+     "snapshot_month",
+     "employee_id",
+     "team_id",
+     "department",
+     "tenure_months",
+     "salary_band",
+     "previous_rating",
+     "overtime_hours_q",
+     "hr_case_count_ytd",
+     "left_within_6m"
+    ]
+   },
+   "known_facts": {
+    "target": "left_within_6m",
+    "horizon_days": 182,
+    "unit": null
+   },
+   "expected_tasks": [
+    "confirm_unit_and_horizon",
+    "define_target",
+    "leakage_audit",
+    "time_split_check",
+    "baseline",
+    "fairness_and_use_check"
+   ],
+   "expected_traps": [
+    "employee_vs_snapshot_unit",
+    "late_column_neutral_name:hr_case_count_ytd",
+    "repeat_employees_across_snapshots",
+    "team_effect",
+    "honest_scary_name:previous_rating",
+    "rare_positive_class"
+   ],
+   "expected_subproblems": [
+    "classification"
+   ],
+   "forbidden_actions": [
+    "use_hr_case_count_ytd_as_input",
+    "drop_previous_rating_as_leak",
+    "random_split_holdout"
+   ],
+   "enforceable_traps": [
+    {
+     "kind": "late_column",
+     "column": "hr_case_count_ytd",
+     "why": "The count is taken on the export day and offboarding opens new HR cases for every leaver, so it is written after the person left."
+    },
+    {
+     "kind": "time_split",
+     "column": "snapshot_month",
+     "why": "Managers will act on the next quarter's snapshot, and the same people repeat across quarters, so the holdout must be the latest snapshot."
+    }
+   ]
+  }
+ ]
+}
