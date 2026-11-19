@@ -2,6 +2,8 @@ DC.view('decision', {
   async enter(el) {
     const { $, esc } = DC;
     const box = $('#dc-box', el);
+    const prices = $('#dc-prices', el);
+    prices.hidden = true;
     let p = null;
     try { p = await DC.currentProject.get(); } catch (e) { p = null; }
     DC.markSample(!p);
@@ -11,6 +13,52 @@ DC.view('decision', {
       return;
     }
     $('#dc-eyebrow', el).textContent = `${p.name} · decision`;
+    prices.hidden = false;
+    const form = $('#dc-price-form', el);
+    form.reset();
+    const priceResult = form.querySelector('[data-result]');
+    priceResult.replaceChildren();
+    let activeRequest;
+    const current = token => activeRequest === token && form.dataset.project === p.id;
+    form.dataset.project = p.id;
+    async function comparePrices(mode) {
+      const token = activeRequest = {};
+      const fields = new FormData(form);
+      const val = key => Number(fields.get(key));
+      const query = {target_revenue: val('target'), independent: fields.has('independent')};
+      DC.states.loading(priceResult, { text: 'Comparing prices…' });
+      try {
+        let result;
+        if (mode === 'assume') {
+          result = await DC.client.priceAssumptions(p.id, {body: {price: val('price'), audience: val('audience'),
+            target_revenue: query.target_revenue, outcome: fields.get('outcome'), independent: query.independent,
+            probabilities: ['base','five','ten'].map(k => fields.get(k) === '' ? null : val(k)/100)}});
+        } else {
+          if (mode === 'prepare') await DC.client.preparePriceStudy(p.id, {body: {base_price: val('price'),
+            horizon_days: val('horizon'), outcome: fields.get('outcome'), design: fields.get('design'), design_basis: fields.get('basis')}});
+          result = await DC.client.getPriceStudy(p.id, {query});
+        }
+        if (!current(token)) return;
+        const rows = result.rows.map(r => `<tr><td>${num(r.price)}</td><td>${num(r.break_even_units)}</td><td>${num(r.expected_events)}</td><td>${num(r.expected_revenue)}</td><td>${pct(r.downside_probability)}</td></tr>`).join('');
+        const effects = (result.effects || []).map((e,i) => e ? `+${i ? 10 : 5}%: ${num(e.change_pp)} pp (95% interval ${e.interval95_pp.map(x => num(x)).join(' to ')})` : 'Insufficient support').join('; ');
+        priceResult.innerHTML = `<p>${esc(result.source)} · ${num(result.rows[0].audience,0)} people · ${esc(result.outcome)} ${esc(result.currency || '')}</p>
+          <div class="table-wrap"><table class="data"><thead><tr><th>Price</th><th>Break-even units</th><th>Expected events</th><th>Revenue</th><th>Risk below target</th></tr></thead><tbody>${rows}</tbody></table></div>
+          <p>${esc([result.reason, result.effect_source, result.design_basis, effects].filter(Boolean).join(' · '))}</p>`;
+      } catch (e) { if (current(token)) DC.states.failed(priceResult, e, {lead: 'Price comparison unavailable: '}); }
+    }
+    form.onsubmit = e => { e.preventDefault(); comparePrices('assume'); };
+    form.querySelector('[data-prepare]').onclick = () => comparePrices('prepare');
+    form.querySelector('[data-score]').onclick = () => comparePrices('score');
+    form.querySelector('[data-upload]').onclick = async () => {
+      const file = form.elements.upload.files[0];
+      if (!file) { priceResult.textContent = 'Choose a table file first.'; return; }
+      const token = activeRequest = {};
+      const name = form.elements.table.value;
+      try {
+        await DC.client.uploadTable(p.id, name, {query:{filename:file.name},body:file});
+        if (current(token)) priceResult.textContent = 'Attached ' + name + '.';
+      } catch (e) { if (current(token)) DC.states.failed(priceResult, e, {lead:'Could not attach table: '}); }
+    };
     const LABELS = {
       value_per_case: 'Value of a case', cost_per_action: 'Cost of acting on a row', cost_false_positive: 'Cost of a false alarm',
       cost_false_negative: 'Cost of a miss', capacity_share: 'Capacity (share of rows)', base_rate: 'Share of rows that are cases',
@@ -51,6 +99,10 @@ DC.view('decision', {
       let html = `<div class="panel"><div class="panel-body stack tight"><div class="eyebrow">The decision</div><p>${esc(data.sentence || '')}</p></div></div>`;
       if (c.decision === 'operating_point') html += operatingPoint(c, data);
       else if (c.decision === 'cost_matrix') html += costMatrix(c);
+      else if (c.decision === 'price' && c.curve?.length) {
+        const points = c.curve.map(r => `<tr><td>${num(r.multiple)}×</td><td>${pct(r.acceptance)}</td><td>${num(r.expected_margin_per_offer)}</td></tr>`).join('');
+        html += `<details class="panel"><summary>Recorded price response · ${esc(c.side)}</summary><table class="data"><thead><tr><th>Relative price</th><th>Acceptance</th><th>Margin per offer</th></tr></thead><tbody>${points}</tbody></table><p>${esc(c.assumption || '')}</p></details>`;
+      }
       else html += `<div class="panel"><div class="panel-body small muted">A review budget or a price is shown in the brief; a what-if is asked of a decision stated with its values and costs.</div></div>`;
       box.innerHTML = html;
       wire(data);

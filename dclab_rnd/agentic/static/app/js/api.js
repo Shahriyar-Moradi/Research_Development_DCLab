@@ -171,6 +171,14 @@
    */
   /** @typedef {Object} Page
    */
+  /** @typedef {Object} PriceScenario
+   *  @property {number} price
+   *  @property {number} audience
+   *  @property {number} target_revenue
+   *  @property {Array<(number|null)>} probabilities
+   *  @property {string=} outcome
+   *  @property {boolean=} independent
+   */
   /** @typedef {Object} ProblemCreate
    *  @property {*=} name
    *  @property {*=} description
@@ -309,6 +317,13 @@
    */
   /** @typedef {Object} Status
    *  @property {(string|null)=} status
+   */
+  /** @typedef {Object} StudySpec
+   *  @property {number} base_price
+   *  @property {number} horizon_days
+   *  @property {string} outcome
+   *  @property {string} design
+   *  @property {string} design_basis
    */
   /** @typedef {Object} TaskPlanConfirm
    *  @property {*=} answer
@@ -514,6 +529,9 @@
     recordOutcome: ["POST", "/projects/{project_id}/outcome", ["project_id"], []],
     projectPipeline: ["GET", "/projects/{project_id}/pipeline", ["project_id"], ["path"]],
     rerunPipelineStep: ["POST", "/projects/{project_id}/pipeline/rerun", ["project_id"], ["step", "wait"]],
+    getPriceStudy: ["GET", "/projects/{project_id}/price-scenarios", ["project_id"], ["target_revenue", "independent"]],
+    priceAssumptions: ["POST", "/projects/{project_id}/price-scenarios/assumptions", ["project_id"], []],
+    preparePriceStudy: ["POST", "/projects/{project_id}/price-scenarios/prepare", ["project_id"], []],
     projectProblemsList: ["GET", "/projects/{project_id}/problems", ["project_id"], []],
     projectProblemsCreate: ["POST", "/projects/{project_id}/problems", ["project_id"], []],
     getProgramme: ["GET", "/projects/{project_id}/programme", ["project_id"], []],
@@ -1708,6 +1726,25 @@
    *  @returns {Promise<Page>} */
   client.rerunPipelineStep = (...args) => call('rerunPipelineStep', args);
   client.path.rerunPipelineStep = (...args) => build('rerunPipelineStep', args).path;
+  /** GET /api/projects/{project_id}/price-scenarios: Get Price Study
+   *  @param {string} project_id
+   *  @param {{query?: {target_revenue?: *, independent?: *}, headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.getPriceStudy = (...args) => call('getPriceStudy', args);
+  client.path.getPriceStudy = (...args) => build('getPriceStudy', args).path;
+  client.href.getPriceStudy = (...args) => '/api' + build('getPriceStudy', args).path;
+  /** POST /api/projects/{project_id}/price-scenarios/assumptions: Price Assumptions
+   *  @param {string} project_id
+   *  @param {{body: PriceScenario, headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.priceAssumptions = (...args) => call('priceAssumptions', args);
+  client.path.priceAssumptions = (...args) => build('priceAssumptions', args).path;
+  /** POST /api/projects/{project_id}/price-scenarios/prepare: Prepare Price Study
+   *  @param {string} project_id
+   *  @param {{body: StudySpec, headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.preparePriceStudy = (...args) => call('preparePriceStudy', args);
+  client.path.preparePriceStudy = (...args) => build('preparePriceStudy', args).path;
   /** GET /api/projects/{project_id}/problems: Project Problems List
    *  @param {string} project_id
    *  @param {{headers?: Object}} [opts]

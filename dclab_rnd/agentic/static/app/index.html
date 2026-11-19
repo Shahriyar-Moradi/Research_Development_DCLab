@@ -1185,6 +1185,36 @@
     </div>
   </header>
   <div id="dc-box"></div>
+  <details id="dc-prices" class="panel" hidden>
+    <summary>Explore price changes</summary>
+    <form class="panel-body stack" id="dc-price-form">
+      <div class="grid g3">
+        <label>Current price <input name="price" type="number" min="0.000001" step="any" required></label>
+        <label>Revenue target <input name="target" type="number" min="0" step="any" value="0" required></label>
+        <label>Outcome <select name="outcome"><option value="purchase">Purchase</option><option value="churn">Subscription churn at renewal</option></select></label>
+      </div>
+      <label>Eligible people <input name="audience" type="number" min="1" max="1000000" value="100"></label>
+      <div class="grid g3">
+        <label>Assumed event % at current price <input name="base" type="number" min="0" max="100" step="any"></label>
+        <label>At +5% <input name="five" type="number" min="0" max="100" step="any"></label>
+        <label>At +10% <input name="ten" type="number" min="0" max="100" step="any"></label>
+      </div>
+      <label><input name="independent" type="checkbox"> Treat individual decisions as independent for revenue risk</label>
+      <div><button class="btn" type="submit">Compare assumptions</button></div>
+      <details><summary>Estimate response from project tables</summary>
+        <p>Use a project with a main table. Attach historical offers, prior events and matured outcomes, then prepare a study. Reading a saved study uses its original cohort and prices.</p>
+        <label>Related table <select name="table"><option>price_offers</option><option>price_events</option><option>price_outcomes</option></select></label>
+        <label>Table file <input type="file" name="upload" accept=".csv,.parquet"></label>
+        <button type="button" class="btn" data-upload>Attach table and reset dependent stages</button>
+        <label>Outcome horizon in days <input name="horizon" type="number" min="1" max="3650" value="30"></label>
+        <label>Assignment <select name="design"><option value="unknown">Unknown</option><option value="randomized">Randomized by person</option><option value="observational">Observational, adjusted for segment and prior discount use</option></select></label>
+        <label>How prices were assigned <input name="basis" maxlength="400"></label>
+        <button class="btn" type="button" data-prepare>Prepare study</button>
+        <button class="btn" type="button" data-score>Read saved study</button>
+      </details>
+      <div aria-live="polite" data-result></div>
+    </form>
+  </details>
 </section>
 <section class="view" id="view-reliability" hidden>
   <header class="vh">

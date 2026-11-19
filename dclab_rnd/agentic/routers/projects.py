@@ -11,6 +11,8 @@ from typing import Any
 from fastapi import Body, Depends, HTTPException, Request
 from fastapi.responses import Response
 
+from dclab_core.price_scenarios import PriceScenario, StudySpec, assumptions
+
 from ... import audit, lessons as workspace_lessons
 from ...studio import agent as studio_agent, data as studio_data, engine as studio_engine, export as studio_export
 from ...studio import graph as studio_graph, lineage as studio_lineage, memory as studio_memory, solution as studio_solution
@@ -19,6 +21,38 @@ from ..api_models import (OCTET, AnyObject, Answer, Fixes, GateApproval, Graph, 
 from ..services import charge_upload, Services, services
 
 router = Router()
+
+
+@router.post("/api/projects/{project_id}/price-scenarios/assumptions", response_model=Page)
+async def price_assumptions(project_id: str, payload: PriceScenario, s: Services = Depends(services)):
+    s.project(project_id)
+    return assumptions(payload)
+
+
+@router.post("/api/projects/{project_id}/price-scenarios/prepare", response_model=Page)
+async def prepare_price_study(project_id: str, payload: StudySpec, s: Services = Depends(services)):
+    from ...studio.price_scenarios import prepare
+
+    s.project(project_id)
+    try:
+        return await asyncio.to_thread(prepare, s.projects, project_id, payload)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from None
+
+
+@router.get("/api/projects/{project_id}/price-scenarios", response_model=Page)
+async def get_price_study(project_id: str, target_revenue: float = 0, independent: bool = False,
+                          s: Services = Depends(services)):
+    import math
+    from ...studio.price_scenarios import read
+
+    project = s.project(project_id)
+    if not math.isfinite(target_revenue) or not 0 <= target_revenue <= 1e16:
+        raise HTTPException(422, "Enter a finite nonnegative revenue target.")
+    try:
+        return read(project, target_revenue, independent)
+    except LookupError as exc:
+        raise HTTPException(409, str(exc)) from None
 
 
 

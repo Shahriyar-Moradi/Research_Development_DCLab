@@ -2,6 +2,8 @@
 
 **19 November 2026 · Implementation plan for a coding handoff**
 
+[Standalone coding prompt](PROMPT.md) · [Implementation, source and run instructions](IMPLEMENTATION.md) · [Full simulation results](simulation/REPORT.md)
+
 Build a decision brief that answers two questions. First, what would our model predict if we offered a different price to the same eligible people? Second, what evidence tells us how much changing the price would actually change their behavior? Let a user explore the first question while the second is still open.
 
 ## 1. The first screen
