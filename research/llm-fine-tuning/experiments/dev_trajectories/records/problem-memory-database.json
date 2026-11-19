@@ -1,0 +1,108 @@
+{
+ "package": "problem-memory-database",
+ "title": "Problem memory's bases and summaries move behind the storage interface, so PostgreSQL hosts agree",
+ "date": "2026-11-19",
+ "request": "Move the problem memory's Project and Problem bases and its summaries from workspace files into the storage interface, with a PostgreSQL implementation chosen like the other stores, a numbered migration, the file-to-database move and tests on both stores (finding 10 of the problem-memory review).",
+ "spec": "Files behave and lie on disk as before; on PostgreSQL a revision conflict is still a 409, a summary from an older cursor is never published, a purge leaves a tombstone and never deletes a ledger row, storage migrate copies bases and summaries and verify counts them, and processes racing on one revision leave one winner.",
+ "plan": [
+  "read the storage pattern: Protocols, file and PostgreSQL stores, migrations, migrate and verify",
+  "add the memory_base and memory_summary tables in models.py and migration 0024",
+  "a MemoryBases store with a file and a PostgreSQL implementation",
+  "bases.py and summary.py call the store instead of reading and writing files",
+  "migrate copies bases and summaries and verify counts them",
+  "tests that run the same contract on files and on PostgreSQL, a process race and a migrate"
+ ],
+ "decisions": [
+  {
+   "decision": "A base change is one store call change(scope, scope_id, blank, step): the store reads, runs the step, writes",
+   "why": "every rule (revisions, stale marks, idempotency keys) stays in bases.py and the two stores differ only in how they make the read and write one step"
+  },
+  {
+   "decision": "On PostgreSQL a change takes a transaction-scoped advisory lock on the scope, then updates only where the row version is still the one read",
+   "why": "the step writes memory items before the base row; a purely optimistic retry would let a losing writer leave its memory item behind, so the step must run once against the current state; the version check still refuses a write whose row moved underneath"
+  },
+  {
+   "decision": "A summary publish is one INSERT ON CONFLICT DO UPDATE WHERE stored cursor <= new cursor",
+   "why": "PostgreSQL compares integer arrays in order, as Python compares tuples, so the compare and the swap are one atomic statement on any host"
+  },
+  {
+   "decision": "A purge sets purged_at and a trigger refuses DELETE on memory_base; summaries are still deleted",
+   "why": "the owner's rule keeps deleted data in the store; summaries are derived and rebuilt on the next read, as the files were"
+  },
+  {
+   "decision": "A migrated base row's id is made from the workspace and the file's path under memory/bases",
+   "why": "a second migrate run inserts nothing, and a live base the database workspace wrote since is kept by the live-scope unique index"
+  }
+ ],
+ "change": "New dclab_rnd/storage/memory_bases.py (FileMemoryBases, PgMemoryBases, open_memory_bases), the MemoryBases Protocol and open_memory_bases in dclab_rnd/storage/__init__.py, the two tables in dclab_rnd/storage/models.py, migration 0024_memory_bases.py, the bases and summaries step in dclab_rnd/storage/migrate.py (copy and verify), dclab_rnd/memory/bases.py and summary.py on the store, and tests/test_memory_bases_storage.py.",
+ "findings": [
+  {
+   "id": "PMD-1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "Bases and summaries were always JSON files behind a per-host file lock, even with DCLAB_DATABASE_URL set.",
+   "scenario": "Two API or worker hosts on one database: an edit on host A is not seen by host B, and both accept expected_revision 0 for the same base.",
+   "cause": "bases.py and summary.py built paths under the workspace folder and locked with filelock.held",
+   "fix": "a MemoryBases store chosen like the other stores; on PostgreSQL an advisory lock per scope, a version-checked UPDATE and a conditional summary upsert",
+   "test": "tests/test_memory_bases_storage.py test_racing_processes_on_one_revision_leave_one_winner on both stores"
+  },
+  {
+   "id": "PMD-2",
+   "source": "test",
+   "severity": "latent",
+   "verdict": "confirmed",
+   "defect": "The migrate step reported every base as already there although it copied them.",
+   "scenario": "A first storage migrate of three bases reported copied 0, already 3, while the rows were in the database.",
+   "cause": "an INSERT ON CONFLICT DO NOTHING's rowcount was not reliable through this driver",
+   "fix": "the insert returns its key and the copy is counted when a row comes back",
+   "test": "tests/test_memory_bases_storage.py test_reads_after_a_migrate"
+  },
+  {
+   "id": "PMD-3",
+   "source": "self",
+   "severity": "latent",
+   "verdict": "confirmed",
+   "defect": "A purge could have written an older copy of a base over a newer one.",
+   "scenario": "A purge selects the live rows, a change on another host commits a new revision, then the purge tombstones the row with the document it read first.",
+   "cause": "the tombstone was built from the document read before the scope's lock was taken",
+   "fix": "the purge takes each scope's advisory lock and reads the row again before it writes the tombstone",
+   "test": "tests/test_memory_bases_storage.py test_a_purge_leaves_a_tombstone_hidden_from_reads"
+  },
+  {
+   "id": "PMD-4",
+   "source": "test",
+   "severity": "gap",
+   "verdict": "open",
+   "defect": "One test of the existing suite asserts the file layout and fails on PostgreSQL.",
+   "scenario": "test_problem_memory_active test_summary_cas_rejects_stale_worker_and_purge_clears_vectors_and_summary writes a vector file into memory/ and looks for bases/purged files, which PostgreSQL does not write.",
+   "cause": "the test reads the workspace folder instead of the store, and does not pin DCLAB_DATABASE_URL to files as the review-fixes tests do",
+   "fix": "not changed in this package: pin that test to files or check tombstones through open_memory_bases; the same behaviour on PostgreSQL is covered by the new tests",
+   "open": "the A6 acceptance test of the same file already failed on PostgreSQL before this package (a hard-coded workspace id local)"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "The package's tests on files and on PostgreSQL",
+   "gate": "every listed test file passes on files and with --pg",
+   "fixed_before_run": true,
+   "result": "files: 59 tests in 7 files pass; PostgreSQL: 57 of 59 pass, the two failures are in test_problem_memory_active (one file-layout test, one that failed before the change)",
+   "verdict": "fail",
+   "cost_eur": 0.0,
+   "next": "pin the file-layout test to files and fix the A6 test's hard-coded workspace id",
+   "limits": [
+    "the race uses four processes on one machine, not two hosts",
+    "the full suite was not run"
+   ]
+  }
+ ],
+ "outcome": "Bases and summaries now follow DCLAB_DATABASE_URL like every other store; files are unchanged on disk; on PostgreSQL conflicts, the summary cursor and purges hold across processes, and migrate copies and counts them.",
+ "lessons": [
+  "When a read-modify-write step has side effects outside the row, a lock per scope plus a version check is safer than optimistic retries.",
+  "Count inserted rows by what the statement returns, not by rowcount."
+ ],
+ "risks": [
+  "Summary docs keep the scope's workspace id in their key, so a summary moved from a folder workspace may simply be rebuilt on first read."
+ ],
+ "commits": []
+}

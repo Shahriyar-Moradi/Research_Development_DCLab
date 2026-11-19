@@ -10,7 +10,8 @@ each other. Copied, with their own ids and timestamps (so every list keeps its o
   serving record and parity rows) through file storage (``storage/files.py``); and ``secrets/`` (the key that hashes an
   artifact's categories, the service log's key) copied as files, readable by the owner only, never recorded in storage;
 - drafts: the document, its events and its ``data/`` files;
-- intern sessions; the agent traces, the model usage and output checks, the lessons, the memory's versions (35.2), the model routing, the shadow log and the audit trail.
+- intern sessions; the agent traces, the model usage and output checks, the lessons, the memory's versions (35.2), the model routing, the shadow log and the audit trail;
+- problem memory's bases (a purged one with its tombstone) and summaries (``storage/memory_bases.py``).
 
 The source folder is only read (a project document in an old format is upgraded in memory, never written back).
 Nothing the target already holds is copied again: a project, draft, session or lesson already there is left as it
@@ -378,6 +379,10 @@ def _logs(src: Source, wid: str, url: str | None, report: dict[str, Any]) -> Non
         _memory(src, wid, url, report)
     except Exception as exc:  # noqa: BLE001 - the memory is reported failed; the rest still moves
         report["failed"].append(f"memory: {type(exc).__name__}")
+    try:  # problem memory's bases (live and tombstoned) and summaries, each copied once (review finding 10)
+        _memory_bases(src, wid, url, report)
+    except Exception as exc:  # noqa: BLE001 - the bases are reported failed; the rest still moves
+        report["failed"].append(f"memory bases: {type(exc).__name__}")
     routing = PgRouting(wid, url)
     path = src.home / "model_routing.json"
     if path.is_file() and not routing.get().get("history"):
@@ -398,6 +403,22 @@ def _memory(src: Source, wid: str, url: str | None, report: dict[str, Any]) -> N
         return
     target.write_many(versions)  # one transaction: a failed move leaves the database memory empty, so the next run copies it all
     report["logs"]["memory"] = {"source": len(versions), "copied": len(versions), "already": 0}
+
+
+def _memory_bases(src: Source, wid: str, url: str | None, report: dict[str, Any]) -> None:
+    """Every base ledger (a purged one keeps its tombstone) and every summary. A base row has an id made from the workspace
+    and the file's path, so a second run copies nothing; a live base the database workspace already holds for the same
+    scope (written there since) is left as it is, as is a summary already there."""
+    from .memory_bases import FileMemoryBases, PgMemoryBases, import_id
+
+    source, target = FileMemoryBases(src.home), PgMemoryBases(wid, url)
+    bases, summaries = source.all_bases(), source.summaries()
+    if not bases and not summaries:
+        return
+    copied = sum(target.import_base(import_id(wid, relative), doc) for relative, doc in bases)
+    report["logs"]["memory_bases"] = {"source": len(bases), "copied": copied, "already": len(bases) - copied}
+    copied = sum(target.import_summary(key, doc) for key, doc in summaries)
+    report["logs"]["memory_summaries"] = {"source": len(summaries), "copied": copied, "already": len(summaries) - copied}
 
 
 def verify(src: Source, target: Path, wid: str, url: str | None, report: dict[str, Any] | None = None) -> list[str]:
@@ -461,6 +482,11 @@ def verify(src: Source, target: Path, wid: str, url: str | None, report: dict[st
         from ..memory import FileMemory, PgMemory
 
         compare("log memory", len(FileMemory(src.home).log()), len(PgMemory(wid, url).log()))
+    from .memory_bases import FileMemoryBases, PgMemoryBases
+
+    held, moved = FileMemoryBases(src.home).counts(), PgMemoryBases(wid, url).counts()
+    compare("memory bases", held["bases"], moved["bases"])
+    compare("memory summaries", held["summaries"], moved["summaries"])
     have = {l["id"] for l in PgLessons(wid, url).list()}
     lost = [l.get("id") for l in src.lessons() if l.get("id") and l.get("project_id") and l.get("id") not in have]
     if lost:

@@ -1,6 +1,7 @@
 """Active, versioned resumable summary per project/problem and visibility class (Package A5).
 
-Stores a compact deterministic projection under ``<home>/memory/summaries/`` keyed by
+Stores a compact deterministic projection (``<home>/memory/summaries/`` on files, the ``memory_summary`` table when
+DCLAB_DATABASE_URL is set: ``dclab_rnd.storage.open_memory_bases``) keyed by
 ``(workspace_id, project_id, problem_id, visibility_class)``. Shared summaries contain ONLY shareable
 project and problem facts, decisions, open questions, pending approvals, provisional advice, and omitted
 counts. Personal preferences are never persisted in a shared summary; they are applied as a viewer-specific
@@ -26,7 +27,7 @@ from . import open_memory, view
 from .bases import read_base
 from .scope import AccessDenied, AuthorizedScope
 
-SUMMARY_DIR = Path("memory") / "summaries"
+from ..storage.memory_bases import SUMMARY_DIR  # noqa: E402 - where the files live, kept for callers
 SCHEMA_VERSION = "dclab.problem_summary.v1"
 REQUIRED_FIELDS = frozenset({"prediction_moment", "target", "exclusions", "forbidden", "split", "metric", "acceptance_criteria"})
 
@@ -36,16 +37,16 @@ def _now() -> str:
 
 
 def _summary_key(workspace_id: str, project_id: str, problem_id: str, visibility_class: str = "shared") -> str:
-    return f"{workspace_id}:{project_id}:{problem_id}:{visibility_class}"
+    from ..storage.memory_bases import summary_key
+
+    return summary_key(workspace_id, project_id, problem_id, visibility_class)
 
 
-def _summary_file(home: Path, workspace_id: str, project_id: str, problem_id: str, visibility_class: str = "shared") -> Path:
-    digest = hashlib.sha256(_summary_key(workspace_id, project_id, problem_id, visibility_class).encode("utf-8")).hexdigest()[:24]
-    return Path(home) / SUMMARY_DIR / f"sum_{digest}.json"
+def _store(home: Path):
+    """The workspace's summaries: PostgreSQL when DCLAB_DATABASE_URL is set, else the folder's files."""
+    from ..storage import open_memory_bases
 
-
-def _lock_dir(home: Path) -> Path:
-    return Path(home) / SUMMARY_DIR
+    return open_memory_bases(Path(home))
 
 
 def _cursor_from_bases(proj_base: Mapping[str, Any], prob_base: Mapping[str, Any]) -> list[int]:
@@ -232,8 +233,6 @@ def build_from_snapshot(snapshot: Mapping[str, Any], *, budget: int = BRIEF_TOKE
 
 def publish_summary(home: Path, scope: AuthorizedScope, summary_doc: Mapping[str, Any]) -> dict[str, Any]:
     """Compare-and-swap publish: rejects late builds from an older source cursor so stale workers never reverse edits."""
-    from ..filelock import held
-
     if not (scope.project_id and scope.problem_id):
         raise AccessDenied("authorized project_id and problem_id are required to publish a summary")
     if (str(summary_doc.get("workspace_id")) != scope.workspace_id
@@ -241,32 +240,20 @@ def publish_summary(home: Path, scope: AuthorizedScope, summary_doc: Mapping[str
             or str(summary_doc.get("problem_id")) != scope.problem_id):
         raise AccessDenied("summary scope mismatch")
 
-    path = _summary_file(home, scope.workspace_id, scope.project_id, scope.problem_id, "shared")
     candidate_cursor = tuple(int(x) for x in (summary_doc.get("cursor") or [0, 0, 0, 0, 0]))
 
-    with held(_lock_dir(home)):
+    def live_check() -> Optional[dict[str, Any]]:
         # Re-read live cursor from authoritative bases to reject any build that started before a concurrent correction.
-        live_snap = capture_snapshot(home, scope)
-        live_cursor = tuple(int(x) for x in live_snap["cursor"])
+        live_cursor = tuple(int(x) for x in capture_snapshot(home, scope)["cursor"])
         if candidate_cursor < live_cursor:
             return {"published": False, "reason": "stale_source_cursor", "candidate_cursor": list(candidate_cursor),
                     "live_cursor": list(live_cursor)}
+        return None
 
-        if path.is_file():
-            try:
-                stored = json.loads(path.read_text(encoding="utf-8"))
-                stored_cursor = tuple(int(x) for x in (stored.get("cursor") or [0, 0, 0, 0, 0]))
-                if candidate_cursor < stored_cursor:
-                    return {"published": False, "reason": "older_than_stored_summary", "candidate_cursor": list(candidate_cursor),
-                            "stored_cursor": list(stored_cursor)}
-            except (OSError, ValueError):
-                pass
-
-        path.parent.mkdir(parents=True, exist_ok=True)
-        tmp = path.with_name(f".{path.name}.{secrets.token_hex(4)}.part")
-        tmp.write_text(json.dumps(dict(summary_doc), indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-        os.replace(tmp, path)
-    return {"published": True, "cursor": list(candidate_cursor)}
+    # the stored cursor is compared and replaced in one step: under the folder's lock on files, by one conditional
+    # upsert on PostgreSQL, so a late build from an older cursor never overwrites a newer summary on any host
+    return _store(home).publish(_summary_key(scope.workspace_id, scope.project_id, scope.problem_id, "shared"), dict(summary_doc),
+                                before=live_check)
 
 
 def refresh_summary(
@@ -318,11 +305,10 @@ def read_summary(
         pending_approvals=pending_approvals, next_proposed_action=next_proposed_action,
     )
     live_cursor = list(live_snap["cursor"])
-    path = _summary_file(home, scope.workspace_id, scope.project_id, scope.problem_id, "shared")
     cached: Optional[dict[str, Any]] = None
-    if path.is_file():
+    doc = _store(home).summary(_summary_key(scope.workspace_id, scope.project_id, scope.problem_id, "shared"))
+    if doc is not None:
         try:
-            doc = json.loads(path.read_text(encoding="utf-8"))
             if (isinstance(doc, dict)
                     and doc.get("workspace_id") == scope.workspace_id
                     and doc.get("project_id") == scope.project_id
@@ -339,7 +325,7 @@ def read_summary(
                 }
                 if all(fid in live_ids for fid in (doc.get("active_fact_ids") or [])):
                     cached = doc
-        except (OSError, ValueError):
+        except (TypeError, ValueError):
             cached = None
 
     if cached is not None:
@@ -383,25 +369,9 @@ def invalidate_summary(home: Path, workspace_id: Optional[str], project_id: Opti
     """Delete cached summaries affected by a base change so the next read rebuilds from current sources. Matched on the raw
     project (and problem) id: the folder is one workspace's, and its callers do not all name it alike (a file workspace's
     scopes say ``local`` while its record says ``w…``), so ``workspace_id`` is not compared."""
-    from ..filelock import held
-
-    sdir = _lock_dir(home)
-    if not sdir.is_dir() or not project_id:
+    if not project_id:
         return 0
-    removed = 0
-    with held(sdir):
-        for p in list(sdir.glob("sum_*.json")):
-            try:
-                doc = json.loads(p.read_text(encoding="utf-8"))
-            except (OSError, ValueError):
-                continue
-            if str(doc.get("project_id") or "") != str(project_id):
-                continue
-            if problem_id and str(doc.get("problem_id") or "") != str(problem_id):
-                continue
-            p.unlink()
-            removed += 1
-    return removed
+    return _store(home).invalidate(str(project_id), str(problem_id) if problem_id else None)
 
 
 def purge_vectors_for_texts(home: Path, texts: Iterable[str]) -> int:

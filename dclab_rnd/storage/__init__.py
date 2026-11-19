@@ -1,6 +1,6 @@
 """What the rest of the code may ask of storage.
 
-Projects, drafts and intern sessions are files in a workspace folder today. These Protocols are the whole surface
+Projects, drafts, intern sessions and problem memory's bases and summaries are files in a workspace folder, or PostgreSQL rows. These Protocols are the whole surface
 callers use, so a PostgreSQL implementation can replace the file stores without touching a route, an agent or the
 engine (docs/guides/PRODUCT_BUILD_PLAYBOOK.md, packages 9.1 and 9.2).
 
@@ -73,6 +73,30 @@ class Sessions(Protocol):
     def delete(self, session_id: str) -> None: ...
 
 
+@runtime_checkable
+class MemoryBases(Protocol):
+    """Problem memory's editable bases and their derived summaries (dclab_rnd/memory/bases.py and summary.py)."""
+    # bases: one live document per (scope, scope_id); a change is read, step, write as one step across hosts
+    def read(self, scope: str, scope_id: str) -> Document | None: ...
+    def change(self, scope: str, scope_id: str, blank: Document, fn: Callable[[Document], tuple[bool, Any]]) -> Any: ...
+    def purge(self, belongs: Callable[[Document], bool], reason: str) -> list[Document]: ...   # a tombstone, never a deletion
+    def all_bases(self) -> list[tuple[str, Document]]: ...                                     # live and purged, for a move
+    # summaries: a publish never replaces a newer cursor; derived, so invalidating deletes them
+    def summary(self, key: str) -> Document | None: ...
+    def publish(self, key: str, doc: Document, before: Callable[[], Document | None] | None = None) -> Document: ...
+    def invalidate(self, project_id: str, problem_id: str | None = None) -> int: ...
+    def summaries(self) -> list[tuple[str, Document]]: ...
+    def counts(self) -> dict[str, int]: ...
+    def location(self) -> str: ...
+
+
+def open_memory_bases(home: Path) -> MemoryBases:
+    """The bases and summaries of the workspace in ``home``: PostgreSQL with DCLAB_DATABASE_URL set, else its files."""
+    from .memory_bases import open_memory_bases as choose
+
+    return choose(home)
+
+
 def open_stores(home: Path, projects_home: Path | None = None) -> tuple[Projects, Drafts, Sessions]:
     """The projects, drafts and intern sessions for the workspace in ``home``.
 
@@ -97,4 +121,4 @@ def open_stores(home: Path, projects_home: Path | None = None) -> tuple[Projects
     return projects, drafts, SessionStore(Path(os.environ.get("DCLAB_INTERN_HOME") or (projects.home.parent / "intern")))
 
 
-__all__ = ["Document", "Projects", "Drafts", "Sessions", "open_stores"]
+__all__ = ["Document", "MemoryBases", "Projects", "Drafts", "Sessions", "open_memory_bases", "open_stores"]

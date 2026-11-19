@@ -190,6 +190,7 @@ class A3IdentityAndScopeTests(unittest.TestCase):
                 mem_scope.revalidate_job_scope(env, job, require_problem=True, membership_checker=lambda u, w: None)
 
 
+@mock.patch.dict(os.environ, {"DCLAB_DATABASE_URL": ""})  # file storage on purpose: the database is test_memory_bases_storage's
 class A4A5BasesAndSummaryTests(unittest.TestCase):
     def _setup(self):
         home = Path(tempfile.mkdtemp())
@@ -298,6 +299,7 @@ class A4A5BasesAndSummaryTests(unittest.TestCase):
         self.assertIn("keep_other", remaining_vecs)
 
 
+@mock.patch.dict(os.environ, {"DCLAB_DATABASE_URL": ""})  # file storage on purpose: the database is test_memory_bases_storage's
 class A6AcceptanceStoryEndToEndTests(unittest.TestCase):
     def test_dana_four_step_acceptance_story_delayed_advisor_and_switch_toggle(self):
         home = Path(tempfile.mkdtemp())

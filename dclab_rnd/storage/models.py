@@ -12,7 +12,7 @@ workspace folder (``DCLAB_AGENT_HOME``); the users and memberships tables are he
 from __future__ import annotations
 
 import sqlalchemy as sa
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 
 metadata = sa.MetaData(naming_convention={
     "ix": "ix_%(table_name)s_%(column_0_N_name)s", "pk": "pk_%(table_name)s", "uq": "uq_%(table_name)s_%(column_0_N_name)s",
@@ -320,6 +320,31 @@ memory_item_version = sa.Table(  # every version of a memory item, append-only: 
     sa.Column("written", TIME, nullable=False, server_default=NOW),
     sa.Index("ix_memory_item_version_workspace_id_item_id", "workspace_id", "item_id"),
     sa.Index("ix_memory_item_version_workspace_id_scope", "workspace_id", "scope", "scope_id"))
+
+memory_base = sa.Table(  # an editable Project or Problem base, one document a row (dclab_rnd/memory/bases.py, storage/memory_bases.py)
+    "memory_base", metadata, _id(),
+    sa.Column("workspace_id", sa.String(64), sa.ForeignKey("workspace.id"), nullable=False),  # no cascade: a base outlives what it records
+    sa.Column("scope", sa.Text, nullable=False),  # project or problem
+    sa.Column("scope_id", sa.Text, nullable=False),
+    sa.Column("project_id", sa.Text), sa.Column("problem_id", sa.Text),  # the raw ids a deletion matches on
+    sa.Column("revision", sa.Integer, nullable=False, server_default="0"),  # the person's revision (doc.revision), for reading
+    sa.Column("version", sa.BigInteger, nullable=False, server_default="1"),  # every write: an UPDATE only where it is still the one read
+    sa.Column("doc", JSONB, nullable=False),  # dclab.memory_base.v1 whole
+    sa.Column("updated", TIME, nullable=False, server_default=NOW),
+    sa.Column("purged_at", TIME),  # a deleted scope's tombstone: hidden from every read, the row never deleted (a trigger refuses DELETE)
+    sa.Column("purge_reason", sa.Text),
+    sa.Index("uq_memory_base_live", "workspace_id", "scope", "scope_id", unique=True, postgresql_where=sa.text("purged_at is null")),
+    sa.Index("ix_memory_base_workspace_id_project_id", "workspace_id", "project_id"))
+
+memory_summary = sa.Table(  # a problem's resumable summary, derived from its bases (dclab_rnd/memory/summary.py); published by cursor
+    "memory_summary", metadata,
+    sa.Column("workspace_id", sa.String(64), sa.ForeignKey("workspace.id", ondelete="CASCADE"), primary_key=True),
+    sa.Column("key", sa.Text, primary_key=True),  # workspace:project:problem:visibility, as the summary's scope names it
+    sa.Column("project_id", sa.Text), sa.Column("problem_id", sa.Text), sa.Column("visibility_class", sa.Text, nullable=False),
+    sa.Column("cursor", ARRAY(sa.BigInteger), nullable=False),  # the bases' monotonic cursor: a publish replaces it only when not older
+    sa.Column("doc", JSONB, nullable=False),
+    sa.Column("updated", TIME, nullable=False, server_default=NOW),
+    sa.Index("ix_memory_summary_workspace_id_project_id", "workspace_id", "project_id"))
 
 model_pause = sa.Table(  # requests to an endpoint and model stop until a time, after a refusal that stays (models/pause.py, 10.5)
     "model_pause", metadata,

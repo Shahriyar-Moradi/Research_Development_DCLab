@@ -16,14 +16,14 @@ Rules enforced here:
 - A change to the prediction moment, the target or the forbidden columns returns ``solution_note``: the signed solution
   is not changed here, and still has the old value until the person changes it through the solution.
 - Conflicts, stale marks and problem bindings are recorded in the workspace's experience log under the raw project id.
-- A deleted project's ledgers move to ``bases/purged/`` with a tombstone (hidden, never deleted); only derived summaries
+- A deleted project's ledgers get a tombstone (``bases/purged/`` on files, ``purged_at`` on PostgreSQL: hidden, never deleted); only derived summaries
   and cached vectors are deleted.
+- The ledgers are kept by the storage interface (``dclab_rnd.storage.open_memory_bases``): JSON files under the workspace
+  folder, or PostgreSQL rows when DCLAB_DATABASE_URL is set, so every API and worker host reads and writes the same base.
 """
 
 from __future__ import annotations
 
-import hashlib
-import json
 import os
 import re
 import secrets
@@ -37,7 +37,7 @@ from . import Refused, event, latest, open_memory, remember, retire_scope, secre
 from .readers import line as clean_line
 from .scope import AccessDenied, AuthorizedScope
 
-BASES_DIR = Path("memory") / "bases"
+from ..storage.memory_bases import BASES_DIR, PURGED_DIR  # noqa: E402,F401 - where the files live, kept for callers
 OUTCOME_STATUSES = ("proposed", "succeeded", "blocked", "failed", "stopped")
 GREETING_RE = re.compile(r"^\s*(hi|hello|hey|thanks|thank you|ok|okay|got it|sure|bye|goodbye|سلام|ممنون|مرسی)[!.\s]*$", re.I)
 
@@ -82,13 +82,12 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
-def _base_file(home: Path, scope_kind: str, scope_id: str) -> Path:
-    digest = hashlib.sha256(f"{scope_kind}:{scope_id}".encode("utf-8")).hexdigest()[:24]
-    return Path(home) / BASES_DIR / f"{scope_kind}_{digest}.json"
+def _store(home: Path):
+    """The workspace's bases and summaries: PostgreSQL when DCLAB_DATABASE_URL is set, else the folder's files (one choice,
+    as the other stores make it: ``dclab_rnd.storage.open_memory_bases``)."""
+    from ..storage import open_memory_bases
 
-
-def _lock_dir(home: Path) -> Path:
-    return Path(home) / BASES_DIR
+    return open_memory_bases(Path(home))
 
 
 def _scope_target(scope: AuthorizedScope, target: str) -> tuple[str, str]:
@@ -118,25 +117,16 @@ def _empty_doc(scope_kind: str, scope_id: str, scope: AuthorizedScope) -> dict[s
     }
 
 
-def _read_doc_unlocked(path: Path, scope_kind: str, scope_id: str, scope: AuthorizedScope) -> dict[str, Any]:
-    if not path.is_file():
-        return _empty_doc(scope_kind, scope_id, scope)
-    try:
-        doc = json.loads(path.read_text(encoding="utf-8"))
-        if isinstance(doc, dict) and doc.get("scope") == scope_kind and doc.get("scope_id") == scope_id:
-            doc.setdefault("entries", [])
-            doc.setdefault("events_index", {})
-            return doc
-    except (OSError, ValueError):
-        pass
-    return _empty_doc(scope_kind, scope_id, scope)
+def _ready(doc: dict[str, Any]) -> dict[str, Any]:
+    doc.setdefault("entries", [])
+    doc.setdefault("events_index", {})
+    return doc
 
 
-def _write_doc_unlocked(path: Path, doc: dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_name(f".{path.name}.{secrets.token_hex(4)}.part")
-    tmp.write_text(json.dumps(doc, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    os.replace(tmp, path)
+def _change(home: Path, scope: AuthorizedScope, scope_kind: str, scope_id: str, fn: Any) -> Any:
+    """Read, change and write one base as one step: under the folder's lock on files, under the scope's advisory lock with
+    a version check on PostgreSQL. ``fn(doc)`` returns (write, value); an exception it raises writes nothing."""
+    return _store(home).change(scope_kind, scope_id, _empty_doc(scope_kind, scope_id, scope), lambda doc: fn(_ready(doc)))
 
 
 def _validate_text(text: Any, protected: Iterable[str] = ()) -> str:
@@ -268,16 +258,9 @@ def _write_memory_item(home: Path, item: MemoryItem, *, protected: Iterable[str]
 
 def read_base(home: Path, scope: AuthorizedScope, target: str = "problem") -> dict[str, Any]:
     """Read an authorized Project or Problem base (active entries, pending drafts, retired history, current revision)."""
-    from ..filelock import held
-
     scope_kind, scope_id = _scope_target(scope, target)
-    path = _base_file(home, scope_kind, scope_id)
-    lock_parent = _lock_dir(home)
-    if path.is_file():
-        with held(lock_parent):
-            doc = _read_doc_unlocked(path, scope_kind, scope_id, scope)
-    else:
-        doc = _empty_doc(scope_kind, scope_id, scope)
+    found = _store(home).read(scope_kind, scope_id)
+    doc = _ready(found) if found is not None else _empty_doc(scope_kind, scope_id, scope)
     entries = list(doc.get("entries") or [])
     return {
         "scope": scope_kind,
@@ -313,8 +296,6 @@ def upsert_base_fact(
     log: Any = None,
 ) -> dict[str, Any]:
     """Explicit authorized user edit to Project or Problem base with optimistic concurrency control."""
-    from ..filelock import held
-
     if not scope.can_write:
         raise AccessDenied(f"role {scope.role!r} cannot edit {target} base")
     scope_kind, scope_id = _scope_target(scope, target)
@@ -323,10 +304,9 @@ def upsert_base_fact(
     fld = clean_line(field or "fact")[:80] or "fact"
     src = clean_line(source or f"ui:{target}_base")[:180]
     author = f"person:{scope.principal_id}"
-    path = _base_file(home, scope_kind, scope_id)
+    kept: dict[str, Any] = {}
 
-    with held(_lock_dir(home)):
-        doc = _read_doc_unlocked(path, scope_kind, scope_id, scope)
+    def apply(doc: dict[str, Any]) -> tuple[bool, Any]:
         cur_rev = int(doc.get("revision") or 0)
         active_entries = [dict(e) for e in doc["entries"] if e.get("status") == "active"]
         if expected_revision is not None and int(expected_revision) != cur_rev:
@@ -345,7 +325,7 @@ def upsert_base_fact(
             None,
         )
         if existing is not None and existing.get("text") == cleaned:
-            return {"entry": dict(existing), "revision": cur_rev, "unchanged": True, "stale_dependents": []}
+            return False, {"entry": dict(existing), "revision": cur_rev, "unchanged": True, "stale_dependents": []}
 
         new_rev = cur_rev + 1
         now_ts = _now()
@@ -411,7 +391,13 @@ def upsert_base_fact(
             doc, changed_field=fld, old_entry_id=old_entry_id, new_entry_id=entry_id,
             new_revision=new_rev, reason=reason or f"{fld} updated to revision {new_rev}",
         )
-        _write_doc_unlocked(path, doc)
+        kept.update(doc=doc, stale_ids=stale_ids, entry=entry, new_rev=new_rev, is_correction=is_correction)
+        return True, None
+
+    early = _change(home, scope, scope_kind, scope_id, apply)
+    if early is not None:
+        return early
+    doc, stale_ids, entry, new_rev, is_correction = (kept["doc"], kept["stale_ids"], kept["entry"], kept["new_rev"], kept["is_correction"])
 
     _record_stale(log, scope, scope_kind, doc, stale_ids)
     _invalidate_summary_best_effort(home, scope)
@@ -435,17 +421,14 @@ def correct_base_fact(
     log: Any = None,
 ) -> dict[str, Any]:
     """Correct a specific active base fact by entry_id; preserves history, bumps revision, invalidates dependents."""
-    from ..filelock import held
-
     if not scope.can_write:
         raise AccessDenied(f"role {scope.role!r} cannot correct {target} base")
     scope_kind, scope_id = _scope_target(scope, target)
     cleaned = _validate_text(new_text, protected)
     author = f"person:{scope.principal_id}"
-    path = _base_file(home, scope_kind, scope_id)
+    kept: dict[str, Any] = {}
 
-    with held(_lock_dir(home)):
-        doc = _read_doc_unlocked(path, scope_kind, scope_id, scope)
+    def apply(doc: dict[str, Any]) -> tuple[bool, Any]:
         cur_rev = int(doc.get("revision") or 0)
         active_entries = [dict(e) for e in doc["entries"] if e.get("status") == "active"]
         if expected_revision is not None and int(expected_revision) != cur_rev:
@@ -524,7 +507,13 @@ def correct_base_fact(
             doc, changed_field=str(old.get("field") or "fact"), old_entry_id=old["entry_id"], new_entry_id=new_id,
             new_revision=new_rev, reason=reason or f"{old.get('field', 'fact')} corrected at revision {new_rev}",
         )
-        _write_doc_unlocked(path, doc)
+        kept.update(doc=doc, stale_ids=stale_ids, entry=entry, old=old, new_rev=new_rev)
+        return True, None
+
+    early = _change(home, scope, scope_kind, scope_id, apply)
+    if early is not None:
+        return early
+    doc, stale_ids, entry, old, new_rev = (kept["doc"], kept["stale_ids"], kept["entry"], kept["old"], kept["new_rev"])
 
     _record_stale(log, scope, scope_kind, doc, stale_ids)
     _invalidate_summary_best_effort(home, scope)
@@ -546,16 +535,13 @@ def retire_base_fact(
     log: Any = None,
 ) -> dict[str, Any]:
     """Retire an active base fact; keeps history, bumps revision, invalidates dependents and summaries."""
-    from ..filelock import held
-
     if not scope.can_write:
         raise AccessDenied(f"role {scope.role!r} cannot retire from {target} base")
     scope_kind, scope_id = _scope_target(scope, target)
     author = f"person:{scope.principal_id}"
-    path = _base_file(home, scope_kind, scope_id)
+    kept: dict[str, Any] = {}
 
-    with held(_lock_dir(home)):
-        doc = _read_doc_unlocked(path, scope_kind, scope_id, scope)
+    def apply(doc: dict[str, Any]) -> tuple[bool, Any]:
         cur_rev = int(doc.get("revision") or 0)
         active_entries = [dict(e) for e in doc["entries"] if e.get("status") == "active"]
         if expected_revision is not None and int(expected_revision) != cur_rev:
@@ -570,7 +556,7 @@ def retire_base_fact(
         if old is None:
             raise KeyError(entry_id)
         if old.get("status") == "retired":
-            return {"entry": dict(old), "revision": cur_rev, "stale_dependents": []}
+            return False, {"entry": dict(old), "revision": cur_rev, "stale_dependents": []}
 
         new_rev = cur_rev + 1
         now_ts = _now()
@@ -588,7 +574,13 @@ def retire_base_fact(
             doc, changed_field=str(old.get("field") or "fact"), old_entry_id=old["entry_id"], new_entry_id=None,
             new_revision=new_rev, reason=reason or f"{old.get('field', 'fact')} retired at revision {new_rev}",
         )
-        _write_doc_unlocked(path, doc)
+        kept.update(doc=doc, stale_ids=stale_ids, old=old, new_rev=new_rev)
+        return True, None
+
+    early = _change(home, scope, scope_kind, scope_id, apply)
+    if early is not None:
+        return early
+    doc, stale_ids, old, new_rev = (kept["doc"], kept["stale_ids"], kept["old"], kept["new_rev"])
 
     _record_stale(log, scope, scope_kind, doc, stale_ids)
     _invalidate_summary_best_effort(home, scope)
@@ -615,8 +607,6 @@ def record_material_event(
     log: Any = None,
 ) -> dict[str, Any]:
     """Capture a consequential decision or measured outcome idempotently; skips greetings and replays cleanly."""
-    from ..filelock import held
-
     if outcome_status not in OUTCOME_STATUSES:
         raise ValueError(f"outcome_status must be one of {OUTCOME_STATUSES}")
     raw = str(text or "").strip()
@@ -629,16 +619,15 @@ def record_material_event(
     author = who or f"agent:{scope.role}"
     if not author.startswith(("person:", "agent:", "rule:")):
         author = f"agent:{author}"
-    path = _base_file(home, scope_kind, scope_id)
+    kept: dict[str, Any] = {}
 
-    with held(_lock_dir(home)):
-        doc = _read_doc_unlocked(path, scope_kind, scope_id, scope)
+    def apply(doc: dict[str, Any]) -> tuple[bool, Any]:
         cur_rev = int(doc.get("revision") or 0)
         existing_id = doc["events_index"].get(idem_key)
         if existing_id:
             existing = next((e for e in doc["entries"] if e.get("entry_id") == existing_id), None)
             if existing is not None:
-                return {"entry": dict(existing), "revision": cur_rev, "replayed": True, "skipped": False}
+                return False, {"entry": dict(existing), "revision": cur_rev, "replayed": True, "skipped": False}
 
         now_ts = _now()
         src_ref = clean_line(f"{source_type}:{source_id}@rev{source_revision}")[:180]
@@ -686,7 +675,13 @@ def record_material_event(
         doc["entries"].append(entry)
         doc["events_index"][idem_key] = entry_id
         doc["updated_at"] = now_ts
-        _write_doc_unlocked(path, doc)
+        kept.update(entry=entry, cur_rev=cur_rev)
+        return True, None
+
+    early = _change(home, scope, scope_kind, scope_id, apply)
+    if early is not None:
+        return early
+    entry, cur_rev = (kept["entry"], kept["cur_rev"])
 
     _invalidate_summary_best_effort(home, scope)
     return {"entry": dict(entry), "revision": cur_rev, "replayed": False, "skipped": False}
@@ -711,23 +706,20 @@ def propose_draft(
     log: Any = None,
 ) -> dict[str, Any]:
     """Store an AI interpretation or Advisor suggestion as a provisional draft; retries never activate it."""
-    from ..filelock import held
-
     scope_kind, scope_id = _scope_target(scope, target)
     cleaned = _validate_text(text, protected)
     idem_key = f"draft:{source_type}:{source_id}:{source_revision}:{scope_kind}:{scope_id}"
     who = author if author.startswith(("agent:", "rule:")) else f"agent:{author}"
-    path = _base_file(home, scope_kind, scope_id)
+    kept: dict[str, Any] = {}
 
-    with held(_lock_dir(home)):
-        doc = _read_doc_unlocked(path, scope_kind, scope_id, scope)
+    def apply(doc: dict[str, Any]) -> tuple[bool, Any]:
         cur_rev = int(doc.get("revision") or 0)
         existing_id = doc["events_index"].get(idem_key)
         if existing_id:
             existing = next((e for e in doc["entries"] if e.get("entry_id") == existing_id), None)
             if existing is not None:
                 # A retry NEVER activates a draft.
-                return {"entry": dict(existing), "revision": cur_rev, "replayed": True}
+                return False, {"entry": dict(existing), "revision": cur_rev, "replayed": True}
 
         now_ts = _now()
         src_ref = clean_line(f"{source_type}:{source_id}@rev{source_revision}")[:180]
@@ -787,7 +779,13 @@ def propose_draft(
         doc["entries"].append(entry)
         doc["events_index"][idem_key] = entry_id
         doc["updated_at"] = now_ts
-        _write_doc_unlocked(path, doc)
+        kept.update(entry=entry, cur_rev=cur_rev)
+        return True, None
+
+    early = _change(home, scope, scope_kind, scope_id, apply)
+    if early is not None:
+        return early
+    entry, cur_rev = (kept["entry"], kept["cur_rev"])
 
     _invalidate_summary_best_effort(home, scope)
     return {"entry": dict(entry), "revision": cur_rev, "replayed": False}
@@ -805,18 +803,15 @@ def confirm_draft(
     log: Any = None,
 ) -> dict[str, Any]:
     """Explicit user review promoting or rejecting a provisional draft; blocks stale drafts unless re-checked."""
-    from ..filelock import held
-
     if not scope.can_write:
         raise AccessDenied(f"role {scope.role!r} cannot review drafts in {target} base")
     if action not in ("accept", "reject"):
         raise ValueError("action must be 'accept' or 'reject'")
     scope_kind, scope_id = _scope_target(scope, target)
     author = f"person:{scope.principal_id}"
-    path = _base_file(home, scope_kind, scope_id)
+    kept: dict[str, Any] = {}
 
-    with held(_lock_dir(home)):
-        doc = _read_doc_unlocked(path, scope_kind, scope_id, scope)
+    def apply(doc: dict[str, Any]) -> tuple[bool, Any]:
         cur_rev = int(doc.get("revision") or 0)
         if expected_revision is not None and int(expected_revision) != cur_rev:
             _record_conflict(log, scope, scope_kind, f"confirm:{action}", int(expected_revision), cur_rev)
@@ -851,9 +846,8 @@ def confirm_draft(
                 store.write(retire(held_item))
                 event(log, "memory.retired", held_item, reason="rejected", by=author)
             doc["updated_at"] = now_ts
-            _write_doc_unlocked(path, doc)
-            _invalidate_summary_best_effort(home, scope)
-            return {"entry": dict(draft), "revision": cur_rev}
+            kept.update(out={"entry": dict(draft), "revision": cur_rev})
+            return True, None
 
         new_rev = cur_rev + 1
         draft["status"] = "active"
@@ -868,13 +862,12 @@ def confirm_draft(
             event(log, "memory.written", active_item, by=author, reason="accepted")
         doc["revision"] = new_rev
         doc["updated_at"] = now_ts
-        _write_doc_unlocked(path, doc)
+        kept.update(out={"entry": dict(draft), "revision": new_rev})
+        return True, None
 
+    _change(home, scope, scope_kind, scope_id, apply)
     _invalidate_summary_best_effort(home, scope)
-    return {"entry": dict(draft), "revision": new_rev}
-
-
-PURGED_DIR = BASES_DIR / "purged"
+    return kept["out"]
 
 
 def _belongs(doc: Mapping[str, Any], scope_kind: str, scope_id: str, project_id: Optional[str], problem_id: Optional[str]) -> bool:
@@ -888,27 +881,11 @@ def _belongs(doc: Mapping[str, Any], scope_kind: str, scope_id: str, project_id:
     return False
 
 
-def _keep_purged(path: Path, doc: dict[str, Any], *, reason: str) -> Path:
-    """Move a deleted scope's base ledger to ``bases/purged/`` with a tombstone: never read again by any base, summary or
-    agent, and never deleted (only the owner's audited store forget removes data)."""
-    folder = path.parent / "purged"
-    folder.mkdir(parents=True, exist_ok=True)
-    doc = {**doc, "purged": {"at": _now(), "reason": reason, "from": path.name}}
-    target = folder / path.name
-    if target.exists():  # the same scope purged before: keep both
-        target = folder / f"{path.stem}.{secrets.token_hex(3)}{path.suffix}"
-    _write_doc_unlocked(target, doc)
-    path.unlink()
-    return target
-
-
 def purge_scope(home: Path, scope_kind: str, scope_id: str, *, workspace_id: Optional[str] = None,
                 project_id: Optional[str] = None, problem_id: Optional[str] = None, log: Any = None) -> dict[str, int]:
     """Purge a deleted project or problem scope: retire its memory items (new versions; the old ones stay), move its base
     ledgers to ``bases/purged/`` with a tombstone (hidden from every read, never deleted), and delete only what is derived
     from them (summaries and cached search vectors). Matched on the raw project id, whatever workspace id the caller holds."""
-    from ..filelock import held
-
     if scope_kind == "project" and not project_id:
         project_id = scope_id
     retired_items = 0
@@ -936,20 +913,10 @@ def purge_scope(home: Path, scope_kind: str, scope_id: str, *, workspace_id: Opt
         except Exception:  # noqa: BLE001
             retired_items = 0
 
-    removed_base = 0
-    bdir = _lock_dir(home)
-    if bdir.is_dir():
-        with held(bdir):
-            for path in sorted(bdir.glob("*.json")):
-                try:
-                    doc = json.loads(path.read_text(encoding="utf-8"))
-                except (OSError, ValueError):
-                    continue
-                if not isinstance(doc, dict) or not _belongs(doc, scope_kind, scope_id, project_id, problem_id):
-                    continue
-                retired_texts.extend(str(e.get("text") or "") for e in (doc.get("entries") or []) if e.get("text"))
-                _keep_purged(path, doc, reason=f"{scope_kind} deleted")
-                removed_base += 1
+    purged = _store(home).purge(lambda doc: _belongs(doc, scope_kind, scope_id, project_id, problem_id), reason=f"{scope_kind} deleted")
+    for doc in purged:
+        retired_texts.extend(str(e.get("text") or "") for e in (doc.get("entries") or []) if e.get("text"))
+    removed_base = len(purged)
 
     removed_summaries = 0
     try:
