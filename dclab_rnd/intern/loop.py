@@ -468,10 +468,18 @@ class Intern:
             from dclab_rnd.studio import data as studio_data
 
             project = self.toolbox.projects.get(pid)
-            time_column = found_time_column(suggestion, proposal, (project.get("data") or {}).get("profile"),
-                                            studio_data.load_table(studio_data.data_path(self.toolbox.projects, project)))
+            table = studio_data.load_table(studio_data.data_path(self.toolbox.projects, project))
+            time_column = found_time_column(suggestion, proposal, (project.get("data") or {}).get("profile"), table)
             roles = {time_column, suggestion.get("group_column"), *proposal.get("identifiers", []), *suggestion.get("identifiers", [])}
             known = {c: f for c, f in known.items() if c not in roles}
+            # 2026-11-19: a column suspected by its name alone used to stay in, since nobody is here to answer. It is
+            # now weighed on the rows read before the holdout (timing, too good, with and without) and the person is told.
+            evidence = self._weigh_suspects(table, target, proposal, suggestion, known, roles, time_column)
+            if evidence is not None:
+                session["leak_evidence"] = evidence
+                for c in evidence["columns"]:
+                    if c["decision"] == "keep_out":
+                        known[c["column"]] = {"column": c["column"], "reason": c["why"]}
             solution = {"project_id": pid, "target": target, "task": proposal["task"],
                         "prediction_moment": suggestion.get("prediction_moment") or _stated_moment(session["task"])
                         or ("Predict at the moment the row is recorded; " + proposal["prediction_moment_hint"]),
@@ -495,11 +503,45 @@ class Intern:
             self._step(session, "set_settings", {"project_id": pid, "quick": False}, started)
         results = self._step(session, "run_all", {"project_id": pid}, started)
         self._step(session, "export_notebook", {"project_id": pid}, started)
-        session["final"] = self._report(pid, results)
+        session["final"] = self._report(pid, results, session.get("leak_evidence"))
         session["status"] = "completed"
 
-    def _report(self, pid: str, results: dict[str, Any]) -> str:
+    @staticmethod
+    def _weigh_suspects(table: Any, target: str, proposal: dict[str, Any], suggestion: dict[str, Any], known: dict[str, Any],
+                        roles: set[Any], time_column: Any) -> dict[str, Any] | None:
+        """The proposal's columns suspected by their name alone, weighed by ``dclab_core.leak_evidence`` (its contract as
+        JSON). Only the name: a column flagged by a signal of its values (it separates the classes, it is unique on most
+        rows) is often an honest strong feature and stays as before (the review: breast_cancer's measurements). None for
+        a studied sample (the R&D decided its columns) or when there is no such column. When the check cannot run, the
+        suspects are kept out on the safe side and the error is named, never silently kept in."""
+        from dclab_core import leak_evidence
+
+        if suggestion.get("sample") or table is None:
+            return None
+        text = set(suggestion.get("text_columns") or []) | set(proposal.get("text_columns") or [])
+        named = {f["column"]: f for f in proposal.get("forbidden", [])
+                 if f["column"] not in known and f["column"] not in roles and f["column"] not in text
+                 and "name suggests" in str(f.get("reason") or "")}
+        if not named:
+            return None
+        features = [c for c in table.columns if c != target and c not in known and c not in roles and c not in text and c not in named]
+        try:
+            return leak_evidence.weigh(table, target, proposal["task"], list(named), features, time_column or None,
+                                       suspected_because={c: "its name sounds like it is filled in after the event" for c in named}
+                                       ).model_dump(mode="json")
+        except Exception as error:  # noqa: BLE001  (a failed check keeps the suspects out and says why)
+            why = (f"The check of this column could not run ({type(error).__name__}); its name sounds like it is filled in after "
+                   "the event, so it is kept out of the model on the safe side. If it is known when you predict, put it back.")
+            return {"error": type(error).__name__, "by_time": None,
+                    "columns": [{"column": c, "decision": "keep_out", "basis": "unsure", "why": why} for c in named]}
+
+    def _report(self, pid: str, results: dict[str, Any], leak_evidence: dict[str, Any] | None = None) -> str:
         lines = [f"Project #project/{pid} is ready in the notebook."]
+        if leak_evidence and leak_evidence.get("columns"):
+            rows = ("the earliest training rows" if leak_evidence.get("by_time") else
+                    "75% of the rows drawn at random, which a random holdout may overlap" if leak_evidence.get("by_time") is False else "no rows")
+            lines.append(f"Columns suspected of being filled in after the prediction moment, checked on {rows}:")
+            lines.extend(f"- `{c['column']}`: {c['why']}" for c in leak_evidence["columns"])
         for stage, record in results.items():
             if not record or "error" in (record or {}):
                 lines.append(f"- {stage}: {record.get('error') if record else 'not run'}")

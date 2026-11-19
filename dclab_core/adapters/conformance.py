@@ -120,6 +120,7 @@ CONTRACT_ADAPTERS: dict[str, str] = {
     "orchestra_board": LIBRARY + " (28.2: a team's board, kept by whatever orchestrates the team; the main product has no team of agents yet)",
     "team_record": LIBRARY + " (28.2: a team's walk, node by node; the main product has no team of agents yet)",
     "audit_verdict": LIBRARY + " (28.5: the auditor's screen before a holdout is read; the main product's experiments read their holdout without one yet)",
+    "leak_evidence": LIBRARY + " (2026-11-19: evidence on columns suspected of leakage by their name; the main product's audit has no stored field for it yet)",
     "business_example": LIBRARY + " (30.5: knowledge for the understanding and planning agents; the main product has no store of examples yet)",
     "recipe_part": LIBRARY + " (30.10: a task kind or a modifier as one contract; the main product's task kinds and its expansion pack can be read as parts the same way)",
     "resolved_recipe": LIBRARY + " (30.10: the choices one run resolves to, each with its part and reason; the main product's training plan has no such record yet)",

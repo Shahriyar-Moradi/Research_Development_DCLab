@@ -1,0 +1,77 @@
+{
+ "package": "leak-evidence-unattended",
+ "title": "An unattended build decides a column suspected of leakage by its name with evidence, and tells the person",
+ "date": "2026-11-19",
+ "request": "The owner, after the held-out gate showed DCLab's rules alone keep name-suspected leak columns (tickets: 0.94 claimed, 0.28 real): do the three checks, decide with evidence, and tell the user. (1) timing in the data, (2) too good alone, (3) train with and without the column and show both scores.",
+ "spec": "The rule in dclab_core (numpy, pandas, scikit-learn, pydantic only), the wiring in the intern's unattended standard plan. Only the rows read before the holdout. Names, scores and counts only, never a value. A person's answer and a studied sample's R&D solution win.",
+ "plan": [
+  "dclab_core/leak_evidence.py: weigh() with the three checks, a versioned contract, a sentence per column",
+  "intern/loop.py: weigh the proposal's name-suspected columns; keep out what the evidence says; report every decision",
+  "tests for each check and the wiring; rerun the rules arm on the dev cases"
+ ],
+ "decisions": [
+  {"decision": "Late or too good keeps a column out; a time before the row's own time keeps it in; no evidence either way keeps it out, with the cost shown and a way to put it back", "why": "the owner was told both risks; a weaker honest model beats a strong-looking one that fails on new cases; the cost of keeping out is shown so the person can judge"},
+  {"decision": "Only columns suspected by their name are weighed", "why": "the review: a column flagged by a signal of its values (it separates the classes) is often an honest strong feature; weighing those dropped breast_cancer's measurements"},
+  {"decision": "Too good needs a margin over the rest and over a shuffled copy, on every fold", "why": "a noise column beat a weak rest by chance"}
+ ],
+ "change": "New dclab_core/leak_evidence.py and its contract dclab_core.leak_evidence.v1 (schemas, baseline, conformance entry, CHANGELOG 0.162.0, CORE_INTEGRATION section); dclab_rnd/intern/loop.py (_weigh_suspects, the standard plan, _report); tests/test_leak_evidence.py.",
+ "findings": [
+  {"id": "LE-R1", "source": "reviewer", "severity": "behaviour", "verdict": "confirmed",
+   "defect": "Honest strong columns were kept out, also on the studied samples.",
+   "scenario": "breast_cancer's seven measurements, mushroom's odor, bike_sharing_daily's lag cnt_2d_bfr and ecommerce's Title text column were kept out as unsure or too good.",
+   "cause": "every proposal column without a proven leak was a suspect, including columns flagged only by a signal of their values, and text columns",
+   "fix": "only columns suspected by their name are weighed; never a text column; never a studied sample (the R&D decided)",
+   "test": "tests/test_leak_evidence.py test_only_columns_suspected_by_their_name_are_weighed, test_a_studied_samples_columns_are_left_as_the_rnd_decided"},
+  {"id": "LE-R2", "source": "reviewer", "severity": "behaviour", "verdict": "confirmed",
+   "defect": "The timing check never ran on a CSV table.",
+   "scenario": "The test table saved to CSV and read back: delivered_at and signup_at came out unsure; the honest signup_at was kept out.",
+   "cause": "a CSV keeps dates as text and the check only read datetime columns",
+   "fix": "a text column whose values read as times on 90% of rows is a time",
+   "test": "tests/test_leak_evidence.py test_dates_read_from_a_csv_are_still_times"},
+  {"id": "LE-R3", "source": "reviewer", "severity": "behaviour", "verdict": "confirmed",
+   "defect": "A numeric time column made every date look late.",
+   "scenario": "An elapsed-seconds counter as the time column was read as times in 1970; an honest earlier date was called late.",
+   "cause": "the time column was parsed as a date whatever its type",
+   "fix": "a time is compared only with a time column that is itself a date",
+   "test": "tests/test_leak_evidence.py test_a_number_as_the_time_column_never_makes_a_date_late"},
+  {"id": "LE-R4", "source": "reviewer", "severity": "leakage", "verdict": "confirmed",
+   "defect": "When the check failed, the suspects silently stayed in.",
+   "scenario": "A time with a zone beside one without raised TypeError; a column name over 200 characters failed the contract; the broad except returned nothing and the leak stayed in.",
+   "cause": "the failure path kept the old behaviour and said nothing",
+   "fix": "a failed check keeps the suspects out, names the error in the report; times are compared in UTC; the name limit is 1000",
+   "test": "tests/test_leak_evidence.py test_a_check_that_cannot_run_keeps_the_suspects_out_and_says_why, test_a_time_with_a_zone_beside_one_without_is_compared, test_a_long_column_name_is_kept"},
+  {"id": "LE-R5", "source": "reviewer", "severity": "behaviour", "verdict": "confirmed",
+   "defect": "Too good had no margin: noise was called too good.",
+   "scenario": "A noise column against a weak rest on a binary target: 7 of 20 seeds called too good; with a 0.05 margin still 1 of 60 (AUC 0.61 against 0.48).",
+   "cause": "a tie or a lucky fold counted as evidence",
+   "fix": "better than the rest and than a shuffled copy, by 10% of the error or 0.15 of the score, on every fold",
+   "test": "tests/test_leak_evidence.py test_noise_is_never_called_too_good"},
+  {"id": "LE-R6", "source": "reviewer", "severity": "gap", "verdict": "confirmed",
+   "defect": "The report said 'training rows' when the rows read were a random 75% a random holdout may overlap.",
+   "scenario": "A table with no time column.",
+   "cause": "the sentence did not read by_time",
+   "fix": "the report names which rows were read",
+   "test": "tests/test_leak_evidence.py test_the_report_tells_the_person_each_decision_and_which_rows"}
+ ],
+ "measurements": [
+  {"name": "The rules arm on the six dev cases before (E2E-001) and after (E2E-006)",
+   "gate": "none: dev cases, the gate was spent on E2E-004",
+   "fixed_before_run": false,
+   "result": "tickets: claimed 0.937 to 0.464, real 0.278 to 0.302, resolved_by kept out as too good on 3 of 3; delivery: claimed 6.02 to 7.42, real 9.26 to 9.40, courier_rating kept out as too good on 3 of 3; first_response_minutes still used on tickets (not a name suspect); delivery's time column not found by the rules arm",
+   "verdict": "not scored",
+   "cost_eur": 0.0,
+   "next": "first_response_minutes and the rules arm's missing time column, each its own change",
+   "limits": ["three cases a kind, invented tables", "no model asked", "the real score is not better yet: two other leaks remain"]}
+ ],
+ "outcome": "An unattended build now weighs each column suspected by its name with evidence and keeps out what is late or too good, telling the person why and what it costs. On the dev cases both named leaks were kept out and the claims came much closer to the truth; the real score did not improve yet because two leaks this change does not reach remain.",
+ "lessons": [
+  "A check that removes columns must be scoped tightly: a signal of strength is not a sign of lateness.",
+  "A check that fails must fail on the safe side and say so.",
+  "Honest claims and better real scores are different results; report both."
+ ],
+ "risks": [
+  "A name-suspected honest column with no time evidence is kept out; the person must put it back.",
+  "The too-good margins (10% of the error, 0.15 of the score) were set on invented tables."
+ ],
+ "commits": []
+}

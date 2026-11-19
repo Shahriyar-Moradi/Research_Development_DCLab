@@ -24,6 +24,7 @@ import dclab_core.case  # noqa: F401  (37.1: the case file)
 import dclab_core.bench  # noqa: F401  (B1 of 2026-11-03: one shape for every evaluation result)
 import dclab_core.task_graph  # noqa: F401  (TP-01B: structural task contracts)
 import dclab_core.task_execution_plan  # noqa: F401  (TP-01B: bounded action proposals)
+import dclab_core.leak_evidence  # noqa: F401  (2026-11-19: evidence on name-suspected leak columns)
 from dclab_core.contracts import CONTRACTS
 
 SCHEMA_DIR = Path(__file__).resolve().parent / "schemas"

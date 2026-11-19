@@ -1453,3 +1453,18 @@ See [preview acceptance and rollback](TASK_PLAN_PREVIEW_ACCEPTANCE.md).
 No portable contract, schema or wheel version changes. This projection uses R&D project access, saver and evidence
 owners; it is not a main-product adapter. The pinned main-product inventory has no task-progress fields, so no
 fields are invented. Adoption there needs its own permission, checkpoint and current-evidence mapping and tests.
+
+## Evidence on name-suspected leak columns (2026-11-19, dclab-core 0.162.0)
+
+`dclab_core.leak_evidence.weigh` decides a column suspected of leakage by its name with evidence from the data, not
+the name alone: its timing against the row's own time, whether it alone predicts as well as every other column
+together, and the score with and without it. It reads only the rows a build may read before its holdout. The R&D host
+calls it in the intern's unattended standard plan (`dclab_rnd/intern/loop.py` `_weigh_suspects`): what it keeps out
+joins the solution's forbidden columns with its sentence as the reason, and the session's report lists every
+suspect's decision and what keeping it out costs. The result is stored on the session as `leak_evidence`
+(`dclab_core.leak_evidence.v1`).
+
+In the main product, the call belongs where an unattended run fixes its features before training, after its own
+leakage audit names the suspects: pass the audit's suspects, the features it would train on and its prediction time
+column, then store each `ColumnEvidence` beside the governed decision for that column and show its `why`. A person's
+answer always wins over this evidence. No main-product field is mapped yet; the wiring is that repository's change.

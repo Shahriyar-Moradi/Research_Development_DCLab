@@ -1,0 +1,178 @@
+{
+  "$defs": {
+    "ColumnEvidence": {
+      "additionalProperties": false,
+      "description": "One suspect column: what each check found, the decision and why, in plain words.",
+      "properties": {
+        "alone": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Cross-validated score of a model on this column alone.",
+          "title": "Alone"
+        },
+        "basis": {
+          "enum": [
+            "late",
+            "too_good",
+            "early",
+            "unsure"
+          ],
+          "title": "Basis",
+          "type": "string"
+        },
+        "blank_recent": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "How much more often it is blank on the latest rows read.",
+          "title": "Blank Recent"
+        },
+        "column": {
+          "maxLength": 1000,
+          "title": "Column",
+          "type": "string"
+        },
+        "decision": {
+          "enum": [
+            "keep_out",
+            "keep_in"
+          ],
+          "title": "Decision",
+          "type": "string"
+        },
+        "gain": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "How much better the score is with it (positive: it helps).",
+          "title": "Gain"
+        },
+        "late_share": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Share of rows where its time is after the row's own time.",
+          "title": "Late Share"
+        },
+        "rest": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The same, on every clean column without it.",
+          "title": "Rest"
+        },
+        "why": {
+          "description": "For the person: what was found and what it means.",
+          "maxLength": 600,
+          "title": "Why",
+          "type": "string"
+        },
+        "with_it": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The same, on every clean column with it.",
+          "title": "With It"
+        }
+      },
+      "required": [
+        "column",
+        "decision",
+        "basis",
+        "why"
+      ],
+      "title": "ColumnEvidence",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.leak_evidence.v1.json",
+  "additionalProperties": false,
+  "description": "The suspects weighed on the rows a build reads before its holdout.",
+  "properties": {
+    "by_time": {
+      "title": "By Time",
+      "type": "boolean"
+    },
+    "columns": {
+      "items": {
+        "$ref": "#/$defs/ColumnEvidence"
+      },
+      "maxItems": 200,
+      "title": "Columns",
+      "type": "array"
+    },
+    "lower_is_better": {
+      "title": "Lower Is Better",
+      "type": "boolean"
+    },
+    "metric": {
+      "title": "Metric",
+      "type": "string"
+    },
+    "rows_read": {
+      "title": "Rows Read",
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": "dclab_core.leak_evidence.v1",
+      "default": "dclab_core.leak_evidence.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "unsure": {
+      "enum": [
+        "keep_out",
+        "keep_in"
+      ],
+      "title": "Unsure",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "metric",
+    "lower_is_better",
+    "rows_read",
+    "by_time",
+    "unsure"
+  ],
+  "title": "LeakEvidence",
+  "type": "object"
+}

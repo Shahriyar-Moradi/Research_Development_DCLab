@@ -4,6 +4,17 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.162.0 (2026-11-19)
+
+- `leak_evidence` (new): `weigh(frame, target, task, suspects, features, time_column, unsure)` weighs each column
+  suspected of leakage by its name, on the rows a build reads before its holdout (`modifiers.provisional_reading`).
+  Three checks: its timing (a time after the row's own time is late, one before it existed in time, a column blank
+  far more often on the latest rows is filled in later); too good (a model on it alone scores as well as every other
+  column together); and the score with and without it, on the same folds (by time when a column orders the rows). Late
+  or too good keeps it out; an earlier time keeps it in; no evidence follows `unsure` (out by default). Each column gets
+  a sentence for the person. The new contract `dclab_core.leak_evidence.v1` holds names, scores and counts, never a
+  value.
+
 ## 0.161.0 (2026-11-16)
 
 - `task_catalog.solution_path` (new): the path from a problem to its solution as one numbered list: the breakdown's

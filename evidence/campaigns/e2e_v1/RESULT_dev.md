@@ -72,3 +72,26 @@ file is unchanged and E2E-002 itself is kept as it was.
 
 The rules and DCLab agent rows are unchanged. On ticket routing, the one case with both scored, DCLab with the model and
 the model alone are level on the real score (0.3896 and 0.3877) and both honest about it.
+
+## The rules arm after the leak evidence (`E2E-006_rules_dev.json`, 2026-11-19, no model asked)
+
+An unattended build no longer leaves a column in only because nobody answered about its name. Each column suspected by
+its name is weighed on the rows read before the holdout (`dclab_core.leak_evidence`): its timing, whether alone it beats
+every other column together, and the score with and without it. `E2E-005` was the first rerun, before the review's
+fixes; `E2E-006` is the final code. Both gave the same rows.
+
+| Kind | Run | Claimed | Real | Suspects kept out |
+|---|---|---|---|---|
+| ticket routing (macro F1) | E2E-001 (before) | 0.937 | 0.278 | none |
+| ticket routing | E2E-006 (after) | 0.464 | 0.302 | `resolved_by` (too good: alone 1.00 against 0.50 for the rest) |
+| delivery time (MAE, min) | E2E-001 (before) | 6.02 | 9.26 | none |
+| delivery time | E2E-006 (after) | 7.42 | 9.40 | `courier_rating` (too good: alone 7.4 against 8.7 for the rest) |
+
+- The claims are much closer to the truth (tickets 0.94 to 0.46 claimed, against about 0.30 real).
+- The real score is not better yet. Two leaks remain, and this change does not reach them:
+  - `first_response_minutes` (tickets): its name does not sound late, so it is never a suspect. Without `resolved_by`
+    the model leans on it, and on seed 11 the real score fell to 0.13.
+  - Delivery time: the rules arm does not find `order_time` as the time column, so the holdout is random rows and the
+    claim stays about 2 minutes too good. The report now says the rows were drawn at random.
+- On delivery the real MAE is 0.15 minutes worse without `courier_rating` (9.26 to 9.40, 3 cases): small, and the
+  reason is not checked.

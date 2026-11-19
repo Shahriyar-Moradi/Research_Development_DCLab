@@ -1,0 +1,149 @@
+{
+  "$defs": {
+    "ColumnEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "alone": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "basis": {
+          "enum": [
+            "late",
+            "too_good",
+            "early",
+            "unsure"
+          ],
+          "type": "string"
+        },
+        "blank_recent": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "column": {
+          "maxLength": 1000,
+          "type": "string"
+        },
+        "decision": {
+          "enum": [
+            "keep_out",
+            "keep_in"
+          ],
+          "type": "string"
+        },
+        "gain": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "late_share": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "rest": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "why": {
+          "maxLength": 600,
+          "type": "string"
+        },
+        "with_it": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "column",
+        "decision",
+        "basis",
+        "why"
+      ],
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "by_time": {
+      "type": "boolean"
+    },
+    "columns": {
+      "items": {
+        "$ref": "#/$defs/ColumnEvidence"
+      },
+      "maxItems": 200,
+      "type": "array"
+    },
+    "lower_is_better": {
+      "type": "boolean"
+    },
+    "metric": {
+      "type": "string"
+    },
+    "rows_read": {
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": "dclab_core.leak_evidence.v1",
+      "default": "dclab_core.leak_evidence.v1",
+      "type": "string"
+    },
+    "unsure": {
+      "enum": [
+        "keep_out",
+        "keep_in"
+      ],
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "metric",
+    "lower_is_better",
+    "rows_read",
+    "by_time",
+    "unsure"
+  ],
+  "type": "object"
+}
