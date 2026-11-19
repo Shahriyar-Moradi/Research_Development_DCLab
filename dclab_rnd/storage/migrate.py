@@ -6,7 +6,9 @@ bucket DCLAB_FILES_URL names; its rows in the database DCLAB_DATABASE_URL names)
 each other. Copied, with their own ids and timestamps (so every list keeps its order):
 
 - projects: the document (solution, approvals, settings, memory…), the stage records, the transition log and the
-  activity log, and the files of ``data/`` and ``exports/`` through file storage (``storage/files.py``);
+  activity log, and the files of ``data/``, ``exports/`` and ``artifacts/`` (the approved final run's fitted model, its
+  serving record and parity rows) through file storage (``storage/files.py``); and ``secrets/`` (the key that hashes an
+  artifact's categories, the service log's key) copied as files, readable by the owner only, never recorded in storage;
 - drafts: the document, its events and its ``data/`` files;
 - intern sessions; the agent traces, the model usage and output checks, the lessons, the memory's versions (35.2), the model routing, the shadow log and the audit trail.
 
@@ -232,6 +234,22 @@ def migrate(source: Path, target: Path, url: str | None = None) -> dict[str, Any
             if record["sha256"] != original:
                 report["differences"].append(f"{key}: the copy's SHA-256 differs from the source's")
 
+    def copy_secrets(folder: Path, into: Path) -> None:
+        """A project's keys: without them its approved artifact cannot be exported. Copied byte for byte, the folder 0o700
+        and each file 0o600 from the moment it exists; a key the target already holds is never overwritten."""
+        for path in _files(folder):
+            target_file = into / path.relative_to(folder)
+            target_file.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+            os.chmod(target_file.parent, 0o700)
+            if target_file.exists():
+                if target_file.read_bytes() != path.read_bytes():
+                    report["differences"].append(f"{target_file.parent.parent.name}: a secret the target holds differs from the source's (kept)")
+                continue
+            handle = os.open(target_file, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            with os.fdopen(handle, "wb") as out:
+                out.write(path.read_bytes())
+            report["files"]["secrets"] = report["files"].get("secrets", 0) + 1
+
     def attempt(kind: str, key: str, fn) -> None:
         """One item; a failure is reported by its type and id (never the row, which can hold a conversation) and the run goes on."""
         try:
@@ -263,6 +281,8 @@ def migrate(source: Path, target: Path, url: str | None = None) -> dict[str, Any
             data = doc.get("data") or {}
             copy_files(source / "projects" / pid / "data", f"projects/{pid}/data", {data.get("filename"): data.get("sha256")} if data.get("sha256") else None)
             copy_files(source / "projects" / pid / "exports", f"projects/{pid}/exports")
+            copy_files(source / "projects" / pid / "artifacts", f"projects/{pid}/artifacts")  # the approved model (review of 96e47f43)
+            copy_secrets(source / "projects" / pid / "secrets", Path(files.root) / "projects" / pid / "secrets")
         attempt("project", doc["id"], one_project)
 
     # ---------------------------------------------------------------- drafts
@@ -414,9 +434,14 @@ def verify(src: Source, target: Path, wid: str, url: str | None, report: dict[st
         compare(f"project {pid}: stage records", len(src.stages(pid)), len(projects.records(pid)))
         compare(f"project {pid}: transitions", len(src.transitions(pid)), len(projects.transitions(pid, 10**9)))
         compare(f"project {pid}: activity entries", len(src.activity(pid)), len(projects.activity(pid, 10**9)))
-        for folder, prefix in ((src.projects_home / pid / "data", f"projects/{pid}/data"), (src.projects_home / pid / "exports", f"projects/{pid}/exports")):
+        for folder, prefix in ((src.projects_home / pid / "data", f"projects/{pid}/data"), (src.projects_home / pid / "exports", f"projects/{pid}/exports"),
+                               (src.projects_home / pid / "artifacts", f"projects/{pid}/artifacts")):
             for path in _files(folder):
                 check_file(f"{prefix}/{path.relative_to(folder).as_posix()}", path)
+        secrets = src.projects_home / pid / "secrets"
+        for path in _files(secrets):
+            if not (Path(files.root) / "projects" / pid / "secrets" / path.relative_to(secrets)).is_file():
+                out.append(f"project {pid}: the secret {path.name} is not in the database workspace")
     for doc in src.drafts():
         try:
             drafts.get(doc["id"])

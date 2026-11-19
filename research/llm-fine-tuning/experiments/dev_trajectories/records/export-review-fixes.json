@@ -1,0 +1,152 @@
+{
+ "package": "export-review-fixes",
+ "title": "The approved-artifact export reads the bundle's own training rows, pins the fit-time versions, binds every file, survives a storage failure and moves with a migrated workspace",
+ "date": "2026-11-19",
+ "request": "The owner asked for a full review of another agent's commits, with authority to fix bugs; the reviewer confirmed seven findings on the approved-artifact service export (96e47f43).",
+ "spec": "Fix the reviewer's confirmed findings on 96e47f43 with tests, editing only service.py, migrate.py, the final-approval binding lines of engine.py and their tests; add the missing test: approve run A, rerun final, export refused, re-approve, run B ships.",
+ "plan": [
+  "read the capture, the binding and the migration",
+  "verify what prepared.source_rows holds",
+  "fix the seven findings",
+  "test each",
+  "run the export, engine, workflow and migrate tests"
+ ],
+ "decisions": [
+  {
+   "decision": "The training rows are read from the table as loaded (with a label file's join) through prepared.source_rows[bundle.train_idx], not from prepared.frame",
+   "why": "source_rows are places in the table as loaded; prepared.frame lost the rows with no target or time and keeps the pre-sample order, so neither train_idx nor source_rows indexes it (the multiclass replica: 3,060 frame rows, 3,000 in X)"
+  },
+  {
+   "decision": "A different host package version is said (checked.versions.differ, the check's how, the README), not refused",
+   "why": "the image pins the versions the model was pickled with, which is right; refusing on any patch upgrade would make every approved model unexportable after a pip upgrade"
+  },
+  {
+   "decision": "The capture writes all bytes to the local disk before storage is touched, and keeps every key and digest in the run record even when storage fails",
+   "why": "the export can then finish the capture from those bytes, each checked against the digest the final run recorded: no refit, no second holdout read"
+  },
+  {
+   "decision": "The approval binds every key, digest and the key reference (service.BIND_FIELDS, one list used by approve and export); a missing or incomplete binding is refused with 'approve the final stage again'",
+   "why": "a binding of five fields left the parity rows, the monitoring plan and the key swappable; re-approving is cheap and reruns nothing"
+  },
+  {
+   "decision": "Secrets move as files (0o700 folder, 0o600 files, never overwritten, never recorded in file storage); a differing target key is a difference",
+   "why": "without the per-run key the migrated approved model cannot be exported; a key is never a stored record"
+  }
+ ],
+ "change": "dclab_rnd/studio/service.py (_training_frame, _package_versions, approval_binding, BIND_FIELDS, CHECK_ENV, local-first capture, recapture, version pins and python tag, minimal check env, shallow copy before strip), dclab_rnd/studio/engine.py (approve binds service.approval_binding), dclab_rnd/storage/migrate.py (artifacts/ and secrets/ copied and verified), tests/test_service_export.py, tests/test_storage_migrate_artifacts.py.",
+ "findings": [
+  {
+   "id": "ER-1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "The serving record's training rows were other rows, holdout rows among them.",
+   "scenario": "fraud replica, quick (sampled, group split): 360 of 2,351 rows were training rows, 97 were holdout rows.",
+   "cause": "prepared.frame.iloc[bundle.train_idx]: train_idx indexes bundle.X, which a sample or a time split reorders; frame also lost rows.",
+   "fix": "load the table as prepare did and take source_rows[train_idx].",
+   "test": "tests/test_service_export.py test_the_serving_record_reads_the_bundle_s_own_training_rows (sampled and a time split that dropped rows)"
+  },
+  {
+   "id": "ER-2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "requirements.txt pinned the exporting host's versions, not the ones the model was pickled with.",
+   "scenario": "a package upgraded between the final run and the export.",
+   "cause": "versions read at export time.",
+   "fix": "serving_meta.json keeps packages and python at capture; the export pins them, uses the Python minor in the Dockerfile and says when the host differs.",
+   "test": "test_requirements_pin_the_fit_time_versions_and_a_different_host_is_said"
+  },
+  {
+   "id": "ER-3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "A migrated workspace lost every approved model's artifact and key.",
+   "scenario": "python -m dclab_rnd.storage migrate on a workspace with an approved final stage.",
+   "cause": "only data/ and exports/ were copied.",
+   "fix": "artifacts/ through file storage, secrets/ as owner-only files; verify reports a missing one.",
+   "test": "tests/test_storage_migrate_artifacts.py"
+  },
+  {
+   "id": "ER-4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "A transient storage failure at capture made the approved model unexportable for good.",
+   "scenario": "the bucket times out during the final run's files.put.",
+   "cause": "bytes only in memory; the record kept no digests.",
+   "fix": "local bytes first, digests in the record, recoverable flag; export calls recapture, which checks each digest and stores again.",
+   "test": "ApprovalAndRecaptureTest (a changed local file refused, then recaptured with prepare, fit and load_table forbidden)"
+  },
+  {
+   "id": "ER-5",
+   "source": "reviewer",
+   "severity": "gap",
+   "verdict": "confirmed",
+   "defect": "The approval did not bind the parity rows, monitoring plan or key reference.",
+   "scenario": "swap parity_fixture.json and its digest in the record after approval.",
+   "cause": "five fields bound.",
+   "fix": "BIND_FIELDS bound and compared, legacy bindings refused until approved again.",
+   "test": "test_legacy_approval_binding_is_refused_until_approved_again"
+  },
+  {
+   "id": "ER-6",
+   "source": "reviewer",
+   "severity": "gap",
+   "verdict": "confirmed",
+   "defect": "The reload check's subprocess got the server's whole environment (API keys, database address, cloud credentials).",
+   "scenario": "any export on a configured server.",
+   "cause": "env={**os.environ, ...}.",
+   "fix": "only CHECK_ENV plus DCLAB_SERVICE_KEY.",
+   "test": "test_the_reload_check_gets_no_server_secret"
+  },
+  {
+   "id": "ER-7",
+   "source": "reviewer",
+   "severity": "gap",
+   "verdict": "confirmed",
+   "defect": "The capture deep-copied the whole training bundle only to drop it.",
+   "scenario": "every final run.",
+   "cause": "copy.deepcopy(recipe) before _strip.",
+   "fix": "shallow copy, the spec-only stand-in, then deep copy.",
+   "test": "covered by the export parity tests"
+  },
+  {
+   "id": "ER-8",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "No test that a rerun of final needs a new approval before its model ships.",
+   "scenario": "approve A, rerun final, export.",
+   "cause": "missing test.",
+   "fix": "added. (see the change and its test)",
+   "test": "ApprovalAndRecaptureTest"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "Tests after the fixes: tests",
+   "gate": "none: scripted tests",
+   "fixed_before_run": false,
+   "result": "{\"what\": \"tests\", \"value\": \"test_service_export.py 20, test_engine_machines.py + test_workflow_run.py + test_storage_migrate.py 26, test_storage_migrate_artifacts.py 4: all pass\", \"verdict\": \"not scored\"}",
+   "verdict": "not scored",
+   "cost_eur": 0.0,
+   "next": "commit after review",
+   "limits": [
+    "scripted tests only"
+   ]
+  }
+ ],
+ "outcome": "All seven findings fixed and the missing test added. Records approved under the five-field binding of 96e47f43 must be approved again before export.",
+ "lessons": [
+  "Before indexing a frame with a split's positions, check which table those positions index: a sample, a dropped row or a time sort breaks the match silently.",
+  "Write bytes to the local disk and keep their digests before touching remote storage, so a failure can be finished without redoing the work.",
+  "Give a check subprocess only the environment it needs."
+ ],
+ "risks": [
+  "Capture now reads the table a second time at the final run (the cost of one load).",
+  "A host whose packages differ from the fit-time ones still exports; the check ran on the host's packages, which the README and checked.versions say."
+ ],
+ "commits": []
+}

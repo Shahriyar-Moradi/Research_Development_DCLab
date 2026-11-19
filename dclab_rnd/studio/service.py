@@ -18,6 +18,7 @@ import hashlib
 import json
 import os
 import pickle
+import platform
 import secrets
 import shutil
 import types
@@ -44,6 +45,11 @@ VENDOR = {"dclab_rnd/provenance.py": "dclab_rnd/provenance.py", "dclab_rnd/expan
 PACKAGES = ("numpy", "pandas", "scipy", "scikit-learn", "pydantic", "lightgbm", "xgboost")
 ARTIFACT_SCHEMA = "dclab.service_artifact.v1"
 ARTIFACT_FORMAT = 1
+# what an approval binds of the captured artifact (engine.approve) and the export compares, every field (review of 96e47f43)
+BIND_FIELDS = ("run_id", "schema_version", "artifact_key", "artifact_sha256", "meta_key", "meta_sha256", "parity_key", "parity_sha256",
+               "monitoring_key", "monitoring_sha256", "key_ref")
+# the environment the reload check's Python gets: what an interpreter needs, never the server's keys or database address
+CHECK_ENV = ("PATH", "HOME", "TMPDIR", "TEMP", "TMP", "LANG", "LC_ALL", "LC_CTYPE", "SYSTEMROOT", "SYSTEMDRIVE")
 
 
 class ServiceRefused(ValueError):
@@ -76,6 +82,45 @@ def _strip(recipe: Any, salt: str) -> tuple[Any, list[str]]:
         entity.hide_keys(salt)
         entity.salt = None  # the key is not kept: the scorer sets it at start from DCLAB_SERVICE_KEY
     return recipe, hashed
+
+
+def _package_versions() -> dict[str, str]:
+    """The installed version of each package the model's pickle may need (the ones not installed are left out)."""
+    found = {}
+    for package in PACKAGES:
+        try:
+            found[package] = metadata.version(package)
+        except metadata.PackageNotFoundError:
+            continue
+    return found
+
+
+def approval_binding(art: Any) -> dict[str, Any] | None:
+    """What the final stage's approval binds of a captured artifact: every key, digest and the key's reference, or None
+    when the capture did not get as far as its digests (nothing to bind; the export then refuses)."""
+    if not isinstance(art, dict) or not all(art.get(f) for f in ("run_id", "artifact_sha256", "meta_sha256", "parity_sha256", "key_ref")):
+        return None
+    return {field: art.get(field) for field in BIND_FIELDS}
+
+
+def _training_frame(store: Any, project: dict[str, Any], prepared: Any) -> pd.DataFrame:
+    """The training rows as the table holds them (the target's labels and the columns' raw values), found by
+    ``prepared.source_rows``: each row of the bundle's X is its place in the table as loaded after a label file's join,
+    so ``bundle.train_idx`` (positions in X) maps through it. ``prepared.frame`` cannot be indexed so: it lost the rows
+    without a target or a time, and a sample or a time split reorders X (review of 96e47f43: 97 holdout rows were read)."""
+    from .data import data_path, load_table
+
+    bundle = prepared.bundle
+    rows = getattr(prepared, "source_rows", None)
+    if rows is None or len(rows) != len(bundle.X):
+        raise ValueError("the training rows cannot be traced back to the table (source_rows does not cover the bundle)")
+    table = load_table(data_path(store, project))
+    solution = prepared.solution
+    if project.get("labels") and project["labels"].get("target") == solution.target:  # as prepare joined it
+        from . import labels as label_file
+
+        table = label_file.apply(store, project, table)
+    return table.iloc[np.asarray(rows)[np.asarray(bundle.train_idx)]].reset_index(drop=True)
 
 
 def _made_up_rows(profile: dict[str, Any], columns: list[str], n: int = 3) -> list[dict[str, Any]]:
@@ -173,13 +218,15 @@ def capture_final_artifact(store: Any, project_id: str, run_id: str, project: di
         key_ref = f"service_artifact_{run_id}.key"
         key = secrets.token_hex(16)
         _write_secret_key(store, project_id, key_ref, key)
-        stripped_recipe, hashed = _strip(copy.deepcopy(fitted["recipe"]), key)
+        shallow = copy.copy(fitted["recipe"])  # never deep-copy the training bundle only to drop it
+        shallow.bundle = types.SimpleNamespace(spec=fitted["recipe"].bundle.spec, task_type=fitted["recipe"].bundle.task_type)
+        stripped_recipe, hashed = _strip(copy.deepcopy(shallow), key)
         artifact = {"recipe": stripped_recipe, "model": fitted["model"], "hashed_columns": hashed}
         model_bytes = pickle.dumps(artifact)
         model_sha256 = hashlib.sha256(model_bytes).hexdigest()
         model_version = model_sha256[:16]
         solution = prepared.solution
-        train_frame = prepared.frame.iloc[bundle.train_idx]
+        train_frame = _training_frame(store, project, prepared)
         y_train = bundle.y_train.to_numpy(dtype=float) if bundle.task_type == "timeseries_regression" else None
         time_col = solution.time_column
         threshold = ((final_evidence.get("task_assessment") or {}).get("threshold") or {}).get("value") if solution.alert_budget else None
@@ -205,6 +252,8 @@ def capture_final_artifact(store: Any, project_id: str, run_id: str, project: di
             "model_id": project_id, "model_version": model_version,
             "negative_label": _negative_label(train_frame, solution) if solution.task == "binary" else None,
             "na_codes": [c for c in codes_kept(train_frame) if c in set(input_columns)],
+            # the versions the model was pickled with: the export pins these, not the exporting host's (review of 96e47f43)
+            "packages": _package_versions(), "python": platform.python_version(),
         }
         calibrator = (final_evidence.get("calibration_fit") or {}).get("calibrator")
         if calibrator and calibrator.get("method") != "none":
@@ -230,11 +279,12 @@ def capture_final_artifact(store: Any, project_id: str, run_id: str, project: di
         parity_bytes = (json.dumps(parity_doc, indent=1, default=str) + "\n").encode("utf-8")
         files = files_for(store)
         prefix = f"projects/{project_id}/artifacts/{run_id}"
-        art_rec = files.put(f"{prefix}/model.pkl", model_bytes, kind="application/octet-stream")
-        meta_rec = files.put(f"{prefix}/serving_meta.json", meta_bytes, kind="application/json")
-        parity_rec = files.put(f"{prefix}/parity_fixture.json", parity_bytes, kind="application/json")
-        mon_rec = files.put(f"{prefix}/monitoring.json", monitoring_bytes, kind="application/json") if monitoring_bytes is not None else None
-        return {
+        planned = [("artifact", f"{prefix}/model.pkl", model_bytes, "application/octet-stream"),
+                   ("meta", f"{prefix}/serving_meta.json", meta_bytes, "application/json"),
+                   ("parity", f"{prefix}/parity_fixture.json", parity_bytes, "application/json")]
+        if monitoring_bytes is not None:
+            planned.append(("monitoring", f"{prefix}/monitoring.json", monitoring_bytes, "application/json"))
+        captured: dict[str, Any] = {
             "schema_version": ARTIFACT_SCHEMA,
             "format_version": ARTIFACT_FORMAT,
             "project_id": project_id,
@@ -244,18 +294,13 @@ def capture_final_artifact(store: Any, project_id: str, run_id: str, project: di
             "task_type": bundle.task_type,
             "recipe": recipe_name,
             "model": family,
-            "artifact_key": art_rec["key"],
-            "artifact_sha256": art_rec["sha256"],
             "model_version": model_version,
-            "meta_key": meta_rec["key"],
-            "meta_sha256": meta_rec["sha256"],
-            "parity_key": parity_rec["key"],
-            "parity_sha256": parity_rec["sha256"],
-            "monitoring_key": mon_rec["key"] if mon_rec else None,
-            "monitoring_sha256": mon_rec["sha256"] if mon_rec else None,
+            "monitoring_key": None,
+            "monitoring_sha256": None,
             "key_ref": key_ref,
-            "complete": True,
         }
+        for name, file_key, data, _kind in planned:  # the digests are known before storage is touched
+            captured[f"{name}_key"], captured[f"{name}_sha256"] = file_key, hashlib.sha256(data).hexdigest()
     except Exception as exc:  # noqa: BLE001 - capture failure never destroys the already-consumed holdout record
         return {
             "schema_version": ARTIFACT_SCHEMA,
@@ -265,6 +310,59 @@ def capture_final_artifact(store: Any, project_id: str, run_id: str, project: di
             "complete": False,
             "error": f"{type(exc).__name__}: {str(exc)[:200]}",
         }
+    try:
+        for _name, file_key, data, _kind in planned:  # the bytes on the local disk first: a storage failure after this is retried from them
+            local = files.local_path(file_key)
+            local.parent.mkdir(parents=True, exist_ok=True)
+            part = local.with_name(f"{local.name}.{secrets.token_hex(4)}.part")
+            part.write_bytes(data)
+            os.replace(part, local)
+        for name, file_key, _data, kind in planned:
+            record = files.put(file_key, files.local_path(file_key), kind=kind)
+            if record["sha256"] != captured[f"{name}_sha256"]:
+                raise FileError(f"{file_key} was stored with another digest")
+    except Exception as exc:  # noqa: BLE001 - a transient storage failure: the export retries from the local bytes (no refit)
+        return {**captured, "complete": False, "recoverable": True, "error": f"{type(exc).__name__}: {str(exc)[:200]}"}
+    return {**captured, "complete": True}
+
+
+def recapture(store: Any, project_id: str) -> dict[str, Any]:
+    """Finish a capture a storage failure interrupted: store again the bytes the final run wrote to the local disk, each
+    checked against the digest its run record holds (never a refit, never a second read of the holdout). Returns the
+    completed artifact record; raises ServiceRefused when the bytes are gone or differ, or storage still fails."""
+    final_record = store.read_stage(project_id, "final") or {}
+    art = (final_record.get("evidence") or {}).get("service_artifact")
+    if not isinstance(art, dict):
+        raise ServiceRefused("Approved artifact unavailable: no captured artifact to finish")
+    if art.get("complete"):
+        return art
+    run_id = art.get("run_id") or "unknown"
+    if not art.get("recoverable") or approval_binding(art) is None:
+        raise ServiceRefused(f"Approved artifact unavailable for final run {run_id}: {art.get('error') or 'the capture did not finish'}. "
+                             "Export never refits or re-reads holdout data; a new governed final evaluation is required to produce a verified artifact.")
+    if not _read_secret_key(store, project_id, str(art.get("key_ref") or "")):
+        raise ServiceRefused(f"Approved artifact unavailable for final run {run_id}: serving key missing from protected store")
+    files = files_for(store)
+    for name in ("artifact", "meta", "parity", "monitoring"):
+        file_key, digest = art.get(f"{name}_key"), art.get(f"{name}_sha256")
+        if not file_key:
+            continue
+        local = files.local_path(str(file_key))
+        if not local.is_file() or hashlib.sha256(local.read_bytes()).hexdigest() != digest:
+            raise ServiceRefused(f"Approved artifact unavailable for final run {run_id}: the locally written {name} file is missing or "
+                                 "changed since the final run; a new governed final evaluation is required")
+        try:
+            record = files.put(str(file_key), local, kind="application/octet-stream" if name == "artifact" else "application/json")
+        except Exception as exc:  # noqa: BLE001 - still failing: say so, keep the record as it is for the next try
+            raise ServiceRefused(f"Approved artifact storage is still failing for final run {run_id} ({type(exc).__name__}); try again") from None
+        if record["sha256"] != digest:
+            raise ServiceRefused(f"Approved artifact integrity check failed for {name}: digest mismatch")
+    done = {k: v for k, v in art.items() if k not in ("recoverable", "error")}
+    done.update({"complete": True, "recaptured": {"at": _now(), "after": str(art.get("error") or "")[:200]}})
+    final_record.setdefault("evidence", {})["service_artifact"] = done
+    store.write_stage(project_id, "final", final_record)
+    store.log(project_id, "service_artifact_recaptured", {"run": run_id, "artifact_sha256": done["artifact_sha256"]})
+    return done
 
 
 def _verified_bytes(files: Any, key: str, expected_sha256: str, label: str) -> bytes:
@@ -323,6 +421,8 @@ def export(store, project_id: str, out: Path) -> dict[str, Any]:
     final = final_record.get("evidence") or {}
     final_run_id = (final_record.get("run") or {}).get("run") or final_stage.get("run")
     art = final.get("service_artifact")
+    if isinstance(art, dict) and not art.get("complete") and art.get("recoverable"):
+        art = recapture(store, project_id)  # a storage failure at the final run: finished from its local bytes, digests checked
     if not isinstance(art, dict) or not art.get("complete"):
         why = (art.get("error") if isinstance(art, dict) and art.get("error") else "no captured fitted artifact was stored for this final run")
         raise ServiceRefused(
@@ -334,10 +434,13 @@ def export(store, project_id: str, out: Path) -> dict[str, Any]:
     if art.get("project_id") != project_id or (final_run_id and art.get("run_id") != final_run_id):
         raise ServiceRefused("Approved artifact binding mismatch: artifact does not belong to the approved final run")
     approved_art = final_stage.get("approved_artifact")
-    if isinstance(approved_art, dict):
-        for field in ("run_id", "artifact_key", "artifact_sha256", "meta_sha256", "schema_version"):
-            if approved_art.get(field) != art.get(field):
-                raise ServiceRefused(f"Approved artifact binding mismatch on {field}: candidate changed after approval")
+    if not isinstance(approved_art, dict):
+        raise ServiceRefused("Approved artifact binding missing: the approval does not name this artifact; approve the final stage again")
+    for field in BIND_FIELDS:
+        if field not in approved_art:
+            raise ServiceRefused(f"Approved artifact binding incomplete (no {field}): approve the final stage again to bind every file")
+        if approved_art.get(field) != art.get(field):
+            raise ServiceRefused(f"Approved artifact binding mismatch on {field}: candidate changed after approval")
     approved_run = final_stage.get("approved_run")
     if approved_run and art.get("run_id") != approved_run:
         raise ServiceRefused("Approved artifact binding mismatch: final run does not match approved_run")
@@ -380,15 +483,15 @@ def export(store, project_id: str, out: Path) -> dict[str, Any]:
             shutil.copyfile(ROOT / source, vendor / target)
         (vendor / "dclab_rnd" / "__init__.py").write_text('"""The parts of DCLab R&D a fitted service needs."""\n', encoding="utf-8")
         shutil.copytree(ROOT / "dclab_core", vendor / "dclab_core", ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "replicas", "schemas"))
-        pins = []
-        for package in PACKAGES:
-            try:
-                pins.append(f"{package}=={metadata.version(package)}")
-            except metadata.PackageNotFoundError:
-                continue
+        host = _package_versions()
+        at_fit = meta.get("packages") if isinstance(meta.get("packages"), dict) else None
+        versions = at_fit if at_fit else host  # a record from before the versions were kept: this host's, said so below
+        pins = [f"{package}=={version}" for package, version in versions.items()]
+        drift = {package: {"fit": version, "host": host.get(package)} for package, version in (at_fit or {}).items() if host.get(package) != version}
+        python_tag = ".".join(str(meta.get("python") or "3.12").split(".")[:2])
         (staging / "requirements.txt").write_text("\n".join(pins + ["flask>=3.0", "gunicorn>=22.0", "pytest>=8.0"]) + "\n", encoding="utf-8")
         (staging / "Dockerfile").write_text(
-            "FROM python:3.12-slim\nWORKDIR /service\nCOPY requirements.txt .\nRUN pip install --no-cache-dir -r requirements.txt\n"
+            f"FROM python:{python_tag}-slim\nWORKDIR /service\nCOPY requirements.txt .\nRUN pip install --no-cache-dir -r requirements.txt\n"
             "# the model, the code and the tests: no data file is copied\nCOPY model.pkl model.json scorer.py app.py serve_log.py ./\n"
             + ("COPY monitoring.json ./\n" if meta.get("monitoring") else "") + "COPY vendor ./vendor\n"
             "COPY tests ./tests\n# the hashing key is given at run time: docker run -e DCLAB_SERVICE_KEY=... (it is not in the image)\n"
@@ -440,9 +543,18 @@ def export(store, project_id: str, out: Path) -> dict[str, Any]:
                "was trained on. `GET /monitor?window=day` (or `week`, `batch`) reads the logs: the score's and the inputs' drift (each "
                "batch's inputs kept in `profiles.jsonl` only as the share of its rows in each training bin), the share the rule flags, and "
                "live performance once outcomes are known, against the holdout's interval in `model.json` (`live_reference`); one worse "
-               "window is a warning, two running an alert.\n" if meta.get("monitoring") else ""), encoding="utf-8")
+               "window is a warning, two running an alert.\n" if meta.get("monitoring") else "")
+            + (f"\nVersions: `requirements.txt` pins the packages the model was fitted and pickled with (Python {meta.get('python')}). "
+               "The export's own check ran on the exporting machine's packages, which differ for "
+               + ", ".join(f"{p} ({v['fit']} at fit, {v['host']} here)" for p, v in drift.items())
+               + ": build the image and run its tests before serving it.\n" if drift else "")
+            + ("\nVersions: this model's record is older than the kept package versions; `requirements.txt` pins the exporting "
+               "machine's, which may not be the ones it was pickled with.\n" if not at_fit else ""), encoding="utf-8")
         checked = _reload_check(staging, key, parity["rows"], parity["expected"], str(parity.get("task_type") or meta["task_type"]),
                                 tol=float(parity.get("tolerance", 1e-6)))
+        checked["versions"] = {"pinned_from": "fit" if at_fit else "host (not kept at fit)", "differ": drift}
+        if drift:
+            checked["how"] += "; on this machine's packages, which differ from the pinned fit-time ones: " + ", ".join(sorted(drift))
         _publish_dir(staging, out)
     except Exception:
         shutil.rmtree(staging, ignore_errors=True)
@@ -582,7 +694,7 @@ def _reload_check(out: Path, key: str, rows: Any, expected: Any, task_type: str,
                   f"print(json.dumps([list(r['{field}'].values()) if isinstance(r.get('{field}'), dict) else r.get('{field}', r.get('score', r.get('prediction'))) for r in out]))")
         try:  # the key by the environment, never on the command line (a process list shows it)
             done = subprocess.run([sys.executable, "-I", "-c", script, str(out), str(rows_file)], cwd=str(scratch), capture_output=True, text=True,
-                                  timeout=900, env={**os.environ, "DCLAB_SERVICE_KEY": key})
+                                  timeout=900, env={**{k: os.environ[k] for k in CHECK_ENV if k in os.environ}, "DCLAB_SERVICE_KEY": key})
             got = np.asarray(json.loads(done.stdout.strip().splitlines()[-1]), dtype=float) if done.returncode == 0 else None
         except (subprocess.TimeoutExpired, ValueError, IndexError) as error:
             raise ServiceRefused(f"The exported service could not be checked ({type(error).__name__}): not exported") from None

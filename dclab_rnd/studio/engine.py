@@ -2225,15 +2225,11 @@ def approve(store: ProjectStore, project_id: str, stage: str, choice: str | None
         approved_run = (record.get("run") or {}).get("run") or project["stages"]["final"].get("run")
         if approved_run:
             project["stages"]["final"]["approved_run"] = approved_run
-        art = (record.get("evidence") or {}).get("service_artifact")
-        if isinstance(art, dict) and art.get("complete"):
-            project["stages"]["final"]["approved_artifact"] = {
-                "run_id": art["run_id"],
-                "artifact_key": art["artifact_key"],
-                "artifact_sha256": art["artifact_sha256"],
-                "meta_sha256": art["meta_sha256"],
-                "schema_version": art["schema_version"],
-            }
+        from . import service as _service
+
+        binding = _service.approval_binding((record.get("evidence") or {}).get("service_artifact"))  # every key and digest
+        if binding is not None:
+            project["stages"]["final"]["approved_artifact"] = binding
         else:
             project["stages"]["final"].pop("approved_artifact", None)
     from . import memory

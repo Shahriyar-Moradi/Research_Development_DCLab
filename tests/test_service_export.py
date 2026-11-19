@@ -9,6 +9,7 @@ import unittest
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -375,6 +376,184 @@ class ServiceExportTest(unittest.TestCase):
                     done = service.export(store, pid, out)
                 self.assertTrue(done["checked"]["checked"])
                 self.assertEqual(done["meta"]["task"], key)
+
+    def test_the_serving_record_reads_the_bundle_s_own_training_rows(self):
+        """Review of 96e47f43: ``frame.iloc[train_idx]`` read rows of another order (97 holdout rows on this project). The
+        rows the serving record reads are the bundle's training rows, on a sampled project and on a time split that
+        dropped rows (its frame has more rows than its X)."""
+        from dclab_rnd import kinds
+        from dclab_rnd.kinds import acceptance
+
+        cases = [("sampled", self.store, self.pid)]
+        cases.append(("time split",) + acceptance.build(kinds.get("multiclass").case(0), Path(tempfile.mkdtemp())))
+        for label, store, pid in cases:
+            with self.subTest(label):
+                project = store.get(pid)
+                p = engine.prepare(store, project)
+                b = p.bundle
+                self.assertGreater(len(p.frame), len(b.X))  # rows were dropped or sampled: the frame's order is not X's
+                rows = service._training_frame(store, project, p)
+                self.assertEqual(len(rows), len(b.X_train))
+                skip = {p.solution.time_column}
+                compared = 0
+                for column in b.X_train.columns:
+                    if column in skip or column not in rows or rows[column].dtype == bool:
+                        continue
+                    left, right = rows[column].reset_index(drop=True), b.X_train[column].reset_index(drop=True)
+                    if pd.api.types.is_numeric_dtype(left) and pd.api.types.is_numeric_dtype(right):
+                        np.testing.assert_allclose(left.to_numpy(dtype=float), right.to_numpy(dtype=float), equal_nan=True, err_msg=column)
+                    else:
+                        self.assertEqual(left.astype(str).tolist(), right.astype(str).tolist(), column)
+                    compared += 1
+                self.assertGreater(compared, 2)
+                holdout = set(np.asarray(p.source_rows)[np.asarray(b.test_idx)].tolist())
+                self.assertFalse(holdout & set(np.asarray(p.source_rows)[np.asarray(b.train_idx)].tolist()))
+
+    def test_requirements_pin_the_fit_time_versions_and_a_different_host_is_said(self):
+        from unittest import mock
+
+        if self.store.get(self.pid)["stages"]["final"].get("status") != "approved":
+            engine.approve(self.store, self.pid, "final")
+        out = Path(tempfile.mkdtemp()) / "svc_versions"
+        same = service.export(self.store, self.pid, out)
+        fit = same["meta"]["packages"]
+        self.assertIn("scikit-learn", fit)
+        self.assertEqual(same["checked"]["versions"], {"pinned_from": "fit", "differ": {}})
+        self.assertIn(f"FROM python:{'.'.join(same['meta']['python'].split('.')[:2])}-slim", (out / "Dockerfile").read_text())
+        moved = {**fit, "scikit-learn": "0.0.1"}
+        with mock.patch.object(service, "_package_versions", return_value=moved):
+            drifted = service.export(self.store, self.pid, out)
+        pins = (out / "requirements.txt").read_text()
+        self.assertIn(f"scikit-learn=={fit['scikit-learn']}", pins)  # what the model was pickled with, not the host's
+        self.assertNotIn("scikit-learn==0.0.1", pins)
+        self.assertEqual(drifted["checked"]["versions"]["differ"], {"scikit-learn": {"fit": fit["scikit-learn"], "host": "0.0.1"}})
+        self.assertIn("scikit-learn", drifted["checked"]["how"])
+        self.assertIn("differ for scikit-learn", (out / "README.md").read_text())
+
+    def test_legacy_approval_binding_is_refused_until_approved_again(self):
+        import copy
+
+        if self.store.get(self.pid)["stages"]["final"].get("status") != "approved":
+            engine.approve(self.store, self.pid, "final")
+        project = self.store.get(self.pid)
+        bound = project["stages"]["final"]["approved_artifact"]
+        self.assertEqual(set(bound), set(service.BIND_FIELDS))
+        art = self.store.read_stage(self.pid, "final")["evidence"]["service_artifact"]
+        self.assertEqual({f: art[f] for f in service.BIND_FIELDS}, bound)
+        try:
+            for field, value in (("parity_sha256", "0" * 64), ("key_ref", "service_artifact_other.key"), ("monitoring_sha256", "1" * 64)):
+                with self.subTest(field):
+                    changed = copy.deepcopy(project)
+                    changed["stages"]["final"]["approved_artifact"][field] = value
+                    self.store.save(changed)
+                    with self.assertRaisesRegex(service.ServiceRefused, f"mismatch on {field}"):
+                        service.export(self.store, self.pid, Path(tempfile.mkdtemp()) / "svc")
+            legacy = copy.deepcopy(project)  # the five fields the first binding kept
+            legacy["stages"]["final"]["approved_artifact"] = {f: bound[f] for f in ("run_id", "artifact_key", "artifact_sha256", "meta_sha256", "schema_version")}
+            self.store.save(legacy)
+            with self.assertRaisesRegex(service.ServiceRefused, "approve the final stage again"):
+                service.export(self.store, self.pid, Path(tempfile.mkdtemp()) / "svc")
+            engine.approve(self.store, self.pid, "final")
+            self.assertTrue(service.export(self.store, self.pid, Path(tempfile.mkdtemp()) / "svc")["checked"]["checked"])
+        finally:
+            self.store.save(project)
+
+    def test_the_reload_check_gets_no_server_secret(self):
+        from unittest import mock
+
+        if self.store.get(self.pid)["stages"]["final"].get("status") != "approved":
+            engine.approve(self.store, self.pid, "final")
+        seen = {}
+        real = subprocess.run
+
+        def spy(*args, **kwargs):
+            seen.update(kwargs.get("env") or {})
+            return real(*args, **kwargs)
+
+        with mock.patch.dict(os.environ, {"ANTHROPIC_API_KEY": "sk-test-not-real", "OPENROUTER_API_KEY": "or-test", "AWS_SECRET_ACCESS_KEY": "a"}), \
+                mock.patch("subprocess.run", side_effect=spy):
+            done = service.export(self.store, self.pid, Path(tempfile.mkdtemp()) / "svc_env")
+        self.assertTrue(done["checked"]["checked"])
+        self.assertIn("DCLAB_SERVICE_KEY", seen)
+        self.assertFalse({"ANTHROPIC_API_KEY", "OPENROUTER_API_KEY", "AWS_SECRET_ACCESS_KEY", "DCLAB_DATABASE_URL"} & set(seen))
+        self.assertTrue(set(seen) <= set(service.CHECK_ENV) | {"DCLAB_SERVICE_KEY"})
+
+
+@unittest.skipIf(MISSING, MISSING)
+class ApprovalAndRecaptureTest(unittest.TestCase):
+    """Review of 96e47f43: a rerun of the final stage needs a new approval before its model ships, and a storage failure
+    at the final run is finished from the bytes it wrote (digests checked), never by a refit."""
+
+    def test_rerun_needs_reapproval_and_a_storage_failure_is_recaptured_without_refit(self):
+        from unittest import mock
+
+        from dclab_rnd import kinds
+        from dclab_rnd.kinds import acceptance
+
+        store, pid = acceptance.build(kinds.get("binary").case(0), Path(tempfile.mkdtemp()))
+        with runner.fast_profile():
+            engine.run_all(store, pid)
+        engine.approve(store, pid, "final")
+        out = Path(tempfile.mkdtemp()) / "svc"
+        service.export(store, pid, out)
+        a = store.get(pid)["exports"]["service"]["final_run"]
+        shipped_a = (out / "model.pkl").read_bytes()
+
+        # 1. A rerun of the final stage: the approval of run A does not carry over to run B.
+        with runner.fast_profile():
+            engine.execute(store, pid, "final", reuse_reason="the owner reruns the final evaluation")
+        with self.assertRaises(service.ServiceRefused):
+            service.export(store, pid, out)
+        stale = store.get(pid)  # run A's approval put back by hand: its binding names another run
+        stale["stages"]["final"].update({"status": "approved", "approved_artifact": {f: (a if f == "run_id" else "x") for f in service.BIND_FIELDS}})
+        store.save(stale)
+        with self.assertRaisesRegex(service.ServiceRefused, "binding mismatch"):
+            service.export(store, pid, out)
+        self.assertEqual((out / "model.pkl").read_bytes(), shipped_a)  # run A's export untouched by the refusals
+        engine.approve(store, pid, "final")
+        run_b = service.export(store, pid, out)
+        b = store.get(pid)["exports"]["service"]["final_run"]
+        self.assertNotEqual(a, b)
+        self.assertEqual(b, store.read_stage(pid, "final")["evidence"]["service_artifact"]["run_id"])
+        self.assertTrue(run_b["checked"]["checked"])
+
+        # 2. Storage fails at a third final run's capture: the bytes are on the local disk, the record says recoverable.
+        real = service.files_for(store)
+
+        class Flaky:
+            def local_path(self, key):
+                return real.local_path(key)
+
+            def put(self, *args, **kwargs):
+                raise OSError("bucket timed out")
+
+        with runner.fast_profile(), mock.patch.object(service, "files_for", lambda _store: Flaky()):
+            engine.execute(store, pid, "final", reuse_reason="the owner reruns the final evaluation again")
+        art = store.read_stage(pid, "final")["evidence"]["service_artifact"]
+        self.assertEqual((art["complete"], art["recoverable"]), (False, True))
+        self.assertIn("bucket timed out", art["error"])
+        self.assertIsNone(real.record(art["artifact_key"]))
+        engine.approve(store, pid, "final")
+        self.assertEqual(store.get(pid)["stages"]["final"]["approved_artifact"]["artifact_sha256"], art["artifact_sha256"])
+
+        # 3. A local file changed since the run is refused; restored, the export finishes the capture with no refit.
+        local = real.local_path(art["artifact_key"])
+        original = local.read_bytes()
+        local.write_bytes(original + b"x")
+        with self.assertRaisesRegex(service.ServiceRefused, "missing or changed"):
+            service.export(store, pid, out)
+        local.write_bytes(original)
+        with mock.patch.object(engine, "prepare", side_effect=AssertionError("must not prepare")), \
+                mock.patch.object(runner, "fit_and_predict", side_effect=AssertionError("must not refit")), \
+                mock.patch.object(sd, "load_table", side_effect=AssertionError("must not read data")):
+            run_c = service.export(store, pid, out)
+        self.assertTrue(run_c["checked"]["checked"])
+        done = store.read_stage(pid, "final")["evidence"]["service_artifact"]
+        self.assertTrue(done["complete"])
+        self.assertNotIn("recoverable", done)
+        self.assertIn("bucket timed out", done["recaptured"]["after"])
+        self.assertEqual(real.record(art["artifact_key"])["sha256"], art["artifact_sha256"])
+        self.assertEqual(store.get(pid)["exports"]["service"]["final_run"], art["run_id"])
 
 
 FLASK_STUB = '''
