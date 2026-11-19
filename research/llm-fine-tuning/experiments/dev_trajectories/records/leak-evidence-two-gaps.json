@@ -1,0 +1,63 @@
+{
+ "package": "leak-evidence-two-gaps",
+ "title": "The unattended plan splits by the order's own time and weighs a late duration the audit's name list missed",
+ "date": "2026-11-19",
+ "request": "The owner's yes to fixing the two leaks the leak-evidence change did not reach: a ticket's first_response_minutes (its name does not match the audit's list) and delivery's random split (the time column was not found).",
+ "spec": "Only the unattended standard plan; studied samples unchanged; a person's choice wins; the report says what was done.",
+ "plan": [
+  "found_time_column: a date named as written after the event never orders the split",
+  "_weigh_suspects: also weigh columns the product's after-outcome words name",
+  "tests; rerun the rules arm on the dev cases"
+ ],
+ "decisions": [
+  {"decision": "Reuse the product's own after-outcome words (dclab_core.datacard) rather than widen the audit's name pattern", "why": "the audit's pattern feeds every proposal; the data card's words are already the product's suspicion list"},
+  {"decision": "A word-named column is weighed only when it reads as one event's time or duration", "why": "the review: a count or rate of past events (courses_completed, host_response_rate) is honest history and would be kept out"}
+ ],
+ "change": "dclab_rnd/intern/loop.py (found_time_column, _event_value, SUMMARY_WORDS, _weigh_suspects, the time note in the plan and _report); tests/test_leak_evidence.py; tests/test_task_and_time_rules.py.",
+ "findings": [
+  {"id": "TG-M1", "source": "measurement", "severity": "leakage", "verdict": "confirmed",
+   "defect": "A delivery table was split at random rows in an unattended build.",
+   "scenario": "order_time and delivered_at are both full dates; two candidates were left to a person; nobody answered; the holdout was random rows and the claim 1.7 minutes too good.",
+   "cause": "only a flagged date was checked for after-outcome words",
+   "fix": "any date named as written after the event is never a candidate",
+   "test": "tests/test_task_and_time_rules.py test_a_date_named_as_after_the_outcome_is_never_the_order_flagged_or_not"},
+  {"id": "TG-M2", "source": "measurement", "severity": "leakage", "verdict": "confirmed",
+   "defect": "A ticket's first_response_minutes stayed in the model.",
+   "scenario": "Its name does not match the audit's pattern, so it was never a suspect; with resolved_by gone the model leaned on it and the real score fell to 0.13 on one case.",
+   "cause": "suspects came only from the audit's own name list",
+   "fix": "the product's after-outcome words name more suspects",
+   "test": "tests/test_leak_evidence.py test_a_column_named_with_the_products_after_outcome_words_is_weighed_too"},
+  {"id": "TG-R1", "source": "reviewer", "severity": "behaviour", "verdict": "confirmed",
+   "defect": "The wider word list kept honest history columns out.",
+   "scenario": "courses_completed, the strongest honest column, was kept out as too good (0.17 AUC lost); host_response_rate as unsure.",
+   "cause": "every word-named column was weighed, and a number can never earn keep in",
+   "fix": "only a time or a duration is weighed; a name with a count or summary word never is",
+   "test": "tests/test_leak_evidence.py test_a_count_or_rate_of_past_events_is_history_and_never_weighed"},
+  {"id": "TG-R2", "source": "reviewer", "severity": "gap", "verdict": "confirmed",
+   "defect": "When the only date is set aside for its name, the split is random and nobody is told.",
+   "scenario": "A table whose only full date is completed_at.",
+   "cause": "the report had no line for it",
+   "fix": "the report says the holdout is random and why",
+   "test": "tests/test_leak_evidence.py test_the_report_says_why_the_rows_were_split_at_random"}
+ ],
+ "measurements": [
+  {"name": "The rules arm on the six dev cases (E2E-006 to E2E-007)",
+   "gate": "none: dev cases",
+   "fixed_before_run": false,
+   "result": "tickets: leaks out 0 to 3 of 3, claimed 0.464 to 0.403, real 0.302 to 0.387, inside interval 1 to 3 of 3; delivery: split by order_time, claimed 7.42 to 7.79, real 9.40 unchanged, inside interval 0 of 3",
+   "verdict": "not scored",
+   "cost_eur": 0.0,
+   "next": "delivery's remaining over-claim: a split by restaurant, the case's entity",
+   "limits": ["three cases a kind, invented tables", "ran before the review's last two fixes, which give the same decisions on these cases"]}
+ ],
+ "outcome": "On the dev cases the unattended plan now keeps every planted leak out. Tickets are honest (0.40 said, 0.39 real). Delivery is split by time but still claims about 1.6 minutes too good, because new restaurants are not held out: a separate change.",
+ "lessons": [
+  "Two candidates left to a person mean a random split when nobody is there: a rule must decide or say so.",
+  "A word list for suspicion needs the shape of the value too: a duration of this event, not a count of past ones."
+ ],
+ "risks": [
+  "A real time column named with an after-outcome word is set aside; the report says so.",
+  "A late value that is a number without a time or duration word is still missed unless the audit flags it."
+ ],
+ "commits": []
+}

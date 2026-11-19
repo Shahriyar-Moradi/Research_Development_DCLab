@@ -95,3 +95,32 @@ fixes; `E2E-006` is the final code. Both gave the same rows.
     claim stays about 2 minutes too good. The report now says the rows were drawn at random.
 - On delivery the real MAE is 0.15 minutes worse without `courier_rating` (9.26 to 9.40, 3 cases): small, and the
   reason is not checked.
+
+## The two remaining leaks closed (`E2E-007_rules_dev.json`, 2026-11-19, no model asked)
+
+Two fixes to the unattended plan:
+- **The time column.** A date named as written after the event (`delivered_at`, `resolved_at`) no longer counts as a
+  candidate for ordering the split. Delivery's `order_time` was one of two candidates, and two were left to a person, so
+  the holdout was random rows. It is now split by `order_time`. When the only date is set aside for its name, the report
+  says the holdout is random and why.
+- **Columns the audit's name list misses.** A column the product's after-outcome words name (response, delivered...) is
+  weighed too, when it reads as an event's own time or duration (`first_response_minutes`); a count or a rate of past
+  events (`courses_completed`, `host_response_rate`) is history and is not (the review).
+
+| Kind | Run | Claimed | Real | Leaks kept out | Real inside interval |
+|---|---|---|---|---|---|
+| ticket routing (macro F1) | E2E-001 (start) | 0.937 | 0.278 | 0 of 3 | 0 of 3 |
+| ticket routing | E2E-006 (evidence) | 0.464 | 0.302 | 0 of 3 | 1 of 3 |
+| ticket routing | E2E-007 (both fixes) | 0.403 | 0.387 | 3 of 3 | 3 of 3 |
+| delivery time (MAE, min) | E2E-001 (start) | 6.02 | 9.26 | 0 of 3 | 0 of 3 |
+| delivery time | E2E-006 (evidence) | 7.42 | 9.40 | 3 of 3 | 0 of 3 |
+| delivery time | E2E-007 (both fixes) | 7.79 | 9.40 | 3 of 3 | 0 of 3 |
+
+- Tickets: every leak is out and the claim is honest (0.40 said, 0.39 real), level with DCLab with a model on the
+  held-out gate (0.388).
+- Delivery: every leak is out and the split is by time, but the claim is still about 1.6 minutes too good. This is not
+  a leak: the future cases come from new restaurants, and the rules arm reads `restaurant_id` as a number and splits by
+  time, not by restaurant. A split by restaurant (the case's entity) is a separate change.
+- E2E-007 ran before the review's last two fixes (word suspects only for a time or a duration; the report's line on a
+  random split). On these cases both give the same decisions: `first_response_minutes` and `delivered_at` still read as
+  an event's value, and a time column was found.

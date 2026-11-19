@@ -78,6 +78,13 @@ class FoundTimeColumnTest(unittest.TestCase):
         self.profile["columns"].append({"name": "shipped", "kind": "datetime"})
         self.assertIsNone(self.found(["shipped"]))
 
+    def test_a_date_named_as_after_the_outcome_is_never_the_order_flagged_or_not(self):
+        """2026-11-19: delivery's order_time beside delivered_at made two candidates, so the unattended build split at random."""
+        self.frame["delivered_at"] = self.frame["created"] + pd.Timedelta(minutes=30)
+        self.profile["columns"].append({"name": "delivered_at", "kind": "datetime"})
+        self.assertEqual(self.found(["created", "delivered_at"]), "created")
+        self.assertIsNone(self.found(["delivered_at"]))  # the only date, named as after the event: the split is random, and the report says why
+
     def test_two_columns_are_left_to_a_person(self):
         self.assertIsNone(self.found(["created", "elapsed"]))
         self.assertIsNone(self.found([]))

@@ -166,7 +166,34 @@ class StandardPlanTests(unittest.TestCase):
         """Not a proven leak, a role, a text column, or a column flagged by a signal of its values (often an honest strong feature)."""
         e = self.weigh(table().assign(review_text="ok"))
         self.assertEqual([c["column"] for c in e["columns"]], ["delivered_at", "noise_rating"])
-        self.assertIsNone(self.weigh(table(), proposal={"task": "regression", "forbidden": []}))
+        plain = table().drop(columns=["delivered_at", "noise_rating"])  # no name sounds late
+        self.assertIsNone(self.weigh(plain, proposal={"task": "regression", "forbidden": []}))
+        # the product's words alone find an event's own time; a plain number named "rating" waits for the audit's own flag
+        by_words = self.weigh(table(), proposal={"task": "regression", "forbidden": []})
+        self.assertEqual([c["column"] for c in by_words["columns"]], ["delivered_at"])
+
+    def test_a_column_named_with_the_products_after_outcome_words_is_weighed_too(self):
+        """2026-11-19: a ticket's first_response_minutes was never a suspect (the audit's name list misses it) and stayed in."""
+        t = table().assign(first_response_minutes=np.random.default_rng(4).uniform(1, 90, 800))
+        e = self.weigh(t)
+        c = {x["column"]: x for x in e["columns"]}["first_response_minutes"]
+        self.assertEqual(c["decision"], "keep_out")
+        self.assertIn("its name says response", c["why"])
+
+    def test_a_count_or_rate_of_past_events_is_history_and_never_weighed(self):
+        """The review: courses_completed (the strongest honest column) was kept out as too good, host_response_rate as unsure."""
+        t = table().assign(courses_completed=np.arange(800) % 9, host_response_rate=np.random.default_rng(5).random(800),
+                           avg_response_minutes=np.random.default_rng(6).random(800))
+        e = self.weigh(t, proposal={"task": "regression", "forbidden": []})
+        self.assertNotIn("courses_completed", [c["column"] for c in e["columns"]])
+        self.assertNotIn("host_response_rate", [c["column"] for c in e["columns"]])
+        self.assertNotIn("avg_response_minutes", [c["column"] for c in e["columns"]])
+
+    def test_the_report_says_why_the_rows_were_split_at_random(self):
+        from dclab_rnd.intern.loop import Intern
+
+        text = Intern._report(None, "p1", {}, None, "No time column orders the split: `completed_at` sounds like ...")
+        self.assertIn("`completed_at`", text)
 
     def test_a_studied_samples_columns_are_left_as_the_rnd_decided(self):
         self.assertIsNone(self.weigh(table(), {"sample": "bike_sharing_daily"}))

@@ -66,16 +66,36 @@ def found_time_column(suggestion: dict[str, Any], proposal: dict[str, Any], prof
         return kinds.get(name) == "datetime" and frame is not None and name in getattr(frame, "columns", []) and bool(frame[name].notna().all())
 
     def orders(name: str) -> bool:
+        from dclab_core.datacard import after_outcome_words
+
         if counter(name):  # the rows already follow it (fraud's elapsed seconds): it adds nothing, its role keeps it out
             return True
-        if name in flagged:  # flagged dates: an event date whose outcome rate drifts is flagged too, and must order the split;
-            from dclab_core.datacard import after_outcome_words  # one named as written after the outcome never does
-
-            return full_date(name) and after_outcome_words(name) is None
-        return full_date(name)
+        # A date named as written after the outcome (delivered_at, resolved_at) never orders the split, flagged or not: beside
+        # the order's own time it made two candidates, and two were left to a person, so an unattended delivery build split
+        # its rows at random (2026-11-19). A flagged event date whose outcome rate drifts still orders it.
+        return full_date(name) and after_outcome_words(name) is None
 
     found = [c for c in proposal.get("time_candidates") or [] if c != proposal.get("target") and orders(c)]
     return found[0] if len(found) == 1 else None
+
+
+SUMMARY_WORDS = frozenset({"count", "n", "num", "number", "rate", "ratio", "avg", "mean", "median", "total", "sum", "prev",
+                           "previous", "last", "history", "past", "share", "pct", "percent"})
+
+
+def _event_value(series: Any, name: str) -> bool:
+    """A column that reads as one event's own time or duration (delivered_at, first_response_minutes), not a count or a
+    rate of past events: only such a column, named with the after-outcome words, is weighed as a suspect."""
+    import pandas as pd
+
+    from dclab_core.datacard import _unit, name_tokens
+
+    tokens = set(name_tokens(name))
+    if tokens & SUMMARY_WORDS:
+        return False
+    if pd.api.types.is_datetime64_any_dtype(series) or tokens & {"at", "date", "time", "timestamp", "on"}:
+        return True
+    return _unit(name) in ("minutes", "hours", "days", "weeks", "seconds")
 
 
 def step_record(n: int, tool: str, arguments: dict[str, Any], result: Any, seconds: float) -> dict[str, Any]:
@@ -474,6 +494,14 @@ class Intern:
             known = {c: f for c, f in known.items() if c not in roles}
             # 2026-11-19: a column suspected by its name alone used to stay in, since nobody is here to answer. It is
             # now weighed on the rows read before the holdout (timing, too good, with and without) and the person is told.
+            if not time_column:  # say why the rows are split at random when a full date was set aside for its name
+                from dclab_core.datacard import after_outcome_words
+
+                named_dates = [c for c in proposal.get("time_candidates") or [] if c != target and after_outcome_words(str(c))]
+                if named_dates:
+                    session["time_note"] = (f"No time column orders the split: {', '.join(f'`{c}`' for c in named_dates[:3])} "
+                                            "sounds like it is written after the event, so it was not used, and the holdout is random "
+                                            "rows. If a date is known when you predict, set it as the time column.")
             evidence = self._weigh_suspects(table, target, proposal, suggestion, known, roles, time_column)
             if evidence is not None:
                 session["leak_evidence"] = evidence
@@ -503,13 +531,14 @@ class Intern:
             self._step(session, "set_settings", {"project_id": pid, "quick": False}, started)
         results = self._step(session, "run_all", {"project_id": pid}, started)
         self._step(session, "export_notebook", {"project_id": pid}, started)
-        session["final"] = self._report(pid, results, session.get("leak_evidence"))
+        session["final"] = self._report(pid, results, session.get("leak_evidence"), session.get("time_note"))
         session["status"] = "completed"
 
     @staticmethod
     def _weigh_suspects(table: Any, target: str, proposal: dict[str, Any], suggestion: dict[str, Any], known: dict[str, Any],
                         roles: set[Any], time_column: Any) -> dict[str, Any] | None:
-        """The proposal's columns suspected by their name alone, weighed by ``dclab_core.leak_evidence`` (its contract as
+        """The proposal's columns suspected by their name alone, and the columns the product's after-outcome words name
+        that read as an event's own time or duration, weighed by ``dclab_core.leak_evidence`` (its contract as
         JSON). Only the name: a column flagged by a signal of its values (it separates the classes, it is unique on most
         rows) is often an honest strong feature and stays as before (the review: breast_cancer's measurements). None for
         a studied sample (the R&D decided its columns) or when there is no such column. When the check cannot run, the
@@ -519,15 +548,27 @@ class Intern:
         if suggestion.get("sample") or table is None:
             return None
         text = set(suggestion.get("text_columns") or []) | set(proposal.get("text_columns") or [])
-        named = {f["column"]: f for f in proposal.get("forbidden", [])
-                 if f["column"] not in known and f["column"] not in roles and f["column"] not in text
-                 and "name suggests" in str(f.get("reason") or "")}
+        from dclab_core.datacard import after_outcome_words
+
+        def free(c: Any) -> bool:
+            return c != target and c not in known and c not in roles and c not in text
+
+        named = {f["column"]: "its name sounds like it is filled in after the event" for f in proposal.get("forbidden", [])
+                 if free(f["column"]) and "name suggests" in str(f.get("reason") or "")}
+        # the product's own words for a value written after the outcome (response, delivered...): a column the audit's name
+        # list misses, such as a ticket's first_response_minutes, is weighed too (2026-11-19), but only when it looks like
+        # the event's own later value: a time or a duration. A count or a rate of past events (courses_completed,
+        # host_response_rate) is history known before the moment, and an honest strong one would be kept out (the review).
+        for c in table.columns:
+            words = after_outcome_words(str(c))
+            if free(c) and c not in named and words and _event_value(table[c], str(c)):
+                named[c] = f"its name says {words}, which is usually written after the event"
         if not named:
             return None
         features = [c for c in table.columns if c != target and c not in known and c not in roles and c not in text and c not in named]
         try:
             return leak_evidence.weigh(table, target, proposal["task"], list(named), features, time_column or None,
-                                       suspected_because={c: "its name sounds like it is filled in after the event" for c in named}
+                                       suspected_because=named
                                        ).model_dump(mode="json")
         except Exception as error:  # noqa: BLE001  (a failed check keeps the suspects out and says why)
             why = (f"The check of this column could not run ({type(error).__name__}); its name sounds like it is filled in after "
@@ -535,8 +576,10 @@ class Intern:
             return {"error": type(error).__name__, "by_time": None,
                     "columns": [{"column": c, "decision": "keep_out", "basis": "unsure", "why": why} for c in named]}
 
-    def _report(self, pid: str, results: dict[str, Any], leak_evidence: dict[str, Any] | None = None) -> str:
+    def _report(self, pid: str, results: dict[str, Any], leak_evidence: dict[str, Any] | None = None, time_note: str | None = None) -> str:
         lines = [f"Project #project/{pid} is ready in the notebook."]
+        if time_note:
+            lines.append(time_note)
         if leak_evidence and leak_evidence.get("columns"):
             rows = ("the earliest training rows" if leak_evidence.get("by_time") else
                     "75% of the rows drawn at random, which a random holdout may overlap" if leak_evidence.get("by_time") is False else "no rows")
