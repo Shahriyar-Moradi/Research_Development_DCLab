@@ -13,7 +13,10 @@ state between requests (``model.json`` says so).
 
 from __future__ import annotations
 
+import copy
+import hashlib
 import json
+import os
 import pickle
 import secrets
 import shutil
@@ -21,13 +24,17 @@ import types
 from importlib import metadata
 
 import numpy as np
+import pandas as pd
 from pathlib import Path
 from typing import Any
 
+from .. import kinds
 from ..expansion import runner as rn
+from ..storage.files import FileError, files_for
 from . import engine
 from .data import column_kind
 from .na_codes import codes_kept  # "NA" as a code in the service's CSV, as in training (2026-10-25)
+from .solution import Solution
 
 ROOT = Path(__file__).resolve().parents[2]
 TEMPLATE = Path(__file__).resolve().parent / "service_template"
@@ -35,6 +42,8 @@ VENDOR = {"dclab_rnd/provenance.py": "dclab_rnd/provenance.py", "dclab_rnd/expan
           "dclab_rnd/expansion/datasets.py": "dclab_rnd/expansion/datasets.py", "dclab_rnd/expansion/runner.py": "dclab_rnd/expansion/runner.py",
           "dclab_rnd/expansion/detectors.py": "dclab_rnd/expansion/detectors.py"}
 PACKAGES = ("numpy", "pandas", "scipy", "scikit-learn", "pydantic", "lightgbm", "xgboost")
+ARTIFACT_SCHEMA = "dclab.service_artifact.v1"
+ARTIFACT_FORMAT = 1
 
 
 class ServiceRefused(ValueError):
@@ -71,164 +80,381 @@ def _strip(recipe: Any, salt: str) -> tuple[Any, list[str]]:
 
 def _made_up_rows(profile: dict[str, Any], columns: list[str], n: int = 3) -> list[dict[str, Any]]:
     """Rows for the generated tests, from the profile's kinds only: numbers 0, 1, 2; text 'a', 'b', 'c'; dates in 2020."""
-    kinds = {c["name"]: c.get("kind") for c in profile.get("columns", [])}
+    kinds_map = {c["name"]: c.get("kind") for c in profile.get("columns", [])}
     rows = []
     for i in range(n):
         row = {}
         for column in columns:
-            kind = kinds.get(column)
-            row[column] = (float(i) if kind in ("numeric", "binary") else f"2020-01-0{i + 1} 10:00:00" if kind == "datetime"
+            kind = kinds_map.get(column)
+            row[column] = (float(i) if kind in ("numeric", "binary") else f"2020-01-{i + 1:02d} 10:00:00" if kind == "datetime"
                            else "abc"[i % 3])
         rows.append(row)
     return rows
 
 
-def export(store, project_id: str, out: Path) -> dict[str, Any]:
-    """Write the service package to ``out`` and return its description; refuses an unapproved project."""
-    project = store.get(project_id)
-    if (project.get("stages", {}).get("final") or {}).get("status") != "approved":
-        raise ServiceRefused("Approve the final stage first: a service is built only from an approved result")
-    final_record = store.read_stage(project_id, "final")
-    final = final_record["evidence"]
-    recipe_name, family, params = final["feature_recipe"], final["model"], final.get("selected_model_params") or None
-    p = engine.prepare(store, project)
-    if not p.kind.export.get("service", True):  # 16.1: the kind says what its export supports (a kind's own machine has no bundle)
-        raise ServiceRefused(f"The {p.kind.title.lower()} kind has no service export yet: {p.kind.export.get('why', 'not built')}")
-    bundle = p.bundle
+def _secret_key_path(store: Any, project_id: str, name: str) -> Path:
+    if "/" in name or "\\" in name or ".." in name or not name:
+        raise ServiceRefused("Invalid serving secret reference")
+    return Path(store.export_dir(project_id)).parent / "secrets" / name
+
+
+def _write_secret_key(store: Any, project_id: str, name: str, value: str) -> None:
+    path = _secret_key_path(store, project_id, name)
+    path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+    tmp = path.with_name(f".{name}.{secrets.token_hex(4)}.part")
+    handle = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(handle, "w", encoding="utf-8") as out:
+        out.write(value)
+    os.replace(tmp, path)
+
+
+def _read_secret_key(store: Any, project_id: str, name: str) -> str | None:
+    path = _secret_key_path(store, project_id, name)
+    if not path.is_file():
+        return None
+    held = path.read_text(encoding="utf-8").strip()
+    return held if len(held) >= 32 else None
+
+
+def _score_stripped(artifact: dict[str, Any], meta: dict[str, Any], key: str, rows: list[dict[str, Any]]) -> list[Any]:
+    """Score synthetic parity rows with the stripped artifact using the exact same transforms as Scorer."""
+    frame = pd.DataFrame(rows).copy()
+    for column in meta["input_columns"]:
+        if column not in frame:
+            frame[column] = np.nan
+    frame = frame[meta["input_columns"]]
+    for column, kind in (meta.get("input_types") or {}).items():
+        values = pd.to_numeric(frame[column], errors="coerce") if kind.startswith(("int", "Int", "float")) else None
+        if values is not None and kind.startswith("Int"):
+            frame[column] = values.round().astype("Int64")
+        elif values is not None and kind.startswith("int") and values.notna().all():
+            frame[column] = values.round().astype("int64")
+        elif values is not None:
+            frame[column] = values.astype(float)
+    for column in frame.columns:
+        if pd.api.types.is_bool_dtype(frame[column]) or str(frame[column].dtype) == "boolean":
+            frame[column] = pd.to_numeric(frame[column].astype("object").map({True: 1.0, False: 0.0}), errors="coerce")
+    time_col = meta.get("time_column")
+    if time_col and meta.get("time_is_datetime"):
+        frame[time_col] = pd.to_datetime(frame[time_col], errors="coerce").dt.strftime("%Y-%m-%d %H:%M:%S")
+    for column in artifact.get("hashed_columns") or []:
+        frame[column] = rn._as_text(frame[column]).map(lambda v: "h:" + hashlib.sha256(f"{key}|{v}".encode()).hexdigest()[:16])
+    recipe = artifact["recipe"]
+    entity = getattr(recipe, "entity_model", None)
+    if entity is not None:
+        entity.salt = key
+    try:
+        matrix, _ = recipe.transform(frame)
+    finally:
+        if entity is not None:
+            entity.salt = None  # never persist the secret salt inside the artifact
+    scores = rn.predict_scores(artifact["model"], matrix, meta["task_type"], meta.get("n_classes"))
+    change = meta.get("review_change") or {}
+    if change.get("review__target") == "log1p":
+        scores = np.expm1(scores)
+    if change.get("review__clip") == "fit_range" and meta.get("target_range"):
+        scores = np.clip(scores, *meta["target_range"])
+    return np.asarray(scores, dtype=float).tolist()
+
+
+def capture_final_artifact(store: Any, project_id: str, run_id: str, project: dict[str, Any], prepared: Any,
+                           final_evidence: dict[str, Any], fitted: dict[str, Any]) -> dict[str, Any] | None:
+    """Capture the privacy-safe fitted artifact, serving metadata, and synthetic parity fixture at the original
+    authorized final run so service.export never refits or re-reads training/holdout data (I1)."""
+    if not prepared.kind.export.get("service", True):
+        return None
+    bundle = prepared.bundle
     if bundle.task_type == "text_tabular_binary":
-        raise ServiceRefused("A text project's vocabulary is learned from its rows: its service export is not built yet")
-    fitted = rn.fit_and_predict(bundle, recipe_name, family, params, bundle.X_train, bundle.y_train, bundle.X_test)
-    metric = final_record.get("primary_metric") or bundle.spec.primary_metric
-    recorded = (final.get("holdout_metrics") or {}).get(metric)
-    refit = rn.compute_metrics(bundle.task_type, bundle.y_test, fitted["predictions"], n_classes=rn._n_classes(bundle),
-                               alert_budget=bundle.spec.settings.get("alert_budget")).get(metric)
-    if recorded is None or refit is None or abs(float(refit) - float(recorded)) > 1e-6:
-        raise ServiceRefused(f"The refit does not reproduce the approved holdout {metric} ({refit} against {recorded}): "
-                             "the service would not be the approved model")
-    out = Path(out)
-    if out.exists():
-        shutil.rmtree(out)
-    (out / "tests").mkdir(parents=True)
-    key = secrets.token_hex(16)  # the hashing key never goes into the folder: the service reads it at start (DCLAB_SERVICE_KEY)
-    log_key = project_log_key(store, project_id)  # the same for every export of this project (DCLAB_LOG_KEY)
-    recipe, hashed = _strip(fitted["recipe"], key)
-    y_train = bundle.y_train.to_numpy(dtype=float) if bundle.task_type == "timeseries_regression" else None
-    with open(out / "model.pkl", "wb") as handle:
-        pickle.dump({"recipe": recipe, "model": fitted["model"], "hashed_columns": hashed}, handle)
-    solution = p.solution
-    time = solution.time_column
-    # an alert only at a budget the person stated; otherwise the score alone (the plan leaves the threshold to the person)
-    threshold = ((final.get("task_assessment") or {}).get("threshold") or {}).get("value") if solution.alert_budget else None
-    behaviour = bool(getattr(fitted["recipe"], "behaviour", None) or getattr(fitted["recipe"], "programs", None))
-    meta = {"project": project["name"], "task": solution.task, "task_type": bundle.task_type, "target": solution.target,
-            "recipe": recipe_name, "model": family, "input_columns": [str(c) for c in bundle.X.columns],
+        return None
+    recipe_name = str(fitted["recipe_name"])
+    family = str(fitted["family"])
+    params = fitted.get("params") or None
+    try:
+        key_ref = f"service_artifact_{run_id}.key"
+        key = secrets.token_hex(16)
+        _write_secret_key(store, project_id, key_ref, key)
+        stripped_recipe, hashed = _strip(copy.deepcopy(fitted["recipe"]), key)
+        artifact = {"recipe": stripped_recipe, "model": fitted["model"], "hashed_columns": hashed}
+        model_bytes = pickle.dumps(artifact)
+        model_sha256 = hashlib.sha256(model_bytes).hexdigest()
+        model_version = model_sha256[:16]
+        solution = prepared.solution
+        train_frame = prepared.frame.iloc[bundle.train_idx]
+        y_train = bundle.y_train.to_numpy(dtype=float) if bundle.task_type == "timeseries_regression" else None
+        time_col = solution.time_column
+        threshold = ((final_evidence.get("task_assessment") or {}).get("threshold") or {}).get("value") if solution.alert_budget else None
+        behaviour = bool(getattr(stripped_recipe, "behaviour", None) or getattr(stripped_recipe, "programs", None))
+        input_columns = [str(c) for c in bundle.X.columns]
+        meta: dict[str, Any] = {
+            "project": project["name"], "task": solution.task, "task_type": bundle.task_type, "target": solution.target,
+            "recipe": recipe_name, "model": family, "input_columns": input_columns,
             "input_types": {str(c): str(t) for c, t in bundle.X.dtypes.items()},
             "review_change": {k: v for k, v in (params or {}).items() if str(k).startswith("review__")},
             "target_range": [float(np.min(y_train)), float(np.max(y_train))] if y_train is not None else None,
             "behaviour_within_batch": behaviour,
-            "time_column": time, "time_is_datetime": bool(time and column_kind(p.frame[time]) == "datetime") if time else False,
-            "class_labels": list(p.class_labels) if p.class_labels else None, "n_classes": rn._n_classes(bundle),
+            "time_column": time_col, "time_is_datetime": bool(time_col and column_kind(train_frame[time_col]) == "datetime") if time_col else False,
+            "class_labels": list(prepared.class_labels) if prepared.class_labels else None, "n_classes": rn._n_classes(bundle),
             "positive_label": solution.positive_label, "threshold": threshold, "prediction_moment": solution.prediction_moment,
-            "holdout": {k: final["holdout_metrics"].get(k) for k in (bundle.spec.primary_metric,)},
-            # 34.10: what the service's /monitor compares a model in use with: the live measure on the holdout, with its interval
+            "holdout": {k: final_evidence["holdout_metrics"].get(k) for k in (bundle.spec.primary_metric,)},
             "live_reference": _live_reference(solution.task, bundle.y_test, fitted["predictions"],
                                               bundle.groups("test") if bundle.spec.split_strategy in ("group", "time_group") else None),
             "batches": ("behaviour features are computed within each request, as they were within each fold and the holdout in "
                         "training: send a whole audit window (or a batch in time order) together; a single row gets no history, "
                         "and no state is kept between requests" if behaviour else "each row is scored on its own"),
             "production_approved": False,
-            # 34.9: the log's model and version (a fingerprint of model.pkl), and the label an outcome that is not positive has
-            "model_id": project_id, "model_version": _fingerprint(out / "model.pkl"),
-            "negative_label": _negative_label(p.frame, solution) if solution.task == "binary" else None,
-            # 2026-10-25: the input columns where "NA" is a code (Namibia's), from the training table: the service's CSV reads them so
-            "na_codes": [c for c in codes_kept(p.frame) if c in {str(x) for x in bundle.X.columns}]}
-    calibrator = (final.get("calibration_fit") or {}).get("calibrator")
-    if calibrator and calibrator.get("method") != "none":  # 30.15: fitted on the out-of-fold scores; served beside the score, never instead of it
-        meta["calibrator"] = calibrator
-    watch = final.get("monitoring") or {}
-    if watch.get("columns"):  # 30.15 (step 12): the training rows' bins and the alert lines, read by Scorer.monitor
-        (out / "monitoring.json").write_text(json.dumps(_hashed_plan(watch, key), indent=1, default=str) + "\n", encoding="utf-8")
-        meta["monitoring"] = "monitoring.json"  # its category levels hashed with the key, as the model's are: no value of the table
-    (out / "model.json").write_text(json.dumps(meta, indent=1, default=str) + "\n", encoding="utf-8")
-    for name in ("scorer.py", "app.py", "serve_log.py"):
-        shutil.copyfile(TEMPLATE / name, out / name)
-    vendor = out / "vendor"
-    for source, target in VENDOR.items():
-        (vendor / target).parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(ROOT / source, vendor / target)
-    (vendor / "dclab_rnd" / "__init__.py").write_text('"""The parts of DCLab R&D a fitted service needs."""\n', encoding="utf-8")
-    shutil.copytree(ROOT / "dclab_core", vendor / "dclab_core", ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "replicas", "schemas"))
-    pins = []
-    for package in PACKAGES:
-        try:
-            pins.append(f"{package}=={metadata.version(package)}")
-        except metadata.PackageNotFoundError:
-            continue
-    (out / "requirements.txt").write_text("\n".join(pins + ["flask>=3.0", "gunicorn>=22.0", "pytest>=8.0"]) + "\n", encoding="utf-8")
-    (out / "Dockerfile").write_text(
-        "FROM python:3.12-slim\nWORKDIR /service\nCOPY requirements.txt .\nRUN pip install --no-cache-dir -r requirements.txt\n"
-        "# the model, the code and the tests: no data file is copied\nCOPY model.pkl model.json scorer.py app.py serve_log.py ./\n"
-        + ("COPY monitoring.json ./\n" if meta.get("monitoring") else "") + "COPY vendor ./vendor\n"
-        "COPY tests ./tests\n# the hashing key is given at run time: docker run -e DCLAB_SERVICE_KEY=... (it is not in the image)\n"
-        "# the prediction and outcome logs: mount a volume here (-v ...:/logs), or they go with the container\n"
-        "ENV DCLAB_SERVICE_LOG_DIR=/logs\n"
-        "EXPOSE 8000\nCMD [\"gunicorn\", \"--bind\", \"0.0.0.0:8000\", \"--workers\", \"2\", \"--timeout\", \"120\", \"app:app\"]\n", encoding="utf-8")
-    (out / ".dockerignore").write_text("*.csv\n*.parquet\n*.xlsx\n*.json.gz\n*.jsonl\n__pycache__\n", encoding="utf-8")
-    rows = _made_up_rows(project["data"].get("profile") or {}, meta["input_columns"])
-    (out / "tests" / "test_service.py").write_text(
-        '"""Generated with the service: made-up rows from the profile (never a real value)."""\n\nimport io\nimport sys\nfrom pathlib import Path\n\n'
-        "import pytest\n\nsys.path.insert(0, str(Path(__file__).resolve().parents[1]))\n\nfrom app import app  # noqa: E402\n\n"
-        f"ROWS = {json.dumps(rows)}\n\n\n"
-        "@pytest.fixture(autouse=True)\ndef _logs(tmp_path, monkeypatch):\n    monkeypatch.setenv('DCLAB_SERVICE_LOG_DIR', str(tmp_path))  # the tests' rows stay out of the real logs\n\n\n"
-        "def test_health_and_model():\n    client = app.test_client()\n    assert client.get('/health').json == {'status': 'ok'}\n"
-        "    assert client.get('/model').json['task'] == " + repr(solution.task) + "\n\n\n"
-        "def test_one_and_many_rows():\n    client = app.test_client()\n    one = client.post('/predict', json=ROWS[0]).json['predictions']\n"
-        "    many = client.post('/predict', json=ROWS).json['predictions']\n    assert len(one) == 1 and len(many) == len(ROWS)\n\n\n"
-        "def test_a_csv():\n    import pandas as pd\n    client = app.test_client()\n    data = pd.DataFrame(ROWS).to_csv(index=False).encode()\n"
-        "    response = client.post('/predict/csv', data={'file': (io.BytesIO(data), 'rows.csv')})\n"
-        "    assert len(response.json['predictions']) == len(ROWS)\n\n\n"
-        "def test_a_prediction_is_logged_and_its_outcome_joins_it(tmp_path):\n    from dclab_core import serving\n    client = app.test_client()\n"
-        "    made = client.post('/predict', json=ROWS).json['predictions']\n"
-        f"    outcome = {_made_up_outcome(solution, p.class_labels)!r}\n"
-        "    assert client.post('/outcome', json={'key': made[0]['key'], 'outcome': outcome}).json == {'recorded': 1}\n"
-        "    joined = serving.join(serving.read_log(tmp_path / 'predictions.jsonl', serving.PredictionRecord),\n"
-        "                          serving.read_log(tmp_path / 'outcomes.jsonl', serving.OutcomeRecord))\n"
-        "    assert len(joined) == 1\n", encoding="utf-8")
-    (out / "README.md").write_text(
-        f"# Scoring service: {project['name']}\n\nExported by DCLab from the approved final stage: recipe `{recipe_name}`, model `{family}`. "
-        "No data is in this folder, and the key that hashes category values is not either: it was given to whoever exported "
-        "the service, who passes it as `DCLAB_SERVICE_KEY`. DCLab gives `DCLAB_LOG_KEY` with it, the same for every export of this "
-        "project, so the logs of one export and the next join.\n\n```bash\ndocker build -t dclab-service .\n"
-        "docker run -e DCLAB_SERVICE_KEY=... -e DCLAB_LOG_KEY=... -p 8000:8000 dclab-service\n```\n\n"
-        "Endpoints: `GET /health`, `GET /model`, `POST /predict` (one row as an object, or a list), `POST /predict/csv` (form field `file`), "
-        "`POST /outcome` (the true outcome of a row once it is known), `GET /monitor` (the model in use, window by window).\n\n"
-        "Logs: every row scored is a line of `predictions.jsonl` and every outcome a line of `outcomes.jsonl`, beside the model or in "
-        "`DCLAB_SERVICE_LOG_DIR` (the image sets `/logs`: mount a volume there). Keys are hashed with `DCLAB_LOG_KEY` (the project's own, given "
-        "with every export; without it, `DCLAB_SERVICE_KEY`, which changes with each export): pass it every time, so an outcome that arrives "
-        "after a retrain still joins its prediction. A line holds the model and its version, the row's key "
-        "as a salted hash, the score, the decision and the time; never a value of the row. Name the column that identifies a row "
-        "(`{\"rows\": [...], \"key\": \"order_id\"}`, or `?key=order_id`, or the form field `key` with a CSV) and post its outcome "
-        "later with the same value: `{\"key\": 123, \"outcome\": ..., \"known_at\": \"2026-10-25T08:00:00+00:00\"}` or "
-        "`{\"outcomes\": [...]}`; with no key column, each prediction comes back with a key made for it. The two logs join by key "
-        "(`dclab_core.serving.join`), which is what monitoring with outcomes and a retrain read.\n\n"
-        f"{meta['batches'].capitalize()}. A score is evidence about the method, not production approval.\n"
-        + ("\nMonitoring: `Scorer().monitor(rows, scores)` reads a batch against the training rows' bins in `monitoring.json` "
-           "(each column's and the score's PSI, the share the rule flags); an alert says the inputs moved away from what the model "
-           "was trained on. `GET /monitor?window=day` (or `week`, `batch`) reads the logs: the score's and the inputs' drift (each "
-           "batch's inputs kept in `profiles.jsonl` only as the share of its rows in each training bin), the share the rule flags, and "
-           "live performance once outcomes are known, against the holdout's interval in `model.json` (`live_reference`); one worse "
-           "window is a warning, two running an alert.\n" if meta.get("monitoring") else ""), encoding="utf-8")
+            "model_id": project_id, "model_version": model_version,
+            "negative_label": _negative_label(train_frame, solution) if solution.task == "binary" else None,
+            "na_codes": [c for c in codes_kept(train_frame) if c in set(input_columns)],
+        }
+        calibrator = (final_evidence.get("calibration_fit") or {}).get("calibrator")
+        if calibrator and calibrator.get("method") != "none":
+            meta["calibrator"] = calibrator
+        watch = final_evidence.get("monitoring") or {}
+        monitoring_bytes: bytes | None = None
+        if watch.get("columns"):
+            monitoring_bytes = (json.dumps(_hashed_plan(watch, key), indent=1, default=str) + "\n").encode("utf-8")
+            meta["monitoring"] = "monitoring.json"
+        meta_bytes = (json.dumps(meta, indent=1, default=str) + "\n").encode("utf-8")
+        profile = (project.get("data") or {}).get("profile") or {}
+        parity_rows = _made_up_rows(profile, input_columns, n=5)
+        parity_expected = _score_stripped(artifact, meta, key, parity_rows)
+        parity_doc = {
+            "schema_version": ARTIFACT_SCHEMA,
+            "task_type": bundle.task_type,
+            "tolerance": 1e-6,
+            "rows": parity_rows,
+            "expected": parity_expected,
+            "test_rows": _made_up_rows(profile, input_columns, n=3),
+            "test_outcome": _made_up_outcome(solution, prepared.class_labels),
+        }
+        parity_bytes = (json.dumps(parity_doc, indent=1, default=str) + "\n").encode("utf-8")
+        files = files_for(store)
+        prefix = f"projects/{project_id}/artifacts/{run_id}"
+        art_rec = files.put(f"{prefix}/model.pkl", model_bytes, kind="application/octet-stream")
+        meta_rec = files.put(f"{prefix}/serving_meta.json", meta_bytes, kind="application/json")
+        parity_rec = files.put(f"{prefix}/parity_fixture.json", parity_bytes, kind="application/json")
+        mon_rec = files.put(f"{prefix}/monitoring.json", monitoring_bytes, kind="application/json") if monitoring_bytes is not None else None
+        return {
+            "schema_version": ARTIFACT_SCHEMA,
+            "format_version": ARTIFACT_FORMAT,
+            "project_id": project_id,
+            "run_id": run_id,
+            "kind": prepared.kind.key,
+            "task": solution.task,
+            "task_type": bundle.task_type,
+            "recipe": recipe_name,
+            "model": family,
+            "artifact_key": art_rec["key"],
+            "artifact_sha256": art_rec["sha256"],
+            "model_version": model_version,
+            "meta_key": meta_rec["key"],
+            "meta_sha256": meta_rec["sha256"],
+            "parity_key": parity_rec["key"],
+            "parity_sha256": parity_rec["sha256"],
+            "monitoring_key": mon_rec["key"] if mon_rec else None,
+            "monitoring_sha256": mon_rec["sha256"] if mon_rec else None,
+            "key_ref": key_ref,
+            "complete": True,
+        }
+    except Exception as exc:  # noqa: BLE001 - capture failure never destroys the already-consumed holdout record
+        return {
+            "schema_version": ARTIFACT_SCHEMA,
+            "format_version": ARTIFACT_FORMAT,
+            "project_id": project_id,
+            "run_id": run_id,
+            "complete": False,
+            "error": f"{type(exc).__name__}: {str(exc)[:200]}",
+        }
+
+
+def _verified_bytes(files: Any, key: str, expected_sha256: str, label: str) -> bytes:
+    """Load a host-created artifact file from trusted storage and verify its SHA-256 digest."""
+    if not key or not expected_sha256:
+        raise ServiceRefused(f"Approved artifact unavailable: missing {label} reference")
+    record = files.record(key)
+    if record is None:
+        raise ServiceRefused(f"Approved artifact unavailable: {label} is not registered in trusted storage ({key})")
     try:
-        checked = _reload_check(out, key, bundle.X_test, fitted["predictions"], bundle.task_type)  # 30.15: saved, reloaded, predicted, matched
-    except ServiceRefused:
-        _forget(store, project_id, "service")  # the earlier export of this project is gone with its folder: it packages nothing
+        local = files.path(key, expected=expected_sha256)
+        raw = local.read_bytes()
+    except (FileError, OSError) as exc:
+        raise ServiceRefused(f"Approved artifact unavailable: could not verify {label} ({exc})") from None
+    actual = hashlib.sha256(raw).hexdigest()
+    if actual != expected_sha256:
+        raise ServiceRefused(f"Approved artifact integrity check failed for {label}: digest mismatch")
+    return raw
+
+
+def _publish_dir(staging: Path, out: Path) -> None:
+    """Atomically replace ``out`` with ``staging``, keeping the previous export intact if publishing fails."""
+    out.parent.mkdir(parents=True, exist_ok=True)
+    backup: Path | None = None
+    if out.exists():
+        backup = out.parent / f".{out.name}.prev-{secrets.token_hex(4)}"
+        os.replace(out, backup)
+    try:
+        os.replace(staging, out)
+    except Exception:
+        if backup is not None and backup.exists() and not out.exists():
+            os.replace(backup, out)
         raise
-    store.log(project_id, "service_exported", {"recipe": recipe_name, "model": family, "folder": out.name, "checked": checked})
+    else:
+        if backup is not None and backup.exists():
+            shutil.rmtree(backup, ignore_errors=True)
+
+
+def export(store, project_id: str, out: Path) -> dict[str, Any]:
+    """Write the service package to ``out`` from the verified approved final artifact without refitting or
+    re-reading training/holdout data; refuses unapproved, unsupported, legacy, or tampered records."""
+    project = store.get(project_id)
+    final_stage = project.get("stages", {}).get("final") or {}
+    if final_stage.get("status") != "approved":
+        raise ServiceRefused("Approve the final stage first: a service is built only from an approved result")
+    final_record = store.read_stage(project_id, "final")
+    if not final_record:
+        raise ServiceRefused("Approved artifact unavailable: the final stage record is missing")
+    solution = Solution(**(project.get("solution") or {}))
+    kind = kinds.resolve(solution, project.get("pack"))
+    if not kind.export.get("service", True):  # 16.1: preserve exact refusal for kinds without service export
+        raise ServiceRefused(f"The {kind.title.lower()} kind has no service export yet: {kind.export.get('why', 'not built')}")
+    task_type = str(final_record.get("task_type") or "")
+    if task_type == "text_tabular_binary":
+        raise ServiceRefused("A text project's vocabulary is learned from its rows: its service export is not built yet")
+    final = final_record.get("evidence") or {}
+    final_run_id = (final_record.get("run") or {}).get("run") or final_stage.get("run")
+    art = final.get("service_artifact")
+    if not isinstance(art, dict) or not art.get("complete"):
+        why = (art.get("error") if isinstance(art, dict) and art.get("error") else "no captured fitted artifact was stored for this final run")
+        raise ServiceRefused(
+            f"Approved artifact unavailable for final run {final_run_id or 'unknown'}: {why}. "
+            "Export never refits or re-reads holdout data; a new governed final evaluation is required to produce a verified artifact."
+        )
+    if art.get("schema_version") != ARTIFACT_SCHEMA or art.get("format_version") != ARTIFACT_FORMAT:
+        raise ServiceRefused(f"Approved artifact unavailable: unsupported artifact schema {art.get('schema_version')!r}")
+    if art.get("project_id") != project_id or (final_run_id and art.get("run_id") != final_run_id):
+        raise ServiceRefused("Approved artifact binding mismatch: artifact does not belong to the approved final run")
+    approved_art = final_stage.get("approved_artifact")
+    if isinstance(approved_art, dict):
+        for field in ("run_id", "artifact_key", "artifact_sha256", "meta_sha256", "schema_version"):
+            if approved_art.get(field) != art.get(field):
+                raise ServiceRefused(f"Approved artifact binding mismatch on {field}: candidate changed after approval")
+    approved_run = final_stage.get("approved_run")
+    if approved_run and art.get("run_id") != approved_run:
+        raise ServiceRefused("Approved artifact binding mismatch: final run does not match approved_run")
+    key = _read_secret_key(store, project_id, str(art.get("key_ref") or ""))
+    if not key:
+        raise ServiceRefused(f"Approved artifact unavailable for final run {art.get('run_id')}: serving key missing from protected store")
+    files = files_for(store)
+    model_bytes = _verified_bytes(files, str(art.get("artifact_key") or ""), str(art.get("artifact_sha256") or ""), "model.pkl")
+    meta_bytes = _verified_bytes(files, str(art.get("meta_key") or ""), str(art.get("meta_sha256") or ""), "serving_meta.json")
+    parity_bytes = _verified_bytes(files, str(art.get("parity_key") or ""), str(art.get("parity_sha256") or ""), "parity_fixture.json")
+    monitoring_bytes = (
+        _verified_bytes(files, str(art["monitoring_key"]), str(art.get("monitoring_sha256") or ""), "monitoring.json")
+        if art.get("monitoring_key") else None
+    )
+    try:
+        meta = json.loads(meta_bytes.decode("utf-8"))
+        parity = json.loads(parity_bytes.decode("utf-8"))
+    except ValueError as exc:
+        raise ServiceRefused(f"Approved artifact unavailable: malformed metadata ({exc})") from None
+    expected_version = str(art["artifact_sha256"])[:16]
+    if meta.get("model_id") != project_id or meta.get("model_version") != expected_version:
+        raise ServiceRefused("Approved artifact metadata mismatch: model identity does not match verified artifact digest")
+    meta["project"] = project["name"]
+    recipe_name, family = str(meta["recipe"]), str(meta["model"])
+    log_key = project_log_key(store, project_id)  # stable across exports and retrains (DCLAB_LOG_KEY)
+    out = Path(out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    staging = out.parent / f".{out.name}.staging-{secrets.token_hex(6)}"
+    try:
+        (staging / "tests").mkdir(parents=True)
+        (staging / "model.pkl").write_bytes(model_bytes)
+        if monitoring_bytes is not None:
+            (staging / "monitoring.json").write_bytes(monitoring_bytes)
+        (staging / "model.json").write_text(json.dumps(meta, indent=1, default=str) + "\n", encoding="utf-8")
+        for name in ("scorer.py", "app.py", "serve_log.py"):
+            shutil.copyfile(TEMPLATE / name, staging / name)
+        vendor = staging / "vendor"
+        for source, target in VENDOR.items():
+            (vendor / target).parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(ROOT / source, vendor / target)
+        (vendor / "dclab_rnd" / "__init__.py").write_text('"""The parts of DCLab R&D a fitted service needs."""\n', encoding="utf-8")
+        shutil.copytree(ROOT / "dclab_core", vendor / "dclab_core", ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "replicas", "schemas"))
+        pins = []
+        for package in PACKAGES:
+            try:
+                pins.append(f"{package}=={metadata.version(package)}")
+            except metadata.PackageNotFoundError:
+                continue
+        (staging / "requirements.txt").write_text("\n".join(pins + ["flask>=3.0", "gunicorn>=22.0", "pytest>=8.0"]) + "\n", encoding="utf-8")
+        (staging / "Dockerfile").write_text(
+            "FROM python:3.12-slim\nWORKDIR /service\nCOPY requirements.txt .\nRUN pip install --no-cache-dir -r requirements.txt\n"
+            "# the model, the code and the tests: no data file is copied\nCOPY model.pkl model.json scorer.py app.py serve_log.py ./\n"
+            + ("COPY monitoring.json ./\n" if meta.get("monitoring") else "") + "COPY vendor ./vendor\n"
+            "COPY tests ./tests\n# the hashing key is given at run time: docker run -e DCLAB_SERVICE_KEY=... (it is not in the image)\n"
+            "# the prediction and outcome logs: mount a volume here (-v ...:/logs), or they go with the container\n"
+            "ENV DCLAB_SERVICE_LOG_DIR=/logs\n"
+            "EXPOSE 8000\nCMD [\"gunicorn\", \"--bind\", \"0.0.0.0:8000\", \"--workers\", \"2\", \"--timeout\", \"120\", \"app:app\"]\n", encoding="utf-8")
+        (staging / ".dockerignore").write_text("*.csv\n*.parquet\n*.xlsx\n*.json.gz\n*.jsonl\n__pycache__\n", encoding="utf-8")
+        rows = list(parity.get("test_rows") or _made_up_rows((project.get("data") or {}).get("profile") or {}, meta["input_columns"]))
+        test_outcome = parity.get("test_outcome", _made_up_outcome(solution, meta.get("class_labels")))
+        (staging / "tests" / "test_service.py").write_text(
+            '"""Generated with the service: made-up rows from the profile (never a real value)."""\n\nimport io\nimport sys\nfrom pathlib import Path\n\n'
+            "import pytest\n\nsys.path.insert(0, str(Path(__file__).resolve().parents[1]))\n\nfrom app import app  # noqa: E402\n\n"
+            f"ROWS = {json.dumps(rows)}\n\n\n"
+            "@pytest.fixture(autouse=True)\ndef _logs(tmp_path, monkeypatch):\n    monkeypatch.setenv('DCLAB_SERVICE_LOG_DIR', str(tmp_path))  # the tests' rows stay out of the real logs\n\n\n"
+            "def test_health_and_model():\n    client = app.test_client()\n    assert client.get('/health').json == {'status': 'ok'}\n"
+            "    assert client.get('/model').json['task'] == " + repr(meta["task"]) + "\n\n\n"
+            "def test_one_and_many_rows():\n    client = app.test_client()\n    one = client.post('/predict', json=ROWS[0]).json['predictions']\n"
+            "    many = client.post('/predict', json=ROWS).json['predictions']\n    assert len(one) == 1 and len(many) == len(ROWS)\n\n\n"
+            "def test_a_csv():\n    import pandas as pd\n    client = app.test_client()\n    data = pd.DataFrame(ROWS).to_csv(index=False).encode()\n"
+            "    response = client.post('/predict/csv', data={'file': (io.BytesIO(data), 'rows.csv')})\n"
+            "    assert len(response.json['predictions']) == len(ROWS)\n\n\n"
+            "def test_a_prediction_is_logged_and_its_outcome_joins_it(tmp_path):\n    from dclab_core import serving\n    client = app.test_client()\n"
+            "    made = client.post('/predict', json=ROWS).json['predictions']\n"
+            f"    outcome = {test_outcome!r}\n"
+            "    assert client.post('/outcome', json={'key': made[0]['key'], 'outcome': outcome}).json == {'recorded': 1}\n"
+            "    joined = serving.join(serving.read_log(tmp_path / 'predictions.jsonl', serving.PredictionRecord),\n"
+            "                          serving.read_log(tmp_path / 'outcomes.jsonl', serving.OutcomeRecord))\n"
+            "    assert len(joined) == 1\n", encoding="utf-8")
+        (staging / "README.md").write_text(
+            f"# Scoring service: {project['name']}\n\nExported by DCLab from the approved final stage: recipe `{recipe_name}`, model `{family}`. "
+            "No data is in this folder, and the key that hashes category values is not either: it was given to whoever exported "
+            "the service, who passes it as `DCLAB_SERVICE_KEY`. DCLab gives `DCLAB_LOG_KEY` with it, the same for every export of this "
+            "project, so the logs of one export and the next join.\n\n```bash\ndocker build -t dclab-service .\n"
+            "docker run -e DCLAB_SERVICE_KEY=... -e DCLAB_LOG_KEY=... -p 8000:8000 dclab-service\n```\n\n"
+            "Endpoints: `GET /health`, `GET /model`, `POST /predict` (one row as an object, or a list), `POST /predict/csv` (form field `file`), "
+            "`POST /outcome` (the true outcome of a row once it is known), `GET /monitor` (the model in use, window by window).\n\n"
+            "Logs: every row scored is a line of `predictions.jsonl` and every outcome a line of `outcomes.jsonl`, beside the model or in "
+            "`DCLAB_SERVICE_LOG_DIR` (the image sets `/logs`: mount a volume there). Keys are hashed with `DCLAB_LOG_KEY` (the project's own, given "
+            "with every export; without it, `DCLAB_SERVICE_KEY`, which changes with each export): pass it every time, so an outcome that arrives "
+            "after a retrain still joins its prediction. A line holds the model and its version, the row's key "
+            "as a salted hash, the score, the decision and the time; never a value of the row. Name the column that identifies a row "
+            "(`{\"rows\": [...], \"key\": \"order_id\"}`, or `?key=order_id`, or the form field `key` with a CSV) and post its outcome "
+            "later with the same value: `{\"key\": 123, \"outcome\": ..., \"known_at\": \"2026-10-25T08:00:00+00:00\"}` or "
+            "`{\"outcomes\": [...]}`; with no key column, each prediction comes back with a key made for it. The two logs join by key "
+            "(`dclab_core.serving.join`), which is what monitoring with outcomes and a retrain read.\n\n"
+            f"{meta['batches'].capitalize()}. A score is evidence about the method, not production approval.\n"
+            + ("\nMonitoring: `Scorer().monitor(rows, scores)` reads a batch against the training rows' bins in `monitoring.json` "
+               "(each column's and the score's PSI, the share the rule flags); an alert says the inputs moved away from what the model "
+               "was trained on. `GET /monitor?window=day` (or `week`, `batch`) reads the logs: the score's and the inputs' drift (each "
+               "batch's inputs kept in `profiles.jsonl` only as the share of its rows in each training bin), the share the rule flags, and "
+               "live performance once outcomes are known, against the holdout's interval in `model.json` (`live_reference`); one worse "
+               "window is a warning, two running an alert.\n" if meta.get("monitoring") else ""), encoding="utf-8")
+        checked = _reload_check(staging, key, parity["rows"], parity["expected"], str(parity.get("task_type") or meta["task_type"]),
+                                tol=float(parity.get("tolerance", 1e-6)))
+        _publish_dir(staging, out)
+    except Exception:
+        shutil.rmtree(staging, ignore_errors=True)
+        raise
+    store.log(project_id, "service_exported", {"recipe": recipe_name, "model": family, "folder": out.name, "checked": checked,
+                                               "artifact_sha256": art["artifact_sha256"]})
     from . import graph
 
     graph.capture(store, project_id, "human")  # WF-10: the export after the final stage, validated and logged as any move
     project = store.get(project_id)
-    project["exports"] = {**(project.get("exports") or {}), "service": {"at": _now(), "folder": out.name, "final_run": (final_record.get("run") or {}).get("run"),
+    project["exports"] = {**(project.get("exports") or {}), "service": {"at": _now(), "folder": out.name, "final_run": art["run_id"],
+                                                                        "artifact_sha256": art["artifact_sha256"], "model_version": meta["model_version"],
                                                                         **checked}}
     store.save(project)
     return {"folder": str(out), "meta": meta, "key": key, "log_key": log_key, "checked": checked}
@@ -335,10 +561,9 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
-def _reload_check(out: Path, key: str, rows: Any, expected: Any, task_type: str) -> dict[str, Any]:
-    """30.15 (step 10): the exported folder loaded in a Python that cannot import the repository (only the folder and its
-    vendored code), the rows the engine's refit scored predicted again, and the scores matched; a mismatch refuses the
-    export and removes the folder. The rows go through a file outside the folder, deleted after."""
+def _reload_check(out: Path, key: str, rows: Any, expected: Any, task_type: str, *, tol: float = 1e-6) -> dict[str, Any]:
+    """30.15 (step 10) + I1: load the staged export in isolated Python, score the synthetic parity rows, and verify
+    predictions match the captured artifact within tolerance."""
     import subprocess
     import sys
     import tempfile
@@ -346,9 +571,11 @@ def _reload_check(out: Path, key: str, rows: Any, expected: Any, task_type: str)
     scratch = Path(tempfile.mkdtemp())
     try:
         rows_file = scratch / "rows.json"
-        rows.to_json(rows_file, orient="records", date_format="iso", double_precision=15)
+        if isinstance(rows, list):
+            rows_file.write_text(json.dumps(rows), encoding="utf-8")
+        else:
+            rows.to_json(rows_file, orient="records", date_format="iso", double_precision=15)
         field = "probabilities" if task_type == "multiclass" else ("score" if task_type in ("binary_imbalanced",) else "prediction")
-        import os
 
         script = ("import json, sys; sys.path.insert(0, sys.argv[1]); from scorer import Scorer; s = Scorer(); "
                   "rows = json.load(open(sys.argv[2])); out = s.predict(rows); "
@@ -358,16 +585,13 @@ def _reload_check(out: Path, key: str, rows: Any, expected: Any, task_type: str)
                                   timeout=900, env={**os.environ, "DCLAB_SERVICE_KEY": key})
             got = np.asarray(json.loads(done.stdout.strip().splitlines()[-1]), dtype=float) if done.returncode == 0 else None
         except (subprocess.TimeoutExpired, ValueError, IndexError) as error:
-            shutil.rmtree(out, ignore_errors=True)
             raise ServiceRefused(f"The exported service could not be checked ({type(error).__name__}): not exported") from None
         if got is None:
-            shutil.rmtree(out, ignore_errors=True)
             raise ServiceRefused("The exported service did not load and predict on its own: " + done.stderr.strip()[-600:])
         want = np.asarray(expected, dtype=float)
         diff = float(np.max(np.abs(got - want))) if got.shape == want.shape and got.size else float("inf")
-        if not diff <= 1e-6:
-            shutil.rmtree(out, ignore_errors=True)
-            raise ServiceRefused(f"The exported service does not predict what the engine's refit did (largest difference {diff}): not exported")
-        return {"checked": True, "rows": int(len(want)), "max_abs_diff": diff, "how": "reloaded in an isolated Python, the refit's rows predicted again"}
+        if not diff <= tol:
+            raise ServiceRefused(f"The exported service does not match the approved artifact parity fixture (largest difference {diff}): not exported")
+        return {"checked": True, "rows": int(len(want)), "max_abs_diff": diff, "how": "reloaded in an isolated Python, synthetic parity rows matched"}
     finally:
         shutil.rmtree(scratch, ignore_errors=True)

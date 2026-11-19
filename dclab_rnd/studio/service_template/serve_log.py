@@ -13,6 +13,8 @@ from __future__ import annotations
 
 import hashlib
 import os
+import re
+import threading
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -26,6 +28,26 @@ PREDICTIONS, OUTCOMES = "predictions.jsonl", "outcomes.jsonl"
 PROFILES = "profiles.jsonl"  # 34.10: scored rows' inputs as the plan's bins see them (shares of 20 rows or more, never a value)
 ALERTS = "alerts.jsonl"  # 34.10: each alert /monitor raised, once, with its window and when it was first seen
 MAX_OUTCOMES = 100_000  # outcomes in one request
+_ALERTS_LOCK = threading.Lock()
+_DAY_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+_WEEK_RE = re.compile(r"^\d{4}-W\d{2}$")
+
+
+def _window_type_of(window: Any) -> str:
+    text = str(window or "")
+    if _DAY_RE.match(text):
+        return "day"
+    if _WEEK_RE.match(text):
+        return "week"
+    return "batch"
+
+
+def _alert_key(model_id: Any, model_version: Any, window_type: Any, window: Any, alert: Any) -> tuple[str, str, str, str, str] | None:
+    # Legacy rows without an attributable model or version stay readable in history and never suppress a versioned row.
+    if model_id in (None, "") or model_version in (None, ""):
+        return None
+    wt = str(window_type or _window_type_of(window))
+    return (str(model_id), str(model_version), wt, str(window), str(alert))
 
 
 class Refused(ValueError):
@@ -167,24 +189,55 @@ class Log:
         return report.model_dump(mode="json")
 
     def _alerts(self, report: Any) -> None:
-        """Each alert kept once in ``alerts.jsonl``, the service's record of what monitoring found (34.10)."""
+        """Each alert kept once per (model, version, window type, window, alert) in ``alerts.jsonl`` under one lock."""
         import json
 
+        candidates = [(w.window, a) for w in getattr(report, "windows", None) or [] for a in getattr(w, "alerts", None) or []]
+        if not candidates:
+            return
+        report_window = str(getattr(report, "window", None) or "")
         path = log_dir() / ALERTS
-        seen = set()
-        if path.exists():
-            for line in path.read_text(encoding="utf-8").splitlines():
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with _ALERTS_LOCK, open(path, "a+b") as handle:
+            try:
+                import fcntl
+
+                fcntl.flock(handle, fcntl.LOCK_EX)
+            except (ImportError, OSError):  # no flock on this platform: module thread lock still guards this worker
+                pass
+            handle.seek(0)
+            seen: set[tuple[str, str, str, str, str]] = set()
+            for raw in handle.read().decode("utf-8", errors="replace").splitlines():
+                if not raw.strip():
+                    continue
                 try:
-                    item = json.loads(line)
-                    seen.add((item.get("window"), item.get("alert")))
+                    item = json.loads(raw)
                 except ValueError:
                     continue
-        new = [{"model_id": self.model_id, "model_version": self.model_version, "window": w.window, "alert": a, "first_seen": _now()}
-               for w in report.windows for a in w.alerts if (w.window, a) not in seen]
-        if new:
-            path.parent.mkdir(parents=True, exist_ok=True)
-            with open(path, "a", encoding="utf-8") as handle:
-                handle.write("".join(json.dumps(item) + "\n" for item in new))
+                if not isinstance(item, dict):
+                    continue
+                key = _alert_key(item.get("model_id"), item.get("model_version"), item.get("window_type"),
+                                 item.get("window"), item.get("alert"))
+                if key is not None:
+                    seen.add(key)
+            new = []
+            for window_value, alert_text in candidates:
+                wt = report_window or _window_type_of(window_value)
+                key = _alert_key(self.model_id, self.model_version, wt, window_value, alert_text)
+                if key is None or key in seen:
+                    continue
+                seen.add(key)
+                new.append({"model_id": self.model_id, "model_version": self.model_version, "window_type": wt,
+                            "window": window_value, "alert": alert_text, "first_seen": _now()})
+            if new:
+                text = "".join(json.dumps(item) + "\n" for item in new)
+                handle.seek(0, os.SEEK_END)
+                if handle.tell():
+                    handle.seek(-1, os.SEEK_END)
+                    if handle.read(1) != b"\n":  # protect against a torn line before our append
+                        text = "\n" + text
+                handle.write(text.encode("utf-8"))
+                handle.flush()
 
     def outcomes(self, body: Any) -> dict[str, Any]:
         """Record true outcomes: one ``{"key", "outcome", "known_at"?}`` or ``{"outcomes": [...]}``. All or nothing: one

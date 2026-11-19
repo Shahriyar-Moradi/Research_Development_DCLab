@@ -1563,6 +1563,8 @@ def stage_final(p: Prepared, eid: str, recipe: str, family: str, reviewed: dict[
     decision["from_search"] = bool(searched)
     started = time.perf_counter()
     final = rn.fit_and_predict(bundle, recipe, family, selected["model_params"] or None, bundle.X_train, bundle.y_train, bundle.X_test)
+    p._final_fit = {"recipe": final["recipe"], "model": final["model"], "predictions": final["predictions"],
+                    "recipe_name": recipe, "family": family, "params": selected["model_params"] or None}
     final_seconds = time.perf_counter() - started
     predictions, y_test = final["predictions"], bundle.y_test
     with run_steps.step("holdout: metrics", "metric", shape_in=(len(y_test),)) as s:  # the one read of the holdout
@@ -2072,6 +2074,12 @@ def _run_stage(store: ProjectStore, project_id: str, stage: str, project: dict[s
             from ..ledger import capture as ledger_capture
 
             ledger_capture.gate_g4(project, evidence["gate_g4"], evidence)  # the rule's G4 in the ledger; where people take the work is its truth
+            if not isinstance(p, MachinePrepared) and getattr(p, "_final_fit", None):
+                from . import service as _service
+
+                captured = _service.capture_final_artifact(store, project_id, run_id, project, p, evidence, p._final_fit)
+                if captured is not None:
+                    evidence["service_artifact"] = captured
         elapsed = time.perf_counter() - clock
         evidence["elapsed_seconds"] = float(elapsed)
         record = {
@@ -2185,6 +2193,21 @@ def approve(store: ProjectStore, project_id: str, stage: str, choice: str | None
             break
     project["stages"][stage]["status"] = "approved"
     project["stages"][stage]["approved_at"] = _now()
+    if stage == "final":
+        approved_run = (record.get("run") or {}).get("run") or project["stages"]["final"].get("run")
+        if approved_run:
+            project["stages"]["final"]["approved_run"] = approved_run
+        art = (record.get("evidence") or {}).get("service_artifact")
+        if isinstance(art, dict) and art.get("complete"):
+            project["stages"]["final"]["approved_artifact"] = {
+                "run_id": art["run_id"],
+                "artifact_key": art["artifact_key"],
+                "artifact_sha256": art["artifact_sha256"],
+                "meta_sha256": art["meta_sha256"],
+                "schema_version": art["schema_version"],
+            }
+        else:
+            project["stages"]["final"].pop("approved_artifact", None)
     from . import memory
     memory.stage_approved(project, stage, (record or {}).get("decision"), choice, actor)  # A5.2: kept as a note the agents read
     store.save(project)

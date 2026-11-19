@@ -92,8 +92,11 @@ class ServiceExportTest(unittest.TestCase):
         with runner.fast_profile():
             first = service.export(self.store, self.pid, Path(tempfile.mkdtemp()) / "a")
             second = service.export(self.store, self.pid, Path(tempfile.mkdtemp()) / "b")
-        self.assertNotEqual(first["key"], second["key"])  # the export's own key still changes
-        self.assertEqual(first["log_key"], second["log_key"])  # the log's does not
+        # I1: repeat exports of the same approved final run recover the exact artifact and its serving key.
+        self.assertEqual(first["key"], second["key"])
+        self.assertEqual(first["meta"]["model_version"], second["meta"]["model_version"])
+        self.assertNotEqual(first["key"], first["log_key"])
+        self.assertEqual(first["log_key"], second["log_key"])  # the log's key stays stable across exports and retrains
         self.assertEqual(len(first["log_key"]), 32)
         self.assertRegex(service.LOG_KEY_FILE.as_posix(), NEVER)  # the store and the testers' kit skip it by its name
         for folder in (Path(first["folder"]), Path(second["folder"])):
@@ -193,6 +196,186 @@ class ServiceExportTest(unittest.TestCase):
                     self.assertNotIn(value, shared, f"a value of {column} is in a profile")
         self.assertIn("GET /monitor", (out / "README.md").read_text())
 
+    def test_exported_service_ships_version_aware_alert_history(self):
+        # Verify the exported service bundle contains and executes the fixed serve_log.py template.
+        if not self.store.get(self.pid).get("approvals"):
+            engine.approve(self.store, self.pid, "final")
+        out = Path(tempfile.mkdtemp()) / "svc"
+        with runner.fast_profile():
+            service.export(self.store, self.pid, out)
+        logs = Path(tempfile.mkdtemp())
+        check = (
+            "import json, sys\n"
+            "from pathlib import Path\n"
+            "from types import SimpleNamespace\n"
+            "sys.path.insert(0, sys.argv[1])\n"
+            "import serve_log\n"
+            "class S:\n"
+            "    def __init__(self, v): self.meta={'model_id':'m','model_version':v,'task':'binary'}; self.key='k'\n"
+            "rep = SimpleNamespace(window='day', windows=[SimpleNamespace(window='2026-11-19', alerts=['drift'])])\n"
+            "serve_log.Log(S('v1'))._alerts(rep)\n"
+            "serve_log.Log(S('v2'))._alerts(rep)\n"
+            "serve_log.Log(S('v1'))._alerts(rep)\n"
+            "rows = [json.loads(l) for l in (Path(sys.argv[2])/'alerts.jsonl').read_text().splitlines() if l.strip()]\n"
+            "assert len(rows) == 2 and [r['model_version'] for r in rows] == ['v1', 'v2'], rows\n"
+        )
+        run = subprocess.run([sys.executable, "-c", check, str(out), str(logs)],
+                             env={**os.environ, "DCLAB_SERVICE_LOG_DIR": str(logs)}, capture_output=True, text=True, check=False)
+        self.assertEqual(run.returncode, 0, run.stderr)
+
+    def test_export_never_prepares_refits_or_reads_holdout_and_matches_repeat_exports(self):
+        from unittest import mock
+
+        if self.store.get(self.pid)["stages"]["final"].get("status") != "approved":
+            engine.approve(self.store, self.pid, "final")
+        out_a = Path(tempfile.mkdtemp()) / "svc_a"
+        out_b = Path(tempfile.mkdtemp()) / "svc_b"
+
+        def forbid(*args, **kwargs):
+            raise AssertionError("export must never prepare, refit, score, or read raw/holdout data")
+
+        with mock.patch.object(engine, "prepare", side_effect=forbid), \
+                mock.patch.object(runner, "fit_and_predict", side_effect=forbid), \
+                mock.patch.object(runner, "compute_metrics", side_effect=forbid), \
+                mock.patch.object(sd, "load_table", side_effect=forbid):
+            first = service.export(self.store, self.pid, out_a)
+            second = service.export(self.store, self.pid, out_b)
+        self.assertEqual((out_a / "model.pkl").read_bytes(), (out_b / "model.pkl").read_bytes())
+        self.assertEqual(first["meta"]["model_version"], second["meta"]["model_version"])
+        self.assertEqual(first["meta"].get("calibrator"), second["meta"].get("calibrator"))
+        self.assertEqual(first["meta"].get("live_reference"), second["meta"].get("live_reference"))
+        self.assertEqual((out_a / "monitoring.json").read_text(), (out_b / "monitoring.json").read_text())
+        self.assertTrue(first["checked"]["checked"] and second["checked"]["checked"])
+
+    def test_tampered_unapproved_legacy_incomplete_or_failing_export_protects_previous_output(self):
+        import copy
+        from unittest import mock
+
+        from dclab_rnd.storage.files import files_for
+
+        if self.store.get(self.pid)["stages"]["final"].get("status") != "approved":
+            engine.approve(self.store, self.pid, "final")
+        out = Path(tempfile.mkdtemp()) / "svc_protected"
+        good = service.export(self.store, self.pid, out)
+        sentinel = (out / "model.pkl").read_bytes()
+        original_record = copy.deepcopy(self.store.read_stage(self.pid, "final"))
+        original_project = copy.deepcopy(self.store.get(self.pid))
+        art = original_record["evidence"]["service_artifact"]
+        files = files_for(self.store)
+        artifact_path = files.local_path(art["artifact_key"])
+        original_bytes = artifact_path.read_bytes()
+        try:
+            # 1. Corrupted artifact bytes are refused and previous export stays intact.
+            artifact_path.write_bytes(original_bytes + b"tampered")
+            with self.assertRaises(service.ServiceRefused):
+                service.export(self.store, self.pid, out)
+            self.assertEqual((out / "model.pkl").read_bytes(), sentinel)
+            artifact_path.write_bytes(original_bytes)
+
+            # 2. Swapped approved_artifact digest is refused.
+            proj = copy.deepcopy(original_project)
+            proj["stages"]["final"]["approved_artifact"]["artifact_sha256"] = "0" * 64
+            self.store.save(proj)
+            with self.assertRaises(service.ServiceRefused):
+                service.export(self.store, self.pid, out)
+            self.assertEqual((out / "model.pkl").read_bytes(), sentinel)
+
+            # 3. Revoked approval is refused.
+            proj = copy.deepcopy(original_project)
+            proj["stages"]["final"]["status"] = "completed"
+            self.store.save(proj)
+            with self.assertRaises(service.ServiceRefused):
+                service.export(self.store, self.pid, out)
+
+            # 4. Write/reload failure during repeat export preserves previous export at out.
+            self.store.save(copy.deepcopy(original_project))
+            with mock.patch.object(service, "_reload_check", side_effect=service.ServiceRefused("injected reload fail")):
+                with self.assertRaises(service.ServiceRefused):
+                    service.export(self.store, self.pid, out)
+            self.assertEqual((out / "model.pkl").read_bytes(), sentinel)
+
+            # 5. Legacy approved record lacking service_artifact gets actionable refusal without refit.
+            legacy = copy.deepcopy(original_record)
+            legacy["evidence"].pop("service_artifact", None)
+            self.store.write_stage(self.pid, "final", legacy)
+            proj = copy.deepcopy(original_project)
+            proj["stages"]["final"].pop("approved_artifact", None)
+            self.store.save(proj)
+            with mock.patch.object(engine, "prepare", side_effect=AssertionError("legacy export must not refit")):
+                with self.assertRaises(service.ServiceRefused) as ctx:
+                    service.export(self.store, self.pid, out)
+            self.assertIn("Approved artifact unavailable", str(ctx.exception))
+            self.assertIn(art["run_id"], str(ctx.exception))
+
+            # 6. Incomplete capture is never described as exportable.
+            incomplete = copy.deepcopy(original_record)
+            incomplete["evidence"]["service_artifact"] = {"schema_version": service.ARTIFACT_SCHEMA, "format_version": 1,
+                                                          "run_id": art["run_id"], "complete": False, "error": "disk full"}
+            self.store.write_stage(self.pid, "final", incomplete)
+            with self.assertRaises(service.ServiceRefused) as ctx2:
+                service.export(self.store, self.pid, out)
+            self.assertIn("disk full", str(ctx2.exception))
+        finally:
+            artifact_path.write_bytes(original_bytes)
+            self.store.write_stage(self.pid, "final", original_record)
+            self.store.save(original_project)
+        self.assertEqual(good["meta"]["model_version"], art["model_version"])
+
+    def test_regression_and_multiclass_export_without_refit_and_object_storage_fetch(self):
+        from unittest import mock
+
+        from dclab_rnd import kinds
+        from dclab_rnd.kinds import acceptance
+        from dclab_rnd.storage.files import S3Files
+
+        class _FakeBody:
+            def __init__(self, data):
+                self._data = data
+
+            def read(self, n=-1):
+                return self._data if n < 0 else self._data[:n]
+
+        class _FakeS3:
+            def __init__(self):
+                self.objects = {}
+
+            def put_object(self, Bucket, Key, Body, ContentType="", Metadata=None):
+                self.objects[(Bucket, Key)] = Body.read()
+
+            def get_object(self, Bucket, Key):
+                data = self.objects[(Bucket, Key)]
+                return {"ContentLength": len(data), "Body": _FakeBody(data)}
+
+            def head_object(self, Bucket, Key):
+                if (Bucket, Key) not in self.objects:
+                    raise KeyError(Key)
+                return {"ContentLength": len(self.objects[(Bucket, Key)])}
+
+            def delete_object(self, Bucket, Key):
+                self.objects.pop((Bucket, Key), None)
+
+        for key in ("regression", "multiclass"):
+            with self.subTest(key):
+                root = Path(tempfile.mkdtemp())
+                store, pid = acceptance.build(kinds.get(key).case(0), root)
+                if key == "regression":
+                    store.file_storage = S3Files(root, "s3://test-bucket/prefix", client=_FakeS3())
+                with runner.fast_profile():
+                    engine.run_all(store, pid)
+                engine.approve(store, pid, "final")
+                if key == "regression":
+                    # Remove local cached artifact so export must fetch and verify bytes from object storage.
+                    art = store.read_stage(pid, "final")["evidence"]["service_artifact"]
+                    store.file_storage.local_path(art["artifact_key"]).unlink()
+                    self.assertFalse(store.file_storage.local_path(art["artifact_key"]).exists())
+                with mock.patch.object(engine, "prepare", side_effect=AssertionError("must not prepare")), \
+                        mock.patch.object(runner, "fit_and_predict", side_effect=AssertionError("must not refit")), \
+                        mock.patch.object(sd, "load_table", side_effect=AssertionError("must not read data")):
+                    out = Path(tempfile.mkdtemp()) / f"svc_{key}"
+                    done = service.export(store, pid, out)
+                self.assertTrue(done["checked"]["checked"])
+                self.assertEqual(done["meta"]["task"], key)
+
 
 FLASK_STUB = '''
 """A stand-in for Flask with the parts app.py uses: routes kept by method and path, one request at a time."""
@@ -287,6 +470,158 @@ bad = app.app.routes[("GET", "/monitor")]()
 statuses["bad_window"] = bad[1] if isinstance(bad, tuple) else 200
 print(json.dumps({"statuses": statuses, "scores_json": scores, "recorded": recorded, "monitor": watched}))
 '''
+
+
+class _FakeScorer:
+    def __init__(self, model_id, model_version, plan=None):
+        self.meta = {"model_id": model_id, "model_version": model_version, "task": "binary", "live_reference": None}
+        self.key = "test-secret"
+        self._plan = plan
+
+    def monitoring_plan(self):
+        return self._plan
+
+
+@unittest.skipIf(MISSING, MISSING)
+class AlertHistoryTests(unittest.TestCase):
+    """I2 (2026-11-19): version-aware, window-typed, process-safe alert deduplication in serve_log.py."""
+
+    def _report(self, window_type, windows, model_id="m1", model_version="v1"):
+        from types import SimpleNamespace
+
+        return SimpleNamespace(
+            window=window_type,
+            model_id=model_id,
+            model_versions=[model_version],
+            windows=[SimpleNamespace(window=w, alerts=list(a)) for w, a in windows],
+        )
+
+    def _rows(self, folder):
+        path = folder / "alerts.jsonl"
+        return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()] if path.exists() else []
+
+    def test_two_versions_keep_distinct_alerts_and_repeat_keeps_first_seen(self):
+        from unittest import mock
+
+        from dclab_rnd.studio.service_template import serve_log
+
+        folder = Path(tempfile.mkdtemp())
+        log_v1 = serve_log.Log(_FakeScorer("rides", "v1"))
+        log_v2 = serve_log.Log(_FakeScorer("rides", "v2"))
+        rep1 = self._report("day", [("2026-11-19", ["score shifted (PSI 0.310)"])], "rides", "v1")
+        rep2 = self._report("day", [("2026-11-19", ["score shifted (PSI 0.310)"])], "rides", "v2")
+        with mock.patch.dict(os.environ, {"DCLAB_SERVICE_LOG_DIR": str(folder)}):
+            log_v1._alerts(rep1)
+            first_seen_v1 = self._rows(folder)[0]["first_seen"]
+            log_v2._alerts(rep2)
+            log_v1._alerts(rep1)
+        rows = self._rows(folder)
+        self.assertEqual(len(rows), 2)
+        self.assertEqual([(r["model_id"], r["model_version"], r["window"]) for r in rows],
+                         [("rides", "v1", "2026-11-19"), ("rides", "v2", "2026-11-19")])
+        self.assertEqual(rows[0]["first_seen"], first_seen_v1)
+
+    def test_different_model_ids_with_same_version_remain_distinct(self):
+        from unittest import mock
+
+        from dclab_rnd.studio.service_template import serve_log
+
+        folder = Path(tempfile.mkdtemp())
+        a = serve_log.Log(_FakeScorer("model-a", "v1"))
+        b = serve_log.Log(_FakeScorer("model-b", "v1"))
+        rep = self._report("day", [("2026-11-19", ["distance shifted"])])
+        with mock.patch.dict(os.environ, {"DCLAB_SERVICE_LOG_DIR": str(folder)}):
+            a._alerts(rep)
+            b._alerts(rep)
+        rows = self._rows(folder)
+        self.assertEqual(len(rows), 2)
+        self.assertEqual({r["model_id"] for r in rows}, {"model-a", "model-b"})
+
+    def test_window_types_and_in_report_duplicates(self):
+        from unittest import mock
+
+        from dclab_rnd.studio.service_template import serve_log
+
+        folder = Path(tempfile.mkdtemp())
+        log = serve_log.Log(_FakeScorer("rides", "v1"))
+        day_rep = self._report("day", [("2026-11-19", ["alert-x", "alert-x"])])
+        batch_rep = self._report("batch", [("2026-11-19", ["alert-x"])])
+        with mock.patch.dict(os.environ, {"DCLAB_SERVICE_LOG_DIR": str(folder)}):
+            log._alerts(day_rep)
+            log._alerts(batch_rep)
+        rows = self._rows(folder)
+        self.assertEqual(len(rows), 2)
+        self.assertEqual([r.get("window_type") for r in rows], ["day", "batch"])
+
+    def test_legacy_unversioned_row_remains_readable_and_does_not_suppress_new_version(self):
+        from unittest import mock
+
+        from dclab_rnd.studio.service_template import serve_log
+
+        folder = Path(tempfile.mkdtemp())
+        legacy = {"window": "2026-11-19", "alert": "legacy alert", "first_seen": "2026-11-01T00:00:00+00:00"}
+        (folder / "alerts.jsonl").write_text(json.dumps(legacy) + "\n", encoding="utf-8")
+        log = serve_log.Log(_FakeScorer("rides", "v3"))
+        rep = self._report("day", [("2026-11-19", ["legacy alert"])])
+        with mock.patch.dict(os.environ, {"DCLAB_SERVICE_LOG_DIR": str(folder)}):
+            log._alerts(rep)
+        rows = self._rows(folder)
+        self.assertEqual(len(rows), 2)
+        self.assertNotIn("model_version", rows[0])
+        self.assertEqual((rows[1]["model_id"], rows[1]["model_version"]), ("rides", "v3"))
+
+    def test_concurrent_processes_converge_to_one_alert_row(self):
+        import time
+
+        folder = Path(tempfile.mkdtemp())
+        worker_script = (
+            "import os, sys, time\n"
+            "from types import SimpleNamespace\n"
+            f"sys.path.insert(0, {str(ROOT)!r})\n"
+            "from dclab_rnd.studio.service_template import serve_log\n"
+            "class S:\n"
+            "    meta = {'model_id': 'rides', 'model_version': 'v1', 'task': 'binary'}\n"
+            "    key = 'k'\n"
+            "log = serve_log.Log(S())\n"
+            "rep = SimpleNamespace(window='day', windows=[SimpleNamespace(window='2026-11-19', alerts=['race-alert'])])\n"
+            "start = float(sys.argv[1])\n"
+            "while time.time() < start:\n"
+            "    time.sleep(0.005)\n"
+            "for _ in range(15):\n"
+            "    log._alerts(rep)\n"
+        )
+        env = {**os.environ, "DCLAB_SERVICE_LOG_DIR": str(folder)}
+        target = str(time.time() + 0.25)
+        procs = [subprocess.Popen([sys.executable, "-c", worker_script, target], env=env) for _ in range(3)]
+        for proc in procs:
+            self.assertEqual(proc.wait(timeout=20), 0)
+        rows = self._rows(folder)
+        self.assertEqual(len(rows), 1, f"expected 1 deduplicated alert row across workers, got {len(rows)}")
+
+    def test_monitor_repeat_returns_same_report_and_preserves_first_seen(self):
+        from unittest import mock
+
+        from dclab_core import live
+        from dclab_rnd.studio.service_template import serve_log
+
+        folder = Path(tempfile.mkdtemp())
+        log = serve_log.Log(_FakeScorer("rides", "v1", plan=object()))
+        fake_report = live.LiveReport(
+            model_id="rides", model_versions=["v1"], window="day", as_of="2026-11-19T00:00:00+00:00",
+            windows=[live.WindowReading(window="2026-11-19", start="2026-11-19T00:00:00+00:00",
+                                        end="2026-11-19T23:59:59+00:00", rows=50, status="alert",
+                                        alerts=["score shifted (PSI 0.300)"])],
+            first_alert="2026-11-19", alerts=["2026-11-19: score shifted (PSI 0.300)"], status="alert",
+        )
+        with mock.patch.dict(os.environ, {"DCLAB_SERVICE_LOG_DIR": str(folder)}), \
+                mock.patch.object(live, "monitor_log", return_value=fake_report):
+            first = log.monitor(window="day")
+            first_seen = self._rows(folder)[0]["first_seen"]
+            second = log.monitor(window="day")
+        self.assertEqual(first, second)
+        rows = self._rows(folder)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["first_seen"], first_seen)
 
 
 if __name__ == "__main__":
