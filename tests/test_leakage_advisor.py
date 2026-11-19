@@ -197,3 +197,32 @@ class LeakageAdvisorTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+    def test_stage_leakage_asks_no_model_inside_notes_off(self):
+        """2026-11-19: inside an exam's notes_off the advisor called the process's model, outside the exam's cap and
+        sealed vault, in the rules arm too. The stage's rules and heuristics still run."""
+        from unittest import mock
+
+        from dclab_rnd.studio import agent
+
+        asked = []
+
+        class Gateway:
+            def project_private(self, pid):
+                return False
+
+            def available(self, purpose):
+                return True
+
+            def client(self, purpose, **kw):
+                asked.append(purpose)
+                return None
+
+        home = Path(tempfile.mkdtemp())
+        store, pid, _df = self._build_project(home)
+        studio_engine.execute(store, pid, "data")
+        with mock.patch("dclab_rnd.models.installed", return_value=Gateway()), agent.notes_off():
+            rec = studio_engine.execute(store, pid, "leakage")
+        self.assertNotIn("leakage_review", asked)
+        self.assertIn("leakage_advisor", rec["evidence"])  # the advisor's rules still ran, with no model

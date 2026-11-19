@@ -1,0 +1,42 @@
+{
+ "package": "leakage-advisor-notes-off",
+ "title": "The Leakage Advisor asks no model inside notes_off",
+ "date": "2026-11-19",
+ "request": "The planning exam v3's table run started; the Leakage Advisor (another agent's change, 815c0ded) called a live model from stage_leakage.",
+ "spec": "Inside notes_off no stage asks a model; the advisor's rules and heuristics still run.",
+ "plan": [
+  "confirm the call",
+  "stop the run",
+  "guard the advisor",
+  "test the real stage"
+ ],
+ "decisions": [
+  {
+   "decision": "Stop the exam's table run after one build",
+   "why": "every build would send held-out column information to a model outside the exam's cap and sealed vault, in the rules arm too"
+  }
+ ],
+ "change": "dclab_rnd/studio/agent.py (notes_allowed), dclab_rnd/studio/engine.py (stage_leakage advisor guard), tests/test_leakage_advisor.py.",
+ "findings": [
+  {
+   "id": "LA-1",
+   "source": "measurement",
+   "severity": "leakage",
+   "verdict": "confirmed",
+   "defect": "The Leakage Advisor ignored notes_off and called the process's model inside stage_leakage.",
+   "scenario": "hp_gate_v3's table run, rules arm, first build: one leakage_review exchange in the development workspace's log, outside the exam's cap and vault.",
+   "cause": "engine.py read models.installed() directly; only stage notes honoured notes_off",
+   "fix": "notes_allowed() checked before asking for the advisor's client",
+   "test": "tests/test_leakage_advisor.py test_stage_leakage_asks_no_model_inside_notes_off"
+  }
+ ],
+ "measurements": [],
+ "outcome": "Team runs and exams keep every model request in their own capped gateway again.",
+ "lessons": [
+  "A new model call in a stage must honour the stage's no-model switch: check every path that runs stages under a cap."
+ ],
+ "risks": [
+  "One held-out exchange sits in the development log until it is moved."
+ ],
+ "commits": []
+}

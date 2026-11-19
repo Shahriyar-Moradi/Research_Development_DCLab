@@ -354,6 +354,12 @@ class notes_off:
         _NOTES_OFF.reset(self.token)
 
 
+def notes_allowed() -> bool:
+    """False inside ``notes_off``: no stage asks a model there (a team run or an exam keeps every request in its own capped
+    gateway; the Leakage Advisor in stage_leakage once ignored this and called the process's model, 2026-11-19)."""
+    return not _NOTES_OFF.get()
+
+
 def _chat(prompt: str, purpose: str, project_id: str | None = None) -> str | None:
     from ..models import installed
 

@@ -747,7 +747,10 @@ def stage_leakage(p: Prepared, eid: str) -> tuple[dict, list, str]:
     advisor_client = None
     try:
         from .. import models as studio_models
+        from .agent import notes_allowed
 
+        if not notes_allowed():  # a team run or an exam: no model outside its own capped gateway (2026-11-19)
+            raise LookupError("stage models are off here")
         gw = studio_models.installed()
         pid = getattr(p, "project_id", None)
         is_priv = bool(gw.project_private(pid)) if (gw is not None and pid and callable(getattr(gw, "project_private", None))) else False
