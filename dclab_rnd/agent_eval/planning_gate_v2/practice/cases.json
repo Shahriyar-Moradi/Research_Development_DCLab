@@ -1,0 +1,164 @@
+{
+  "set": "planning_practice_v1",
+  "author": "independent session, 2026-11-19",
+  "seeds": [11, 12],
+  "purpose": "Practice set for diagnosis only. Invented tables (tables.py, make_<id>(seed)); people read every case. Never a sealed or held set.",
+  "cases": [
+    {
+      "id": "pr01",
+      "task": "classification",
+      "industry": "retail (online fashion)",
+      "brief": "Returns are eating our margin. When an order is placed, we want to know how likely it is to come back, so we can nudge size advice or skip free returns on risky orders.",
+      "known_facts": {"target": "returned"},
+      "enforceable_traps": [
+        {"kind": "late_column", "column": "refund_amount"},
+        {"kind": "group_split", "column": "customer_id"}
+      ],
+      "honest_columns_that_look_suspicious": ["prior_returns", "order_date"],
+      "notes": "refund_amount is only filled once the parcel comes back, so it is almost the label itself. Some customers return almost everything and each has several orders, so a customer split on both sides of a random split inflates the score; prior_returns only counts returns of earlier orders and is honest."
+    },
+    {
+      "id": "pr02",
+      "task": "regression",
+      "industry": "logistics (parcel carrier)",
+      "brief": "We promise customers a delivery window at booking. Predict how many hours each shipment will actually take, so the promise is realistic.",
+      "known_facts": {"target": "delivery_hours"},
+      "enforceable_traps": [
+        {"kind": "late_column", "column": "late_fee_charged"},
+        {"kind": "time_split", "column": "ship_week"}
+      ],
+      "honest_columns_that_look_suspicious": ["promised_hours", "pickup_hour"],
+      "notes": "late_fee_charged is computed after delivery from how far the shipment ran over its promise, so it encodes the answer. A capacity squeeze made every lane slower through the year (ship_week is an ISO date string and the file is shuffled), so only the latest weeks are a fair holdout."
+    },
+    {
+      "id": "pr03",
+      "task": "classification",
+      "industry": "B2B SaaS",
+      "brief": "Each workspace on our platform comes up for renewal on its own date. A month before that date, we want a list of the workspaces we are likely to lose, so customer success can call them.",
+      "known_facts": {"target": "churned"},
+      "enforceable_traps": [
+        {"kind": "late_column", "column": "outcome_code"},
+        {"kind": "time_split", "column": "period"},
+        {"kind": "group_split", "column": "acct"}
+      ],
+      "honest_columns_that_look_suspicious": ["months_active", "price_change_pct"],
+      "notes": "outcome_code is the renewal desk's closing code (CX-* for a cancellation, RN-* for a renewal), written after the decision. Churn climbs over the 30 months after a competitor launched (period is a 'YYYY-MM' string), and one account owns many workspaces that tend to leave together, so acct must not straddle the split."
+    },
+    {
+      "id": "pr04",
+      "task": "classification",
+      "industry": "health clinic operations",
+      "brief": "Missed appointments waste clinician time. When an appointment is booked, we would like to know the chance the patient does not turn up, so we can double-book the riskiest slots.",
+      "known_facts": {"target": "no_show"},
+      "enforceable_traps": [
+        {"kind": "time_split", "column": "booking_date"},
+        {"kind": "group_split", "column": "patient_ref"}
+      ],
+      "honest_columns_that_look_suspicious": ["prior_no_shows", "appt_date", "reminder_sent"],
+      "notes": "Reminder calls were cut at the start of 2025 and the no-show rate jumped, so a random split over 2024-2025 bookings hides the drift (booking_date is a real datetime). The same patients book again and again and some almost never come, so patient_ref must be grouped; prior_no_shows only counts misses that happened before the booking and is honest."
+    },
+    {
+      "id": "pr05",
+      "task": "classification",
+      "industry": "manufacturing (injection moulding)",
+      "brief": "We want to catch units that will fail final inspection while they are still on the line, using the process readings we log at moulding time. Three new presses arrive next quarter and the model must cover them as well.",
+      "known_facts": {"target": "defect"},
+      "enforceable_traps": [
+        {"kind": "late_column", "column": "rework_minutes"},
+        {"kind": "group_split", "column": "machine_serial"}
+      ],
+      "honest_columns_that_look_suspicious": ["produced_at", "cycle_time_s", "line"],
+      "notes": "rework_minutes is logged by the repair bench after a unit fails inspection. A few worn presses produce most of the defects and each serial has about 35 units, so a model that memorises the serial looks great on a random split but says nothing about a new or rebuilt press; produced_at has no drift and is not a trap."
+    },
+    {
+      "id": "pr06",
+      "task": "regression",
+      "industry": "finance operations (accounts receivable)",
+      "brief": "Cash planning needs to know when money comes in. For every invoice we send, estimate how many days it will take the client to pay.",
+      "known_facts": {"target": "days_to_pay"},
+      "enforceable_traps": [
+        {"kind": "late_column", "column": "n_followups"},
+        {"kind": "time_split", "column": "ts"}
+      ],
+      "honest_columns_that_look_suspicious": ["due_date", "prior_late_pct"],
+      "notes": "n_followups counts the dunning reminders sent while the invoice stayed unpaid, so it grows with the answer. Payment times stretched by about three weeks from 2024 on; ts is the issue date as an ISO string, and a random split lets the model see the slowdown's future."
+    },
+    {
+      "id": "pr07",
+      "task": "classification",
+      "industry": "support tickets (software vendor)",
+      "brief": "When a new support ticket arrives, tell us whether it will end up escalated to engineering, so we can route it to a senior agent straight away.",
+      "known_facts": {"target": "escalated"},
+      "enforceable_traps": [
+        {"kind": "late_column", "column": "days_to_resolve"}
+      ],
+      "honest_columns_that_look_suspicious": ["created_at", "n_prior_tickets_30d", "sentiment_score"],
+      "notes": "days_to_resolve is only known when the ticket closes, and escalated tickets take far longer. created_at is a real datetime but the period is stable, and there is no repeated entity, so this case has one trap only."
+    },
+    {
+      "id": "pr08",
+      "task": "regression",
+      "industry": "energy (facilities, day-ahead purchasing)",
+      "brief": "We buy electricity on the day-ahead market for our whole estate. For each building's meter we need tomorrow's consumption figure the evening before, and it has to work for the buildings we are taking over next year too.",
+      "known_facts": {"target": "kwh"},
+      "enforceable_traps": [
+        {"kind": "time_split", "column": "ts"},
+        {"kind": "group_split", "column": "meter_id"}
+      ],
+      "honest_columns_that_look_suspicious": ["temp_forecast_c", "floor_area_m2"],
+      "notes": "The brief never names the kwh column. Consumption rises over the period (colder days and new EV chargers), so the holdout must be the latest days of ts; each meter has 48 daily rows and its own level that floor area does not explain, so meter_id must be grouped (or the gap reported) when the model is meant for new buildings."
+    },
+    {
+      "id": "pr09",
+      "task": "classification",
+      "industry": "education (college)",
+      "brief": "Four weeks into each course we want to flag the enrolments that will end in a fail, so tutors can step in while there is still time. It will be used on next year's intake.",
+      "known_facts": {"target": "passed"},
+      "enforceable_traps": [
+        {"kind": "late_column", "column": "final_grade"},
+        {"kind": "group_split", "column": "student_no"}
+      ],
+      "honest_columns_that_look_suspicious": ["quiz_avg_wk4", "attendance_rate_wk4", "term"],
+      "notes": "final_grade is set at the end of the course and passed is simply final_grade >= 50. Each student takes about four courses and a strong or weak student passes or fails most of them, so student_no must not straddle the split; the week-4 columns are honest by their names and by construction."
+    },
+    {
+      "id": "pr10",
+      "task": "classification",
+      "industry": "hospitality (city hotels)",
+      "brief": "Revenue management wants the chance that each new booking is cancelled before arrival, to decide how much to overbook.",
+      "known_facts": {"target": "is_canceled"},
+      "enforceable_traps": [
+        {"kind": "time_split", "column": "booking_date"}
+      ],
+      "honest_columns_that_look_suspicious": ["arrival_date", "previous_cancellations", "lead_time_days"],
+      "notes": "A free-cancellation policy from April 2025 raised cancellations, above all through online travel agents, so the relationship changed; booking_date is an ISO string and the file is sorted by arrival_date, not booking date. No guest id is present, so there is no group trap."
+    },
+    {
+      "id": "pr11",
+      "task": "classification",
+      "industry": "finance (card issuer, payments)",
+      "brief": "Score every card payment for fraud at authorisation time, so the riskiest ones can be held for a quick check.",
+      "known_facts": {"target": "fraud"},
+      "enforceable_traps": [
+        {"kind": "late_column", "column": "chargeback_flag"},
+        {"kind": "time_split", "column": "txn_time"},
+        {"kind": "group_split", "column": "card_ref"}
+      ],
+      "honest_columns_that_look_suspicious": ["device_new", "country_mismatch"],
+      "notes": "chargeback_flag arrives weeks later when the cardholder disputes the payment. Fraud grows through the year and moves into digital goods from the summer (txn_time is a real datetime), and a compromised card carries many fraud rows, so card_ref on both sides of a random split teaches the model the stolen cards themselves."
+    },
+    {
+      "id": "pr12",
+      "task": "regression",
+      "industry": "retail (garden-centre chain)",
+      "brief": "Our buyers place stock orders a week ahead. They want a number per store for the coming week so shelves are neither empty nor overflowing, including the six stores we open next year.",
+      "known_facts": {"target": "units_sold"},
+      "enforceable_traps": [
+        {"kind": "time_split", "column": "week_start"},
+        {"kind": "group_split", "column": "store_no"}
+      ],
+      "honest_columns_that_look_suspicious": ["footfall_prev_week", "temp_forecast_c"],
+      "notes": "The brief never names the units_sold column. A discount competitor opened in spring and sales sink about a third by autumn (week_start is an ISO string, rows shuffled); each store's level depends on location in ways no column holds, so store_no on both sides of the split overstates how well the model would do for a new store."
+    }
+  ]
+}
