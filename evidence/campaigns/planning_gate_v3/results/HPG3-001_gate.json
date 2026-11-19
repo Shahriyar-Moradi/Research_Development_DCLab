@@ -1,0 +1,170 @@
+{
+ "id": "HPG3-001",
+ "at": "2026-11-19T17:45:39+00:00",
+ "tables_run": "2026-11-19-planning-gate-v3-tables",
+ "people_result": "HAB-064",
+ "model": "qwen/qwen3.8-flash",
+ "spent_eur_tables": 0.313,
+ "evaluation_only": true,
+ "gate": "hp_gate_v3",
+ "pinned": true,
+ "not_judged": [],
+ "passed": false,
+ "checks": {
+  "1_obeyed": {
+   "projects": 40,
+   "traps_read": 108,
+   "obeyed": 108,
+   "asked_not_applied": 29,
+   "stopped_with_question": 0,
+   "rate": 1.0,
+   "bar": "1.0 on at least 8 projects",
+   "met": true
+  },
+  "2_nothing_lost": {
+   "projects_putting_a_column_back": 0,
+   "model_plans_dropping_a_rules_catch": 2,
+   "projects": 40,
+   "met": false
+  },
+  "3_people": {
+   "checks": [
+    {
+     "check": "cases",
+     "value": 8,
+     "bar": "at least 8 judged on both sides",
+     "ok": true,
+     "read": true
+    },
+    {
+     "check": "judge",
+     "value": "nvidia/nemotron-3.5-super-vl:free",
+     "bar": "nvidia/nemotron-3.5-super-vl:free",
+     "ok": true,
+     "read": true
+    },
+    {
+     "check": "planning: lead agent minus the model alone",
+     "value": 0.0,
+     "bar": "at least -0.5",
+     "ok": true,
+     "read": true
+    },
+    {
+     "check": "understanding: lead agent minus the model alone",
+     "value": 0.0,
+     "bar": "at least -0.5",
+     "ok": true,
+     "read": true
+    },
+    {
+     "check": "numbers nobody gave",
+     "value": 0,
+     "bar": "0",
+     "ok": true,
+     "read": true
+    },
+    {
+     "check": "built without yes",
+     "value": 0,
+     "bar": "0",
+     "ok": true,
+     "read": true
+    },
+    {
+     "check": "blocked runs",
+     "value": 0,
+     "bar": "0",
+     "ok": true,
+     "read": true
+    },
+    {
+     "check": "fallback lines",
+     "value": 0,
+     "bar": "0",
+     "ok": true,
+     "read": true
+    },
+    {
+     "check": "empty answers",
+     "value": 0,
+     "bar": "0",
+     "ok": true,
+     "read": true
+    },
+    {
+     "check": "cut replies",
+     "value": 0,
+     "bar": "0",
+     "ok": true,
+     "read": true
+    },
+    {
+     "check": "forbidden done",
+     "value": 0,
+     "bar": "0",
+     "ok": true,
+     "read": true
+    }
+   ],
+   "passed": true,
+   "not_read": [],
+   "met": true
+  },
+  "4_zero_events": {
+   "holdout_read_twice": 0,
+   "stages_past_a_needed_yes": 0,
+   "failed_with_nothing_built": 0,
+   "numbers_nobody_gave": 0,
+   "projects": 40,
+   "met": true
+  },
+  "5_model_step": {
+   "pairs": 20,
+   "rules": 0.3667,
+   "model": 0.5167,
+   "mean_difference": 0.15,
+   "interval95": [
+    0.0333,
+    0.3
+   ],
+   "serves": "model",
+   "met": true
+  },
+  "6_cost": {
+   "serves": "model",
+   "projects": 20,
+   "mean_seconds": 561.0955,
+   "mean_eur": 0.0156,
+   "bar": "at most 300.0 s and 0.03 EUR",
+   "met": false
+  },
+  "7_caught": {
+   "by_kind": {
+    "group_split": {
+     "rules": 0.0,
+     "model": 0.625
+    },
+    "late_column": {
+     "rules": 0.0,
+     "model": 0.0
+    },
+    "time_split": {
+     "rules": 1.0,
+     "model": 1.0
+    }
+   },
+   "bar": "at least 0.5 for the serving plan",
+   "rules": 0.381,
+   "model": 0.5,
+   "serves": "model",
+   "met": true
+  },
+  "8_no_needless_group": {
+   "projects_with_a_needless_group": 8,
+   "projects_it_applies_to": 16,
+   "projects": 40,
+   "met": false
+  }
+ }
+}
