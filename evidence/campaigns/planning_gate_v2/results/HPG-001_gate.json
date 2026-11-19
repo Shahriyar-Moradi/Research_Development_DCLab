@@ -1,0 +1,143 @@
+{
+ "id": "HPG-001",
+ "at": "2026-11-19T11:58:36+00:00",
+ "tables_run": "2026-11-19-planning-gate-v2-tables",
+ "people_result": "HAB-063",
+ "model": "qwen/qwen3.8-flash",
+ "spent_eur_tables": 0.2054,
+ "evaluation_only": true,
+ "gate": "hp_gate_v2",
+ "pinned": true,
+ "not_judged": [],
+ "passed": false,
+ "checks": {
+  "1_obeyed": {
+   "projects": 32,
+   "traps_read": 73,
+   "obeyed": 69,
+   "asked_not_applied": 22,
+   "stopped_with_question": 8,
+   "rate": 0.9452,
+   "bar": "1.0 on at least 8 projects",
+   "met": false
+  },
+  "2_nothing_lost": {
+   "projects_putting_a_column_back": 0,
+   "model_plans_dropping_a_rules_catch": 1,
+   "projects": 32,
+   "met": false
+  },
+  "3_people": {
+   "checks": [
+    {
+     "check": "cases",
+     "value": 8,
+     "bar": "at least 8 judged on both sides",
+     "ok": true,
+     "read": true
+    },
+    {
+     "check": "judge",
+     "value": "nvidia/nemotron-3.5-super-vl:free",
+     "bar": "nvidia/nemotron-3.5-super-vl:free",
+     "ok": true,
+     "read": true
+    },
+    {
+     "check": "planning: lead agent minus the model alone",
+     "value": 0.125,
+     "bar": "at least -0.5",
+     "ok": true,
+     "read": true
+    },
+    {
+     "check": "understanding: lead agent minus the model alone",
+     "value": 0.25,
+     "bar": "at least -0.5",
+     "ok": true,
+     "read": true
+    },
+    {
+     "check": "numbers nobody gave",
+     "value": 0,
+     "bar": "0",
+     "ok": true,
+     "read": true
+    },
+    {
+     "check": "built without yes",
+     "value": 0,
+     "bar": "0",
+     "ok": true,
+     "read": true
+    },
+    {
+     "check": "blocked runs",
+     "value": 1,
+     "bar": "0",
+     "ok": false,
+     "read": true
+    },
+    {
+     "check": "fallback lines",
+     "value": 0,
+     "bar": "0",
+     "ok": true,
+     "read": true
+    },
+    {
+     "check": "empty answers",
+     "value": 0,
+     "bar": "0",
+     "ok": true,
+     "read": true
+    },
+    {
+     "check": "cut replies",
+     "value": 0,
+     "bar": "0",
+     "ok": true,
+     "read": true
+    },
+    {
+     "check": "forbidden done",
+     "value": 0,
+     "bar": "0",
+     "ok": true,
+     "read": true
+    }
+   ],
+   "passed": false,
+   "not_read": [],
+   "met": false
+  },
+  "4_zero_events": {
+   "holdout_read_twice": 0,
+   "stages_past_a_needed_yes": 0,
+   "failed_with_nothing_built": 2,
+   "numbers_nobody_gave": 0,
+   "projects": 32,
+   "met": false
+  },
+  "5_model_step": {
+   "pairs": 16,
+   "rules": 0.2917,
+   "model": 0.3542,
+   "mean_difference": 0.0625,
+   "interval95": [
+    0.0,
+    0.1562
+   ],
+   "serves": "rules",
+   "met": true
+  },
+  "6_cost": {
+   "serves": "rules",
+   "projects": 12,
+   "mean_seconds": 0.019,
+   "mean_eur": 0.0,
+   "bar": "at most 300.0 s and 0.03 EUR",
+   "met": true
+  }
+ }
+}

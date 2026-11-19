@@ -1,0 +1,208 @@
+{
+ "package": "planning-gate-v2",
+ "title": "The planning exam hp_gate_v2: six checks judged by code, pinned, run once on fresh held-out tables and people",
+ "date": "2026-11-19",
+ "request": "The owner chose the planning gate (G1) as the next gap: hp_gate_v1 could not be run. Keep check 3 (people); 300 seconds and EUR 0.03 a project; held-out tables and people written by another session.",
+ "spec": "Every check judged by code; terms and held-out digests pinned before the run; projects built on the product's own unattended path; the rules arm with no model; rows stay in agent_runs and only counts are committed; run once.",
+ "plan": [
+  "write gate.py with the six checks and the pin",
+  "write run.py: one case built by one arm on the product path",
+  "commands plan, pin, tables, judge",
+  "two adversarial reviews before the pin",
+  "pin, run the tables, run the people, judge once"
+ ],
+ "decisions": [
+  {
+   "decision": "Count a catch asked on the project page as obeyed",
+   "why": "the unattended build goes on with an open question by design (stage H5); v1 counted only a stopped build"
+  },
+  {
+   "decision": "Check 5 decides which plan serves; it does not fail the gate",
+   "why": "a model plan that is not better should simply not serve"
+  },
+  {
+   "decision": "The tables run is sealed: shape in the log, whole calls with thinking in the exam vault",
+   "why": "held-out briefs and column names must never reach a training set"
+  },
+  {
+   "decision": "Nobody changing planning reads a row of the run",
+   "why": "reading the rows would spend the held-out set for any later claim"
+  }
+ ],
+ "change": "dclab_rnd/agent_eval/planning_gate_v2/{__init__,gate,run}.py, gate_v2.sha256, held/ (written by another session), tests/test_planning_gate_v2.py; result evidence/campaigns/planning_gate_v2/.",
+ "findings": [
+  {
+   "id": "PG-R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "A spent cap or a dead key turned the model arm into the rules arm without stopping the run.",
+   "scenario": "--cap-eur 0.5 crossed at case 5: cases 5 to 8 ran the rules plan as the model's and rows.json said stopped null.",
+   "cause": "plan_with_model catches every exception and plan_project keeps the rules plan.",
+   "fix": "Watched wraps the model view and records every failed request; the run stops on one.",
+   "test": "tests/test_planning_gate_v2.py"
+  },
+  {
+   "id": "PG-R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "Check 1 counted the plan's designed questions as disobeyed.",
+   "scenario": "A post-outcome catch the plan could not confirm was asked, the final stage ran, check 1 fell below 1.0 even with the rules serving.",
+   "cause": "obeyed read every enforceable catch that was not applied as a failure.",
+   "fix": "asked catches (matched by kind and column) and a split's own column count as obeyed.",
+   "test": "tests/test_planning_gate_v2.py"
+  },
+  {
+   "id": "PG-R3",
+   "source": "reviewer",
+   "severity": "gap",
+   "verdict": "confirmed",
+   "defect": "Half of 'nothing lost' could never fail.",
+   "scenario": "The model arm applies the rules plan first and plans only add columns, so its forbidden set always held the rules'.",
+   "cause": "it compared forbidden sets, not what each plan caught.",
+   "fix": "compare the model plan's own forbid catches with the rules plan's on the same project.",
+   "test": "tests/test_planning_gate_v2.py"
+  },
+  {
+   "id": "PG-R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "The one allowed run could be wasted before any model call.",
+   "scenario": "A missing make_ function exited with no rows.json; tables then refused every rerun and judge crashed.",
+   "cause": "directory made before any check; rows written only on success.",
+   "fix": "preflight counts cases, traps and pairs first; rows.json written in finally.",
+   "test": "tests/test_planning_gate_v2.py"
+  },
+  {
+   "id": "PG-R5",
+   "source": "reviewer",
+   "severity": "privacy",
+   "verdict": "confirmed",
+   "defect": "Held-out column names and case ids could reach the committed result.",
+   "scenario": "Check 2 listed the columns put back; the stop message carried a pandas error text.",
+   "cause": "the verdict was committed whole.",
+   "fix": "gate.public keeps counts, means and met only; the whole verdict stays in the run folder.",
+   "test": "tests/test_planning_gate_v2.py"
+  },
+  {
+   "id": "PG-R6",
+   "source": "reviewer",
+   "severity": "gap",
+   "verdict": "confirmed",
+   "defect": "Check 1 passed with no trap read.",
+   "scenario": "14 built projects with no catch plus one stopped case: met.",
+   "cause": "inherited from v1.",
+   "fix": "met is None unless a trap was read.",
+   "test": "tests/test_planning_gate_v2.py"
+  },
+  {
+   "id": "PG-R7",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "Check 6 averaged zeros it never measured.",
+   "scenario": "Stopped projects carried 0 s; the rules plan was never timed, so 'rules serve' always met check 6.",
+   "cause": "plan_seconds defaulted to 0.",
+   "fix": "average only projects where a plan was made; the rules plan is timed in both arms.",
+   "test": "tests/test_planning_gate_v2.py"
+  },
+  {
+   "id": "PG-R8",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "Check 5 threw away the second seed.",
+   "scenario": "8 cases on 2 seeds gave at most 8 pairs; one case with no planted trap would leave check 5 unread and fail the gate.",
+   "cause": "pairs keyed by (case, arm).",
+   "fix": "pairs keyed by (case, seed).",
+   "test": "tests/test_planning_gate_v2.py"
+  },
+  {
+   "id": "PG-R9",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "Check 4 counted the project id as a number nobody gave.",
+   "scenario": "22% of random hex ids start with a digit; all 32 clean had probability 0.0003.",
+   "cause": "the report names the project by its id.",
+   "fix": "the id is removed from the report before the number check.",
+   "test": "tests/test_planning_gate_v2.py"
+  },
+  {
+   "id": "PG-R10",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "A model that never answered was hidden.",
+   "scenario": "No model configured: Watched wrapped None, the AttributeError fell back to the rules plan, model_errors stayed empty.",
+   "cause": "Watched did not check for a None client.",
+   "fix": "a None client and a failed client request are recorded as errors.",
+   "test": "tests/test_planning_gate_v2.py"
+  },
+  {
+   "id": "PG-R11",
+   "source": "reviewer",
+   "severity": "leakage",
+   "verdict": "confirmed",
+   "defect": "Stage notes called a live model outside the run's cap and folder, in both arms.",
+   "scenario": "explain_stage and llm_critique used the process's default gateway, kept held-out stage records in the workspace.",
+   "cause": "the run's gateway was never installed for the stages.",
+   "fix": "the build runs inside notes_off(); the rules' notes stand.",
+   "test": "tests/test_planning_gate_v2.py"
+  },
+  {
+   "id": "PG-R12",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "An interrupted run read as complete; a judge without people locked the gate as failed; an incomplete people run was accepted.",
+   "scenario": "Ctrl-C wrote rows.json with stopped null; judge with no --people wrote HPG-001.",
+   "cause": "the defaults were the happy path.",
+   "fix": "stopped starts as 'interrupted' with an 'of' count; judge needs --people and a complete run.",
+   "test": "tests/test_planning_gate_v2.py"
+  },
+  {
+   "id": "PG-M1",
+   "source": "measurement",
+   "severity": "gap",
+   "verdict": "confirmed",
+   "defect": "The planner enforces only about a third of the traps the case authors planted.",
+   "scenario": "Held-out tables, 16 pairs: 0.29 of planted traps enforced by the rules, 0.35 by the model.",
+   "cause": "not read: the rows stay unread by the gate's rule.",
+   "fix": "none yet: needs a dev set that reproduces it.",
+   "test": "evidence/campaigns/planning_gate_v2/results/HPG-001_gate.json"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "hp_gate_v2 on its held-out tables (8 cases x 2 seeds x 2 arms) and people (plan_held, 8)",
+   "gate": "hp_gate_v2",
+   "fixed_before_run": true,
+   "result": "failed: check 1 69/73 (0.945); check 2 one model plan dropped a rules catch; check 3 gaps +0.125 planning, +0.25 understanding, 1 blocked run; check 4 two projects failed with nothing built; check 5 rules 0.29 vs model 0.35, +0.06 [0.00, 0.16], the rules serve; check 6 met (0.019 s, EUR 0)",
+   "verdict": "fail",
+   "cost_eur": 0.37,
+   "next": "a dev set that reproduces the four failing counts, then fresh held-out material for hp_gate_v3",
+   "limits": [
+    "8 cases and 8 people",
+    "the causes were not read",
+    "people run conversations not sealed by the harness"
+   ]
+  }
+ ],
+ "outcome": "The planning exam ran once and failed on four counts. The model's plan was not shown better than the rules', so the rules serve. Both plans enforce only about a third of the planted traps.",
+ "lessons": [
+  "Two reviews before a one-time run found 23 issues; 3 of them alone would have decided the result.",
+  "A wrapper that catches every exception can turn an arm into its baseline without a trace: record every failed request.",
+  "Count only what was measured: a default of 0 seconds is not a time."
+ ],
+ "risks": [
+  "The held-out set is used; any fix tuned on its counts is not proven.",
+  "Small sample: the interval of check 5 is wide."
+ ],
+ "commits": [
+  "08a3e199",
+  "2b836ddb"
+ ]
+}
