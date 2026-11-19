@@ -34,6 +34,45 @@ class CaseTests(unittest.TestCase):
         self.assertFalse(a.table.head(50).reset_index(drop=True).equals(a.future.head(50).reset_index(drop=True)))
 
 
+    def test_the_future_continues_the_same_world_later_in_time(self):
+        """2026-11-19: the future was the replica drawn with another seed, so restaurant 17 kept its number and changed its
+        behaviour (a restaurant's mean time correlated -0.02 with the table's). It is now the latest rows of one replica."""
+        from dclab_rnd.agent_eval.e2e import cases
+
+        for kind in ("ticket_routing", "delivery_time"):
+            case = cases.make(kind, 11)
+            when = cases.SPEC[kind]["time"]
+            self.assertLessEqual(case.table[when].max(), case.future[when].min(), kind)  # nothing in the table is later
+            self.assertEqual(case.facts["future"], "continued")
+            self.assertGreater(len(case.future), cases.FUTURE_ROWS * 0.95)  # less only the duplicates of rows the table holds
+        case = cases.make("delivery_time", 11)
+        seen = case.table.groupby("restaurant_id")["actual_minutes"].mean()
+        later = case.future.groupby("restaurant_id")["actual_minutes"].mean()
+        both = seen.index.intersection(later.index)
+        self.assertGreater(seen[both].corr(later[both]), 0.2)  # a slow restaurant stays slow
+        old = cases.make("delivery_time", 11, "new_seed")  # e2e_v1's runs up to E2E-007 can still be rebuilt
+        self.assertEqual((len(old.table), old.facts["future"]), (cases.ROWS, "new_seed"))
+
+    def test_the_future_holds_no_class_and_no_row_the_table_lacks(self):
+        """The review: over 120 days the late team began after the cut, so no table had it and every future did."""
+        from dclab_rnd.agent_eval.e2e import cases
+
+        for seed in (11, 12, 13):
+            for kind in ("ticket_routing", "delivery_time"):
+                case = cases.make(kind, seed)
+                key = cases.SPEC[kind]["id"]
+                self.assertFalse(set(case.future[key]) & set(case.table[key]), (kind, seed))
+                if kind == "ticket_routing":
+                    self.assertLessEqual(set(case.future[case.target]), set(case.table[case.target]), seed)
+
+    def test_the_gates_cases_are_rebuilt_on_the_future_it_was_judged_on(self):
+        from dclab_rnd.agent_eval.e2e import cases
+
+        with mock.patch.object(cases, "make", return_value=None) as made:
+            cases.held_out_cases()
+        self.assertEqual({c.args[2] for c in made.call_args_list}, {"new_seed"})
+
+
 class ReferenceTests(unittest.TestCase):
     def test_a_leak_looks_good_on_the_table_and_fails_on_the_future(self):
         from dclab_rnd.agent_eval.e2e import cases, reference
@@ -216,8 +255,12 @@ class RescoreTests(unittest.TestCase):
                "scores": [{"case": "delivery_time-s11", "arm": "plain", "real": 10.5, "numbers_nobody_gave": 1, "euros": 0.02},
                           {"case": "delivery_time-s11", "arm": "rules", "real": 8.8}]}
         (results / "E2E-002_dev.json").write_text(json.dumps(old), encoding="utf-8")
-        with mock.patch.object(cli, "RESULTS", results), mock.patch.object(cli, "ROOT", root):
+        from dclab_rnd.agent_eval.e2e import cases
+
+        with mock.patch.object(cli, "RESULTS", results), mock.patch.object(cli, "ROOT", root), \
+                mock.patch.object(cases, "dev_cases", wraps=cases.dev_cases) as built:
             self.assertEqual(cli.main(["rescore", "E2E-002"]), 0)
+        built.assert_called_once_with("new_seed")  # a run that names no future was scored on new_seed futures
         self.assertEqual(json.loads((results / "E2E-002_dev.json").read_text()), old)  # the old result is never edited
         new = json.loads((results / "E2E-003_rescore_dev.json").read_text())
         plain, rules = new["scores"]

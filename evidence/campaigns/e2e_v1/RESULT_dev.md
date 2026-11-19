@@ -124,3 +124,30 @@ Two fixes to the unattended plan:
 - E2E-007 ran before the review's last two fixes (word suspects only for a time or a duration; the report's line on a
   random split). On these cases both give the same decisions: `first_response_minutes` and `delivered_at` still read as
   an event's value, and a time column was found.
+
+## The future set continues the same world (`E2E-009_rules_dev.json`, 2026-11-19, no model asked)
+
+Until E2E-007 the future set was the replica drawn again with another seed. Every restaurant kept its number but got new
+behaviour: a restaurant's mean delivery time correlated -0.02 between the table and the future, against 0.42 between the
+early and late rows of one table. So knowing "restaurant 17 is slow", true in real use, was scored as useless. Now the
+future is the latest rows of one replica, kept back by time ("continued"); the old way ("new_seed") stays for rebuilding
+earlier runs, and the gate's cases (E2E-004) are rebuilt as it saw them.
+
+The review of the change found that the ticket replica's late team began after the cut, so no table held it and every
+future did (an F1 of 0 for every arm on that team); E2E-008 was scored that way and is kept as it is. Tickets now span 60
+days so the cut falls inside the team's window, and a future row that duplicates a table row is dropped.
+
+| Kind | Run | Claimed | Real | Leaks kept out | Real inside interval |
+|---|---|---|---|---|---|
+| ticket routing (macro F1) | E2E-007 (new_seed) | 0.403 | 0.387 | 3 of 3 | 3 of 3 |
+| ticket routing | E2E-009 (continued) | 0.403 | 0.388 | 3 of 3 | 2 of 3 |
+| delivery time (MAE, min) | E2E-007 (new_seed) | 7.79 | 9.40 | 3 of 3 | 0 of 3 |
+| delivery time | E2E-009 (continued) | 7.30 | 8.14 | 3 of 3 | 1 of 3 |
+
+- Delivery's real error fell from 9.40 to 8.14 minutes: knowing each restaurant now counts, as it does in use.
+- The claim is still about 0.8 minutes too good. Part of that may be the scorer, not the arm: the real score refits one
+  reference model (a gradient-boosted tree reading `restaurant_id` as a number) on the arm's columns, while the claim
+  comes from the arm's own model (which encodes the restaurant). The two cannot be told apart without scoring each arm's
+  own model on the future set.
+- Results scored on "new_seed" (E2E-001 to E2E-007, the gate E2E-004 among them) and on "continued" (E2E-009 on) are
+  not compared number for number.

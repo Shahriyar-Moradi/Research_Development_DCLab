@@ -1,0 +1,53 @@
+{
+ "package": "e2e-continued-future",
+ "title": "The end-to-end comparison's future set continues the same world instead of a new random one",
+ "date": "2026-11-19",
+ "request": "The owner chose to fix the test, not DCLab, after the check showed delivery's over-claim came from the future set: every restaurant kept its number and changed its behaviour.",
+ "spec": "Keep the old future for rebuilding earlier runs; never change a stored result; the gate's cases stay as the gate saw them.",
+ "plan": ["future = the latest rows of one replica, by the kind's time column", "rescore an old run on its own future", "rerun the rules arm on the dev cases"],
+ "decisions": [
+  {"decision": "Fix the test, not the product", "why": "splitting by restaurant would pass this test and be wrong for the usual real case, where the same restaurants keep ordering"},
+  {"decision": "Tickets span 60 days in the continued future", "why": "the replica's late team starts 30 days before the end; over 120 days it began after the cut"}
+ ],
+ "change": "dclab_rnd/agent_eval/e2e/__init__.py (FUTURE), cases.py (make's future_kind, the time and id per kind, the ticket days, the duplicate drop, held_out_cases on new_seed), __main__.py (results record their future; rescore uses the old run's); dclab_rnd/bench/__init__.py (e2e_v1 in a layer); tests/test_e2e_comparison.py.",
+ "findings": [
+  {"id": "CF-M1", "source": "measurement", "severity": "behaviour", "verdict": "confirmed",
+   "defect": "The future set punished honest knowledge of each restaurant.",
+   "scenario": "A restaurant's mean time correlated -0.02 between the table and the future, 0.42 between early and late rows of one table; delivery's real error was 9.40 against a claim of 7.79.",
+   "cause": "the future was the replica drawn with another seed: same ids, new behaviour",
+   "fix": "the future is the latest rows of one replica",
+   "test": "tests/test_e2e_comparison.py test_the_future_continues_the_same_world_later_in_time"},
+  {"id": "CF-R1", "source": "reviewer", "severity": "behaviour", "verdict": "confirmed",
+   "defect": "The ticket future held a team no table had.",
+   "scenario": "Every seed: 0 rows of the late team in the table, 24 to 41 in the future; every arm scored F1 0 on it.",
+   "cause": "the late team starts 30 days before the replica's end, after the cut over 120 days",
+   "fix": "tickets span 60 days so the cut falls inside the team's window",
+   "test": "tests/test_e2e_comparison.py test_the_future_holds_no_class_and_no_row_the_table_lacks"},
+  {"id": "CF-R2", "source": "reviewer", "severity": "leakage", "verdict": "confirmed",
+   "defect": "A duplicate ticket could sit on both sides of the cut.",
+   "scenario": "Held-out seed 104: one ticket_id in both the table and the future.",
+   "cause": "the cut is a row position and duplicates share their time",
+   "fix": "a future row whose id the table holds is dropped",
+   "test": "tests/test_e2e_comparison.py test_the_future_holds_no_class_and_no_row_the_table_lacks"},
+  {"id": "CF-R3", "source": "reviewer", "severity": "gap", "verdict": "confirmed",
+   "defect": "The gate's cases would be rebuilt on a future it was not judged on, and the rescore rule had no real test.",
+   "scenario": "held_out_cases built continued futures; E2E-004 was judged on new_seed.",
+   "cause": "the default changed under it",
+   "fix": "held_out_cases builds new_seed; the rescore test checks the future through the command",
+   "test": "tests/test_e2e_comparison.py test_the_gates_cases_are_rebuilt_on_the_future_it_was_judged_on, RescoreTests"}
+ ],
+ "measurements": [
+  {"name": "The rules arm on the six dev cases, new_seed (E2E-007) against continued (E2E-009)",
+   "gate": "none: dev cases",
+   "fixed_before_run": false,
+   "result": "delivery: real 9.40 to 8.14 minutes, claimed 7.79 to 7.30, inside interval 0 to 1 of 3; tickets: real 0.387 to 0.388, claimed 0.403 both, inside interval 3 to 2 of 3",
+   "verdict": "not scored",
+   "cost_eur": 0.0,
+   "next": "score each arm's own model on the future set, so a claim and its real score come from the same model",
+   "limits": ["three cases a kind", "the real score refits one reference model, not the arm's own"]}
+ ],
+ "outcome": "The comparison's future now continues the same world; delivery's real error fell from 9.40 to 8.14 minutes. A claim about 0.8 minutes too good remains, possibly from the scorer's reference model.",
+ "lessons": ["Before changing a product to pass a test, check whether the test matches real use.", "A cut in time can hide a class that appears late: check every class on both sides."],
+ "risks": ["Runs before and after the change are not comparable number for number."],
+ "commits": []
+}

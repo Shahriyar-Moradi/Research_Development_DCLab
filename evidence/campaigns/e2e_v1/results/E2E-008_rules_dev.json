@@ -1,0 +1,139 @@
+{
+ "id": "E2E-008",
+ "arms": [
+  "rules"
+ ],
+ "model": null,
+ "cases": [
+  "ticket_routing-s11",
+  "delivery_time-s11",
+  "ticket_routing-s12",
+  "delivery_time-s12",
+  "ticket_routing-s13",
+  "delivery_time-s13"
+ ],
+ "future": "continued",
+ "scores": [
+  {
+   "case": "ticket_routing-s11",
+   "arm": "rules",
+   "finished": true,
+   "target_right": true,
+   "metric_right": true,
+   "leaks_used": [],
+   "claimed": 0.43259780000456066,
+   "interval": [
+    0.39747196707049715,
+    0.46777518144170976
+   ],
+   "real": 0.38919190950345256,
+   "leaks_kept_out": true,
+   "gap": 0.0434,
+   "real_inside_interval": false,
+   "holdout_uses": 1,
+   "euros": 0.0,
+   "seconds": 155.5
+  },
+  {
+   "case": "delivery_time-s11",
+   "arm": "rules",
+   "finished": true,
+   "target_right": true,
+   "metric_right": true,
+   "leaks_used": [],
+   "claimed": 6.862654692476519,
+   "interval": [
+    6.272571067019286,
+    7.463429879669245
+   ],
+   "real": 7.976502857988307,
+   "leaks_kept_out": true,
+   "gap": -1.1138,
+   "real_inside_interval": false,
+   "holdout_uses": 1,
+   "euros": 0.0,
+   "seconds": 22.8
+  },
+  {
+   "case": "ticket_routing-s12",
+   "arm": "rules",
+   "finished": true,
+   "target_right": true,
+   "metric_right": true,
+   "leaks_used": [],
+   "claimed": 0.4332897890705041,
+   "interval": [
+    0.39732860641681,
+    0.46650174142581585
+   ],
+   "real": 0.39553030219812896,
+   "leaks_kept_out": true,
+   "gap": 0.0378,
+   "real_inside_interval": false,
+   "holdout_uses": 1,
+   "euros": 0.0,
+   "seconds": 322.9
+  },
+  {
+   "case": "delivery_time-s12",
+   "arm": "rules",
+   "finished": true,
+   "target_right": true,
+   "metric_right": true,
+   "leaks_used": [],
+   "claimed": 7.19002280394855,
+   "interval": [
+    6.60601369158144,
+    7.810110928192428
+   ],
+   "real": 8.114270863968404,
+   "leaks_kept_out": true,
+   "gap": -0.9242,
+   "real_inside_interval": false,
+   "holdout_uses": 1,
+   "euros": 0.0,
+   "seconds": 24.5
+  },
+  {
+   "case": "ticket_routing-s13",
+   "arm": "rules",
+   "finished": true,
+   "target_right": true,
+   "metric_right": true,
+   "leaks_used": [],
+   "claimed": 0.5076790943099864,
+   "interval": [
+    0.41513550770716906,
+    0.5608484121615303
+   ],
+   "real": 0.3799588815435804,
+   "leaks_kept_out": true,
+   "gap": 0.1277,
+   "real_inside_interval": false,
+   "holdout_uses": 1,
+   "euros": 0.0,
+   "seconds": 174.5
+  },
+  {
+   "case": "delivery_time-s13",
+   "arm": "rules",
+   "finished": true,
+   "target_right": true,
+   "metric_right": true,
+   "leaks_used": [],
+   "claimed": 7.851581245955859,
+   "interval": [
+    7.167562414984977,
+    8.600454459646986
+   ],
+   "real": 8.334368929919085,
+   "leaks_kept_out": true,
+   "gap": -0.4828,
+   "real_inside_interval": true,
+   "holdout_uses": 1,
+   "euros": 0.0,
+   "seconds": 22.5
+  }
+ ],
+ "run_dir": "agent_runs/live_tests/2026-11-19-e2e-E2E-008"
+}

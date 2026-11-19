@@ -18,7 +18,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from . import CAMPAIGN, MODEL
+from . import CAMPAIGN, FUTURE, MODEL
 
 ROOT = Path(__file__).resolve().parents[3]
 RESULTS = ROOT / "evidence" / "campaigns" / CAMPAIGN / "results"
@@ -58,10 +58,10 @@ def rules_arm(case: Any, folder: Path) -> dict[str, Any]:
     return dclab.outcome("rules", project, records)
 
 
-def _select_cases(spec: str | None) -> list[Any]:
+def _select_cases(spec: str | None, future_kind: str = FUTURE) -> list[Any]:
     from . import cases
 
-    available = cases.dev_cases()
+    available = cases.dev_cases(future_kind)
     if not spec:
         return available
     by_id = {c.id: c for c in available}
@@ -146,7 +146,7 @@ def _cmd_rules(selected: list[Any]) -> int:
               f"holdout_uses={row.get('holdout_uses')} seconds={row.get('seconds')}")
     RESULTS.mkdir(parents=True, exist_ok=True)
     path = RESULTS / f"{run_id}_rules_dev.json"
-    doc = {"id": run_id, "arms": ["rules"], "model": None, "cases": [c.id for c in selected], "scores": scores,
+    doc = {"id": run_id, "arms": ["rules"], "model": None, "cases": [c.id for c in selected], "future": FUTURE, "scores": scores,
            "run_dir": str(run_dir.relative_to(ROOT))}
     path.write_text(json.dumps(doc, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
     print(str(path))
@@ -237,7 +237,7 @@ def _cmd_run(selected: list[Any], model: str, cap: float | None, yes: bool, suff
     RESULTS.mkdir(parents=True, exist_ok=True)
     path = RESULTS / f"{run_id}_{suffix}.json"
     doc = {"id": run_id, "arms": ["rules", "dclab_agent", "plain"], "model": model, "cap": cap, "spent": round(spent, 6),
-           "cases": ran_cases, "not_run": not_run, "scores": scores, "plain_calls": plain_calls,
+           "cases": ran_cases, "future": FUTURE, "not_run": not_run, "scores": scores, "plain_calls": plain_calls,
            "run_dir": str(run_dir.relative_to(ROOT))}
     if suffix == "gate":
         from . import gate
@@ -284,7 +284,8 @@ def _cmd_rescore(result_id: str) -> int:
         print(f"refused: {len(found)} result files for {result_id}", file=sys.stderr)
         return 2
     old = json.loads(found[0].read_text(encoding="utf-8"))
-    selected = {c.id: c for c in _select_cases(",".join(old["cases"]))}  # refuses any held-out case
+    # a run is rescored on the future it was scored on: runs before 2026-11-19 name none and used "new_seed"
+    selected = {c.id: c for c in _select_cases(",".join(old["cases"]), old.get("future", "new_seed"))}  # refuses any held-out case
     from . import score
 
     scores = []
