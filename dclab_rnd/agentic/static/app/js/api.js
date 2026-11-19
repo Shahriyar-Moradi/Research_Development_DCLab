@@ -492,6 +492,7 @@
     improveProject: ["POST", "/projects/{project_id}/improve", ["project_id"], []],
     adoptImprovement: ["POST", "/projects/{project_id}/improve/adopt", ["project_id"], []],
     getImprovements: ["GET", "/projects/{project_id}/improvements", ["project_id"], []],
+    decideLeakageAdvice: ["POST", "/projects/{project_id}/leakage/decide", ["project_id"], []],
     projectLessons: ["POST", "/projects/{project_id}/lessons", ["project_id"], []],
     projectLineage: ["GET", "/projects/{project_id}/lineage", ["project_id"], ["path"]],
     projectMemoryBaseView: ["GET", "/projects/{project_id}/memory/base", ["project_id"], ["target", "problem_id"]],
@@ -1568,6 +1569,12 @@
   client.getImprovements = (...args) => call('getImprovements', args);
   client.path.getImprovements = (...args) => build('getImprovements', args).path;
   client.href.getImprovements = (...args) => '/api' + build('getImprovements', args).path;
+  /** POST /api/projects/{project_id}/leakage/decide: Decide Leakage Advice
+   *  @param {string} project_id
+   *  @param {{body: AnyObject, headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.decideLeakageAdvice = (...args) => call('decideLeakageAdvice', args);
+  client.path.decideLeakageAdvice = (...args) => build('decideLeakageAdvice', args).path;
   /** POST /api/projects/{project_id}/lessons: Project Lessons
    *  @param {string} project_id
    *  @param {{headers?: Object}} [opts]

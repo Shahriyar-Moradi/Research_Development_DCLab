@@ -1380,3 +1380,37 @@ async def export_sft(project_id: str, s: Services = Depends(services)):
     rows = studio_sft.examples_from_project(p, s.projects.records(project_id))
     text = "".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows)
     return Response(text, media_type="application/x-ndjson", headers=attachment(p["name"], ".sft.jsonl"))
+
+
+@router.post("/api/projects/{project_id}/leakage/decide", response_model=Page)
+async def decide_leakage_advice(project_id: str, payload: AnyObject, s: Services = Depends(services)):
+    """Explicit user response to the Leakage Advisor: compare_both (Recommended, training folds only),
+    exclude_directly, or keep_confirmed. Fails closed with 409 if the prediction moment changed."""
+    from ...accounts.principal import current as current_principal
+    from ...studio import leakage_advisor
+
+    s.project(project_id)
+    if not s.projects.has_stage(project_id, "leakage"):
+        raise HTTPException(409, "Run the leakage stage first before deciding on leakage advice")
+    stage_rec = s.projects.read_stage(project_id, "leakage")
+    advisory = (stage_rec.get("evidence") or {}).get("leakage_advisor")
+    if not isinstance(advisory, dict):
+        raise HTTPException(409, "No leakage advisor output is recorded on this project; re-run stage_leakage")
+    body = payload.model_dump() if hasattr(payload, "model_dump") else dict(payload or {})
+    choice = str(body.get("choice") or "").strip()
+    columns = list(body.get("columns") or advisory.get("likely_leakage_columns") or [])
+    confirm_after = bool(body.get("confirm_exclude_after_compare", False))
+    who = current_principal()
+    by = f"person:{who.user_id}" if (who is not None and who.user_id) else "person:owner"
+    try:
+        return await asyncio.to_thread(
+            leakage_advisor.apply_leakage_decision,
+            s.projects, project_id, advisory,
+            choice=choice, columns=columns, by=by,
+            confirm_exclude_after_compare=confirm_after,
+        )
+    except leakage_advisor.StaleLeakageAdviceError as exc:
+        raise HTTPException(409, {"error": "stale_leakage_advice", "message": str(exc),
+                                  "old_moment": exc.old_moment, "current_moment": exc.current_moment}) from None
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from None

@@ -742,6 +742,20 @@ def stage_leakage(p: Prepared, eid: str) -> tuple[dict, list, str]:
         )
         comparison["leakage_contrast"] = contrast.model_dump()
     non_declared = [f for f in findings if "declared_post_outcome_or_contested" not in f["reasons"]]
+    from . import leakage_advisor as studio_leakage_advisor
+
+    advisor_client = None
+    try:
+        from .. import models as studio_models
+
+        gw = studio_models.installed()
+        pid = getattr(p, "project_id", None)
+        is_priv = bool(gw.project_private(pid)) if (gw is not None and pid and callable(getattr(gw, "project_private", None))) else False
+        if gw is not None and not is_priv and gw.available("leakage_review"):
+            advisor_client = gw.client("leakage_review", project_id=pid)
+    except Exception:  # noqa: BLE001 - rules and heuristics still run without a model
+        advisor_client = None
+    advisory = studio_leakage_advisor.advise_stage(p, findings, ranking, declared, client=advisor_client)
     evidence: dict[str, Any] = {
         "declared_leakage_features": declared,
         "policy_rationale": " ".join(f"`{c}`: {r}" for c, r in spec.blocked_features.items()) or "No column is blocked: " + spec.decision_time_contract,
@@ -752,6 +766,7 @@ def stage_leakage(p: Prepared, eid: str) -> tuple[dict, list, str]:
         "top_univariate_signals": ranking, "detector_canary": canary, "detector_canary_passed": bool(canary.get("passed", False)),
         "safe_vs_unsafe_training_cv": comparison, "apparent_lift": float(lift), "apparent_lift_metric": metric,
         "leakage_contrast": comparison.get("leakage_contrast"),
+        "leakage_advisor": advisory,
         "cv_protocol": bundle.cv_description,
         "warning": "Name, univariate-signal, identity and uniqueness rules propose a review; only decision-time semantics confirm leakage.",
     }
@@ -776,6 +791,10 @@ def stage_leakage(p: Prepared, eid: str) -> tuple[dict, list, str]:
                          + (f"{ranking[0]['feature']} ({ranking[0]['signal']:.3f})." if ranking else "n/a."),
                          ["evidence.heuristic_review_candidates", "evidence.top_univariate_signals", "evidence.heuristic_rules"],
                          ["Strong signal alone is not leakage; a legitimate lag or a real driver is expected to be predictive."]))
+    if advisory.get("likely_leakage_prompt"):
+        claims.append(_claim(f"{eid}-C3b", "risk", str(advisory["likely_leakage_prompt"]["message"]),
+                             ["evidence.leakage_advisor"],
+                             ["Provisional leakage advice (cell_values=0): recommended to compare both clean and leaky models on training folds before confirming exclusion."]))
     parts = [f"Scanned {len(sample_X)} training rows with {task} heuristics and synthetic canaries;"]
     if declared:
         parts.append(f"compared {audit_model} on the {recipe} recipe with vs without {declared}: {_label(metric)} {rn._ms(safe, metric)} safe vs "
