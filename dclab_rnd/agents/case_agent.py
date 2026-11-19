@@ -357,6 +357,13 @@ class CaseState:
     cap_eur: float = field(default_factory=lambda: __import__("dclab_rnd.agents.case_session", fromlist=["cap_eur"]).cap_eur())  # 37.8: the soft cap (DCLAB_CASE_CAP_EUR), raised by the person's yes
     waiting_on_budget: bool = False  # 37.8: the case stopped at its cap and asked
     checkpoint: Any = None  # 37.8: where the state is saved after every turn (None: not saved)
+    workspace_home: Any = None  # A1: workspace folder for lead_choice.json switch
+    decisions: list[dict[str, Any]] = field(default_factory=list)  # A1-A2: bounded choice and observation log
+    decision_effects: dict[str, dict[str, Any]] = field(default_factory=dict)  # A2: durable idempotency table
+    decision_revisions: int = 0  # A2: plan revisions performed in this case
+    decision_experiments: int = 0  # A2: training-fold comparisons performed in this case
+    approvals_pending: bool = False  # A1-A2: pending approval blocks gated execution
+    problem_revision: Optional[str] = None  # A5-A6: active problem summary cursor when memory is attached
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "recorded", self.case.version)  # what the case already held is not a new event (a resumed case)
@@ -1535,6 +1542,10 @@ def turn(state: CaseState, client: Any, words: str, registry: Optional[Registry]
     plan_note = PLAN_NOTE.format(plan=state.plan) if think_first() and state.plan and person_turns > 1 else None
     built = ctx.build(state.case, state.turns, state.table, notes=[n for n in (chip_note(state), clear_note, plan_note) if n])
     messages = ctx.messages(prompts.text(prompt_name()), built)
+    from . import decision_loop
+
+    if decision_loop.is_enabled(state.workspace_home):
+        return decision_loop.run_bounded_turn(state, _Cells(client, state) if client is not None else None, registry, messages)
     start = len(messages)
     before = _spent(client) + _spent(state.specialist_client) + _spent(state.route_client)  # the review: the route check counts too
     client = _Cells(client, state)  # 37.6: a request holds cell values only when a query's answer is in it

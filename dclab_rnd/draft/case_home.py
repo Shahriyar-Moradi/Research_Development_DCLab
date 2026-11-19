@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import re
 import secrets
+from pathlib import Path
 from typing import Any, Optional
 
 from dclab_core import case as C
@@ -74,6 +75,7 @@ class CaseHome(HomeAgent):
         state.personal = {c["name"] for c in briefs.columns_of(draft) if str(c.get("sensitivity") or "none") in home_query.SENSITIVE}
         state.models = self.models
         state.draft_id = draft["id"]
+        state.workspace_home = getattr(self.store, "files_home", None) or (Path(self.store.home).parent if getattr(self.store, "home", None) else None)
         state.no_data_solution = draft.get("no_data_solution")
         state.specialist_client = self.models.client("case_specialist", draft_id=draft["id"]) if self.models is not None else None
         # the plan's step 1: Home gets the cheap route check the exam measured (before, only the exam's arm had it)

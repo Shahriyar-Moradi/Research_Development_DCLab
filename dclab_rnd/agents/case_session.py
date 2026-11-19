@@ -43,6 +43,12 @@ def snapshot(state: Any) -> dict[str, Any]:
             "route_told": list(getattr(state, "route_told", []) or []), "chip": getattr(state, "chip", None), "chip_intent": getattr(state, "chip_intent", None),
             "chip_checked": bool(getattr(state, "chip_checked", False)), "clear_on_arrival": bool(getattr(state, "clear_on_arrival", False)),
             "plan": str(getattr(state, "plan", "") or ""),
+            "decisions": list(getattr(state, "decisions", []) or []),
+            "decision_effects": dict(getattr(state, "decision_effects", {}) or {}),
+            "decision_revisions": int(getattr(state, "decision_revisions", 0)),
+            "decision_experiments": int(getattr(state, "decision_experiments", 0)),
+            "approvals_pending": bool(getattr(state, "approvals_pending", False)),
+            "problem_revision": getattr(state, "problem_revision", None),
             "trace_n": getattr(getattr(state, "trace", None), "n", 0), "trace_reply": getattr(getattr(state, "trace", None), "last_reply", -1)}
 
 
@@ -86,6 +92,12 @@ def restore(state: Any, doc: dict[str, Any]) -> None:
     state.chip, state.chip_checked, state.chip_intent = doc.get("chip"), bool(doc.get("chip_checked")), doc.get("chip_intent")  # 2026-11-04: the person's chip on Home  # the plan's step 1: a route doubt is told once a case, across turns
     state.clear_on_arrival = bool(doc.get("clear_on_arrival", False))
     state.plan = str(doc.get("plan") or "")  # 2026-11-16: the plan the agent wrote, shown back to it on later turns
+    state.decisions = list(doc.get("decisions") or [])
+    state.decision_effects = dict(doc.get("decision_effects") or {})
+    state.decision_revisions = int(doc.get("decision_revisions") or 0)
+    state.decision_experiments = int(doc.get("decision_experiments") or 0)
+    state.approvals_pending = bool(doc.get("approvals_pending", False))
+    state.problem_revision = doc.get("problem_revision")
     if doc.get("run_id"):
         trace = tracer("case", run_id=doc["run_id"])
         trace.n = int(doc.get("trace_n") or 0)
