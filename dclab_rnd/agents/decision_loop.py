@@ -30,9 +30,9 @@ from .runtime import Policy, run as run_policy
 SWITCH_ENV = "DCLAB_LEAD_BOUNDED_CHOICE"
 ADVISORY_ENV = "DCLAB_ADVISORY_GATED_ROLES"
 SETTINGS_FILE = "lead_choice.json"
-MAX_DECISIONS = 4
-MAX_REVISIONS = 2
-MAX_EXPERIMENTS = 2
+MAX_DECISIONS = 10
+MAX_REVISIONS = 4
+MAX_EXPERIMENTS = 4
 OBSERVATION_STATUSES = ("succeeded", "blocked", "waiting_for_person", "stopped", "failed")
 STOP_WORDS = re.compile(r"\b(?:stop|pause|hold on|do not run|don't run|cancel|wait here)\b", re.I)
 
@@ -315,6 +315,39 @@ def build_menu(state: Any, registry: Registry, *, allow_a2: bool = True, max_rev
         elif _has_tool(registry, "case_read_table"):
             options.append(MenuOption(id="inspect", tool="case_read_table",
                                       summary="Inspect table columns and metadata (read-only, no cell values)."))
+
+    # Preserve 100% of existing registered Lead capabilities so enabling the bounded choice loop
+    # strictly increases AI and DCLab capability and never narrows available tools.
+    if not approvals_pending:
+        native_always = (
+            ("note", "case_note", "Record stated facts, constraints, or assumptions into the case file."),
+            ("add_unknown", "case_add_unknown", "Record an open unknown and which options wait for it."),
+            ("resolve", "case_resolve", "Mark an open unknown resolved."),
+            ("confirm_assumption", "case_confirm_assumption", "Record user confirmation or rejection of an assumption."),
+            ("propose", "case_propose", "Present two or three contrasting options for the person to choose from."),
+            ("start", "case_start", "Start the work or track the person chose."),
+            ("request_build", "case_request_build", "Request building the DCLab Studio project once the person approved."),
+        )
+        for opt_id, tool_name, desc in native_always:
+            if _has_tool(registry, tool_name):
+                options.append(MenuOption(id=opt_id, tool=tool_name, summary=desc))
+
+        if state.table is not None:
+            native_table = (
+                ("read_table", "case_read_table", "Read table columns, kinds, notices, and row count (no cell values)."),
+                ("query", "case_query", "Run a read-only aggregate query on the attached table."),
+                ("answer", "case_answer", "Answer a data question with a verified card from the attached table."),
+                ("dashboard", "case_dashboard", "Build a multi-tile dashboard card from the attached table."),
+                ("preview_step", "case_preview_step", "Preview a preprocessing step on the attached table."),
+            )
+            for opt_id, tool_name, desc in native_table:
+                if _has_tool(registry, tool_name) and not any(o.tool == tool_name for o in options):
+                    options.append(MenuOption(id=opt_id, tool=tool_name, summary=desc))
+        elif _has_tool(registry, "case_design_solution_without_data"):
+            options.append(MenuOption(
+                id="blueprint", tool="case_design_solution_without_data",
+                summary="Design a 3-layer Business + Data Science + ML blueprint when no table has been uploaded yet.",
+            ))
 
     if allow_a2 and not approvals_pending:
         from . import specialists as _spec
@@ -641,6 +674,9 @@ def dispatch_choice(state: Any, menu: Menu, selection: Mapping[str, Any], regist
     elif choice == "revise":
         bound_args = {"exclude_columns": [str(c) for c in (args.get("exclude_columns") or []) if c],
                       "steps": [str(s) for s in (args.get("steps") or []) if s]}
+    elif option.tool and option.tool.startswith("case_"):
+        # Full existing Lead capabilities pass host-validated arguments directly through runtime.run + CaseGuard.
+        bound_args = dict(args)
 
     case_id = str(getattr(state.case, "case_id", getattr(state.case, "id", "")))
     idem_key = str(selection.get("idempotency_key") or _idempotency_key(case_id, menu.revision, choice, bound_args))
@@ -744,6 +780,10 @@ def dispatch_choice(state: Any, menu: Menu, selection: Mapping[str, Any], regist
         obs = Observation(decision_id=decision_id, choice="ask", tool=option.tool, status="waiting_for_person",
                           reason=reason, evidence_refs=refs, available_options=available, menu_revision=menu.revision,
                           result={"question": bound_args["question"], **res}, committed_effects=1, idempotency_key=idem_key)
+    elif choice == "propose":
+        obs = Observation(decision_id=decision_id, choice="propose", tool=option.tool, status="waiting_for_person",
+                          reason=reason, evidence_refs=refs, available_options=available, menu_revision=menu.revision,
+                          result=res, committed_effects=1, idempotency_key=idem_key)
     elif choice == "consult":
         findings = list(res.get("findings") or [])
         advisory = {
@@ -804,9 +844,9 @@ def _parse_model_selection(reply: Mapping[str, Any], menu: Menu) -> Optional[dic
     return None
 
 
-def _choice_tools(menu: Menu) -> list[dict[str, Any]]:
+def _choice_tools(menu: Menu, registry: Optional[Registry] = None) -> list[dict[str, Any]]:
     ids = [o.id for o in menu.options]
-    return [{
+    tools: list[dict[str, Any]] = [{
         "type": "function",
         "function": {
             "name": "choose_action",
@@ -824,6 +864,18 @@ def _choice_tools(menu: Menu) -> list[dict[str, Any]]:
             },
         },
     }]
+    if registry is not None:
+        seen = {"choose_action"}
+        for opt in menu.options:
+            if opt.tool and opt.tool not in seen and _has_tool(registry, opt.tool):
+                t = registry.get(opt.tool)
+                if t is not None:
+                    seen.add(opt.tool)
+                    tools.append({
+                        "type": "function",
+                        "function": {"name": t.name, "description": t.description, "parameters": t.parameters},
+                    })
+    return tools
 
 
 def _spent(client: Any) -> float:
@@ -890,7 +942,7 @@ def run_bounded_turn(state: Any, client: Any, registry: Registry, context_messag
         before_spend = _spent(client) + _spent(getattr(state, "specialist_client", None))
         menu_msg = {"role": "user", "content": "[DCLab decision menu]\n" + json.dumps(menu.as_prompt_dict(), ensure_ascii=False)}
         try:
-            reply = client.complete([*messages, menu_msg], _choice_tools(menu), max_tokens=1200)
+            reply = client.complete([*messages, menu_msg], _choice_tools(menu, registry), max_tokens=1200)
         except Exception as exc:  # noqa: BLE001 - explicit typed failure on transport/budget exception
             obs = Observation(decision_id="dec_" + secrets.token_hex(5), choice="stop", tool=None, status="failed",
                               reason=f"model error: {type(exc).__name__}", evidence_refs=list(menu.evidence_refs),

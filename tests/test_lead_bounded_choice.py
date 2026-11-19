@@ -283,6 +283,41 @@ class ObservationLoopA2Tests(unittest.TestCase):
         self.assertEqual(nm_out["observations"][0]["blocked_reason"], "model_unavailable")
         self.assertEqual(nm_out["observations"][0]["committed_effects"], 0)
 
+    def test_bounded_loop_is_strict_capability_superset_and_never_reduces_existing_tools(self):
+        reg = default_registry()
+        frame = _delivery_frame(60)
+        table_view = {
+            "table": "delivery_time.csv",
+            "rows": len(frame),
+            "columns": [{"name": c, "kind": "numeric", "noticed": (["outcome-like name"] if c == "actual_minutes" else [])}
+                        for c in frame.columns],
+        }
+        # With table attached: ALL native Lead capabilities PLUS new agentic capabilities are exposed.
+        with_table = case_agent.CaseState(case=C.new("case-superset"), table=table_view, frame=frame)
+        menu_table = decision_loop.build_menu(with_table, reg, allow_a2=True)
+        ids_table = {o.id for o in menu_table.options}
+        for required in ("ask", "inspect", "note", "propose", "start", "request_build", "query", "answer", "dashboard", "preview_step", "compare", "stop"):
+            self.assertIn(required, ids_table)
+
+        # Without table attached: no-data 3-layer blueprint tool remains available!
+        no_table = case_agent.CaseState(case=C.new("case-nodata"), table=None, frame=None)
+        menu_nodata = decision_loop.build_menu(no_table, reg, allow_a2=True)
+        self.assertIn("blueprint", {o.id for o in menu_nodata.options})
+
+        # Native case_* tool calls (like case_note) execute cleanly through the bounded loop too.
+        with_table.case = C.hear(with_table.case, "We want to predict actual_minutes at order creation.")
+        native_client = _ScriptedClient([
+            {"content": "", "tool_calls": [{"id": "n1", "name": "case_note", "arguments": {
+                "field": "goal", "value": "Predict actual_minutes", "status": "said",
+                "quote": "predict actual_minutes at order creation"}}]},
+            {"content": "", "tool_calls": [{"id": "s1", "name": "choose_action", "arguments": {
+                "choice": "stop", "reason": "Goal recorded cleanly."}}]},
+        ])
+        out = decision_loop.run_bounded_turn(with_table, native_client, reg, [{"role": "user", "content": "hi"}])
+        self.assertEqual([o["choice"] for o in out["observations"]], ["note", "stop"])
+        self.assertEqual(out["observations"][0]["status"], "succeeded")
+        self.assertEqual(with_table.case.goal.value, "Predict actual_minutes")
+
 
 if __name__ == "__main__":
     unittest.main()
