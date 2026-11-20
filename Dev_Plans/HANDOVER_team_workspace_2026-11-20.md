@@ -38,7 +38,9 @@ owner's files: do not commit or change them.
 | W4 | Task store, action log, delivery outbox, migration 0026 | c970ffdb |
 | W2 | Teams, membership, permissions `contribute`, `approve_decision`, `contact_customers`; migration 0027 | e847bb8b |
 | W3 + W5 | Team threads and the shared handoff history (migration 0028); agent configurations, TeamGuard, deterministic agents, `job_description`, rules ledger | e06a49e6 |
-| W6 + W8 | Team memory scope (memory_item v3, dclab-core 0.165.0) and corrections; the team screens (Teams tab, Team inbox, task, report, history, job description) | see `git log` (committed 2026-11-20 evening) |
+| W6 + W8 | Team memory scope (memory_item v3, dclab-core 0.165.0) and corrections; the team screens (Teams tab, Team inbox, task, report, history, job description) | 3db2cbbb |
+| W6 follow-ups | Team memory routes (members only), the reconcile route for a failed correction fix-up, steady delivery timing tests (`failed_at`) | 6b089e8a |
+| W7 | Experience v18 team events and the ledger point `team.task_owner` (dclab-core 0.166.0); rename and remove teams (a team with open work is refused); `tests/test_team_acceptance.py`, the seven checks on files and PostgreSQL | 92527bda |
 
 **Reviews.** Every package had an independent review (`dclab-reviewer`). Each review found 2 to 10 issues, and all
 were fixed with tests. W6 had 7 findings, W8 had 2.
@@ -55,6 +57,9 @@ were fixed with tests. W6 had 7 findings, W8 had 2.
   owner.
 
 ## Left to do (in this order)
+
+**Update 2026-11-21:** items 1 and 2 are done (6b089e8a, 92527bda; W7's review found 4 issues, all fixed). Left: item 3
+(the browser test needs Chromium: ask the owner first), item 4 (the final gate) and item 5 (later releases).
 
 1. **W6 open items** (from its fixer):
    - No route yet exposes the team memory base.
