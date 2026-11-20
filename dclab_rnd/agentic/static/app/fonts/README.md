@@ -6,6 +6,7 @@ Font License 1.1 (the licence text sits next to each family).
 
 | Family | Files | Source |
 |---|---|---|
+| Google Sans Flex | `google-sans-flex-latin.woff2` | `@fontsource-variable/google-sans-flex` 5.3.2, the weight axis, Latin (the owner, 2026-11-20: the product's face; Google Sans itself is not open, its Flex version is) |
 | Inter | `inter-latin.woff2`, `inter-latin-ext.woff2` | `@fontsource-variable/inter` 5.3.0 (Inter 4, rsms/inter) |
 | Vazirmatn | `vazirmatn-arabic.woff2`, `vazirmatn-latin.woff2` | `@fontsource-variable/vazirmatn` 5.3.0 (rastikerdar/vazirmatn) |
 | Outfit | `outfit-variable.woff2` | google/fonts `ofl/outfit/Outfit[wght].ttf` at 1edf95b, as the TripsSource admin serves it (the design kit's titles and figures) |

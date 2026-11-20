@@ -363,6 +363,7 @@ DC.view('solution', {
       $('#sol-data', el).innerHTML = dataReal(p, F);
       $('#sol-memory', el).hidden = false;
       $('#sol-memory-body', el).innerHTML = memoryReal(p);
+      basesReal(p);
       decisionsReal(p);
       notesReal(p);
       const n = DC.$('.ptab[data-ptab="owner"] .n', el);
@@ -437,9 +438,58 @@ DC.view('solution', {
         + `<button type="button" class="link-btn small" data-forget="${esc(n.id)}">Remove</button></div>`).join('')
         + (gone ? `<div class="xs muted">${gone} removed note${gone === 1 ? '' : 's'} stay in the project log.</div>` : '');
     }
+    let activeProblemId = null, baseState = { project: null, problem: null };
+    async function basesReal(p) {
+      const panel = $('#sol-bases', el), body = $('#sol-bases-body', el), sel = $('#sol-prob-select', el);
+      if (!panel || !body || !sel) return;
+      panel.hidden = false;
+      try {
+        const listRes = await DC.client.projectProblemsList(p.id, { quiet: true });
+        const probs = (listRes && listRes.problems) || [];
+        if (!activeProblemId || !probs.some(x => x.problem_id === activeProblemId)) {
+          activeProblemId = (listRes && listRes.default_problem_id) || (probs[0] && probs[0].problem_id) || null;
+        }
+        sel.innerHTML = probs.length
+          ? probs.map(x => `<option value="${esc(x.problem_id)}"${x.problem_id === activeProblemId ? ' selected' : ''}>${esc(x.name || x.problem_id)}</option>`).join('')
+          : '<option value="">Default problem (save a fact to initialize)</option>';
+        const [projBase, probBase] = await Promise.all([
+          DC.client.projectMemoryBaseView(p.id, { query: { target: 'project' }, quiet: true }).catch(() => null),
+          activeProblemId ? DC.client.projectMemoryBaseView(p.id, { query: { target: 'problem', problem_id: activeProblemId }, quiet: true }).catch(() => null) : Promise.resolve(null),
+        ]);
+        baseState = { project: projBase, problem: probBase };
+        const renderCol = (target, label, view) => {
+          const rev = (view && view.revision) != null ? view.revision : 0;
+          const entries = (view && view.entries) || [];
+          const rowsHtml = entries.length ? entries.map(e => `<div class="list-item" data-base-entry="${esc(e.id)}" data-base-target="${esc(target)}" data-base-rev="${int(rev)}">
+              <div class="li-main">
+                <span class="small"><b>${esc(e.field || 'fact')}</b>: ${esc(e.text)}</span>
+                <span class="xs muted">rev ${int(e.effective_revision || 1)} · ${esc(e.author || e.source || 'user')}</span>
+              </div>
+              <div class="row" data-style="gap:4px">
+                <button type="button" class="link-btn small" data-base-correct="${esc(e.id)}" data-base-target="${esc(target)}">Correct</button>
+                <button type="button" class="link-btn small" data-base-retire="${esc(e.id)}" data-base-target="${esc(target)}">Retire</button>
+              </div>
+            </div>`).join('') : `<div class="empty">No active ${esc(target)} base facts yet.</div>`;
+          return `<div class="inset stack tight">
+            <div class="spread"><b>${esc(label)}</b><span class="pill outline mono">rev ${int(rev)}</span></div>
+            <div class="list">${rowsHtml}</div>
+            <div class="row" data-style="gap:6px;flex-wrap:wrap;margin-top:6px">
+              <input type="text" id="sol-bf-key-${esc(target)}" placeholder="${target === 'problem' ? 'field (e.g. prediction_moment)' : 'field (e.g. calendar)'}" data-style="flex:1;min-width:120px">
+              <input type="text" id="sol-bf-val-${esc(target)}" placeholder="Fact value…" data-style="flex:2;min-width:160px">
+              <button type="button" class="btn sm" data-base-add="${esc(target)}">Save</button>
+            </div>
+          </div>`;
+        };
+        body.innerHTML = renderCol('problem', 'Problem Base', probBase) + renderCol('project', 'Project Base', projBase);
+      } catch (e) {
+        body.innerHTML = `<div class="empty">Could not load memory bases: ${esc(e.message || 'error')}</div>`;
+      }
+    }
+
     function restoreSample() {
       if (stopPoll) { stopPoll(); stopPoll = null; }
       $('#sol-memory', el).hidden = true;
+      if ($('#sol-bases', el)) $('#sol-bases', el).hidden = true;
       if ($('#sol-decisions', el)) $('#sol-decisions', el).hidden = true;
       if ($('#sol-notes', el)) $('#sol-notes', el).hidden = true;  // 29.10: a sample page never carries a project's notes
       real = null;
@@ -558,6 +608,76 @@ DC.view('solution', {
         if (fresh) renderReal(fresh);
       } catch (err) { DC.toast(err.message, { ok: false }); }
     }
+    if ($('#sol-prob-select', el)) $('#sol-prob-select', el).addEventListener('change', e => { activeProblemId = e.target.value || null; if (real) basesReal(real); });
+    if ($('#sol-prob-new', el)) $('#sol-prob-new', el).addEventListener('click', () => {
+      if (!real) return;
+      DC.modal.open({
+        eyebrow: '<span class="eyebrow">Sibling problem</span>', title: 'Create a problem in this project', confirm: 'Create problem',
+        html: '<div class="field"><label for="np-name">Problem name</label><input id="np-name" type="text" placeholder="e.g. Delivery ETA at order creation"></div>',
+        onConfirm: () => {
+          const name = (document.getElementById('np-name') || {}).value || 'Untitled problem';
+          DC.client.projectProblemsCreate(real.id, { body: { name } })
+            .then(prob => { activeProblemId = prob.problem_id; DC.modal.close(); DC.toast(`Created problem: ${prob.name}`); basesReal(real); })
+            .catch(err => DC.toast(err.message, { ok: false }));
+          return false;
+        },
+      });
+    });
+    el.addEventListener('click', async e => {
+      if (!real) return;
+      const addBtn = e.target.closest('[data-base-add]');
+      if (addBtn) {
+        const target = addBtn.dataset.baseAdd;
+        const fKey = ($('#sol-bf-key-' + target, el) || {}).value || 'fact';
+        const fVal = ($('#sol-bf-val-' + target, el) || {}).value || '';
+        if (!fVal.trim()) { DC.toast('Write a fact value first.', { ok: false }); return; }
+        const rev = (baseState[target] && baseState[target].revision != null) ? baseState[target].revision : 0;
+        addBtn.disabled = true;
+        try {
+          await DC.client.projectMemoryBaseUpsert(real.id, { body: { target, problem_id: activeProblemId, field: fKey.trim(), text: fVal.trim(), expected_revision: rev } });
+          DC.toast(`Saved to ${target} base.`);
+          basesReal(real);
+        } catch (err) {
+          addBtn.disabled = false;
+          DC.toast(err.message || 'Conflict or validation error — reloaded', { ok: false });
+          basesReal(real);
+        }
+        return;
+      }
+      const corBtn = e.target.closest('[data-base-correct]');
+      if (corBtn) {
+        const entryId = corBtn.dataset.baseCorrect, target = corBtn.dataset.baseTarget;
+        const rev = (baseState[target] && baseState[target].revision != null) ? baseState[target].revision : 0;
+        DC.modal.open({
+          eyebrow: '<span class="eyebrow">Correct base fact</span>', title: 'Update fact with revision check', confirm: 'Save correction',
+          html: '<div class="field"><label for="cbf-text">Corrected value</label><textarea id="cbf-text" rows="2"></textarea></div>',
+          onConfirm: () => {
+            const text = (document.getElementById('cbf-text') || {}).value || '';
+            DC.client.projectMemoryBaseCorrect(real.id, entryId, { body: { target, problem_id: activeProblemId, text, expected_revision: rev, reason: 'ui_correction' } })
+              .then(() => { DC.modal.close(); DC.toast('Correction saved. Dependent advice marked stale.'); basesReal(real); })
+              .catch(err => { DC.toast(err.message, { ok: false }); basesReal(real); });
+            return false;
+          },
+        });
+        return;
+      }
+      const retBtn = e.target.closest('[data-base-retire]');
+      if (retBtn) {
+        const entryId = retBtn.dataset.baseRetire, target = retBtn.dataset.baseTarget;
+        const rev = (baseState[target] && baseState[target].revision != null) ? baseState[target].revision : 0;
+        retBtn.disabled = true;
+        try {
+          await DC.client.projectMemoryBaseRetire(real.id, entryId, { body: { target, problem_id: activeProblemId, expected_revision: rev, reason: 'ui_retire' } });
+          DC.toast('Fact retired.');
+          basesReal(real);
+        } catch (err) {
+          retBtn.disabled = false;
+          DC.toast(err.message, { ok: false });
+          basesReal(real);
+        }
+        return;
+      }
+    });
     el.addEventListener('click', e => { if (e.target.closest('[data-edit-solution]') && real) { audit = null; openEditor(real); } });
     el.addEventListener('click', e => {
       const f = e.target.closest('[data-forget]'); if (!f || !real) return;

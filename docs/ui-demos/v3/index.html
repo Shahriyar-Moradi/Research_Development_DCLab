@@ -1,0 +1,588 @@
+<title>DCLab UI v3</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a chat-first app. A slim sidebar (new chat, search, projects, recent chats; Library and Settings at the foot),
+   a quiet 44 px header, and one centred column. A project is a page with tabs, not a sidebar section. */
+:root{
+  --bg:#FAF9F7; --side:#F3F1ED; --surface:#FFFFFF; --sunken:#F5F3EF; --hover:#ECE9E3;
+  --text:#1F1D1A; --text-2:#5C5852; --muted:#8C877F; --line:#E7E3DC; --line-2:#D8D3CA;
+  --accent:#C15F3C; --accent-hover:#A94F30; --on-accent:#FFFFFF; --accent-soft:#F7E9E2;
+  --ok:#3B7A3E; --ok-bg:#ECF5EA; --warn:#94650F; --warn-bg:#FBF3E3; --bad:#A6331C; --bad-bg:#FAEAE6;
+  --shadow:0 1px 2px rgb(31 29 26 / .05), 0 12px 32px -16px rgb(31 29 26 / .16);
+  --serif:"Source Serif 4", Georgia, serif; --sans:Inter, system-ui, -apple-system, "Segoe UI", sans-serif; --mono:"JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#1C1B19; --side:#211F1D; --surface:#282623; --sunken:#23211F; --hover:#302D2A;
+  --text:#EEEBE6; --text-2:#C2BDB5; --muted:#8F8A82; --line:#36332F; --line-2:#45413C;
+  --accent:#D97757; --accent-hover:#E48B6D; --on-accent:#1C1B19; --accent-soft:#3A2A23;
+  --ok:#8CC489; --ok-bg:#1F2B1E; --warn:#E0B866; --warn-bg:#30281A; --bad:#EE9885; --bad-bg:#37221E;
+  --shadow:0 1px 2px rgb(0 0 0 / .3), 0 12px 32px -16px rgb(0 0 0 / .6); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#1C1B19; --side:#211F1D; --surface:#282623; --sunken:#23211F; --hover:#302D2A;
+  --text:#EEEBE6; --text-2:#C2BDB5; --muted:#8F8A82; --line:#36332F; --line-2:#45413C;
+  --accent:#D97757; --accent-hover:#E48B6D; --on-accent:#1C1B19; --accent-soft:#3A2A23;
+  --ok:#8CC489; --ok-bg:#1F2B1E; --warn:#E0B866; --warn-bg:#30281A; --bad:#EE9885; --bad-bg:#37221E;
+  --shadow:0 1px 2px rgb(0 0 0 / .3), 0 12px 32px -16px rgb(0 0 0 / .6); color-scheme:dark}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--text);font:14.5px/1.55 var(--sans);-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+.mono{font-family:var(--mono);font-size:.92em}
+.ic{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+
+/* ---------- shell ---------- */
+.app{display:grid;grid-template-columns:260px minmax(0,1fr);height:100%}
+.app.collapsed{grid-template-columns:0 minmax(0,1fr)}
+.app.collapsed .side{visibility:hidden}
+.side{background:var(--side);border-right:1px solid var(--line);display:flex;flex-direction:column;min-width:0;overflow:hidden;
+  padding:12px 10px max(12px,env(safe-area-inset-bottom,0px)) max(10px,env(safe-area-inset-left,0px))}
+.brand{display:flex;align-items:center;justify-content:space-between;padding:2px 6px 14px}
+.brand b{display:flex;align-items:center;gap:8px;font:600 18px var(--serif);letter-spacing:-.01em}
+.mark{width:22px;height:22px;border-radius:7px;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;font:700 10px var(--sans)}
+.iconbtn{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;color:var(--text-2)}
+.iconbtn:hover{background:var(--hover);color:var(--text)}
+.sitem{display:flex;align-items:center;gap:10px;width:100%;padding:7px 8px;border-radius:8px;color:var(--text-2);text-align:left;white-space:nowrap;text-decoration:none}
+.sitem:hover{background:var(--hover);color:var(--text)}
+.sitem.on{background:var(--surface);color:var(--text);box-shadow:0 0 0 1px var(--line)}
+.sitem .lbl{flex:1;overflow:hidden;text-overflow:ellipsis}
+.sitem .k{font:500 11px var(--mono);color:var(--muted)}
+.sitem.primary{color:var(--text);font-weight:500}
+.sitem.primary .plus{width:22px;height:22px;border-radius:50%;background:var(--accent);color:var(--on-accent);display:grid;place-items:center}
+.sitem.primary .plus .ic{width:13px;height:13px;stroke-width:2.2}
+.shead{font:500 12px var(--sans);color:var(--muted);padding:16px 8px 4px}
+.sscroll{flex:1;overflow:auto;min-height:0}
+.pdot{width:8px;height:8px;border-radius:3px;flex:none}
+.sfoot{border-top:1px solid var(--line);padding-top:8px;display:grid;gap:2px}
+.me{display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px}
+.avatar{width:26px;height:26px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font:600 11px var(--sans);flex:none}
+.me small{display:block;color:var(--muted);font-size:12px}
+
+.main{display:flex;flex-direction:column;min-width:0;height:100%;overflow:hidden}
+.top{height:48px;flex:none;display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:0 max(14px,env(safe-area-inset-right,0px)) 0 14px;border-bottom:1px solid transparent}
+.top.lined{border-bottom-color:var(--line)}
+.top .title{display:flex;align-items:center;gap:8px;min-width:0;font-weight:500}
+.top .title span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.top .title .sub{color:var(--muted);font-weight:400}
+.top .acts{display:flex;align-items:center;gap:4px}
+.scroll{flex:1;overflow:auto;min-height:0}
+.body{display:flex;min-height:100%}
+.col{flex:1;min-width:0}
+
+/* ---------- buttons, chips ---------- */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:10px;border:1px solid var(--line-2);background:var(--surface);font-weight:500;font-size:13.5px;white-space:nowrap}
+.btn:hover{background:var(--hover)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn.primary:hover{background:var(--accent-hover)}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--text-2)}
+.btn.ghost:hover{background:var(--hover);color:var(--text)}
+.btn.sm{padding:5px 10px;font-size:12.5px;border-radius:8px}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:2px 9px;border-radius:999px;background:var(--sunken);color:var(--text-2);border:1px solid var(--line);white-space:nowrap}
+.chip.ok{background:var(--ok-bg);color:var(--ok);border-color:transparent}
+.chip.warn{background:var(--warn-bg);color:var(--warn);border-color:transparent}
+.chip.bad{background:var(--bad-bg);color:var(--bad);border-color:transparent}
+.chip.acc{background:var(--accent-soft);color:var(--accent);border-color:transparent}
+
+/* ---------- new chat ---------- */
+.hero{max-width:720px;margin:0 auto;padding:min(16vh,140px) 20px 40px;display:grid;gap:22px}
+.hero h1{margin:0;text-align:center;font:400 clamp(28px,4vw,38px)/1.2 var(--serif);letter-spacing:-.015em;text-wrap:balance}
+.hero h1 .mk{display:inline-grid;vertical-align:-4px;margin-right:12px;width:30px;height:30px;border-radius:9px;background:var(--accent);color:var(--on-accent);place-items:center;font:700 12px var(--sans)}
+.starters{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.starter{display:inline-flex;align-items:center;gap:8px;padding:8px 13px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--text-2);font-size:13.5px}
+.starter:hover{background:var(--hover);color:var(--text)}
+.starter .ic{color:var(--muted)}
+.composer{background:var(--surface);border:1px solid var(--line-2);border-radius:20px;box-shadow:var(--shadow);padding:14px 14px 10px 18px;display:grid;gap:10px}
+.composer:focus-within{border-color:var(--muted)}
+.composer textarea{border:0;outline:0;resize:none;background:transparent;font:inherit;font-size:15.5px;color:var(--text);min-height:28px;width:100%}
+.composer textarea::placeholder{color:var(--muted)}
+.composer .bar{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.composer .left{display:flex;gap:4px;align-items:center}
+.send{width:34px;height:34px;border-radius:10px;background:var(--accent);color:var(--on-accent);display:grid;place-items:center}
+.send:hover{background:var(--accent-hover)}
+.send .ic{stroke-width:2.2}
+.attached{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--line);border-radius:10px;background:var(--sunken);font-size:13px;justify-self:start}
+.attached .ft{width:26px;height:26px;border-radius:6px;background:var(--ok-bg);color:var(--ok);display:grid;place-items:center;font:600 9px var(--mono)}
+.attached small{display:block;color:var(--muted);font-size:11.5px}
+.fine{text-align:center;color:var(--muted);font-size:12px}
+
+/* ---------- chat ---------- */
+.thread{max-width:740px;margin:0 auto;padding:28px 24px 24px;display:grid;gap:26px}
+.u{justify-self:end;max-width:82%;background:var(--sunken);border:1px solid var(--line);padding:10px 15px;border-radius:18px 18px 6px 18px}
+.a{display:grid;grid-template-columns:28px minmax(0,1fr);gap:12px;align-items:start}
+.a .mk{width:26px;height:26px;border-radius:8px;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;font:700 10px var(--sans);margin-top:1px}
+.a .txt{display:grid;gap:12px;min-width:0}
+.a p{margin:0}
+.a ul{margin:0;padding-left:20px;display:grid;gap:4px}
+.ask{border:1px solid var(--line);border-radius:14px;background:var(--surface);overflow:hidden}
+.ask .q{padding:12px 16px;font-weight:500}
+.ask .opts{display:grid;border-top:1px solid var(--line)}
+.ask .opt{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 16px;text-align:left;border-bottom:1px solid var(--line);color:var(--text-2)}
+.ask .opt:last-child{border-bottom:0}
+.ask .opt:hover{background:var(--sunken);color:var(--text)}
+.ask .opt .n{font:500 11px var(--mono);color:var(--muted);border:1px solid var(--line);border-radius:5px;padding:0 5px}
+.card-link{display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--surface);text-align:left;max-width:420px}
+.card-link:hover{border-color:var(--line-2);box-shadow:var(--shadow)}
+.card-link .ico{width:36px;height:36px;border-radius:9px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center}
+.card-link small{display:block;color:var(--muted);font-size:12px}
+.msg-acts{display:flex;gap:2px;color:var(--muted)}
+.msg-acts .iconbtn{width:28px;height:28px}
+.dock{position:sticky;bottom:0;background:linear-gradient(to bottom,transparent,var(--bg) 18px);padding:14px 24px max(14px,env(safe-area-inset-bottom,0px))}
+.dock .inner{max-width:740px;margin:0 auto;display:grid;gap:8px}
+.dock .composer{padding:10px 10px 8px 16px;border-radius:18px}
+.thinking{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px}
+.thinking i{width:6px;height:6px;border-radius:50%;background:var(--muted);animation:pulse 1.2s infinite}
+.thinking i:nth-child(2){animation-delay:.15s}.thinking i:nth-child(3){animation-delay:.3s}
+@keyframes pulse{0%,100%{opacity:.25}50%{opacity:1}}
+@media (prefers-reduced-motion:reduce){.thinking i{animation:none;opacity:.6}}
+
+/* side panel (the problem card, like an open artifact) */
+.panel{width:380px;flex:none;border-left:1px solid var(--line);background:var(--surface);display:flex;flex-direction:column;position:sticky;top:0;height:calc(100vh - 48px);max-height:100%}
+.panel[hidden]{display:none}
+.panel .ph{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--line)}
+.panel .ph b{font-weight:600}
+.panel .pb{padding:6px 18px 18px;overflow:auto;flex:1;display:grid;align-content:start}
+.fact{display:grid;gap:3px;padding:12px 0;border-bottom:1px solid var(--line)}
+.fact .k{font-size:12px;color:var(--muted);display:flex;justify-content:space-between}
+.fact .v{font-size:14px}
+.fact.miss .v{color:var(--warn)}
+.panel .pf{padding:14px 18px;border-top:1px solid var(--line);display:grid;gap:8px}
+.panel .pf p{margin:0;font-size:12.5px;color:var(--muted)}
+.meter{height:5px;border-radius:9px;background:var(--hover);overflow:hidden}
+.meter i{display:block;height:100%;background:var(--accent);border-radius:9px}
+
+/* ---------- project ---------- */
+.ptabs{display:flex;gap:4px;padding:0 20px;border-bottom:1px solid var(--line);overflow-x:auto;scrollbar-width:none;flex:none}
+.ptabs::-webkit-scrollbar{display:none}
+.ptab{padding:10px 10px 11px;color:var(--text-2);white-space:nowrap;position:relative;font-size:14px}
+.ptab:hover{color:var(--text)}
+.ptab.on{color:var(--text);font-weight:500}
+.ptab.on::after{content:"";position:absolute;left:10px;right:10px;bottom:-1px;height:2px;border-radius:2px;background:var(--text)}
+.ptab .new{font:600 9.5px var(--sans);letter-spacing:.06em;text-transform:uppercase;color:var(--accent);margin-left:5px;vertical-align:1px}
+.page{max-width:1000px;margin:0 auto;padding:28px 28px 64px;display:grid;gap:22px}
+.phead{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.phead h1{margin:0;font:500 30px/1.15 var(--serif);letter-spacing:-.015em}
+.phead p{margin:4px 0 0;color:var(--text-2);max-width:62ch}
+.phead .row{display:flex;gap:8px;align-items:center}
+.status{display:grid;gap:8px}
+.status .line{display:flex;justify-content:space-between;align-items:baseline;gap:12px;font-size:13.5px}
+.status .line b{font-weight:500}
+.status .line span{color:var(--muted)}
+.segs{display:grid;grid-template-columns:repeat(10,1fr);gap:4px}
+.segs i{height:6px;border-radius:3px;background:var(--line)}
+.segs i.d{background:var(--ok)} .segs i.n{background:var(--accent)}
+.needs{display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:14px 16px;border:1px solid var(--line);border-left:3px solid var(--warn);background:var(--surface);border-radius:12px}
+.needs .t{display:grid;gap:2px;min-width:0;flex:1 1 380px}
+.needs .t b{font-weight:600}
+.needs .t span{color:var(--text-2);font-size:13.5px}
+.needs .lab{font:600 11px var(--sans);letter-spacing:.06em;text-transform:uppercase;color:var(--warn)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.stat{padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:var(--surface);display:grid;gap:2px}
+.stat .v{font:500 24px/1.15 var(--sans);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.stat .v small{font-size:13px;color:var(--muted);font-weight:400}
+.stat .v.good{color:var(--ok)}
+.stat .l{font-size:12.5px;color:var(--text-2)}
+.box{border:1px solid var(--line);border-radius:14px;background:var(--surface);overflow:hidden}
+.box .bh{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:14px 18px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.box .bh h2{margin:0;font:600 15px var(--sans)}
+.box .bh span{font-size:12.5px;color:var(--muted)}
+.box .bb{padding:14px 18px}
+.two{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:16px}
+.steps{list-style:none;margin:0;padding:0;display:grid}
+.steps li{display:grid;grid-template-columns:22px 1fr auto;gap:10px;align-items:center;padding:8px 18px;border-bottom:1px solid var(--line);font-size:13.5px}
+.steps li:last-child{border-bottom:0}
+.steps .s{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:10px;font-weight:700;border:1px solid var(--line-2);color:var(--muted)}
+.steps li.d .s{background:var(--ok-bg);border-color:transparent;color:var(--ok)}
+.steps li.n{background:var(--accent-soft)} .steps li.n .s{background:var(--accent);border-color:transparent;color:var(--on-accent)}
+.steps li small{color:var(--muted);font-size:12px}
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th{text-align:left;font-weight:500;color:var(--muted);font-size:12px;padding:9px 18px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:10px 18px;border-bottom:1px solid var(--line);vertical-align:middle}
+tr:last-child td{border-bottom:0}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+td .s{display:block;color:var(--muted);font-size:12px}
+tr.pick td{background:var(--accent-soft)}
+.bar{display:flex;align-items:center;gap:8px;justify-content:flex-end}
+.bar i{display:block;height:6px;border-radius:3px;background:var(--accent);opacity:.75}
+.list{display:grid}
+.li{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:12px 18px;border-bottom:1px solid var(--line)}
+.li:last-child{border-bottom:0}
+.li b{font-weight:500}
+.li .s{color:var(--muted);font-size:12.5px}
+.cell{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface)}
+.cell .ch{display:flex;justify-content:space-between;padding:6px 12px;background:var(--sunken);border-bottom:1px solid var(--line);font:500 11.5px var(--mono);color:var(--muted)}
+.cell pre{margin:0;padding:12px 14px;font:13px/1.6 var(--mono);overflow-x:auto;color:var(--text)}
+.cell .flag{display:flex;gap:10px;align-items:flex-start;padding:10px 14px;border-top:1px solid var(--line);background:var(--bad-bg);color:var(--text);font-size:13px}
+.kw{color:var(--accent)} .cm{color:var(--muted)} .hl{background:var(--bad-bg);border-radius:3px;padding:0 2px}
+.search{display:flex;align-items:center;gap:10px;padding:10px 14px;border:1px solid var(--line-2);border-radius:12px;background:var(--surface);color:var(--muted)}
+.search input{border:0;outline:0;background:transparent;font:inherit;color:var(--text);flex:1}
+
+/* settings */
+.overlay{position:fixed;inset:0;background:rgb(20 18 16 / .32);display:grid;place-items:center;z-index:50;padding:16px}
+.overlay[hidden]{display:none}
+.modal{width:min(880px,100%);height:min(600px,100%);background:var(--surface);border-radius:16px;box-shadow:0 30px 80px -20px rgb(0 0 0 / .45);display:grid;grid-template-columns:200px 1fr;overflow:hidden}
+.mside{background:var(--side);padding:14px 10px;display:grid;align-content:start;gap:2px;border-right:1px solid var(--line)}
+.mside h3{margin:0 0 8px;padding:0 8px;font:600 15px var(--sans)}
+.mbody{padding:20px 24px;overflow:auto;display:grid;align-content:start;gap:18px}
+.mbody h2{margin:0;font:600 17px var(--sans)}
+.setrow{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 0;border-bottom:1px solid var(--line)}
+.setrow b{font-weight:500;display:block}
+.setrow small{color:var(--muted);font-size:12.5px}
+.seg{display:inline-flex;background:var(--sunken);border:1px solid var(--line);border-radius:9px;padding:3px;gap:2px}
+.seg button{padding:5px 12px;border-radius:7px;font-size:13px;color:var(--text-2)}
+.seg button.on{background:var(--surface);color:var(--text);box-shadow:0 1px 2px rgb(0 0 0 / .08)}
+
+/* demo chrome: version pill and "what changed" */
+.vpill{position:fixed;left:max(12px,env(safe-area-inset-left,0px));bottom:max(12px,env(safe-area-inset-bottom,0px));z-index:40;display:none}
+.whatbtn{position:fixed;right:max(14px,env(safe-area-inset-right,0px));bottom:max(14px,env(safe-area-inset-bottom,0px));z-index:40;
+  display:flex;align-items:center;gap:8px;padding:9px 14px;border-radius:999px;background:var(--text);color:var(--bg);font-size:13px;font-weight:500;box-shadow:var(--shadow)}
+.whatbtn .v{font:500 11px var(--mono);opacity:.7}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(440px,100%);background:var(--surface);z-index:60;box-shadow:-20px 0 60px -20px rgb(0 0 0 / .35);display:flex;flex-direction:column}
+.drawer[hidden]{display:none}
+.drawer .dh{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--line)}
+.drawer .db{padding:16px 20px 28px;overflow:auto;display:grid;gap:18px}
+.drawer h3{margin:0;font:600 13px var(--sans);letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.drawer ul{margin:0;padding:0;list-style:none;display:grid;gap:10px}
+.drawer li{display:grid;gap:2px;font-size:13.5px}
+.drawer li b{font-weight:500}
+.drawer li span{color:var(--text-2)}
+.verlist{display:grid;gap:6px}
+.ver{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font-size:13.5px;text-decoration:none}
+.ver.cur{border-color:var(--accent);background:var(--accent-soft)}
+.ver small{color:var(--muted)}
+
+@media (max-width:900px){.panel{position:fixed;right:0;top:48px;bottom:0;height:auto;z-index:30;box-shadow:var(--shadow);width:min(380px,100%)}.two{grid-template-columns:1fr}}
+@media (max-width:720px){
+  .app{grid-template-columns:0 minmax(0,1fr)} .app .side{visibility:hidden;position:fixed;inset:0 auto 0 0;width:280px;z-index:45;box-shadow:var(--shadow)}
+  .app.open-mobile .side{visibility:visible}
+  .modal{grid-template-columns:1fr} .mside{display:flex;overflow-x:auto;gap:4px} .mside h3{display:none}
+  .page{padding:20px 16px 72px} .thread{padding:20px 16px} .dock{padding-inline:16px}
+}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+  <symbol id="i-side" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 19V5"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></symbol>
+  <symbol id="i-paper" viewBox="0 0 24 24"><path d="m21.4 11.6-9.2 9.2a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></symbol>
+  <symbol id="i-card" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></symbol>
+  <symbol id="i-thumb" viewBox="0 0 24 24"><path d="M7 10v11M15 5.9 14 10h5.8a2 2 0 0 1 2 2.3l-1.4 8A2 2 0 0 1 18.4 22H7V10l4-8a3 3 0 0 1 4 3.9z"/></symbol>
+  <symbol id="i-retry" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 15.5-6.3L21 8M21 3v5h-5M21 12a9 9 0 0 1-15.5 6.3L3 16M3 21v-5h5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/></symbol>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M6 18l2.5-2.5M15.5 8.5 18 6"/></symbol>
+</svg>
+
+<div class="app" id="app">
+  <aside class="side" aria-label="Sidebar">
+    <div class="brand"><b><span class="mark">DC</span>DCLab</b><button class="iconbtn" id="collapse" type="button" aria-label="Hide sidebar"><svg class="ic"><use href="#i-side"/></svg></button></div>
+    <button class="sitem primary" type="button" data-go="new"><span class="plus"><svg class="ic"><use href="#i-plus"/></svg></span><span class="lbl">New chat</span><span class="k">⌘N</span></button>
+    <button class="sitem" type="button" data-go="library"><svg class="ic"><use href="#i-search"/></svg><span class="lbl">Search</span><span class="k">⌘K</span></button>
+    <div class="sscroll">
+      <div class="shead">Projects</div>
+      <div id="projects"></div>
+      <div class="shead">Recent chats</div>
+      <div id="chats"></div>
+    </div>
+    <div class="sfoot">
+      <button class="sitem" type="button" data-go="library"><svg class="ic"><use href="#i-book"/></svg><span class="lbl">Library</span></button>
+      <button class="sitem" type="button" id="open-settings"><svg class="ic"><use href="#i-gear"/></svg><span class="lbl">Settings</span></button>
+      <div class="me"><span class="avatar">SM</span><div><span>Shahriyar</span><small>Owner</small></div></div>
+    </div>
+  </aside>
+  <main class="main">
+    <div class="top" id="top"></div>
+    <div id="tabs"></div>
+    <div class="scroll" id="scroll"><div class="body"><div class="col" id="view"></div><aside class="panel" id="panel" hidden aria-label="Problem card"></aside></div></div>
+  </main>
+</div>
+
+<div class="overlay" id="settings" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-label="Settings">
+    <nav class="mside" id="set-nav"><h3>Settings</h3></nav>
+    <div class="mbody" id="set-body"></div>
+  </div>
+</div>
+
+<button class="whatbtn" type="button" id="what"><span>What changed</span><span class="v">UI v3</span></button>
+<aside class="drawer" id="drawer" hidden aria-label="What changed in v3">
+  <div class="dh"><b>UI demo v3 · 20 Nov 2026</b><button class="iconbtn" type="button" id="drawer-x" aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button></div>
+  <div class="db">
+    <p style="margin:0;color:var(--text-2)">A demo only: no product code is changed. The numbers are examples, shaped like the Telco churn project.</p>
+    <div><h3>Removed</h3><ul>
+      <li><b>The Data · Plan · Run · Evidence box above the chat</b><span>A conversation is not a pipeline. A project shows one status line instead.</span></li>
+      <li><b>exp/churn, Py3.11 · DuckDB, the top search box</b><span>Facts about the machine, not about the work. They live in Settings → Developer.</span></li>
+      <li><b>"Navigation", "Workspace", "Project pipeline" headers</b><span>The sidebar has two lists now: projects and recent chats.</span></li>
+      <li><b>Developer / Data science switch in the sidebar</b><span>Moved to Settings → General.</span></li>
+    </ul></div>
+    <div><h3>Moved</h3><ul>
+      <li><b>Compute & jobs</b><span>Settings → Jobs & usage. You look at it rarely; it does not need a sidebar line.</span></li>
+      <li><b>Workflow DAG, Datasets, Notebook, Leakage, Models</b><span>Tabs inside a project. The graph is still there: "Steps" on the project's Overview.</span></li>
+      <li><b>Evidence library, Research lab, Benchmark, Policy model</b><span>One "Library" entry. Research pages are for the team, not customers.</span></li>
+      <li><b>Intern (Autonomous Agent)</b><span>Not a separate page: "Let DCLab run it" is a choice inside the chat.</span></li>
+      <li><b>Domain packs, Integrations, Admin</b><span>Settings.</span></li>
+    </ul></div>
+    <div><h3>Added</h3><ul>
+      <li><b>Features tab</b><span>Every feature: how it is made, from which columns, whether it is known at prediction time, kept or dropped, and how much it helps.</span></li>
+      <li><b>A Claude-style chat</b><span>Centred column, solid composer at the bottom, questions you click to answer, and the problem card in a side panel you open.</span></li>
+    </ul></div>
+    <div><h3>Versions</h3><div class="verlist">
+      <a class="ver" href="https://claude.ai/artifact/SmaSQYpaaP7YF7c2wcddsN" target="_blank" rel="noopener"><span><b>v2</b> · Redesign, same layout, fixes</span><small>19 Nov</small></a>
+      <span class="ver cur"><span><b>v3</b> · Minimal, chat-first</span><small>this page</small></span>
+    </div><p style="margin:8px 0 0;font-size:12.5px;color:var(--muted)">v1 is the frozen product demo in <span class="mono">docs/product-demo</span> (tag demo-v1). The list of versions: <span class="mono">docs/ui-demos/README.md</span>.</p></div>
+  </div>
+</aside>
+
+<script>
+const $ = s => document.querySelector(s);
+const ic = n => `<svg class="ic"><use href="#i-${n}"/></svg>`;
+const PROJECTS = [
+  { id: 'churn', name: 'Churn', color: 'var(--accent)', sub: 'Telco customers' },
+  { id: 'topic', name: 'Topic', color: '#5B8DB8', sub: '' },
+  { id: 'fake', name: 'Is_fake', color: '#7A9A5B', sub: '' },
+];
+const CHATS = ['Customers decreasing', 'Make a report', 'Delivery ETA model', 'Risky accounts', 'Fraud detection'];
+const TABS = [['overview', 'Overview'], ['data', 'Data'], ['features', 'Features', true], ['leakage', 'Leakage'], ['models', 'Models'], ['evidence', 'Evidence'], ['notebook', 'Notebook']];
+let route = { v: 'chat', tab: 'overview' }, panelOpen = true, askAnswered = false;
+
+function sidebar() {
+  $('#projects').innerHTML = PROJECTS.map(p => `<button class="sitem${route.v === 'project' && p.id === 'churn' ? ' on' : ''}" type="button" data-go="project" data-p="${p.id}"><span class="pdot" style="background:${p.color}"></span><span class="lbl">${p.name}</span></button>`).join('')
+    + `<button class="sitem" type="button" data-go="new" style="color:var(--muted)">${ic('plus')}<span class="lbl">New project</span></button>`;
+  $('#chats').innerHTML = CHATS.map((c, i) => `<button class="sitem${route.v === 'chat' && i === 0 ? ' on' : ''}" type="button" data-go="chat"><span class="lbl">${c}</span></button>`).join('');
+  document.querySelectorAll('.sfoot [data-go="library"]').forEach(b => b.classList.toggle('on', route.v === 'library'));
+}
+
+function top() {
+  const t = $('#top');
+  const side = `<button class="iconbtn" type="button" data-toggle-side aria-label="Show sidebar">${ic('side')}</button>`;
+  if (route.v === 'new') { t.className = 'top'; t.innerHTML = `<div class="title">${side}</div><div class="acts"></div>`; return; }
+  if (route.v === 'chat') {
+    t.className = 'top';
+    t.innerHTML = `<div class="title">${side}<span>Customers decreasing</span></div><div class="acts"><button class="btn ghost sm" type="button" data-panel>${ic('card')} Problem card</button><button class="iconbtn" type="button" aria-label="More">${ic('more')}</button></div>`;
+    return;
+  }
+  if (route.v === 'project') {
+    t.className = 'top';
+    t.innerHTML = `<div class="title">${side}<span class="pdot" style="background:var(--accent)"></span><span>Churn</span><span class="sub">· Telco customers</span></div><div class="acts"><button class="btn ghost sm" type="button" data-go="chat">Ask about this project</button><button class="iconbtn" type="button" aria-label="More">${ic('more')}</button></div>`;
+    return;
+  }
+  t.className = 'top lined'; t.innerHTML = `<div class="title">${side}<span>Library</span></div><div class="acts"></div>`;
+}
+
+function tabs() {
+  const el = $('#tabs');
+  if (route.v !== 'project') { el.innerHTML = ''; return; }
+  el.innerHTML = `<nav class="ptabs" aria-label="Project">${TABS.map(([k, l, isNew]) => `<button class="ptab${route.tab === k ? ' on' : ''}" type="button" data-tab="${k}">${l}${isNew ? '<span class="new">new</span>' : ''}</button>`).join('')}</nav>`;
+}
+
+/* ---------- views ---------- */
+const V = {};
+V.new = () => `<div class="hero">
+  <h1><span class="mk">DC</span>What should we solve today, Shahriyar?</h1>
+  <div class="composer">
+    <textarea id="ta" rows="2" aria-label="Describe what you need" placeholder="Describe a decision, a question, or a model you need…"></textarea>
+    <div class="bar"><div class="left"><button class="btn ghost sm" type="button">${ic('paper')} Attach data</button><button class="btn ghost sm" type="button">No data yet</button></div>
+      <button class="send" type="button" aria-label="Send" data-go="chat">${ic('up')}</button></div>
+  </div>
+  <div class="starters">
+    <button class="starter" type="button" data-go="chat">${ic('chart')}Predict who will leave</button>
+    <button class="starter" type="button" data-go="chat">${ic('spark')}Find what drives sales</button>
+    <button class="starter" type="button" data-go="chat">${ic('shield')}Check my notebook for leaks</button>
+  </div>
+</div>`;
+
+V.chat = () => `<div class="thread">
+  <div class="u">I have face decreasing the customers, help me</div>
+  <div class="a"><span class="mk">DC</span><div class="txt">
+    <p>Losing customers is stressful. Let's find where it hurts most, then decide who to contact first.</p>
+    <p>One question decides the whole approach:</p>
+    <div class="ask">
+      <div class="q">Is the drop mostly old customers who stopped buying, or fewer new customers coming in?</div>
+      <div class="opts">
+        <button class="opt" type="button" data-answer><span>Old customers stopped buying</span><span class="n">1</span></button>
+        <button class="opt" type="button" data-answer><span>Fewer new customers</span><span class="n">2</span></button>
+        <button class="opt" type="button" data-answer><span>Not sure, look at my data</span><span class="n">3</span></button>
+      </div>
+    </div>
+    <div class="msg-acts"><button class="iconbtn" type="button" aria-label="Copy">${ic('copy')}</button><button class="iconbtn" type="button" aria-label="Good answer">${ic('thumb')}</button><button class="iconbtn" type="button" aria-label="Try again">${ic('retry')}</button></div>
+  </div></div>
+  ${askAnswered ? `<div class="u">Old customers stopped buying</div>
+  <div class="a"><span class="mk">DC</span><div class="txt">
+    <p>Then this is a <b>churn</b> problem: predict which current customers are about to stop, early enough to act.</p>
+    <p>I wrote down what I understood. Check it, and connect your customer table when you're ready:</p>
+    <button class="card-link" type="button" data-panel><span class="ico">${ic('card')}</span><span><b>Problem card</b><small>Goal, decision, data · 1 thing missing</small></span></button>
+    <div class="attached"><span class="ft">CSV</span><span>WA_Fn-UseC_-Telco-Customer-Churn.csv<small>7,043 rows · 21 columns · read</small></span></div>
+    <p>The table is read. The outcome is <span class="mono">Churn</span>, and <span class="mono">customerID</span> is an identifier, so I'll keep it out of the model. Ready to build the project?</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" type="button" data-go="project">Build the project</button><button class="btn" type="button">Let DCLab run it end to end</button></div>
+  </div></div>` : ''}
+</div>
+<div class="dock"><div class="inner">
+  <div class="composer"><textarea rows="1" aria-label="Reply" placeholder="Reply to DCLab…"></textarea>
+    <div class="bar"><div class="left"><button class="iconbtn" type="button" aria-label="Attach data">${ic('paper')}</button></div><button class="send" type="button" aria-label="Send">${ic('up')}</button></div></div>
+  <div class="fine">DCLab's code checks every number and step. The model can still be wrong.</div>
+</div></div>`;
+
+function panel() {
+  const p = $('#panel');
+  if (route.v !== 'chat' || !panelOpen) { p.hidden = true; return; }
+  p.hidden = false;
+  const data = askAnswered ? ['Telco churn table · 7,043 rows', false] : ['Not connected yet', true];
+  p.innerHTML = `<div class="ph"><b>Problem card</b><button class="iconbtn" type="button" data-panel aria-label="Close">${ic('x')}</button></div>
+  <div class="pb">
+    <div class="fact"><span class="k">Goal</span><span class="v">Keep customers who are about to stop buying</span></div>
+    <div class="fact"><span class="k">Decision <span>assumed</span></span><span class="v">Who gets a call or an offer first, within the team's capacity</span></div>
+    <div class="fact"><span class="k">Who uses it</span><span class="v">The retention team</span></div>
+    <div class="fact${data[1] ? ' miss' : ''}"><span class="k">Data</span><span class="v">${data[0]}</span></div>
+    <div class="fact${askAnswered ? '' : ' miss'}"><span class="k">Still open</span><span class="v">${askAnswered ? 'How many customers the team can contact a month' : 'Old customers leaving, or fewer new ones?'}</span></div>
+    <div class="fact" style="border-bottom:0"><span class="k">Spend <span class="mono">€0.04 / €1.50</span></span><div class="meter"><i style="width:3%"></i></div></div>
+  </div>
+  <div class="pf">${askAnswered ? '<button class="btn primary" type="button" data-go="project">Build the project</button><p>The open question can be answered later; it sets the threshold, not the model.</p>'
+    : '<button class="btn primary" type="button" disabled>Build the project</button><p>Answer the question and connect a table, or build a plan without data.</p>'}</div>`;
+}
+
+const SEG = i => (i < 7 ? 'd' : i === 7 ? 'n' : '');
+V.project = () => ({
+  overview: `<div class="page">
+    <div class="phead"><div><h1>Churn</h1><p>Predict which Telco customers will leave next month, so the retention team calls them first.</p></div>
+      <div class="row"><button class="btn" type="button" data-tab="notebook">Open notebook</button><button class="btn primary" type="button" data-tab="evidence">Review evidence</button><button class="iconbtn" type="button" aria-label="More: rerun, delete">${ic('more')}</button></div></div>
+    <div class="status"><div class="line"><b>Step 8 of 10 · Tuning</b><span>Training is done. The held-back cases were scored once.</span></div><div class="segs">${Array.from({ length: 10 }, (_, i) => `<i class="${SEG(i)}"></i>`).join('')}</div></div>
+    <div class="needs"><div class="t"><span class="lab">Needs you</span><b>Scoring the held-back cases again would flatter the result.</b><span>They were used once already. To run the final stage again, give a written reason.</span></div><button class="btn" type="button">Give a reason</button></div>
+    <div class="stats">
+      <div class="stat"><span class="v">0.842</span><span class="l">ROC-AUC on held-back cases</span></div>
+      <div class="stat"><span class="v">71<small>%</small></span><span class="l">of leavers found in the top 30%</span></div>
+      <div class="stat"><span class="v">0</span><span class="l">unsafe moves blocked</span></div>
+    </div>
+    <div class="two">
+      <div class="box"><div class="bh"><h2>Steps</h2><span>each move checked before it runs</span></div><ol class="steps">${[['Solution', 'signed'], ['Source', '7,043 rows'], ['Split', 'by customer, 20% held back'], ['Explore', 'training rows only'], ['Leakage', '1 column removed'], ['Features', '24 kept of 31'], ['Screen', '5 model families'], ['Tuning', 'in progress'], ['Held-back test', 'after tuning'], ['Capture', 'lessons for next time']].map(([n, s], i) => `<li class="${SEG(i)}"><span class="s">${i < 7 ? '✓' : i + 1}</span><span>${n}</span><small>${s}</small></li>`).join('')}</ol></div>
+      <div class="box"><div class="bh"><h2>Recent</h2></div><div class="list">${[['SM', 'Signed the solution', '2 Nov'], ['DC', 'Removed customerID: an identifier', '2 Nov'], ['DC', 'Chose gradient boosting by the declared rule', '3 Nov'], ['SM', 'Approved the features', '3 Nov']].map(([w, t, d]) => `<div class="li"><span class="avatar">${w}</span><span>${t}</span><span class="s">${d}</span></div>`).join('')}</div></div>
+    </div>
+  </div>`,
+  data: `<div class="page">
+    <div class="phead"><div><h1>Data</h1><p>One table, read on 2 Nov. Each column's role decides whether a model may use it.</p></div><div class="row"><button class="btn" type="button">Replace table</button></div></div>
+    <div class="stats"><div class="stat"><span class="v">7,043</span><span class="l">customers (rows)</span></div><div class="stat"><span class="v">21</span><span class="l">columns</span></div><div class="stat"><span class="v">26.5<small>%</small></span><span class="l">left (the outcome rate)</span></div><div class="stat"><span class="v">11</span><span class="l">missing values · TotalCharges</span></div></div>
+    <div class="box"><div class="bh"><h2>Columns</h2><span>known at the moment of prediction?</span></div><div class="tablewrap"><table><thead><tr><th>Column</th><th>Type</th><th>Role</th><th>Known in time</th><th class="num">Missing</th></tr></thead><tbody>
+      ${[['customerID', 'text', 'identifier', 'chip', 'not used', '0'], ['Churn', 'yes/no', 'outcome', 'chip acc', 'outcome', '0'], ['tenure', 'number', 'input', 'chip ok', 'yes', '0'], ['Contract', 'category', 'input', 'chip ok', 'yes', '0'], ['MonthlyCharges', 'number', 'input', 'chip ok', 'yes', '0'], ['TotalCharges', 'number', 'input', 'chip ok', 'yes', '11'], ['PaymentMethod', 'category', 'input', 'chip ok', 'yes', '0'], ['InternetService', 'category', 'input', 'chip ok', 'yes', '0']]
+        .map(([c, t, r, cls, k, m]) => `<tr><td class="mono">${c}</td><td>${t}</td><td>${r}</td><td><span class="${cls}">${k}</span></td><td class="num">${m}</td></tr>`).join('')}
+    </tbody></table></div></div>
+  </div>`,
+  features: `<div class="page">
+    <div class="phead"><div><h1>Features</h1><p>What the model learns from: each feature, how it is made, and whether it is known when the prediction is made.</p></div><div class="row"><button class="btn" type="button">Suggest a feature</button></div></div>
+    <div class="stats"><div class="stat"><span class="v">24 <small>/ 31</small></span><span class="l">features kept</span></div><div class="stat"><span class="v">6</span><span class="l">made from your columns</span></div><div class="stat"><span class="v">7</span><span class="l">dropped, each with a reason</span></div><div class="stat"><span class="v good">+0.017</span><span class="l">ROC-AUC from made features</span></div></div>
+    <div class="box"><div class="bh"><h2>Recipes compared</h2><span>same folds, training rows only · the rule was set before the run</span></div><div class="tablewrap"><table><thead><tr><th>Recipe</th><th>What it adds</th><th class="num">Features</th><th class="num">ROC-AUC</th></tr></thead><tbody>
+      <tr><td>Raw columns</td><td>your columns, encoded</td><td class="num">19</td><td class="num">0.823</td></tr>
+      <tr class="pick"><td>Ratios <span class="chip acc">chosen</span></td><td>spend per month of tenure, services count</td><td class="num">24</td><td class="num">0.840</td></tr>
+      <tr><td>Ratios + interactions</td><td>contract × payment pairs</td><td class="num">31</td><td class="num">0.838</td></tr>
+    </tbody></table></div></div>
+    <div class="box"><div class="bh"><h2>Features</h2><span>importance from the chosen model</span></div><div class="tablewrap"><table><thead><tr><th>Feature</th><th>Made from</th><th>Known in time</th><th>Status</th><th class="num">Importance</th></tr></thead><tbody>
+      ${[['contract_is_monthly', 'Contract', 'kept', 31], ['tenure', 'tenure', 'kept', 24], ['charges_per_month_of_tenure', 'TotalCharges ÷ tenure', 'kept', 15], ['n_services', '9 service columns', 'kept', 9], ['electronic_check', 'PaymentMethod', 'kept', 7], ['fiber_without_support', 'InternetService, TechSupport', 'kept', 5]]
+        .map(([f, s, st, w]) => `<tr><td class="mono">${f}</td><td>${s}</td><td><span class="chip ok">yes</span></td><td><span class="chip">${st}</span></td><td class="num"><span class="bar"><i style="width:${w * 2.4}px"></i>${w}%</span></td></tr>`).join('')}
+      <tr><td class="mono">customerID</td><td>customerID</td><td><span class="chip">—</span></td><td><span class="chip bad">dropped</span><span class="s">an identifier, not a signal</span></td><td class="num">—</td></tr>
+      <tr><td class="mono">total_x_monthly</td><td>TotalCharges × MonthlyCharges</td><td><span class="chip ok">yes</span></td><td><span class="chip warn">dropped</span><span class="s">no gain on the folds</span></td><td class="num">—</td></tr>
+    </tbody></table></div></div>
+  </div>`,
+  leakage: `<div class="page">
+    <div class="phead"><div><h1>Leakage</h1><p>A column is judged by when its value is written, not by its name or its score.</p></div></div>
+    <div class="stats"><div class="stat"><span class="v">21</span><span class="l">columns checked</span></div><div class="stat"><span class="v">1</span><span class="l">removed: customerID</span></div><div class="stat"><span class="v">0</span><span class="l">waiting for your answer</span></div><div class="stat"><span class="v good">✓</span><span class="l">leak detector caught its planted test column</span></div></div>
+    <div class="box"><div class="bh"><h2>Worth a look</h2><span>the checks only flag; the solution decides</span></div><div class="list">
+      <div class="li"><span class="chip bad">removed</span><span><b class="mono">customerID</b><span class="s"> · a unique code per customer: it cannot predict, only memorise</span></span><span class="s">rule R05</span></div>
+      <div class="li"><span class="chip ok">allowed</span><span><b class="mono">TotalCharges</b><span class="s"> · grows with tenure, but it is known before the month starts</span></span><span class="s">checked</span></div>
+      <div class="li"><span class="chip ok">allowed</span><span><b class="mono">Contract</b><span class="s"> · strong signal; written when the customer signed</span></span><span class="s">checked</span></div>
+    </div></div>
+  </div>`,
+  models: `<div class="page">
+    <div class="phead"><div><h1>Models</h1><p>Five model families on the same folds, ranked by a rule written before the run.</p></div><div class="row"><button class="btn" type="button">Choose a different model…</button></div></div>
+    <div class="needs" style="border-left-color:var(--ok)"><div class="t"><span class="lab" style="color:var(--ok)">Chosen</span><b>Gradient boosting, by the declared rule</b><span>Runner-up: logistic regression, 0.005 behind and easier to explain.</span></div><button class="btn" type="button">Why this one?</button></div>
+    <div class="box"><div class="bh"><h2>Screen</h2><span>5 folds · mean − 0.25 × spread, then fit time</span></div><div class="tablewrap"><table><thead><tr><th>Family</th><th class="num">ROC-AUC</th><th class="num">Spread</th><th class="num">Score used</th><th class="num">Fit time</th></tr></thead><tbody>
+      ${[['Gradient boosting', '0.840', '0.011', '0.837', '3.1 s', 1], ['Logistic regression', '0.836', '0.009', '0.834', '0.4 s'], ['Random forest', '0.829', '0.012', '0.826', '2.2 s'], ['Extra trees', '0.818', '0.014', '0.815', '1.9 s'], ['k-nearest neighbours', '0.781', '0.016', '0.777', '0.9 s']]
+        .map(r => `<tr class="${r[5] ? 'pick' : ''}"><td>${r[0]}${r[5] ? ' <span class="chip acc">chosen</span>' : ''}</td><td class="num">${r[1]}</td><td class="num">±${r[2]}</td><td class="num">${r[3]}</td><td class="num">${r[4]}</td></tr>`).join('')}
+    </tbody></table></div></div>
+  </div>`,
+  evidence: `<div class="page">
+    <div class="phead"><div><h1>Evidence</h1><p>The held-back cases, scored once, and what they mean for the retention team.</p></div><div class="row"><button class="btn primary" type="button">Open the decision brief</button></div></div>
+    <div class="stats"><div class="stat"><span class="v">0.842 <small>0.82–0.86</small></span><span class="l">ROC-AUC, 95% interval · 1,409 customers</span></div><div class="stat"><span class="v">71<small>%</small></span><span class="l">of leavers in the top 30% of the list</span></div><div class="stat"><span class="v">€38k</span><span class="l">kept a month at 600 calls · if offers work as assumed</span></div></div>
+    <div class="box"><div class="bh"><h2>What the team should know</h2></div><div class="bb" style="display:grid;gap:10px">
+      <p style="margin:0">Call month-to-month customers in their first year first: they make up most of the list's top.</p>
+      <p style="margin:0">The money figure assumes one call in four keeps a customer. Measure that before trusting it.</p>
+      <p style="margin:0;color:var(--muted)">Not production-ready from this test alone: check it on next month's customers first.</p>
+    </div></div>
+  </div>`,
+  notebook: `<div class="page">
+    <div class="phead"><div><h1>Notebook</h1><p>Your code, read cell by cell against the solution. Findings appear under the cell they concern.</p></div><div class="row"><button class="btn" type="button">Export .ipynb</button><button class="btn primary" type="button">Run all</button></div></div>
+    <div class="cell"><div class="ch"><span>cell 2</span><span>python</span></div><pre><span class="kw">import</span> pandas <span class="kw">as</span> pd
+df = pd.read_csv(<span class="cm">"telco_churn.csv"</span>)
+X = df.drop(columns=[<span class="cm">"Churn"</span>])</pre>
+      <div class="flag"><span class="chip bad">high</span><span><b class="mono">customerID</b> is still in X. It is an identifier: drop it, or the score will look better than it is. <a href="#" onclick="return false">Apply the fix</a></span></div></div>
+    <div class="cell"><div class="ch"><span>cell 3</span><span>python</span></div><pre><span class="kw">from</span> sklearn.model_selection <span class="kw">import</span> train_test_split
+X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=<span class="kw">0.2</span>, stratify=y, random_state=<span class="kw">7</span>)</pre></div>
+  </div>`,
+})[route.tab];
+
+V.library = () => `<div class="page">
+  <div class="phead"><div><h1>Library</h1><p>What DCLab has learned from past projects and research, with its sources. Search it, or open a record.</p></div></div>
+  <label class="search">${ic('search')}<input type="search" placeholder="Search rules, lessons and experiments…" aria-label="Search the library"></label>
+  <div class="box"><div class="list">${[['Rule', 'DCLAB-R05', 'A suspicious name starts a review. It does not prove a leak.'], ['Rule', 'DCLAB-R18', 'Metrics and thresholds come from the decision cost.'], ['Lesson', 'LES-012', 'Identifier columns look predictive on small tables; drop them before the screen.'], ['Experiment', 'EXP-009', 'Ratios beat raw columns on 7 of 10 tabular datasets.'], ['Experiment', 'EXP-006', 'Leakage audit on bank marketing: duration inflates ROC-AUC by 0.19.']]
+    .map(([t, id, s]) => `<div class="li"><span class="chip">${t}</span><span><b class="mono">${id}</b><span class="s"> · ${s}</span></span><span class="s">open</span></div>`).join('')}</div></div>
+  <p style="margin:0;color:var(--muted);font-size:13px">164 records. Research lab, Benchmark and Policy model open from here for the team.</p>
+</div>`;
+
+/* ---------- settings ---------- */
+const SET = {
+  General: `<h2>General</h2>
+    <div class="setrow"><div><b>Look</b><small>Data science is chat-first; Developer shows every table and log.</small></div><div class="seg"><button class="on" type="button">Data science</button><button type="button">Developer</button></div></div>
+    <div class="setrow"><div><b>Theme</b><small>Follows your computer unless you choose.</small></div><div class="seg"><button class="on" type="button">Auto</button><button type="button">Light</button><button type="button">Dark</button></div></div>`,
+  'Jobs & usage': `<h2>Jobs & usage</h2>
+    <div class="stats"><div class="stat"><span class="v">0</span><span class="l">running now</span></div><div class="stat"><span class="v">€1.27</span><span class="l">model spend this month</span></div><div class="stat"><span class="v">68 <small>s</small></span><span class="l">compute this month</span></div></div>
+    <div class="box"><div class="list">${[['Churn · models stage', 'done', '3.1 s', 'Nov 3'], ['Delivery ETA · synthetic data', 'done', '2.0 s', 'Nov 14'], ['Risky accounts · data pipeline', 'done', '3.0 s', 'Nov 13']].map(([n, s, t, d]) => `<div class="li"><span class="chip ok">${s}</span><span>${n}</span><span class="s">${t} · ${d}</span></div>`).join('')}</div></div>`,
+  Models: `<h2>Models</h2><div class="setrow"><div><b>Chat model</b><small>Used for the conversation. Checks and numbers are always code.</small></div><span class="chip">Qwen 3.8 Flash</span></div><div class="setrow"><div><b>Monthly cap</b><small>Model calls stop at this amount.</small></div><span class="chip">€20</span></div>`,
+  Connections: `<h2>Connections</h2><div class="setrow"><div><b>Kaggle, Hugging Face, databases, S3</b><small>Credentials stay on the server.</small></div><button class="btn sm" type="button">Add</button></div><div class="setrow"><div><b>MCP endpoint</b><small>Use DCLab from Claude Code or any MCP client.</small></div><span class="mono">127.0.0.1:8765/mcp</span></div>`,
+  'Members': `<h2>Members</h2><div class="setrow"><div><b>Shahriyar</b><small>Owner</small></div></div><div class="setrow"><div><b>Ava</b><small>ML engineer</small></div></div><button class="btn sm" type="button" style="justify-self:start">Invite</button>`,
+  Developer: `<h2>Developer</h2><div class="setrow"><div><b>Runtime</b><small>Where code runs.</small></div><span class="mono">Python 3.11 · DuckDB · this machine</span></div><div class="setrow"><div><b>Domain packs, Admin, Audit</b><small>For the people who run DCLab.</small></div><button class="btn sm" type="button">Open</button></div>`,
+};
+let setTab = 'General';
+function settings() {
+  $('#set-nav').innerHTML = '<h3>Settings</h3>' + Object.keys(SET).map(k => `<button class="sitem${k === setTab ? ' on' : ''}" type="button" data-set="${k}"><span class="lbl">${k}</span></button>`).join('');
+  $('#set-body').innerHTML = SET[setTab];
+}
+
+/* ---------- render + events ---------- */
+function render() {
+  sidebar(); top(); tabs();
+  $('#view').innerHTML = route.v === 'project' ? V.project() : V[route.v]();
+  panel();
+  $('#scroll').scrollTop = 0;
+  try { history.replaceState(null, '', '#' + (route.v === 'project' ? 'project-' + route.tab : route.v)); } catch (e) {}
+}
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-go],[data-tab],[data-panel],[data-answer],[data-set],[data-toggle-side],#open-settings,#what,#drawer-x,#collapse');
+  if (!t) { if (e.target.id === 'settings') $('#settings').hidden = true; return; }
+  if (t.dataset.go) { route = { v: t.dataset.go, tab: 'overview' }; $('#app').classList.remove('open-mobile'); render(); }
+  else if (t.dataset.tab) { route = { v: 'project', tab: t.dataset.tab }; render(); }
+  else if (t.hasAttribute('data-panel')) { panelOpen = !panelOpen; panel(); }
+  else if (t.hasAttribute('data-answer')) { askAnswered = true; panelOpen = true; render(); }
+  else if (t.dataset.set) { setTab = t.dataset.set; settings(); }
+  else if (t.hasAttribute('data-toggle-side')) { const a = $('#app'); if (innerWidth <= 720) a.classList.toggle('open-mobile'); else a.classList.remove('collapsed'); }
+  else if (t.id === 'collapse') $('#app').classList.add('collapsed');
+  else if (t.id === 'open-settings') { settings(); $('#settings').hidden = false; }
+  else if (t.id === 'what') $('#drawer').hidden = false;
+  else if (t.id === 'drawer-x') $('#drawer').hidden = true;
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { $('#settings').hidden = true; $('#drawer').hidden = true; } });
+(function start() {
+  const h = (location.hash || '').slice(1);
+  if (h.startsWith('project-')) route = { v: 'project', tab: h.slice(8) || 'overview' };
+  else if (['new', 'chat', 'library'].includes(h)) route = { v: h, tab: 'overview' };
+  if (route.v === 'project' && !TABS.some(([k]) => k === route.tab)) route.tab = 'overview';
+  render();
+})();
+</script>

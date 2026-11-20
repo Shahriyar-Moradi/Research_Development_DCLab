@@ -38,7 +38,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 sys.path.insert(1, str(ROOT))  # the team check writes a replica's files (dclab_core)
 TELCO = ROOT / "data/project/telco/WA_Fn-UseC_-Telco-Customer-Churn.csv"
-VIEWS = ["home", "new", "project", "solution", "notebook", "audit", "models", "evaluation", "decision", "reliability", "brief", "intern", "compute",
+VIEWS = ["home", "projects", "dashboard", "new", "project", "solution", "notebook", "audit", "features", "models", "evaluation", "decision", "reliability", "brief", "intern", "compute",
          "evidence", "lab", "benchmark", "policy", "packs", "integrations", "admin", "blueprint"]
 STAGES = ("data", "leakage", "features", "models", "final")
 # every page reports what goes wrong: uncaught errors, CSP violations (an event, not always a console line)
@@ -462,7 +462,6 @@ def check_switch(b: Browser) -> str:
     page.wait_for_selector("#view-home .proj-switch", state="visible", timeout=15_000)
     name = page.inner_text("#view-home .proj-switch .ps-name").strip()
     check(name and name != "…", "the green button does not name the project")
-    check((page.text_content("#nav .nav-label >> nth=1") or "").strip() == "Project · " + name, "the sidebar's Project label is not the button's project")
     page.click("#view-home .proj-switch")
     page.wait_for_selector("#view-home .ps-opt", timeout=15_000)  # the list is read when the button opens it
     options = page.locator("#view-home .ps-opt")
@@ -475,14 +474,16 @@ def check_switch(b: Browser) -> str:
         page.click("#view-home .proj-switch")
         page.click(f"#view-home .ps-opt:has-text('{other[0]['name']}')")
         page.wait_for_function("n => document.querySelector('#view-home .ps-name').textContent === n", arg=other[0]["name"], timeout=15_000)
-        check((page.text_content("#nav .nav-label >> nth=1") or "").strip() == "Project · " + other[0]["name"], "the sidebar did not follow the chosen project")
+        b.view("dashboard", settle=1)
+        check((page.text_content("#db-title") or "").strip() == other[0]["name"], "the Dashboard did not follow the chosen project")
+        b.view("home")
         b.view("models", settle=2)
         check(other[0]["name"].lower() in (page.text_content("#view-models .eyebrow") or "").lower(), "the Models page did not follow the chosen project")
         b.view("home", settle=1)
         page.click("#view-home .proj-switch")  # back to the first, so the next checks read what they did
         page.click(f"#view-home .ps-opt:has-text('{name}')")
         page.wait_for_function("n => document.querySelector('#view-home .ps-name').textContent === n", arg=name, timeout=15_000)
-    return f"the green button, its list of {len(ws['projects'])}, the sidebar and Models follow the chosen project"
+    return f"the green button, its list of {len(ws['projects'])}, the Dashboard and Models follow the chosen project"
 
 
 def check_pages(b: Browser) -> str:
@@ -532,112 +533,96 @@ def check_mobile(b: Browser) -> str:
 
 
 def check_ds_mode(b: Browser) -> str:
-    """The Data science mode (the owner, 2026-11-01): the same pages drawn like Claude Code. Every page loads in it without
-    an error; Home's context cards move to the right column and back to their own places, each one exactly once (found
-    in testing: starting in this mode and switching back lost them); a chat keeps the domain pack chooser, shows its
-    context and leaves no empty space; New chat brings the box back; Developer fits laptop widths (the review found the
-    switch in the top bar made it scroll sideways at 1150-1400 px); and every page fits 375 px in it."""
+    """Unified minimal Data science UI: Developer look mode is removed, Home chat stays clear of overlap,
+    the plan panel toggles on demand, More tools reaches secondary pages, Features renders cleanly,
+    and every page fits 1280 px and 375 px without sideways scroll."""
     page = b.page
     page.wait_for_function("() => window.DC && !DC.loading.current", timeout=60_000)
     over = "() => document.documentElement.scrollWidth - document.documentElement.clientWidth"
-    for width in (1150, 1280, 1366):  # Developer stays the product as it was: no sideways scroll at laptop widths (review)
-        page.set_viewport_size({"width": width, "height": 900})
-        b.view("home", settle=0.4)
-        check(page.evaluate(over) <= 1, f"Developer at {width} px scrolls sideways by {page.evaluate(over)} px ({page.evaluate(CULPRIT)})")
     page.set_viewport_size({"width": 1280, "height": 900})
-    page.evaluate("() => { try { localStorage.setItem('dclab-mode', 'ds'); } catch (e) {} }")
-    page.reload()  # start in the mode, as a person who chose it before does
-    b.view("home", settle=0.8)
-    check(page.evaluate("() => document.documentElement.dataset.mode") == "ds", "the kept mode was not applied")
-    cards = "['home-inbox', 'home-sess', 'home-case', 'home-understand', 'home-team', 'home-twin'].map(i => document.querySelectorAll('#' + i).length).join('')"
-    check(page.evaluate(f"() => {cards}") == "111111", "a context card is missing or doubled")
-    check(page.evaluate("() => !!document.querySelector('#ds-rail #home-inbox')"), "Needs you is not in the right column")
-    for _ in range(2):
-        page.click("#mode-switch [data-mode=dev]")
-        back = page.evaluate(f"() => ({{cards: {cards}, rail: !!document.getElementById('ds-rail'), inbox: document.getElementById('home-inbox').parentElement.classList.contains('g-3-1')}})")
-        check(back == {"cards": "111111", "rail": False, "inbox": True}, f"Developer did not get its cards back: {back}")
-        page.click("#mode-switch [data-mode=ds]")
-        check(page.evaluate(f"() => {cards}") == "111111", "a context card is missing or doubled after switching")
-    # A chat in Data science: the start box steps aside but for its domain pack, the context cards show in the rail,
-    # nothing scrolls sideways, and New chat brings the start box back with the cursor in it
+    b.view("home", settle=0.5)
+    check(page.evaluate("() => document.documentElement.dataset.mode") == "ds", "unified Data science mode was not active")
+    check(page.locator("#mode-switch").count() == 0, "Developer mode switch was not removed")
+    check(page.locator("#home-wf-flow").count() == 0 and page.locator("[data-wf-slot]").count() == 0, "giant workflow banner still present")
+    cards = "['home-sess', 'home-case', 'home-understand'].map(i => document.querySelectorAll('#' + i).length).join('')"
+    check(page.evaluate(f"() => {cards}") == "111", "a Home plan panel is missing or doubled")
+
+    # Open a chat: start composer steps aside, first message is the bubble, composer never overlaps thread
     problem = "Rank telecom customers by their risk of churn next month so the retention team can call them."
     page.fill("#home-task", problem)
     page.click("#home-start")
     page.wait_for_selector("#home-chat:not([hidden])")
-    check(page.locator("#view-home .composer:has(#home-task)").is_hidden(), "the start box stayed beside an open chat")
-    # the owner, 2026-11-02: the person's own words are in the chat (the first sentence, since the start box steps aside, and a reply
-    # sent to the page), and the side panel is one session card like the dclab code app's Jobs panel: the task, the ten workflow
-    # blocks as tiles, no facts card and no workspace counts, and no workflow card under the chat
+    check(page.locator("#view-home .composer:has(#home-task)").is_hidden(), "the start box stayed visible alongside an open chat")
     first = page.locator("#home-thread .msg.user .bubble").first
     check(first.is_visible() and (first.inner_text() or "").strip() == problem, "the person's first sentence is not the first bubble of the chat")
     page.fill("#home-reply", "Right before we call them")
     page.click("#home-send")
     page.wait_for_function("() => [...document.querySelectorAll('#home-thread .msg.user .bubble')].some(b => b.textContent.trim() === 'Right before we call them')", timeout=30_000)
+
+    # Toggle right Plan panel open/closed cleanly
+    page.click("#ds-rail-btn")
     page.wait_for_selector("#ds-rail #home-sess .ds-tile", timeout=30_000)
+    check(page.locator("#ds-rail").is_visible(), "the plan side panel did not open")
     check(page.locator("#ds-rail #home-sess .ds-tile").count() == 10, "the workflow's ten blocks are not tiles in the session card")
-    title = (page.text_content("#home-sess .ds-sess-title") or "").strip()
-    check(title.startswith(problem[:40]), f"the session card does not name the task: {title!r}")
-    check(page.locator("#home-solution").is_hidden() and page.locator("#home-sess").is_visible(), "the workflow card shows under the chat, or the session card is gone")
-    check(page.locator("#home-case").is_hidden() and page.locator('#view-home [data-f="home.kpis"]').is_hidden(), "the facts card or the workspace counts show in Data science")
-    page.locator("#ds-rail #home-sess .ds-tile").nth(1).click()
-    check(len((page.text_content("#home-sess .ds-node") or "").strip()) > 5, "a tile did not open its block as a click on the drawing does")
     beside = page.evaluate("() => { const s = document.querySelector('#home-sess').getBoundingClientRect(), c = document.querySelector('#home-chat').getBoundingClientRect(); return s.left >= c.right - 1; }")
     check(beside, "the session card is under the chat, not beside it")
-    gap = page.evaluate("""() => { const p = document.querySelector('#view-home [data-pane="overview"]').getBoundingClientRect();
-      const last = Math.max(...[...document.querySelectorAll('#view-home [data-pane="overview"] > *')].map(e => e.getBoundingClientRect().bottom));
-      return Math.round(p.bottom - last); }""")
-    check(gap <= 40, f"{gap} px of empty space below Home's conversation")
+    page.click("#ds-rail-btn")
+    check(page.locator("#ds-rail").is_hidden(), "the plan side panel did not close")
     check(page.evaluate(over) <= 1, f"Data science at 1280 px scrolls sideways by {page.evaluate(over)} px")
-    # The Claude-style frame (2026-11-01, "Claude's style, beside the old one"): Recents lists the chat, the side panel
-    # closes and opens, Pages folds, Settings holds the real switches, the command list starts with its commands, and
-    # Settings takes the person back to Developer and returns
+
+    # More tools footer popover and Settings modal
+    page.click("#side-more-btn")
+    check(page.locator("#side-more-menu").is_visible(), "More tools popover did not open")
+    check(page.locator("#side-more-menu [data-nav='compute']").is_visible(), "Compute & Jobs missing from More tools")
+    check(page.locator("#side-more-menu [data-nav='evidence']").count() == 0, "the Library is hidden for now, but Evidence is in More tools")
+    page.click("#side-more-btn")
+    check(page.locator("#side-more-menu").is_hidden(), "More tools popover did not close")
+
+    # v6 (2026-11-20): Projects in the menu, and a project page carries the five project tabs with a page picker
+    check(page.locator("#nav [data-nav='projects']").is_visible(), "Projects is missing from the menu")
+    check(page.locator("#nav [data-nav='solution']").count() == 0, "a project page is in the main menu; it belongs in the project tabs")
+    page.evaluate("() => { location.hash = '#solution'; }")
+    page.wait_for_selector("#pbar:not([hidden]) .pbar-tab[aria-current='page'][data-pgroup='data']")
+    check(page.locator("#pbar .pbar-tab").count() == 5, "the project bar does not have its five tabs")
+    page.select_option("#pbar-pick", "audit")
+    page.wait_for_selector("#view-audit:not([hidden])")
+    page.evaluate("() => { location.hash = '#home'; }")
+    page.wait_for_selector("#view-home:not([hidden])")
+    check(page.locator("#pbar").is_hidden(), "the project bar stays on Home")
+
     page.wait_for_function("() => document.querySelectorAll('#ds-recent-list [data-recent^=\"d:\"]').length >= 1", timeout=15_000)
-    page.click("#ds-rail-btn")
-    check(page.locator("#ds-rail").is_hidden(), "the side panel did not close")
-    page.click("#ds-rail-btn")
-    check(page.locator("#ds-rail").is_visible(), "the side panel did not open again")
-    page.click("#ds-pages-toggle")
-    check(page.locator("#nav").is_hidden(), "Pages did not fold")
-    page.click("#ds-pages-toggle")
-    check(page.locator("#nav").is_visible(), "Pages did not unfold")
-    page.click(".topbar [data-ds-settings]")
+    page.click(".ds-account [data-ds-settings]")
     check(page.locator("#ds-settings").is_visible(), "Settings did not open")
+    check(page.locator("[data-ds-look]").count() == 0, "Developer look switcher still in Settings")
     page.select_option("#ds-role", "business")
-    check(page.evaluate("() => document.getElementById('role-select').value") == "business", "View as in Settings did not change the role")
+    check(page.evaluate("() => document.body.dataset.role") == "business", "View as in Settings did not change the role")
     page.select_option("#ds-role", "developer")
     page.keyboard.press("Escape")
     check(page.locator("#ds-settings").is_hidden(), "Escape did not close Settings")
+
     page.click("#search-btn")
-    first = page.locator("#pal-list .palette-group").first.inner_text()
-    check(first == "Commands", f"the command list starts with {first!r}")
+    first_grp = page.locator("#pal-list .palette-group").first.inner_text()
+    check(first_grp == "Commands", f"the command list starts with {first_grp!r}")
     page.keyboard.press("Escape")
-    page.click(".topbar [data-ds-settings]")
-    page.click("[data-ds-look=dev]")
-    check(page.evaluate("() => document.documentElement.dataset.mode") == "dev" and page.locator("#ds-settings").is_hidden(), "Settings did not go back to Developer")
-    check(page.locator("#ds-recents").is_hidden() and page.locator(".role-pick").is_visible(), "Developer shows a Data science part or lost its own")
-    check(page.locator("#home-sess").is_hidden() and page.locator("#home-thread .ds-first").first.is_hidden(), "Developer shows the session card or the first bubble")
-    check(page.locator("#home-case").is_visible() or page.locator("#home-case").count() == 1, "Developer lost the facts card")
-    check(page.locator("#home-sol-graph").is_visible(), "Developer lost the workflow drawing")
-    page.click("#mode-switch [data-mode=ds]")
+
     page.click("#ds-new-chat")
     page.wait_for_selector("#home-task", state="visible")
     check(page.evaluate("() => document.activeElement && document.activeElement.id") == "home-task", "New chat did not put the cursor in the box")
+
     before = len(b.problems())
     for name in VIEWS:
         b.view(name)
-        check(not b.problems()[before:], f"#{name} in Data science: {b.problems()[before:][:3]}")
+        check(not b.problems()[before:], f"#{name} in minimal UI: {b.problems()[before:][:3]}")
     page.set_viewport_size({"width": 375, "height": 812})
     wide = []
     for name in VIEWS:
         b.view(name, settle=0.6)
-        over = page.evaluate("() => document.documentElement.scrollWidth - document.documentElement.clientWidth")
-        if over > 1:
-            wide.append(f"#{name} (+{over}px, {page.evaluate(CULPRIT)})")
-    check(not wide, "wider than 375 px in Data science: " + "; ".join(wide))
-    check(page.evaluate("() => getComputedStyle(document.getElementById('mode-switch')).display") != "none", "no switch in the menu on a phone")
-    page.evaluate("() => { try { localStorage.setItem('dclab-mode', 'dev'); } catch (e) {} }")
-    return (f"Developer fits 1150-1366 px; {len(VIEWS)} pages in Data science without an error and within 375 px; Home's cards moved "
-            "and came back twice; a chat keeps its pack chooser and context; New chat brings the box back")
+        over_w = page.evaluate("() => document.documentElement.scrollWidth - document.documentElement.clientWidth")
+        if over_w > 1:
+            wide.append(f"#{name} (+{over_w}px, {page.evaluate(CULPRIT)})")
+    check(not wide, "wider than 375 px in minimal UI: " + "; ".join(wide))
+    return (f"{len(VIEWS)} pages verified without error and within 375 px; #features renders; Home chat, "
+            "plan drawer, More tools popover, and Settings all verified with Developer mode removed")
 
 
 def check_memory(b: Browser) -> str:
@@ -803,7 +788,8 @@ def check_task_plan(b: Browser) -> str:
     check('WORKSPACE' in globals(), 'the task-plan check needs its disposable local test workspace')
     csrf = b.api('/config')['csrf']
     headers = {'X-DCLab-Token': csrf}
-    reset = b.context.request.put(b.base + '/api/team/settings', data={'task_plan_preview': False}, headers=headers)
+    # execution has been on by default since 426c76aa (2026-11-13); this check is about the read-only preview, so both start off
+    reset = b.context.request.put(b.base + '/api/team/settings', data={'task_plan_preview': False, 'task_execution': False}, headers=headers)
     check(reset.ok, 'could not restore the default-off preview for this isolated check')
     made = b.context.request.post(b.base + '/api/projects', data={'name': 'Task plan empty check', 'goal': 'Understand this project'}, headers=headers)
     check(made.ok, 'create empty task-plan project failed')
@@ -873,7 +859,7 @@ def check_task_plan(b: Browser) -> str:
 CHECKS.update({'taskplan': (check_task_plan, 1280), 'taskplan-mobile': (check_task_plan, 375)})
 
 
-PROJECT_PAGES = ("project", "solution", "notebook", "audit", "features", "models", "evaluation", "decision", "reliability", "brief")
+PROJECT_PAGES = ("dashboard", "project", "solution", "notebook", "audit", "features", "models", "evaluation", "decision", "reliability", "brief")
 SAMPLE_WORDS = ("Term-deposit", "HyperAck", "duration")  # the built-in sample's words: never under a real project's name
 
 

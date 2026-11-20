@@ -1,0 +1,358 @@
+<title>DCLab UI v4 looks</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&display=swap">
+<style>
+/* Three looks for one screen: the chat of the Telco churn project.
+   A "Bench": light, cobalt, steps on the right as a measuring scale.
+   B "Notebook": graph paper, ink blue, turns as numbered cells, yellow highlighter on what needs an answer.
+   C "Control room": dark slate, a trust meter of passed checks.
+   Each look commits to one theme by choice, so every color is set explicitly per look. */
+:root{
+  --mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --sw-bg:#E9ECEF; --sw-fg:#1B2430; --sw-muted:#5B6573; --sw-on:#FFFFFF; --sw-line:#CDD3DA;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--sw-bg);color:var(--sw-fg);font:15px/1.5 "IBM Plex Sans", system-ui, sans-serif;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+:focus-visible{outline:2px solid var(--acc, #2F4BD8);outline-offset:2px;border-radius:4px}
+
+/* ---------- look switcher (not part of the product) ---------- */
+.switch{display:flex;flex-wrap:wrap;align-items:stretch;gap:8px;padding-block:12px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.switch .intro{flex:1 1 220px;min-width:0;align-self:center;color:var(--sw-muted);font-size:13.5px}
+.switch .intro b{color:var(--sw-fg);font-weight:600}
+.pick{flex:0 1 250px;min-width:0;text-align:left;padding:9px 12px;border-radius:8px;border:1px solid var(--sw-line);background:transparent}
+.pick b{display:block;font-weight:600;font-size:14px}
+.pick span{display:block;color:var(--sw-muted);font-size:12.5px;line-height:1.35}
+.pick[aria-pressed="true"]{background:var(--sw-fg);border-color:var(--sw-fg);color:var(--sw-on)}
+.pick[aria-pressed="true"] span{color:#C5CCD6}
+
+/* ---------- shared product structure ---------- */
+.frame{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 16px}
+.app{display:grid;min-height:640px;height:calc(100vh - 110px);max-height:900px;border-radius:12px;overflow:hidden;
+  background:var(--bg);color:var(--fg);font-family:var(--sans);border:1px solid var(--line)}
+.side,.main,.trail{min-width:0;min-height:0}
+.side{display:flex;flex-direction:column;gap:2px;background:var(--side);border-right:1px solid var(--line);padding:14px 10px;overflow:auto}
+.brand{display:flex;align-items:center;gap:8px;padding:2px 8px 14px;font-weight:700;font-size:17px;letter-spacing:-.01em}
+.logo{width:22px;height:22px;flex:none}
+.newchat{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;font-weight:600;background:var(--acc);color:var(--on-acc);margin-bottom:10px}
+.group{font-size:12.5px;color:var(--muted);padding:12px 10px 4px}
+.item{display:flex;align-items:center;gap:9px;width:100%;padding:7px 10px;border-radius:7px;color:var(--fg-2);text-align:left;font-size:14px}
+.item:hover{background:var(--hover)}
+.item.on{background:var(--on-row);color:var(--fg);font-weight:500}
+.item .dot{width:8px;height:8px;border-radius:50%;flex:none}
+.item .lbl{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.side .spacer{flex:1}
+.ic{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
+.main{display:flex;flex-direction:column;background:var(--bg)}
+.top{display:flex;align-items:center;gap:16px;padding:0 20px;min-height:52px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.top h1{margin:0;font-size:16px;font-weight:600;white-space:nowrap}
+.tabs{display:flex;gap:2px;overflow-x:auto;min-width:0}
+.tab{padding:6px 11px;border-radius:7px;color:var(--fg-2);font-size:14px;white-space:nowrap}
+.tab:hover{background:var(--hover)}
+.tab.on{color:var(--fg);font-weight:600;background:var(--on-row)}
+.strip{display:none}
+
+.chat{flex:1;overflow:auto;min-height:0;padding:24px 20px 8px}
+.thread{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+.turn{display:grid;grid-template-columns:28px minmax(0,1fr);gap:12px}
+.who{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;background:var(--who-bg);color:var(--who-fg)}
+.turn.me .who{background:var(--me-bg);color:var(--me-fg);font-size:9.5px}
+.cellno{display:none}
+.msg{min-width:0}
+.msg p{margin:2px 0 8px}
+.msg p:last-child{margin-bottom:0}
+.col{font-family:var(--mono);font-size:.88em;background:var(--code-bg);padding:1px 5px;border-radius:4px}
+.facts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-top:10px}
+.facts div{background:var(--card);padding:9px 12px;min-width:0}
+.facts dt{font-size:12.5px;color:var(--muted)}
+.facts dd{margin:0;font-weight:600;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.ask{margin-top:4px;padding:14px 16px;border-radius:10px;background:var(--ask-bg);border:1px solid var(--ask-line)}
+.ask .q{font-weight:600;margin:0 0 4px}
+.ask .why{color:var(--fg-2);font-size:14px;margin:0 0 10px}
+.opts{display:flex;flex-wrap:wrap;gap:8px}
+.opt{padding:7px 13px;border-radius:999px;border:1px solid var(--line-2);background:var(--card);font-size:14px}
+.opt:hover{border-color:var(--acc)}
+.opt[aria-pressed="true"]{background:var(--acc);border-color:var(--acc);color:var(--on-acc)}
+.answered{display:none;margin-top:8px;font-size:14px;color:var(--ok)}
+.leaks{width:100%;border-collapse:collapse;margin-top:10px;font-size:14px}
+.leaks th{text-align:left;font-weight:500;color:var(--muted);font-size:12.5px;padding:0 10px 6px 0;border-bottom:1px solid var(--line)}
+.leaks td{padding:8px 10px 8px 0;border-bottom:1px solid var(--line);vertical-align:top}
+.leaks td:last-child{white-space:nowrap;color:var(--warn)}
+.tablewrap{overflow-x:auto}
+
+.composer{padding:10px 20px 18px}
+.box{max-width:720px;margin:0 auto;display:flex;align-items:flex-end;gap:8px;padding:10px 10px 10px 14px;border-radius:12px;border:1px solid var(--line-2);background:var(--card)}
+.box textarea{flex:1;min-width:0;border:0;outline:0;resize:none;background:transparent;color:var(--fg);font:inherit;min-height:24px;max-height:120px}
+.box textarea::placeholder{color:var(--muted)}
+.box .iconb{width:34px;height:34px;border-radius:8px;display:grid;place-items:center;color:var(--fg-2)}
+.box .iconb:hover{background:var(--hover)}
+.box .send{background:var(--acc);color:var(--on-acc)}
+.box .send:hover{background:var(--acc);filter:brightness(1.08)}
+.note{max-width:720px;margin:6px auto 0;font-size:12px;color:var(--muted)}
+
+.trail{background:var(--side);border-left:1px solid var(--line);padding:18px 18px;overflow:auto;display:flex;flex-direction:column;gap:18px}
+.trail h2{margin:0;font-size:14px;font-weight:600}
+.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.step{display:grid;grid-template-columns:22px minmax(0,1fr);gap:10px;padding:7px 0;position:relative}
+.step .n{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:11.5px;font-weight:600;font-variant-numeric:tabular-nums;border:1.5px solid var(--line-2);color:var(--muted);background:var(--side);position:relative;z-index:1}
+.step b{display:block;font-weight:500;font-size:14px}
+.step small{display:block;color:var(--muted);font-size:12.5px}
+.step.done .n{background:var(--ok);border-color:var(--ok);color:var(--on-ok)}
+.step.now .n{border-color:var(--hl-line);background:var(--hl);color:var(--hl-fg)}
+.step.now small{color:var(--fg-2);font-weight:500}
+.step.locked .n{border-style:dashed}
+.lock{padding:12px 14px;border-radius:10px;border:1px dashed var(--line-2);font-size:13.5px;color:var(--fg-2)}
+.lock b{display:block;color:var(--fg);font-size:14px}
+.meter{display:none}
+
+/* ================= A · Bench ================= */
+.app[data-look="a"]{
+  --sans:"Hanken Grotesk", system-ui, sans-serif;
+  --bg:#F6F7F4; --side:#EEF0EC; --card:#FFFFFF; --hover:#E4E7E2; --on-row:#FFFFFF;
+  --fg:#18212B; --fg-2:#46505C; --muted:#6E7783; --line:#DADED7; --line-2:#C3C9C1;
+  --acc:#2F4BD8; --on-acc:#FFFFFF; --code-bg:#E8EBF6;
+  --who-bg:#2F4BD8; --who-fg:#FFFFFF; --me-bg:#DDE1DA; --me-fg:#18212B;
+  --ok:#1F7A5A; --on-ok:#FFFFFF; --warn:#9A5B0E;
+  --ask-bg:#FFFFFF; --ask-line:#2F4BD8; --hl:#2F4BD8; --hl-line:#2F4BD8; --hl-fg:#FFFFFF;
+  grid-template-columns:232px minmax(0,1fr) 288px;
+}
+.app[data-look="a"] .ask{border-left-width:3px}
+/* The memorable thing: a measuring scale down the steps */
+.app[data-look="a"] .steps{position:relative;padding-left:0}
+.app[data-look="a"] .steps::before{content:"";position:absolute;left:10.5px;top:14px;bottom:14px;width:1px;
+  background:repeating-linear-gradient(to bottom,var(--line-2) 0 1px,transparent 1px 6px);}
+.app[data-look="a"] .step::after{content:"";position:absolute;left:22px;top:18px;width:8px;height:1px;background:var(--line-2)}
+.app[data-look="a"] .step.done + .step::before{content:"";position:absolute;left:10.5px;top:-8px;height:22px;width:1px;background:var(--ok)}
+
+/* ================= B · Notebook ================= */
+.app[data-look="b"]{
+  --sans:"IBM Plex Sans", system-ui, sans-serif;
+  --bg:#FFFFFF; --side:#FFFFFF; --card:#FFFFFF; --hover:#EEF1F7; --on-row:#E7ECF7;
+  --fg:#14213D; --fg-2:#3D4A63; --muted:#6B7590; --line:#DCE2EE; --line-2:#B9C3D8;
+  --acc:#1D3A8A; --on-acc:#FFFFFF; --code-bg:#EEF1F7;
+  --who-bg:#1D3A8A; --who-fg:#FFFFFF; --me-bg:#E7ECF7; --me-fg:#1D3A8A;
+  --ok:#1E6E4E; --on-ok:#FFFFFF; --warn:#8A4B0C;
+  --ask-bg:#FFFCE8; --ask-line:#E9D45A; --hl:#FFE45C; --hl-line:#D9B800; --hl-fg:#14213D;
+  grid-template-columns:minmax(0,1fr);
+}
+.app[data-look="b"] .side,.app[data-look="b"] .trail{display:none}
+.app[data-look="b"] .chat{background-color:#FFFFFF;
+  background-image:linear-gradient(#EFF2F8 1px,transparent 1px),linear-gradient(90deg,#EFF2F8 1px,transparent 1px);background-size:24px 24px}
+.app[data-look="b"] .top .brand{display:flex;padding:0;font-size:16px}
+.app[data-look="b"] .strip{display:flex;gap:0;overflow-x:auto;padding:10px 20px;border-bottom:1px solid var(--line);background:#FFFFFF}
+.app[data-look="b"] .thread{gap:0;max-width:780px}
+.app[data-look="b"] .turn{grid-template-columns:44px minmax(0,1fr);gap:14px;padding:14px 0;border-bottom:1px dashed var(--line)}
+.app[data-look="b"] .who{display:none}
+.app[data-look="b"] .cellno{display:block;font-family:var(--mono);font-size:12px;color:var(--muted);text-align:right;padding-top:3px}
+.app[data-look="b"] .turn.me .msg{font-weight:500}
+.app[data-look="b"] .ask{border-radius:2px;border-width:0 0 0 0;background:transparent;padding:0}
+/* The memorable thing: a highlighter stroke on what needs your answer */
+.app[data-look="b"] .ask .q{display:inline;background:linear-gradient(transparent 38%,var(--hl) 38%,var(--hl) 88%,transparent 88%);padding:0 3px}
+.app[data-look="b"] .ask .why{margin-top:8px}
+.app[data-look="b"] .opt{border-radius:4px}
+.app[data-look="b"] .facts{border-radius:2px}
+.app[data-look="b"] .box{border-radius:4px;max-width:780px}
+.app[data-look="b"] .note{max-width:780px}
+.sstep{display:flex;align-items:center;gap:7px;white-space:nowrap;font-size:13px;color:var(--muted);padding-right:14px}
+.sstep::after{content:"";width:18px;height:1px;background:var(--line-2);margin-left:7px}
+.sstep:last-child::after{display:none}
+.sstep i{width:9px;height:9px;border-radius:50%;border:1.5px solid var(--line-2);flex:none}
+.sstep.done{color:var(--fg-2)} .sstep.done i{background:var(--ok);border-color:var(--ok)}
+.sstep.now{color:var(--fg);font-weight:600} .sstep.now i{background:var(--hl);border-color:var(--hl-line)}
+.top .brand{display:none}
+
+/* ================= C · Control room ================= */
+.app[data-look="c"]{
+  --sans:"Manrope", system-ui, sans-serif;
+  --bg:#13202F; --side:#0F1A27; --card:#1A2A3C; --hover:#21344A; --on-row:#21344A;
+  --fg:#E4ECF5; --fg-2:#B3C1D1; --muted:#7F91A6; --line:#24384E; --line-2:#36506B;
+  --acc:#38C6A6; --on-acc:#0C1A16; --code-bg:#22364C;
+  --who-bg:#38C6A6; --who-fg:#0C1A16; --me-bg:#2A3F57; --me-fg:#E4ECF5;
+  --ok:#38C6A6; --on-ok:#0C1A16; --warn:#F2B544;
+  --ask-bg:#1D2F25; --ask-line:#2E6B57; --hl:#F2B544; --hl-line:#F2B544; --hl-fg:#1A1405;
+  grid-template-columns:64px minmax(0,1fr) 320px; color-scheme:dark;
+}
+.app[data-look="c"] .side{padding:14px 8px;align-items:center}
+.app[data-look="c"] .side .brand{padding:2px 0 14px}
+.app[data-look="c"] .side .brand span,.app[data-look="c"] .side .group,.app[data-look="c"] .item .lbl,.app[data-look="c"] .newchat span{display:none}
+.app[data-look="c"] .newchat{width:40px;height:40px;padding:0;justify-content:center;border-radius:10px}
+.app[data-look="c"] .item{width:40px;height:40px;padding:0;justify-content:center;border-radius:10px}
+.app[data-look="c"] .item.recent{display:none}
+.app[data-look="c"] .ask{background:#2A2414;border-color:#5C4A1C}
+.app[data-look="c"] .ask .q{color:#F6D68C}
+.app[data-look="c"] .opt{background:transparent}
+.app[data-look="c"] .trail{gap:20px}
+/* The memorable thing: a trust meter of passed checks */
+.app[data-look="c"] .meter{display:grid;grid-template-columns:112px minmax(0,1fr);gap:16px;align-items:center;padding:16px;border-radius:14px;background:var(--card);border:1px solid var(--line)}
+.ring{width:112px;height:112px;max-width:100%}
+.ring text{fill:var(--fg);font:800 26px var(--sans)}
+.ring .sub{fill:var(--muted);font:600 11px var(--sans)}
+.meter b{display:block;font-size:15px}
+.meter p{margin:4px 0 0;font-size:13px;color:var(--fg-2)}
+.app[data-look="c"] .step .n{background:var(--side)}
+.app[data-look="c"] .step.done .n{background:var(--ok)}
+.app[data-look="c"] .step.now .n{background:var(--hl)}
+
+/* ---------- narrow screens ---------- */
+@media (max-width:980px){
+  .app[data-look="a"],.app[data-look="c"]{grid-template-columns:minmax(0,1fr)}
+  .app .side,.app .trail{display:none}
+  .app[data-look="a"] .strip,.app[data-look="c"] .strip{display:flex;gap:0;overflow-x:auto;padding:10px 20px;border-bottom:1px solid var(--line)}
+  .top .brand{display:flex;padding:0;font-size:16px}
+}
+@media (max-width:620px){
+  .app{height:auto;min-height:0;max-height:none}
+  .chat{padding:18px 14px 8px}
+  .composer{padding:10px 14px 14px}
+  .top{padding:8px 14px;gap:8px}
+  .facts{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .turn{grid-template-columns:24px minmax(0,1fr);gap:10px}
+  .who{width:24px;height:24px;font-size:11px}
+  .app[data-look="b"] .turn{grid-template-columns:28px minmax(0,1fr);gap:10px}
+}
+@media (prefers-reduced-motion:no-preference){
+  .opt,.pick,.item,.tab{transition:background-color .15s,border-color .15s,color .15s}
+}
+</style>
+
+<div class="switch" role="group" aria-label="Choose a look">
+  <p class="intro"><b>DCLab v4: three looks for one screen.</b> Same project, same words. Pick the one you like; the parts can be mixed.</p>
+  <button class="pick" data-look="a" aria-pressed="true"><b>A · Bench</b><span>Light and precise. The steps stay on the right like a measuring scale.</span></button>
+  <button class="pick" data-look="b" aria-pressed="false"><b>B · Notebook</b><span>No side panels. Turns read like notebook cells; yellow marks what needs you.</span></button>
+  <button class="pick" data-look="c" aria-pressed="false"><b>C · Control room</b><span>Dark. A meter shows how many checks have passed.</span></button>
+</div>
+
+<div class="frame">
+<div class="app" id="app" data-look="a">
+
+  <aside class="side" aria-label="Projects and chats">
+    <div class="brand"><svg class="logo" viewBox="0 0 22 22" aria-hidden="true"><rect width="22" height="22" rx="6" fill="var(--acc)"/><path d="M6 15.5V6.5h4.2a4.5 4.5 0 0 1 0 9H6z" fill="none" stroke="var(--on-acc)" stroke-width="2"/></svg><span>DCLab</span></div>
+    <button class="newchat"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span>New chat</span></button>
+    <div class="group">Projects</div>
+    <button class="item on" title="Customer churn"><span class="dot" style="background:var(--acc)"></span><span class="lbl">Customer churn</span></button>
+    <button class="item" title="Delivery fraud"><span class="dot" style="background:var(--warn)"></span><span class="lbl">Delivery fraud</span></button>
+    <button class="item" title="Ticket routing"><span class="dot" style="background:var(--ok)"></span><span class="lbl">Ticket routing</span></button>
+    <div class="group">Recent chats</div>
+    <button class="item recent"><span class="lbl">Why did AUC drop on March?</span></button>
+    <button class="item recent"><span class="lbl">Clean the orders table</span></button>
+    <div class="spacer"></div>
+    <button class="item" title="Library"><svg class="ic" viewBox="0 0 24 24"><path d="M4 5h5v14H4zM10 5h5v14h-5zM16 6l4 1-3 12-4-1"/></svg><span class="lbl">Library</span></button>
+    <button class="item" title="Settings"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg><span class="lbl">Settings</span></button>
+  </aside>
+
+  <main class="main">
+    <header class="top">
+      <div class="brand"><svg class="logo" viewBox="0 0 22 22" aria-hidden="true"><rect width="22" height="22" rx="6" fill="var(--acc)"/><path d="M6 15.5V6.5h4.2a4.5 4.5 0 0 1 0 9H6z" fill="none" stroke="var(--on-acc)" stroke-width="2"/></svg><span>DCLab</span></div>
+      <h1>Customer churn</h1>
+      <nav class="tabs" aria-label="Project">
+        <button class="tab on">Chat</button><button class="tab">Data</button><button class="tab">Features</button><button class="tab">Models</button><button class="tab">Report</button>
+      </nav>
+    </header>
+
+    <div class="strip" aria-label="Progress">
+      <span class="sstep done"><i></i>Problem</span>
+      <span class="sstep done"><i></i>Data</span>
+      <span class="sstep done"><i></i>Leaks</span>
+      <span class="sstep now"><i></i>Prediction moment</span>
+      <span class="sstep"><i></i>Build</span>
+      <span class="sstep"><i></i>Final test</span>
+    </div>
+
+    <section class="chat" aria-label="Conversation">
+      <div class="thread">
+        <div class="turn me"><span class="cellno">[1]</span><span class="who">You</span>
+          <div class="msg"><p>Which customers will cancel next month? The data is <span class="col">telco.csv</span>.</p></div></div>
+
+        <div class="turn"><span class="cellno">[2]</span><span class="who">DC</span>
+          <div class="msg"><p>I read the file. Each row is one customer. The outcome is <span class="col">Churn</span>: did the customer cancel?</p>
+            <dl class="facts">
+              <div><dt>Customers</dt><dd>7,043</dd></div>
+              <div><dt>Columns</dt><dd>21</dd></div>
+              <div><dt>Cancelled</dt><dd>26.5%</dd></div>
+              <div><dt>Date column</dt><dd>None found</dd></div>
+            </dl></div></div>
+
+        <div class="turn"><span class="cellno">[3]</span><span class="who">DC</span>
+          <div class="msg"><p>Three columns would give away the answer, so I left them out of every model.</p>
+            <div class="tablewrap"><table class="leaks">
+              <thead><tr><th>Column</th><th>Why it can't be used</th><th>Result</th></tr></thead>
+              <tbody>
+                <tr><td><span class="col">CancelReason</span></td><td>Filled in only after a customer cancels.</td><td>Left out</td></tr>
+                <tr><td><span class="col">LastBillDate</span></td><td>Set after the month you want to predict.</td><td>Left out</td></tr>
+                <tr><td><span class="col">customerID</span></td><td>A name tag, not a signal. It would only memorise rows.</td><td>Left out</td></tr>
+              </tbody></table></div></div></div>
+
+        <div class="turn"><span class="cellno">[4]</span><span class="who">DC</span>
+          <div class="msg ask" id="ask">
+            <p class="q">When will you run this prediction?</p>
+            <p class="why">This decides which data counts as "known at that moment". A column known only later would make the score look better than it really is.</p>
+            <div class="opts" role="group" aria-label="Answer">
+              <button class="opt" aria-pressed="false">On the 1st of each month</button>
+              <button class="opt" aria-pressed="false">Any day of the month</button>
+              <button class="opt" aria-pressed="false">I'm not sure yet</button>
+            </div>
+            <p class="answered" id="answered">Saved. Next: I build and compare models on the training part only.</p>
+          </div></div>
+      </div>
+    </section>
+
+    <div class="composer">
+      <label class="box" for="prompt">
+        <button class="iconb" aria-label="Add data"><svg class="ic" viewBox="0 0 24 24"><path d="M21 12.5 12.6 21a5 5 0 0 1-7.1-7.1L14 5.3a3.3 3.3 0 0 1 4.7 4.7l-8.5 8.5a1.7 1.7 0 0 1-2.4-2.4L15.5 8.4"/></svg></button>
+        <textarea id="prompt" rows="1" placeholder="Answer the question, or ask DCLab anything"></textarea>
+        <button class="iconb send" aria-label="Send"><svg class="ic" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
+      </label>
+      <p class="note">Example numbers in the shape of the Telco churn project, not measured results.</p>
+    </div>
+  </main>
+
+  <aside class="trail" aria-label="Where this project stands">
+    <div class="meter">
+      <svg class="ring" viewBox="0 0 112 112" role="img" aria-label="4 of 6 checks passed">
+        <circle cx="56" cy="56" r="46" fill="none" stroke="var(--line-2)" stroke-width="9"/>
+        <circle cx="56" cy="56" r="46" fill="none" stroke="var(--ok)" stroke-width="9" stroke-linecap="round"
+          stroke-dasharray="192.7 289" transform="rotate(-90 56 56)"/>
+        <text x="56" y="60" text-anchor="middle">4/6</text>
+        <text class="sub" x="56" y="78" text-anchor="middle">checks</text>
+      </svg>
+      <div><b>Not ready to trust yet</b><p>One answer from you, then the build. The final test stays locked until then.</p></div>
+    </div>
+    <h2>Where this stands</h2>
+    <ol class="steps">
+      <li class="step done"><span class="n">1</span><div><b>Understand the problem</b><small>Who cancels next month</small></div></li>
+      <li class="step done"><span class="n">2</span><div><b>Check the data</b><small>7,043 rows, no gaps in the outcome</small></div></li>
+      <li class="step done"><span class="n">3</span><div><b>Find leaks</b><small>3 columns left out</small></div></li>
+      <li class="step now"><span class="n">4</span><div><b>Set the prediction moment</b><small>Waiting for your answer</small></div></li>
+      <li class="step"><span class="n">5</span><div><b>Build and compare models</b><small>Not started</small></div></li>
+      <li class="step locked"><span class="n">6</span><div><b>Final test</b><small>Locked</small></div></li>
+    </ol>
+    <div class="lock"><b>Final test is locked</b>It runs once, on data no model has seen, after step 5. Running it earlier would let us tune to it.</div>
+  </aside>
+</div>
+</div>
+
+<script>
+(function(){
+  var app=document.getElementById('app');
+  var picks=document.querySelectorAll('.pick');
+  function setLook(l){
+    app.setAttribute('data-look',l);
+    picks.forEach(function(p){p.setAttribute('aria-pressed',String(p.dataset.look===l))});
+    try{localStorage.setItem('dclab-v4-look',l)}catch(e){}
+  }
+  picks.forEach(function(p){p.addEventListener('click',function(){setLook(p.dataset.look)})});
+  try{var s=localStorage.getItem('dclab-v4-look'); if(s==='a'||s==='b'||s==='c') setLook(s)}catch(e){}
+  var opts=document.querySelectorAll('.opt');
+  opts.forEach(function(o){o.addEventListener('click',function(){
+    opts.forEach(function(x){x.setAttribute('aria-pressed',String(x===o))});
+    document.getElementById('answered').style.display='block';
+  })});
+  document.querySelectorAll('button:not(.pick):not(.opt)').forEach(function(b){
+    b.addEventListener('click',function(e){ if(b.closest('label')) e.preventDefault(); });
+  });
+})();
+</script>

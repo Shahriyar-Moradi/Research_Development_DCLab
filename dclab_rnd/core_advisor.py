@@ -171,7 +171,12 @@ class GatewayAdvisor:
                               "revision": f.get("revision")} for f in active_facts],
             "evidence": dict(evidence),
         }
-        raw = self.ask(purpose, payload)
+        ask_error: Optional[str] = None
+        try:
+            raw = self.ask(purpose, payload)
+        except Exception as exc:  # noqa: BLE001 - advisory path falls back cleanly instead of crashing the turn
+            raw = None
+            ask_error = f"{type(exc).__name__}: {str(exc)[:180]}"
         if not isinstance(raw, Mapping):
             rec: dict[str, Any] = {
                 "provisional": True,
@@ -180,7 +185,7 @@ class GatewayAdvisor:
                 "purpose": purpose,
                 "question": str(question),
                 "recommendation": None,
-                "reason": "insufficient evidence or advisor unavailable",
+                "reason": ask_error or "insufficient evidence or advisor unavailable",
                 "uncertainty": "high",
                 "suggested_check": "Confirm missing business facts or inspect permitted diagnostics.",
                 "insufficient_evidence": True,
@@ -189,6 +194,7 @@ class GatewayAdvisor:
                 "stale": False,
                 "may_execute": False,
                 "changed_sources": [],
+                **({"error": ask_error} if ask_error else {}),
             }
         else:
             rec = {

@@ -1,0 +1,515 @@
+<title>DCLab UI v5</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: the reference dashboard's style (a rounded app frame, a quiet sidebar with a profile on top, soft white cards,
+   pill segmented tabs, green action buttons, a grey-framed table) applied to every DCLab page, on a warmer ground. */
+:root{
+  --page:#F3EEE7; --shell:#FBF9F6; --card:#FFFFFF; --soft:#F0EBE4; --soft-2:#E6E0D7; --hover:#F3EFE9;
+  --fg:#1D1B18; --fg-2:#58524A; --muted:#8C857B; --line:#EBE5DD;
+  --green:#55D163; --green-fg:#0D2911; --green-ink:#2C9638; --green-soft:#E5F6E5; --green-light:#A3E697;
+  --red:#D6403A; --red-soft:#FCEAE7; --amber:#A8690F; --amber-soft:#FBEFD9; --blue:#2F5FC4; --blue-soft:#E7EEFA;
+  --shadow:0 1px 2px rgb(70 50 25 / .04), 0 6px 18px -8px rgb(70 50 25 / .10);
+  --sans:Inter, system-ui, -apple-system, "Segoe UI", sans-serif; --mono:"JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --page:#171512; --shell:#1D1B18; --card:#262320; --soft:#2E2A26; --soft-2:#3A3530; --hover:#2B2824;
+  --fg:#F3EFE9; --fg-2:#CBC3B8; --muted:#8F877D; --line:#35302B;
+  --green:#5BD769; --green-fg:#0B230F; --green-ink:#7FE08A; --green-soft:#1D3220; --green-light:#3F8F46;
+  --red:#F0796D; --red-soft:#3B2321; --amber:#E6B65F; --amber-soft:#3A2E19; --blue:#93B2F2; --blue-soft:#1F2A3E;
+  --shadow:0 1px 2px rgb(0 0 0 / .3), 0 8px 20px -10px rgb(0 0 0 / .5); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --page:#171512; --shell:#1D1B18; --card:#262320; --soft:#2E2A26; --soft-2:#3A3530; --hover:#2B2824;
+  --fg:#F3EFE9; --fg-2:#CBC3B8; --muted:#8F877D; --line:#35302B;
+  --green:#5BD769; --green-fg:#0B230F; --green-ink:#7FE08A; --green-soft:#1D3220; --green-light:#3F8F46;
+  --red:#F0796D; --red-soft:#3B2321; --amber:#E6B65F; --amber-soft:#3A2E19; --blue:#93B2F2; --blue-soft:#1F2A3E;
+  --shadow:0 1px 2px rgb(0 0 0 / .3), 0 8px 20px -10px rgb(0 0 0 / .5); color-scheme:dark}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--page);color:var(--fg);font:15px/1.5 var(--sans);-webkit-font-smoothing:antialiased;
+  padding-block:20px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+button,input,select,textarea{font:inherit;color:inherit}
+button{background:none;border:0;padding:0;cursor:pointer}
+:focus-visible{outline:2px solid var(--green-ink);outline-offset:2px;border-radius:10px}
+.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.mono{font-family:var(--mono);font-size:.9em}
+.num{font-variant-numeric:tabular-nums}
+
+/* ---------- app frame ---------- */
+.shell{max-width:1440px;margin:0 auto;display:grid;grid-template-columns:300px minmax(0,1fr);min-height:calc(100vh - 40px);
+  background:var(--shell);border:1px solid var(--line);border-radius:22px;overflow:hidden}
+.side{display:flex;flex-direction:column;gap:4px;padding:26px 18px;border-right:1px solid var(--line);min-width:0}
+.profile{display:flex;align-items:center;gap:14px;padding:4px 10px 22px}
+.avatar{width:50px;height:50px;border-radius:50%;flex:none;background:radial-gradient(circle at 30% 30%,#FFE2B8,#F2A65A 55%,#C9733A)}
+.profile b{display:block;font-weight:500;font-size:17px}
+.profile small{display:block;color:var(--fg-2);font-size:14.5px}
+.nav{display:flex;align-items:center;gap:14px;padding:12px 16px;border-radius:14px;color:var(--fg);font-size:16.5px;text-decoration:none}
+.nav:hover{background:var(--hover)}
+.nav.on{background:var(--soft);font-weight:500}
+.nav .ic{color:var(--fg-2)}
+.nav .badge{margin-left:auto}
+.side .grow{flex:1}
+.shell.collapsed{grid-template-columns:0 minmax(0,1fr)}
+.shell.collapsed .side{visibility:hidden;padding:0;overflow:hidden}
+
+.main{min-width:0;padding:22px 32px 40px;display:flex;flex-direction:column;gap:24px}
+.head{display:flex;align-items:center;gap:14px;min-height:52px}
+.head h1{margin:0;font-size:27px;font-weight:600;letter-spacing:-.01em;flex:1;min-width:0;text-wrap:balance}
+.head .sub{display:block;font-size:14.5px;font-weight:400;color:var(--fg-2);letter-spacing:0}
+.round{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:var(--soft);flex:none}
+.round:hover{background:var(--soft-2)}
+.round.ghost{background:transparent}
+.round.ghost:hover{background:var(--soft)}
+.btn{display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 18px;border-radius:14px;background:var(--soft);font-weight:500;font-size:16px;white-space:nowrap}
+.btn:hover{background:var(--soft-2)}
+.btn.green{background:var(--green);color:var(--green-fg)}
+.btn.green:hover{filter:brightness(1.05)}
+.btn.sm{height:40px;padding:0 15px;font-size:15.5px;border-radius:13px}
+.btn .ic{width:19px;height:19px}
+
+.bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.bar .fill{flex:1}
+.seg{display:inline-flex;gap:2px;padding:5px;border-radius:16px;background:var(--soft);max-width:100%;overflow-x:auto}
+.seg button{padding:8px 20px;border-radius:12px;color:var(--fg-2);font-size:16px;white-space:nowrap}
+.seg button:hover{color:var(--fg)}
+.seg button[aria-selected="true"]{background:var(--card);color:var(--fg);box-shadow:var(--shadow)}
+.select{display:inline-flex;align-items:center;gap:10px;height:44px;padding:0 14px;border-radius:14px;background:var(--soft);font-size:16px;white-space:nowrap}
+.select .chev{width:16px;height:16px}
+
+/* ---------- cards ---------- */
+.grid{display:grid;gap:18px}
+.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.g-side{grid-template-columns:minmax(0,1fr) 360px}
+.card{background:var(--card);border-radius:20px;box-shadow:var(--shadow);padding:22px 24px;min-width:0}
+.stat .lbl{color:var(--fg-2);font-size:16px}
+.stat .row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:14px;flex-wrap:wrap}
+.stat .val{font-size:31px;font-weight:600;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+.chip{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:999px;font-size:14px;font-weight:500;white-space:nowrap;font-variant-numeric:tabular-nums}
+.chip.up,.chip.ok{background:var(--green-soft);color:var(--green-ink)}
+.chip.down,.chip.bad{background:var(--red-soft);color:var(--red)}
+.chip.warn{background:var(--amber-soft);color:var(--amber)}
+.chip.info{background:var(--blue-soft);color:var(--blue)}
+.chip.mute{background:var(--soft);color:var(--fg-2)}
+.badge{display:inline-flex;align-items:center;padding:2px 10px;border-radius:999px;font-size:14px;background:var(--green-soft);color:var(--green-ink)}
+.ctitle{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.ctitle h2{margin:0;font-size:19px;font-weight:500;flex:1;min-width:0}
+.legend{display:flex;gap:16px;color:var(--fg-2);font-size:15px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+.minis{display:flex;flex-wrap:wrap;gap:12px 36px;margin:18px 0 6px}
+.mini b{font-size:24px;font-weight:600;font-variant-numeric:tabular-nums}
+.mini .chip{background:none;padding:0 0 0 8px}
+.mini small{display:block;color:var(--fg-2);font-size:15px}
+.chart{width:100%;height:auto;display:block;margin-top:8px}
+.chart text{fill:var(--fg-2);font:13px var(--sans)}
+.chart .gl{stroke:var(--line);stroke-width:1}
+
+/* ---------- table ---------- */
+.thead{display:flex;align-items:center;gap:10px;margin-top:6px}
+.thead h2{margin:0;font-size:21px;font-weight:600}
+.count{padding:2px 10px;border-radius:999px;background:var(--soft);font-size:14.5px;font-weight:500}
+.search{display:flex;align-items:center;gap:10px;height:46px;padding:0 16px;border-radius:14px;background:var(--card);border:1px solid var(--line);min-width:0;flex:0 1 320px}
+.search input{border:0;outline:0;background:transparent;min-width:0;flex:1;font-size:16px}
+.search input::placeholder{color:var(--muted)}
+.tframe{background:var(--soft);border-radius:20px;padding:0 6px 6px;overflow-x:auto}
+table.t{width:100%;border-collapse:separate;border-spacing:0;min-width:720px}
+.t th{text-align:left;font-weight:400;color:var(--fg-2);font-size:15px;padding:14px 18px;white-space:nowrap;position:relative}
+.t th + th::before{content:"";position:absolute;left:0;top:12px;bottom:12px;width:1px;background:var(--soft-2)}
+.t th.r,.t td.r{text-align:right}
+.t td{background:var(--card);padding:14px 18px;border-bottom:1px solid var(--line);vertical-align:middle;font-size:16px}
+.t tbody tr:last-child td{border-bottom:0}
+.t tbody tr:first-child td:first-child{border-top-left-radius:16px}
+.t tbody tr:first-child td:last-child{border-top-right-radius:16px}
+.t tbody tr:last-child td:first-child{border-bottom-left-radius:16px}
+.t tbody tr:last-child td:last-child{border-bottom-right-radius:16px}
+.idc{display:inline-flex;align-items:center;gap:12px;font-size:18px;font-weight:500;font-variant-numeric:tabular-nums}
+.idc .ic{width:18px;height:18px;color:var(--fg-2)}
+.who{display:flex;align-items:center;gap:14px;min-width:0}
+.pav{width:44px;height:44px;border-radius:50%;flex:none}
+.who b{display:block;font-weight:500}
+.who small{display:block;color:var(--fg-2);font-size:14.5px}
+.acts{display:inline-flex;gap:8px}
+.acts .round{width:42px;height:42px}
+.acts .round.del{background:var(--red-soft);color:var(--red)}
+.ibar{display:flex;align-items:center;gap:10px}
+.ibar span{display:block;height:8px;border-radius:999px;background:var(--green)}
+.ibar em{font-style:normal;font-variant-numeric:tabular-nums;color:var(--fg-2);font-size:14.5px;min-width:36px}
+
+/* ---------- chat ---------- */
+.chatcard{display:flex;flex-direction:column;padding:0;min-height:620px}
+.thread{flex:1;padding:24px 26px;display:flex;flex-direction:column;gap:20px}
+.turn{display:flex;gap:14px;max-width:760px}
+.turn.me{align-self:flex-end;flex-direction:row-reverse}
+.turn .pav{width:38px;height:38px;display:grid;place-items:center;font-size:13px;font-weight:600}
+.bubble{padding:14px 18px;border-radius:18px;background:var(--soft);min-width:0}
+.turn.me .bubble{background:var(--green-soft)}
+.bubble p{margin:0 0 8px}.bubble p:last-child{margin:0}
+.bubble .t{min-width:0}
+.facts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:10px}
+.facts div{background:var(--card);border-radius:14px;padding:10px 14px}
+.facts small{display:block;color:var(--fg-2);font-size:14px}
+.facts b{font-size:19px;font-weight:600;font-variant-numeric:tabular-nums}
+.qcard{border:2px solid var(--green);background:var(--card)}
+.opts{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.opt{height:40px;padding:0 16px;border-radius:13px;background:var(--soft)}
+.opt:hover{background:var(--soft-2)}
+.opt[aria-pressed="true"]{background:var(--green);color:var(--green-fg)}
+.saved{margin-top:10px;color:var(--green-ink);font-weight:500}
+.composer{padding:16px 20px 20px;border-top:1px solid var(--line)}
+.cbox{display:flex;align-items:flex-end;gap:10px;padding:8px 8px 8px 16px;border-radius:16px;background:var(--soft)}
+.cbox textarea{flex:1;min-width:0;border:0;outline:0;background:transparent;resize:none;padding:10px 0;font-size:16px;min-height:44px}
+.cbox textarea::placeholder{color:var(--muted)}
+.note{margin:10px 2px 0;color:var(--muted);font-size:13.5px}
+
+.steps{list-style:none;margin:16px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+.steps li{display:flex;align-items:center;gap:14px;padding:10px 12px;border-radius:14px}
+.steps li.now{background:var(--soft)}
+.steps .n{width:32px;height:32px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:14px;font-weight:600;background:var(--soft);color:var(--fg-2);font-variant-numeric:tabular-nums}
+.steps li.done .n{background:var(--green-soft);color:var(--green-ink)}
+.steps li.now .n{background:var(--green);color:var(--green-fg)}
+.steps b{display:block;font-weight:500;font-size:15.5px}
+.steps small{display:block;color:var(--fg-2);font-size:14px}
+.lockbox{margin-top:16px;padding:14px 16px;border-radius:16px;background:var(--soft);font-size:14.5px;color:var(--fg-2)}
+.lockbox b{display:block;color:var(--fg);font-weight:500;font-size:15.5px}
+.prog{height:10px;border-radius:999px;background:var(--soft);overflow:hidden;margin-top:14px}
+.prog span{display:block;height:100%;background:var(--green);border-radius:999px}
+
+/* ---------- report, settings ---------- */
+.prose{max-width:68ch}
+.prose h3{margin:22px 0 6px;font-size:18px;font-weight:600}
+.prose p{margin:0 0 10px;color:var(--fg-2)}
+.locked{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:16px;background:var(--soft);color:var(--fg-2);margin-top:10px}
+.srow{display:flex;align-items:center;gap:18px;padding:16px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.srow:last-child{border-bottom:0;padding-bottom:0}
+.srow .txt{flex:1;min-width:220px}
+.srow b{display:block;font-weight:500}
+.srow small{display:block;color:var(--fg-2);font-size:14.5px}
+.field{height:44px;padding:0 14px;border-radius:13px;border:1px solid var(--line);background:var(--card);min-width:0;width:260px;max-width:100%}
+.toggle{width:52px;height:30px;border-radius:999px;background:var(--soft-2);position:relative;flex:none}
+.toggle::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgb(0 0 0 / .2)}
+.toggle[aria-checked="true"]{background:var(--green)}
+.toggle[aria-checked="true"]::after{left:25px}
+.empty{padding:40px 20px;text-align:center;color:var(--fg-2)}
+.empty b{display:block;color:var(--fg);font-size:18px;font-weight:600;margin-bottom:4px}
+
+.menu-btn{display:none}
+.demo-tag{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:max(16px,env(safe-area-inset-bottom,0px));z-index:5;
+  padding:8px 14px;border-radius:999px;background:var(--fg);color:var(--page);font-size:13.5px;box-shadow:var(--shadow)}
+
+@media (prefers-reduced-motion:no-preference){
+  .nav,.seg button,.btn,.round,.opt,.toggle,.toggle::after{transition:background-color .15s,color .15s,left .18s,box-shadow .15s}
+}
+@media (max-width:1180px){
+  .g4{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .g-side{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:900px){
+  body{padding-block:0;padding-left:0;padding-right:0}
+  .shell{grid-template-columns:minmax(0,1fr);border-radius:0;border:0;min-height:100vh}
+  .side{display:none;border-right:0;border-bottom:1px solid var(--line);
+    padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+  .shell.open .side{display:flex}
+  .side .grow{display:none}
+  .main{padding:16px max(16px,env(safe-area-inset-right,0px)) 32px max(16px,env(safe-area-inset-left,0px))}
+  .menu-btn{display:grid}
+  .g2,.g3{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:560px){
+  .g4{grid-template-columns:minmax(0,1fr)}
+  .head h1{font-size:22px}
+  .head .hide-sm,.bar .hide-sm{display:none}
+  .facts{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .thread{padding:18px 14px}
+  .composer{padding:12px 14px 14px}
+  .search{flex:1 1 100%}
+  .stat .val{font-size:27px}
+}
+</style>
+
+<div class="shell" id="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="profile"><span class="avatar" aria-hidden="true"></span><div><b>DCLab workspace</b><small>Owner</small></div></div>
+    <nav id="nav" style="display:contents"></nav>
+    <div class="grow"></div>
+    <a class="nav" href="#home"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5V14M12 17.5v.01"/></svg>Help &amp; information</a>
+    <a class="nav" href="#home"><svg class="ic" viewBox="0 0 24 24"><path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4M10 16l4-4-4-4M14 12H4"/></svg>Log out</a>
+  </aside>
+  <main class="main" id="main"></main>
+</div>
+<div class="demo-tag">UI v5 · example numbers</div>
+
+<script>
+(function(){
+// ---------- icons ----------
+var P={
+ home:'<path d="M4 10.5 12 4l8 6.5V20h-5v-6H9v6H4z"/>',
+ chat:'<path d="M5 5h14v10H9l-4 4z"/>',
+ folder:'<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+ book:'<path d="M5 4h6a2 2 0 0 1 2 2v14a2 2 0 0 0-2-2H5zM19 4h-4a2 2 0 0 0-2 2"/><path d="M19 4v14h-4a2 2 0 0 0-2 2"/>',
+ gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
+ chart:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+ search:'<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+ bell:'<path d="M6 16V11a6 6 0 1 1 12 0v5l1.5 2h-15zM10 20a2 2 0 0 0 4 0"/>',
+ plus:'<path d="M12 5v14M5 12h14"/>',
+ panel:'<rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/>',
+ refresh:'<path d="M20 11a8 8 0 0 0-14.5-4.5L4 8M4 4v4h4M4 13a8 8 0 0 0 14.5 4.5L20 16M20 20v-4h-4"/>',
+ cal:'<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>',
+ chev:'<path d="m6 9 6 6 6-6"/>',
+ down:'<path d="M12 4v12M6 10l6 6 6-6M5 20h14"/>',
+ filter:'<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>',
+ sort:'<path d="M4 7h16M7 12h10M10 17h4"/>',
+ cols:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M15 4v16"/>',
+ copy:'<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/>',
+ eye:'<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+ pen:'<path d="m4 20 4-1 11-11-3-3L5 16zM14 6l3 3"/>',
+ trash:'<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
+ send:'<path d="M12 19V5M5 12l7-7 7 7"/>',
+ clip:'<path d="M21 12.5 12.6 21a5 5 0 0 1-7.1-7.1L14 5.3a3.3 3.3 0 0 1 4.7 4.7l-8.5 8.5a1.7 1.7 0 0 1-2.4-2.4L15.5 8.4"/>',
+ lock:'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+ code:'<path d="m8 8-4 4 4 4M16 8l4 4-4 4M13 5l-2 14"/>',
+ menu:'<path d="M4 7h16M4 12h16M4 17h16"/>',
+ play:'<path d="M7 5v14l11-7z"/>'
+};
+function ic(n,cls){return '<svg class="ic'+(cls?' '+cls:'')+'" viewBox="0 0 24 24" aria-hidden="true">'+P[n]+'</svg>'}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+
+// ---------- data (examples shaped like the Telco churn project; not measured) ----------
+var PROJECTS=[
+ {id:'P-1042',name:'Customer churn',file:'telco.csv · 7,043 rows',kind:'Classification',stage:['Waiting for you','warn'],c:'linear-gradient(135deg,#FFD08A,#E88A3C)'},
+ {id:'P-1043',name:'Delivery fraud',file:'orders.parquet · 412,880 rows',kind:'Rare events',stage:['Building','info'],c:'linear-gradient(135deg,#BFD3FF,#5C7FE0)'},
+ {id:'P-1044',name:'Ticket routing',file:'tickets.csv · 58,210 rows',kind:'Text classification',stage:['Report ready','ok'],c:'linear-gradient(135deg,#C9F2C2,#46B85A)'},
+ {id:'P-1045',name:'Delivery time',file:'deliveries.csv · 96,402 rows',kind:'Regression',stage:['Leak found','bad'],c:'linear-gradient(135deg,#FFC6BD,#DE5F4E)'}
+];
+var COLUMNS=[
+ ['customerID','Text','0%',['Left out','mute'],'An ID. It would only memorise rows.'],
+ ['tenure','Number','0%',['Feature','ok'],'Months as a customer'],
+ ['Contract','Category','0%',['Feature','ok'],'Month-to-month, one year, two year'],
+ ['MonthlyCharges','Number','0%',['Feature','ok'],''],
+ ['TotalCharges','Number','0.2%',['Feature','ok'],'11 blanks, filled inside each training fold'],
+ ['InternetService','Category','0%',['Feature','ok'],''],
+ ['CancelReason','Text','73.5%',['Left out','bad'],'Filled in only after a customer cancels'],
+ ['LastBillDate','Date','0%',['Left out','bad'],'Set after the month being predicted'],
+ ['Churn','Yes / No','0%',['Outcome','info'],'What we predict. 26.5% yes']
+];
+var FEATURES=[
+ ['tenure_months','tenure',true,true,.31],
+ ['contract_is_monthly','Contract',true,true,.24],
+ ['charges_per_month','MonthlyCharges',true,true,.15],
+ ['total_to_monthly_ratio','TotalCharges, MonthlyCharges',true,true,.11],
+ ['has_fiber','InternetService',true,true,.08],
+ ['cancel_reason_given','CancelReason',false,false,null],
+ ['days_since_last_bill','LastBillDate',false,false,null]
+];
+var MODELS=[
+ ['Always say "stays"','Baseline','0.50','—','<1 s',null],
+ ['Logistic regression','Linear','0.81','0.79 – 0.83','2 s',null],
+ ['Random forest','Trees','0.82','0.80 – 0.84','19 s',null],
+ ['Gradient boosting','Trees','0.84','0.82 – 0.86','31 s','Chosen']
+];
+
+// ---------- charts ----------
+function barChart(vals,labels,ticks,fmt,opt){
+  opt=opt||{};var W=600,H=260,L=44,R=10,T=14,B=34,lo=ticks[0],hi=ticks[ticks.length-1];
+  var y=function(v){return T+(H-T-B)*(1-(v-lo)/(hi-lo))};
+  var s='<svg class="chart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+esc(opt.label||'Bar chart')+'">';
+  ticks.forEach(function(t){s+='<line class="gl" x1="'+L+'" x2="'+(W-R)+'" y1="'+y(t)+'" y2="'+y(t)+'"/><text x="'+(L-10)+'" y="'+(y(t)+4)+'" text-anchor="end">'+fmt(t)+'</text>'});
+  var n=vals.length,slot=(W-L-R)/n,bw=Math.min(28,slot*.5);
+  vals.forEach(function(v,i){var cx=L+slot*i+slot/2,top=y(v),h=y(lo)-top;
+    s+='<rect x="'+(cx-bw/2)+'" y="'+top+'" width="'+bw+'" height="'+Math.max(h,0)+'" rx="'+(bw/2)+'" fill="'+(opt.hl===i?'var(--green-ink)':'var(--green)')+'"><title>'+esc(labels[i])+': '+fmt(v)+'</title></rect>';
+    s+='<text x="'+cx+'" y="'+(H-10)+'" text-anchor="middle">'+esc(labels[i])+'</text>'});
+  return s+'</svg>';
+}
+function lineChart(series,labels,ticks,label){
+  var W=600,H=260,L=40,R=12,T=14,B=34,hi=ticks[ticks.length-1];
+  var y=function(v){return T+(H-T-B)*(1-v/hi)};var x=function(i){return L+(W-L-R)*i/(labels.length-1)};
+  var s='<svg class="chart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+esc(label)+'">';
+  ticks.forEach(function(t){s+='<line class="gl" x1="'+L+'" x2="'+(W-R)+'" y1="'+y(t)+'" y2="'+y(t)+'"/><text x="'+(L-10)+'" y="'+(y(t)+4)+'" text-anchor="end">'+t+'</text>'});
+  labels.forEach(function(l,i){s+='<text x="'+x(i)+'" y="'+(H-10)+'" text-anchor="middle">'+l+'</text>'});
+  series.forEach(function(se){s+='<polyline fill="none" stroke="'+se.c+'" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" points="'+se.v.map(function(v,i){return x(i)+','+y(v)}).join(' ')+'"/>'});
+  return s+'</svg>';
+}
+
+// ---------- shared pieces ----------
+function head(title,sub,extra){
+  return '<div class="head"><button class="round ghost menu-btn" data-menu aria-label="Open menu">'+ic('menu')+'</button>'+
+   '<button class="round ghost hide-sm" data-menu aria-label="Toggle sidebar">'+ic('panel')+'</button>'+
+   '<h1>'+title+(sub?'<span class="sub">'+sub+'</span>':'')+'</h1>'+
+   '<button class="round hide-sm" aria-label="Search">'+ic('search')+'</button>'+
+   '<button class="round" aria-label="Notifications">'+ic('bell')+'</button>'+(extra||'')+'</div>';
+}
+function seg(name,items,cur){
+  return '<div class="seg" role="tablist" aria-label="'+esc(name)+'">'+items.map(function(it){
+    return '<button role="tab" data-tab="'+it[0]+'" aria-selected="'+(it[0]===cur)+'">'+it[1]+'</button>'}).join('')+'</div>';
+}
+function stat(lbl,val,chip){return '<div class="card stat"><div class="lbl">'+lbl+'</div><div class="row"><span class="val">'+val+'</span>'+(chip||'')+'</div></div>'}
+function chip(t,k){return '<span class="chip '+k+'">'+t+'</span>'}
+function tools(title,count,ph){
+  return '<div class="thead"><h2>'+title+'</h2><span class="count">'+count+'</span></div>'+
+   '<div class="bar"><button class="btn sm">'+ic('filter')+'Filter</button><button class="btn sm">'+ic('sort')+'Sort</button><button class="btn sm hide-sm">'+ic('cols')+'Columns</button><span class="fill"></span>'+
+   '<label class="search">'+ic('search')+'<input type="search" id="q-'+title.replace(/\W/g,'')+'" placeholder="'+ph+'"></label></div>';
+}
+function acts(){return '<span class="acts"><button class="round" aria-label="Open">'+ic('eye')+'</button><button class="round" aria-label="Edit">'+ic('pen')+'</button><button class="round del" aria-label="Delete">'+ic('trash')+'</button></span>'}
+function stepsList(){
+  var S=[['Understand the problem','Who cancels next month','done'],['Check the data','7,043 rows, outcome complete','done'],['Find leaks','3 columns left out','done'],
+   ['Set the prediction moment','Waiting for your answer','now'],['Build and compare models','Not started',''],['Final test','Locked until step 5','']];
+  return '<ol class="steps">'+S.map(function(s,i){return '<li class="'+s[2]+'"><span class="n">'+(s[2]==='done'?'✓':i+1)+'</span><div><b>'+s[0]+'</b><small>'+s[1]+'</small></div></li>'}).join('')+'</ol>';
+}
+
+// ---------- pages ----------
+var state={home:'overview',project:'overview',library:'evidence',prefs:'general'};
+var PAGES={};
+
+PAGES.home=function(){
+  var tab=state.home;
+  var out=head('Good morning','4 projects, 1 needs your answer','<button class="btn green">'+ic('plus')+'New project</button>')+
+   '<div class="bar">'+seg('Home',[['overview','Overview'],['activity','Activity']],tab)+'<span class="fill"></span>'+
+   '<button class="round hide-sm" aria-label="Refresh">'+ic('refresh')+'</button><span class="select">'+ic('cal')+'Last 30 days'+ic('chev','chev')+'</span>'+
+   '<button class="btn green hide-sm">'+ic('down')+'Export</button></div>';
+  if(tab==='activity'){
+    var A=[['Customer churn','DCLab left out 3 columns that leak the answer','Today, 09:12',['Leak check','ok']],
+      ['Delivery time','A column is known only after delivery: driver_rating','Today, 08:40',['Needs review','bad']],
+      ['Ticket routing','Report written; every number traced to its run','Yesterday',['Report','info']],
+      ['Delivery fraud','Build started: 4 models on 3 time-ordered folds','Yesterday',['Build','mute']]];
+    return out+'<div class="tframe"><table class="t"><thead><tr><th>Project</th><th>What happened</th><th>When</th><th>Kind</th></tr></thead><tbody>'+
+      A.map(function(a){return '<tr><td><b style="font-weight:500">'+a[0]+'</b></td><td>'+a[1]+'</td><td class="num" style="color:var(--fg-2)">'+a[2]+'</td><td>'+chip(a[3][0],a[3][1])+'</td></tr>'}).join('')+'</tbody></table></div>';
+  }
+  var auc=[.71,.74,.73,.78,.80,.79,.81,.82,.80,.83,.84,.84];
+  out+='<div class="grid g4">'+stat('Projects','4',chip('↑ 1','up'))+stat('Leaks caught','7',chip('↑ 3','up'))+stat('Checks passed','87%',chip('↑ 4%','up'))+stat('Open questions','2',chip('needs you','warn'))+'</div>';
+  out+='<div class="grid g2"><div class="card"><div class="ctitle"><h2>Model quality</h2><span class="select">Last 12 runs'+ic('chev','chev')+'</span></div>'+
+   '<div class="minis"><div class="mini"><b>0.84</b><span class="chip up">↑ 0.02</span><small>Best validation AUC</small></div><div class="mini"><b>12</b><span class="chip up">↑ 4</span><small>Runs</small></div><div class="mini"><b>0.50</b><small>Guessing</small></div></div>'+
+   barChart(auc,auc.map(function(_,i){return String(i+1).padStart(2,'0')}),[.5,.6,.7,.8,.9],function(v){return v.toFixed(2)},{label:'Validation AUC of the last 12 runs',hl:10})+'</div>'+
+   '<div class="card"><div class="ctitle"><h2>Checks run</h2><span class="legend"><span><i style="background:var(--green-ink)"></i>Passed</span><span><i style="background:var(--green-light)"></i>Flagged</span></span></div>'+
+   '<div class="minis"><div class="mini"><b>164</b><small>Checks in 12 weeks</small></div></div>'+
+   lineChart([{c:'var(--green-ink)',v:[4,6,5,9,8,11,10,14,13,16,18,21]},{c:'var(--green-light)',v:[2,3,2,4,3,5,3,4,2,3,2,3]}],
+     ['W1','W2','W3','W4','W5','W6','W7','W8','W9','W10','W11','W12'],[0,5,10,15,20,25],'Checks passed and flagged per week')+'</div></div>';
+  out+=tools('All projects',PROJECTS.length,'Search projects…')+'<div class="tframe"><table class="t"><thead><tr><th>Project ID</th><th>Project ▴</th><th>Problem</th><th>Stage</th><th class="r">Actions</th></tr></thead><tbody>'+
+   PROJECTS.map(function(p){return '<tr><td><span class="idc">#'+p.id+ic('copy')+'</span></td><td><a class="who" href="#project" style="color:inherit;text-decoration:none"><span class="pav" style="background:'+p.c+'"></span><span><b>'+p.name+'</b><small>'+p.file+'</small></span></a></td><td>'+p.kind+'</td><td>'+chip(p.stage[0],p.stage[1])+'</td><td class="r">'+acts()+'</td></tr>'}).join('')+
+   '</tbody></table></div>';
+  return out;
+};
+
+PAGES.chat=function(){
+  return head('Customer churn','Chat','<a class="btn green" href="#project">'+ic('chart')+'Open project</a>')+
+  '<div class="grid g-side"><div class="card chatcard"><div class="thread">'+
+   '<div class="turn me"><span class="pav" style="background:var(--green);color:var(--green-fg)">You</span><div class="bubble"><p>Which customers will cancel next month? The data is <span class="mono">telco.csv</span>.</p></div></div>'+
+   '<div class="turn"><span class="pav" style="background:var(--fg);color:var(--page)">DC</span><div class="bubble"><p>I read the file. Each row is one customer. The outcome is <span class="mono">Churn</span>: did the customer cancel?</p>'+
+     '<div class="facts"><div><small>Customers</small><b>7,043</b></div><div><small>Columns</small><b>21</b></div><div><small>Cancelled</small><b>26.5%</b></div><div><small>Date column</small><b>None</b></div></div></div></div>'+
+   '<div class="turn"><span class="pav" style="background:var(--fg);color:var(--page)">DC</span><div class="bubble"><p>Three columns would give away the answer, so I left them out of every model: <span class="mono">CancelReason</span>, <span class="mono">LastBillDate</span> and <span class="mono">customerID</span>. The Data tab says why for each.</p></div></div>'+
+   '<div class="turn"><span class="pav" style="background:var(--fg);color:var(--page)">DC</span><div class="bubble qcard"><p><b style="font-weight:600">When will you run this prediction?</b></p><p style="color:var(--fg-2)">This decides which data counts as known at that moment. A column known only later makes the score look better than it really is.</p>'+
+     '<div class="opts" role="group" aria-label="Answer"><button class="opt" aria-pressed="false">On the 1st of each month</button><button class="opt" aria-pressed="false">Any day of the month</button><button class="opt" aria-pressed="false">I\'m not sure yet</button></div><div class="saved" id="saved" hidden>Saved. Next I build and compare models on the training part only.</div></div></div>'+
+  '</div><div class="composer"><label class="cbox" for="prompt"><button class="round ghost" aria-label="Add data">'+ic('clip')+'</button><textarea id="prompt" rows="1" placeholder="Answer, or ask DCLab anything"></textarea><button class="round" style="background:var(--green);color:var(--green-fg)" aria-label="Send">'+ic('send')+'</button></label>'+
+  '<p class="note">Or let DCLab run the next steps by itself: it stops at every question that is yours to answer.</p></div></div>'+
+  '<div class="card"><div class="ctitle"><h2>Where this stands</h2>'+chip('4 of 6','mute')+'</div><div class="prog"><span style="width:50%"></span></div>'+stepsList()+
+  '<div class="lockbox"><b>'+ic('lock')+' Final test is locked</b>It runs once, on data no model has seen, after step 5. Running it earlier would let us tune to it.</div></div></div>';
+};
+
+PAGES.project=function(){
+  var tab=state.project, out=head('Customer churn','telco.csv · Classification','<button class="btn green">'+ic('code')+'Export code</button>')+
+   '<div class="bar">'+seg('Project',[['overview','Overview'],['data','Data'],['features','Features'],['models','Models'],['report','Report']],tab)+'<span class="fill"></span>'+
+   '<button class="round hide-sm" aria-label="Run again">'+ic('refresh')+'</button><a class="btn hide-sm" href="#chat">'+ic('chat')+'Chat</a></div>';
+  if(tab==='overview'){
+    out+='<div class="grid g4">'+stat('Rows','7,043')+stat('Columns used','17',chip('3 left out','warn'))+stat('Cancelled','26.5%')+stat('Final test','Locked',chip('runs once','mute'))+'</div>';
+    out+='<div class="grid g2"><div class="card"><div class="ctitle"><h2>Steps</h2>'+chip('4 of 6','mute')+'</div><div class="prog"><span style="width:50%"></span></div>'+stepsList()+'</div>'+
+     '<div class="card"><div class="ctitle"><h2>Leak and method checks</h2>'+chip('9 passed','up')+'</div>'+
+     '<div class="tframe" style="margin-top:16px;background:transparent;padding:0"><table class="t" style="min-width:0"><tbody>'+
+     [['Columns known only after the outcome',['3 left out','warn']],['ID columns used as signals',['1 left out','warn']],['Rows split by time',['No date column','mute']],
+      ['Cleaning fitted inside training folds',['Passed','ok']],['Final test kept apart',['Passed','ok']],['Outcome balance checked',['26.5% yes','ok']]]
+       .map(function(c){return '<tr><td style="padding-left:4px">'+c[0]+'</td><td class="r" style="padding-right:4px">'+chip(c[1][0],c[1][1])+'</td></tr>'}).join('')+'</tbody></table></div></div></div>';
+  } else if(tab==='data'){
+    out+=tools('Columns',COLUMNS.length+' of 21','Search columns…')+'<div class="tframe"><table class="t"><thead><tr><th>Column</th><th>Type</th><th>Missing</th><th>Role</th><th>Why</th></tr></thead><tbody>'+
+     COLUMNS.map(function(c){return '<tr><td class="mono">'+c[0]+'</td><td>'+c[1]+'</td><td class="num">'+c[2]+'</td><td>'+chip(c[3][0],c[3][1])+'</td><td style="color:var(--fg-2)">'+(c[4]||'—')+'</td></tr>'}).join('')+'</tbody></table></div>';
+  } else if(tab==='features'){
+    out+='<div class="grid g4">'+stat('Features made','7')+stat('Kept','5',chip('known in time','up'))+stat('Dropped','2',chip('known too late','down'))+stat('Recipes compared','3')+'</div>'+
+     tools('Features',FEATURES.length,'Search features…')+'<div class="tframe"><table class="t"><thead><tr><th>Feature</th><th>Made from</th><th>Known at prediction time</th><th>Status</th><th>Importance</th></tr></thead><tbody>'+
+     FEATURES.map(function(f){return '<tr><td class="mono">'+f[0]+'</td><td style="color:var(--fg-2)">'+f[1]+'</td><td>'+(f[2]?chip('Yes','ok'):chip('No','bad'))+'</td><td>'+(f[3]?chip('Kept','ok'):chip('Dropped','mute'))+'</td><td>'+
+       (f[4]==null?'<span style="color:var(--muted)">—</span>':'<span class="ibar"><span style="width:'+Math.round(f[4]*300)+'px;max-width:110px"></span><em>'+f[4].toFixed(2)+'</em></span>')+'</td></tr>'}).join('')+'</tbody></table></div>';
+  } else if(tab==='models'){
+    out+='<div class="grid g2"><div class="card"><div class="ctitle"><h2>Validation AUC by model</h2>'+chip('5 folds','mute')+'</div>'+
+      barChart([.50,.81,.82,.84],['Baseline','Logistic','Forest','Boosting'],[0,.25,.5,.75,1],function(v){return v.toFixed(2)},{label:'Validation AUC by model',hl:3})+'</div>'+
+      '<div class="card"><div class="ctitle"><h2>Why gradient boosting</h2></div><div class="prose"><p style="margin-top:12px">It has the best validation AUC, 0.84. Its range, 0.82 to 0.86, overlaps the forest\'s, so the gain is small.</p><p>The rule fixed before the runs: pick the best validation score; on a tie, pick the simpler model.</p>'+
+      '<div class="locked">'+ic('lock')+'The final test runs once, after you answer the open question.</div></div></div></div>'+
+      tools('Models',MODELS.length,'Search models…')+'<div class="tframe"><table class="t"><thead><tr><th>Model</th><th>Family</th><th>Validation AUC</th><th>Range (95%)</th><th>Fit time</th><th></th></tr></thead><tbody>'+
+      MODELS.map(function(m){return '<tr><td><b style="font-weight:500">'+m[0]+'</b></td><td>'+m[1]+'</td><td class="num">'+m[2]+'</td><td class="num" style="color:var(--fg-2)">'+m[3]+'</td><td class="num">'+m[4]+'</td><td class="r">'+(m[5]?chip(m[5],'up'):'')+'</td></tr>'}).join('')+'</tbody></table></div>';
+  } else {
+    out+='<div class="grid g-side"><div class="card"><div class="ctitle"><h2>Report draft</h2>'+chip('3 of 5 parts written','mute')+'</div><div class="prose">'+
+     '<h3>The problem</h3><p>Predict, on the 1st of each month, which customers will cancel during that month.</p>'+
+     '<h3>The data</h3><p>7,043 customers, one row each, 21 columns. 26.5% cancelled. There is no date column, so rows are split at random, not by time.</p>'+
+     '<h3>What was left out</h3><p>CancelReason and LastBillDate are known only after a customer cancels. customerID is a name tag. All three were left out of every model.</p>'+
+     '<h3>The model</h3><div class="locked">'+ic('lock')+'Written after the build.</div><h3>The final test</h3><div class="locked">'+ic('lock')+'Written after the one final test.</div></div></div>'+
+     '<div class="card"><div class="ctitle"><h2>Share</h2></div><div class="prose"><p style="margin-top:12px">Every number in the report links to the run that made it.</p></div>'+
+     '<div style="display:grid;gap:10px;margin-top:8px"><button class="btn green">'+ic('down')+'Download PDF</button><button class="btn">'+ic('code')+'Export as code</button></div></div></div>';
+  }
+  return out;
+};
+
+PAGES.library=function(){
+  var tab=state.library,out=head('Library','What DCLab has measured and learned','<button class="btn green">'+ic('search')+'Ask the library</button>')+
+   '<div class="bar">'+seg('Library',[['evidence','Evidence'],['bench','Benchmarks'],['lessons','Lessons']],tab)+'</div>';
+  if(tab==='evidence'){
+    var E=[['Target encoding fitted on all rows inflates AUC','HyperAck','+0.06 AUC too high',['Leak','bad']],['Time-ordered folds change the model ranking','Telco','2 of 4 ranks moved',['Method','info']],
+      ['Class weights beat oversampling on rare events','Delivery fraud','+0.03 PR-AUC',['Finding','ok']],['Imputing before the split hides 11 blanks','Telco','0.004 AUC',['Small','mute']]];
+    out+='<div class="grid g3">'+stat('Experiments','214')+stat('Leaks found','31',chip('↑ 4','up'))+stat('Lessons accepted','38')+'</div>'+tools('Evidence',E.length,'Search evidence…')+
+      '<div class="tframe"><table class="t"><thead><tr><th>Finding</th><th>Data</th><th>Size</th><th>Kind</th></tr></thead><tbody>'+
+      E.map(function(e){return '<tr><td><b style="font-weight:500">'+e[0]+'</b></td><td>'+e[1]+'</td><td class="num" style="color:var(--fg-2)">'+e[2]+'</td><td>'+chip(e[3][0],e[3][1])+'</td></tr>'}).join('')+'</tbody></table></div>';
+  } else if(tab==='bench'){
+    var B=[['Leakage traps','36 cases','31 caught',['Green','ok']],['Problem understanding','24 briefs','17 right',['Amber','warn']],['Planning','16 people','9 good plans',['Red','bad']],['Code reproduces numbers','9 kinds','9 match',['Green','ok']]];
+    out+='<div class="tframe"><table class="t"><thead><tr><th>Suite</th><th>Size</th><th>Result</th><th>Level</th></tr></thead><tbody>'+
+      B.map(function(b){return '<tr><td><b style="font-weight:500">'+b[0]+'</b></td><td>'+b[1]+'</td><td class="num">'+b[2]+'</td><td>'+chip(b[3][0],b[3][1])+'</td></tr>'}).join('')+'</tbody></table></div>';
+  } else {
+    out+='<div class="card empty"><b>No lessons waiting for review</b>A lesson is proposed when a project finishes. Finish a project to see one here.</div>';
+  }
+  return out;
+};
+
+PAGES.prefs=function(){
+  var tab=state.prefs,out=head('Settings','','<button class="btn green">Save changes</button>')+
+   '<div class="bar">'+seg('Settings',[['general','General'],['model','Model'],['usage','Jobs & usage'],['members','Members']],tab)+'</div>';
+  function row(b,s,ctl){return '<div class="srow"><div class="txt"><b>'+b+'</b><small>'+s+'</small></div>'+ctl+'</div>'}
+  function tg(id,on){return '<button class="toggle" role="switch" id="'+id+'" aria-checked="'+on+'" aria-label="Toggle"></button>'}
+  if(tab==='general'){
+    out+='<div class="grid g2"><div class="card"><div class="ctitle"><h2>Workspace</h2></div>'+
+      row('Name','Shown at the top of the menu','<input class="field" id="ws-name" value="DCLab workspace">')+
+      row('Theme','Follows your computer unless you choose','<span class="seg" style="padding:4px"><button aria-selected="true" style="padding:6px 14px">Auto</button><button style="padding:6px 14px">Light</button><button style="padding:6px 14px">Dark</button></span>')+'</div>'+
+      '<div class="card"><div class="ctitle"><h2>Your data</h2></div>'+
+      row('Use my projects to improve DCLab','Off by default. Only you can turn it on.',tg('c1',false))+
+      row('Use my projects to train DCLab\'s models','Off by default. Table cells and prompts are never sent.',tg('c2',false))+'</div></div>';
+  } else if(tab==='model'){
+    out+='<div class="card"><div class="ctitle"><h2>Model</h2></div>'+row('Live model calls','When off, DCLab uses its rules only.',tg('m1',true))+
+      row('Monthly spending cap','Calls stop when the cap is reached.','<input class="field" id="cap" value="€20" style="width:120px">')+
+      row('Show the model\'s thinking summary','Kept beside each answer, labelled as a summary.',tg('m2',true))+'</div>';
+  } else if(tab==='usage'){
+    out+='<div class="grid g3">'+stat('Spent this month','€8.40',chip('of €20','mute'))+stat('Jobs running','2')+stat('Jobs this month','61',chip('↑ 12','up'))+'</div>'+
+      '<div class="card"><div class="ctitle"><h2>Spending cap</h2>'+chip('42%','mute')+'</div><div class="prog"><span style="width:42%"></span></div></div>';
+  } else {
+    var M=[['You','Owner','#FFD08A,#E88A3C'],['Data scientist (invited)','ML engineer','#BFD3FF,#5C7FE0']];
+    out+=tools('Members',M.length,'Search members…')+'<div class="tframe"><table class="t"><thead><tr><th>Member</th><th>Role</th><th class="r">Actions</th></tr></thead><tbody>'+
+      M.map(function(m){return '<tr><td><span class="who"><span class="pav" style="background:linear-gradient(135deg,'+m[2]+')"></span><b>'+m[0]+'</b></span></td><td>'+m[1]+'</td><td class="r">'+acts()+'</td></tr>'}).join('')+'</tbody></table></div>';
+  }
+  return out;
+};
+
+// ---------- nav + router ----------
+var NAV=[['home','Home','home'],['chat','Chat','chat'],['project','Projects','folder'],['library','Library','book'],['prefs','Settings','gear']];
+var navEl=document.getElementById('nav'),main=document.getElementById('main'),shell=document.getElementById('shell');
+function route(){
+  var h=(location.hash||'').slice(1); if(!PAGES[h]) h='home';
+  navEl.innerHTML=NAV.map(function(n){return '<a class="nav'+(n[0]===h?' on':'')+'" href="#'+n[0]+'"'+(n[0]===h?' aria-current="page"':'')+'>'+ic(n[2])+n[1]+(n[3]?'<span class="badge">'+n[3]+'</span>':'')+'</a>'}).join('');
+  main.innerHTML=PAGES[h]();
+  main.dataset.page=h;
+  shell.classList.remove('open');
+}
+main.addEventListener('click',function(e){
+  var t=e.target.closest('[data-tab]');
+  if(t&&t.closest('.bar')){state[main.dataset.page]=t.dataset.tab;main.innerHTML=PAGES[main.dataset.page]();return}
+  var m=e.target.closest('[data-menu]'); if(m){shell.classList.toggle(window.innerWidth>900?'collapsed':'open');return}
+  var o=e.target.closest('.opt'); if(o){o.parentNode.querySelectorAll('.opt').forEach(function(x){x.setAttribute('aria-pressed',String(x===o))});document.getElementById('saved').hidden=false;return}
+  var g=e.target.closest('.toggle'); if(g){g.setAttribute('aria-checked',String(g.getAttribute('aria-checked')!=='true'));return}
+  var s=e.target.closest('.seg:not([role]) button'); if(s){s.parentNode.querySelectorAll('button').forEach(function(x){x.setAttribute('aria-selected',String(x===s))})}
+});
+window.addEventListener('hashchange',route);
+route();
+})();
+</script>

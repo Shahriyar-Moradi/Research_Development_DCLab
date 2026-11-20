@@ -340,7 +340,8 @@ DC.view('home', {
         : 'A few questions to understand the problem, and the data as it gets ready.';
       showDraftPanels(true);
       creating(false);
-      DC.client.internStatus().then(i => { const m = $('#home-chat-mode', el); m.textContent = i.mode === 'llm' ? 'model · ' + i.model : 'standard questions'; m.hidden = false; }).catch(() => {});
+      syncPlanArtifact(draft);
+      DC.client.internStatus().then(i => { const m = $('#home-chat-mode', el); m.textContent = i.mode === 'llm' ? i.model : 'standard questions'; m.hidden = false; }).catch(() => {});
       if (S.close) S.close();
       S.close = stream(DC.client.path.events(draft.id), onEvent);
       drawPacks();
@@ -351,6 +352,7 @@ DC.view('home', {
       loadTwin();
       loadHomePlanner();
       loadInspectData(true);
+      document.dispatchEvent(new CustomEvent('dclab:draft', { detail: draft }));
       // dclab:closed-begin  (the understanding team: the full edition's)
       loadTeam();
       // dclab:closed-end
@@ -527,16 +529,16 @@ DC.view('home', {
       try {
         const jobsPromise = DC.client.opsJobs({ query: { limit: '10' }, quiet: true }).catch(() => null);
         const evPromise = DC.client.opsEvidenceRecent({ query: { limit: '8' }, quiet: true }).catch(() => null);
-        const stepsPromise = pid ? DC.client.projectSteps(pid, { quiet: true }).catch(() => null) : Promise.resolve(null);
+        /* The activity log reads the project's own moves (its transitions): /steps needs a stage or a decision and answered 422 here. */
         const doc = activeProjectDoc();
         const projPromise = (pid && (!doc || force)) ? DC.client.getProject(pid, { quiet: true }).catch(() => null) : Promise.resolve(doc);
-        const [jobs, recEv, steps, proj] = await Promise.all([jobsPromise, evPromise, stepsPromise, projPromise]);
+        const [jobs, recEv, proj] = await Promise.all([jobsPromise, evPromise, projPromise]);
         INSPECT.jobsAt = Date.now();
         if (jobs && Array.isArray(jobs.jobs || jobs.items || jobs)) INSPECT.jobs = jobs.jobs || jobs.items || jobs;
         if (recEv && Array.isArray(recEv.records || recEv.items || recEv)) INSPECT.recentEv = recEv.records || recEv.items || recEv;
         if (pid) {
           INSPECT.projId = pid;
-          if (steps) INSPECT.steps = Array.isArray(steps) ? steps : (steps.steps || steps.events || []);
+          if (proj && Array.isArray(proj.transitions)) INSPECT.steps = proj.transitions.map(t => ({ ...t, stage: (t.args || {}).stage || t.to, detail: t.outcome || t.message }));
           if (proj) {
             if (SESS.s && SESS.s.project_id === pid) SESS.p = proj;
             if (!S.hereDoc || S.hereDoc.id === pid) S.hereDoc = proj;
@@ -777,7 +779,7 @@ DC.view('home', {
       box.innerHTML = html;
       toggle.hidden = false;
       toggle.textContent = badge;
-      if (S.plannerPinned === null || S.plannerPinned === undefined) setPlannerOpen(hasAlert);
+      if (S.plannerPinned === null || S.plannerPinned === undefined) setPlannerOpen(false);
       else setPlannerOpen(S.plannerPinned);
 
       const hideBtn = $('#hp-hide', box);
@@ -1221,11 +1223,28 @@ DC.view('home', {
       }
     }
 
+    function syncPlanArtifact(draft) {
+      const titleEl = $('#home-plan-art-title', el), metaEl = $('#home-plan-art-meta', el), railTitle = $('#ds-rail-title', el);
+      if (!draft) return;
+      const c = draft.case || {}, facts = c.facts || {}, und = draft.understanding || {}, plan = draft.plan || {};
+      const goal = (facts.goal && facts.goal.value) || und.target || draft.problem || 'Active draft';
+      const openCnt = (c.unknowns || []).length || Object.values(plan).filter(p => p && p.status === 'unknown').length;
+      const shortGoal = String(goal).length > 52 ? String(goal).slice(0, 52).trim() + '…' : String(goal);
+      if (titleEl) titleEl.textContent = `Problem Plan · ${shortGoal}`;
+      if (railTitle) railTitle.textContent = shortGoal;
+      if (metaEl) {
+        const parts = [draft.project_id ? 'Project built' : 'Draft'];
+        if (und.target) parts.push(`Target: ${String(und.target).slice(0, 28)}`);
+        if (openCnt) parts.push(`${openCnt} open question${openCnt === 1 ? '' : 's'}`);
+        metaEl.textContent = parts.join(' · ');
+      }
+    }
     /* ---------- 37.9: the lead agent's case file ---------- */
     const CASE_LABELS = { goal: 'Goal', decision: 'The decision it serves', user: 'Who uses the result', data: 'The data' };
     const CASE_STATUS = { said: ['ok', 'your words'], confirmed: ['ok', 'you confirmed'], computed: ['info', 'computed from the data'], assumed: ['warn', 'assumed'], rejected: ['bad', 'you rejected'] };
     function drawCase(draft) {
       const panel = $('#home-case', el); if (!panel) return;
+      syncPlanArtifact(draft);
       const c = draft && draft.case;
       panel.hidden = !c;
       if (!c) { paintSession(); return; }
@@ -1254,6 +1273,7 @@ DC.view('home', {
     const FIELD_LABELS = { target: 'Outcome', prediction_moment: 'Moment of prediction', action: 'What is done with it', data_plan: 'The data', costs: 'Costs', entity: 'Entity', labels: 'Labels', budget: 'Review budget' };
     function drawUnderstanding(draft) {
       const box = $('#home-und-fields', el); if (!box || !draft) return;
+      syncPlanArtifact(draft);
       const plan = draft.plan || {}, und = draft.understanding || {};
       const fields = Object.keys(FIELD_LABELS).filter(f => f in plan || f in und || ['target', 'prediction_moment', 'action', 'data_plan'].includes(f));
       box.innerHTML = fields.map(f => {
@@ -1392,6 +1412,8 @@ DC.view('home', {
     }
     function setThinking(on, label) {
       S.thinking = on;
+      const teamGo = $('#home-team-go', el);  // the team cannot walk a draft the agent is still answering (the server refuses it: 409)
+      if (teamGo) { teamGo.disabled = !!on; teamGo.title = on ? 'The agent is answering this draft. The team can start when it is done.' : ''; }
       clearInterval(S.thinkTimer); S.thinkTimer = null;
       let t = $('#home-typing', el);
       if (on) {
@@ -1416,7 +1438,12 @@ DC.view('home', {
     function addSystem(text) {
       $('#home-thread', el).insertAdjacentHTML('beforeend', `<div class="callout info small"><span class="ic">${icon('info')}</span><span>${esc(text)}</span></div>`);
     }
-    function scrollThread() { const t = $('#home-thread', el); t.lastElementChild && t.lastElementChild.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+    function scrollThread() {
+      const body = $('#home-chat > .panel-body', el);
+      if (body) body.scrollTop = body.scrollHeight;
+      const t = $('#home-thread', el);
+      if (t && t.lastElementChild) t.lastElementChild.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
 
     /* A reply being written: text grows in a bubble keyed by the message id; the chat event with that id replaces it,
        and a drop event removes it (the model ended its step with tool calls, or failed). Text goes in as text, never as HTML. */
@@ -1426,7 +1453,7 @@ DC.view('home', {
       if (d.drop) { if (live) live.remove(); return; }
       setThinking(false);
       if (!live) {
-        thread.insertAdjacentHTML('beforeend', `<div class="msg" data-live="${esc(d.id)}"><span class="avatar ai">AI</span><div class="msg-body"><div class="who">DCLab</div><p></p></div></div>`);
+        thread.insertAdjacentHTML('beforeend', `<div class="msg" data-live="${esc(d.id)}"><span class="avatar ai">DC</span><div class="msg-body"><div class="who">DCLab</div><p></p></div></div>`);
         live = $(`[data-live="${d.id}"]`, thread);
       }
       const p = $('p', live);
@@ -1648,7 +1675,7 @@ DC.view('home', {
       }
       // 19.9: was this answer helpful? It joins the session record, never changes the conversation
       const rate = m.id ? `<div class="row xs muted msg-rate"><button type="button" class="link-btn msg-rate-btn" data-rate="helpful" data-ref="${esc(m.id)}" aria-label="Helpful" title="Helpful"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10v12"/><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"/></svg></button><button type="button" class="link-btn msg-rate-btn" data-rate="unhelpful" data-ref="${esc(m.id)}" aria-label="Not helpful" title="Not helpful"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 14V2"/><path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z"/></svg></button><button type="button" class="link-btn msg-rate-btn" data-edit="${esc(m.id)}" aria-label="Write my own version of this reply" title="Edit reply"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button></div>` : '';
-      thread.insertAdjacentHTML('beforeend', `<div class="msg"><span class="avatar ai">AI</span><div class="msg-body"><div class="who">DCLab <span>${esc((m.at || '').slice(11, 16))}</span></div>${body}${rate}</div></div>`);
+      thread.insertAdjacentHTML('beforeend', `<div class="msg"><span class="avatar ai">DC</span><div class="msg-body"><div class="who">DCLab <span>${esc((m.at || '').slice(11, 16))}</span></div>${body}${rate}</div></div>`);
       DC.hydrate(thread);
       const mapBox = (m.kind === 'summary' || (m.actions || []).includes('show_map')) && thread.querySelector('.msg:last-child [data-map-box]');
       if (mapBox && S.draft) loadMap(mapBox);
@@ -1902,142 +1929,7 @@ DC.view('home', {
     }
 
     function paintHomeWorkflow() {
-      const box = $('#home-wf-flow', el);
-      if (!box || !DC.wfFlow) return;
-      const d = S.draft;
-      const projKey = typeof DC.state.project === 'string' ? DC.state.project : '';
-      const hereMatchesProj = Boolean(S.here && S.here.id && (projKey === 'p:' + S.here.id || projKey === S.here.id));
-      const useHere = d
-        ? Boolean(d.project_id && (!S.here || S.here.id === d.project_id))
-        : Boolean(!S.fresh && !S.hideProjectChip && hereMatchesProj);
-      const here = useHere ? S.here : null;
-      const doc = useHere && S.hereDoc && (!d || !d.project_id || S.hereDoc.id === d.project_id) ? S.hereDoc : {};
-      const stagesMap = doc.stages || (here && here.stages) || {};
-      const stStatus = k => { const v = stagesMap[k]; return typeof v === 'string' ? v : (v && v.status) || ''; };
-      const isDone = s => s === 'completed' || s === 'approved';
-      const assets = Object.values(S.assets).filter(a => !a.status || a.status === 'ready' || a.status === 'queued' || a.status === 'structuring');
-      const readyAsset = assets.find(a => !a.status || a.status === 'ready') || null;
-      const projData = !S.hideProjectChip && here && here.data ? here.data : null;
-      const hasData = Boolean(readyAsset || (d && d.data) || projData);
-      const readingData = !hasData && assets.length > 0;
-      const dataName = readyAsset ? readyAsset.name : (d && d.data && d.data.name) || (projData && (projData.name || projData.filename)) || (here && here.name) || '';
-      const dataRows = readyAsset && readyAsset.rows != null ? readyAsset.rows : (d && d.data && d.data.rows != null ? d.data.rows : (projData && projData.rows != null ? projData.rows : null));
-
-      const hasProject = Boolean((d && d.project_id) || (doc && doc.id));
-      const hasNoDataPlan = Boolean(d && d.no_data_solution);
-      const hasDraftChat = Boolean(d);
-      const planOpen = S.planner && S.planner.kind === 'project' && S.planner.plan && S.planner.plan.needs_signoff;
-      const planDone = Boolean(hasProject && !planOpen && (isDone(stStatus('data')) || isDone(stStatus('leakage')) || (doc.solution && doc.solution.signed)));
-      const runLive = Boolean((SESS.s && sessLive(SESS.s)) || (S.planner && S.planner.team && (S.planner.team.tasks || []).some(t => t.status === 'running')));
-      const runDone = Boolean(isDone(stStatus('models')) || isDone(stStatus('final')) || (SESS.s && SESS.s.status === 'done'));
-      const evDone = Boolean(isDone(stStatus('final')) || Number(here && here.holdout_uses || 0) > 0);
-
-      const cur = evDone ? 'evidence'
-        : runDone ? 'evidence'
-        : (runLive || planDone) ? 'run'
-        : (hasDraftChat || hasData) ? 'plan'
-        : 'data';
-
-      const dataOutputs = assets.map(a => ({ label: `@${a.name}`, ready: !a.status || a.status === 'ready', action: 'inspect_work:data', title: 'Inspect attached dataset schema, distributions, and rows' }));
-      if (!dataOutputs.length && projData) dataOutputs.push({ label: `@${projData.name || here.name || 'dataset'}`, action: 'inspect_work:data', ready: true, title: 'Inspect project dataset' });
-      if (!dataOutputs.length) dataOutputs.push({ label: 'Dataset & schema', ready: Boolean(hasDraftChat || hasProject), action: 'inspect_work:data', title: 'Open dataset inspector' });
-
-      const planOutputs = [
-        { label: 'No-data blueprint', ready: hasNoDataPlan, action: 'open_planner', title: 'Inspect no-data blueprint in Planner' },
-        { label: 'Task plan', ready: Boolean(S.planner), action: 'open_planner', title: 'Toggle Planner' },
-        { label: 'Solution & split', href: '#solution', ready: hasProject },
-      ];
-      const records = doc.records || {};
-      const modelsCount = Array.isArray(stagesMap.models && stagesMap.models.candidates)
-        ? stagesMap.models.candidates.length
-        : (Array.isArray(((records.models || {}).evidence || {}).model_results) ? records.models.evidence.model_results.length : 0);
-      const hasAnyLogs = Boolean(hasDraftChat || hasProject || SESS.s || assets.length);
-      const hasLeak = Boolean(hasProject && (isDone(stStatus('leakage')) || stStatus('leakage') === 'running' || records.leakage || runDone));
-      const hasModels = Boolean(hasProject && (records.models || stStatus('models') === 'running' || runDone));
-      const hasInterimEval = Boolean(hasDraftChat || hasProject);
-      const runOutputs = [
-        { label: 'Session logs', action: 'inspect_work:logs', ready: hasAnyLogs, title: 'Inspect live execution logs, tool calls, and jobs' },
-        { label: 'Workflow DAG', href: '#project', ready: hasProject },
-        { label: 'Leakage & drift', href: '#audit', ready: hasLeak, title: 'Inspect leakage audit and feature availability' },
-        { label: modelsCount ? `Models (${modelsCount})` : 'Models & registry', href: '#models', ready: hasModels, title: 'Inspect CV candidate screening and tuning' },
-        { label: 'Notebook (.ipynb)', href: '#notebook', ready: hasProject },
-      ];
-      const evOutputs = [
-        { label: evDone ? 'Evaluation' : hasModels ? 'Evaluation (CV)' : 'Live evaluation', action: 'inspect_work:eval', ready: hasInterimEval, title: evDone ? 'Inspect holdout & validation metrics' : 'Inspect interim CV metrics and readiness while the run progresses' },
-        { label: 'Session evidence', action: 'inspect_work:evidence', ready: true, title: 'Inspect evidence cited in this session and recent records' },
-        { label: evDone ? 'Evaluation view' : 'Evaluation (CV)', href: '#evaluation', ready: Boolean(hasProject && (evDone || hasModels || hasLeak || runDone)) },
-        { label: 'Reliability & holdout', href: '#reliability', ready: Boolean(hasProject && (evDone || hasModels || runDone)) },
-        { label: 'Decision brief', href: '#brief', ready: Boolean(hasProject && evDone) },
-        { label: 'Evidence library', href: '#evidence', ready: true },
-      ];
-
       renderInspectorCounts();
-      DC.wfFlow.render(box, {
-        current: cur,
-        stages: {
-          data: {
-            state: hasData ? 'done' : (cur === 'data' ? 'current' : 'todo'),
-            summary: readingData ? 'Reading…' : hasData ? (dataRows != null ? `${fmtN(dataRows)} rows` : `@${dataName || 'ready'}`) : 'Attach or skip',
-            where: readingData ? `Reading and profiling ${assets[0].name}…`
-              : hasData ? `@${dataName || 'table'}${dataRows != null ? ` (${fmtN(dataRows)} rows)` : ''} is attached.`
-              : hasNoDataPlan ? 'Running in pre-data mode — no table required yet.'
-              : 'Ready for a CSV/Parquet/DuckDB table, synthetic data, or a pre-data question.',
-            next: hasData ? (hasDraftChat ? 'Inspect rows/EDA anytime, or confirm target & split in Plan.' : 'Describe your question below to draft a Plan.')
-              : 'Attach a table (+ Attach table), describe synthetic data, or start directly without data.',
-            action: !hasData ? { label: 'Attach table', id: 'attach_data' } : { label: 'Inspect dataset', id: 'inspect_work:data' },
-            outputs: dataOutputs,
-          },
-          plan: {
-            state: planDone ? 'done' : (cur === 'plan' ? 'current' : (hasDraftChat ? 'current' : 'todo')),
-            summary: planDone ? 'Locked' : hasNoDataPlan ? 'Blueprint ready' : hasDraftChat ? 'Drafting' : 'Next',
-            where: planDone ? 'Problem contract, split rule, and forbidden columns are locked.'
-              : hasNoDataPlan ? 'No-data problem breakdown and 3-layer blueprint drafted.'
-              : hasDraftChat ? 'Shaping the problem card, split rule, and decision contract in chat.'
-              : 'Your sentence below drafts the leakage-safe solution & split plan.',
-            next: planDone ? 'Proceed to Run (leakage audit, features, and model training).'
-              : hasDraftChat ? (hasProject ? 'Sign the solution or open Planner to run.' : 'Answer open questions in chat, or click "Build this chat as a project".')
-              : 'Write your objective or pick a quickstart below to draft the Plan.',
-            action: hasProject ? { label: 'Solution & split', href: '#solution' }
-              : hasDraftChat ? { label: 'Open Planner', id: 'open_planner' }
-              : { label: 'Start drafting', id: 'focus_composer' },
-            outputs: planOutputs,
-          },
-          run: {
-            state: runDone ? 'done' : (cur === 'run' ? 'current' : 'todo'),
-            summary: runLive ? 'Running…' : runDone ? (modelsCount ? `${modelsCount} models` : 'Trained') : hasProject ? 'Ready to run' : 'After plan',
-            where: runLive ? 'Autonomous run active — training folds and safety checks in progress.'
-              : runDone ? 'Leakage audit, feature checks, and model CV screening completed (holdout sealed).'
-              : hasProject ? 'Project workspace is ready to run stages WF-02 through WF-08.'
-              : 'Unlocks once your Plan is built into a project.',
-            next: runLive ? 'Inspect live Logs, datasets, and partial results as stages complete.'
-              : runDone ? 'Inspect interim CV metrics, Logs, and Evidence, or open holdout once.'
-              : hasProject ? 'Run leakage audit, feature ladder, and candidate model screening.'
-              : 'Build the project from your Plan first.',
-            action: hasAnyLogs ? { label: 'Inspect logs', id: 'inspect_work:logs' } : (hasProject ? { label: 'Workflow DAG', href: '#project' } : null),
-            outputs: runOutputs,
-          },
-          evidence: {
-            state: evDone ? 'done' : (cur === 'evidence' ? 'current' : 'todo'),
-            summary: evDone ? 'Brief ready' : hasModels ? 'Interim CV ready' : runDone ? 'Holdout sealed' : 'Inspect anytime',
-            where: evDone ? 'Holdout scored once with 95% intervals; Decision Brief and evidence are ready.'
-              : hasModels ? 'Intermediate CV metrics & cited evidence are inspectable now (holdout stays sealed).'
-              : runDone ? 'Training finished — holdout stays sealed until you open it once.'
-              : 'Cited evidence stays accessible throughout the session; final holdout evaluation runs at WF-09.',
-            next: evDone ? 'Review Decision Brief metrics, What-If policy, and accepted lessons.'
-              : hasModels ? 'Inspect interim Evaluation (CV) or open holdout once in Reliability.'
-              : 'Browse cited & recent Evidence anytime while you plan and run.',
-            action: hasDraftChat ? { label: 'Inspect evidence', id: 'inspect_work:evidence' } : (evDone ? { label: 'Decision brief', href: '#brief' } : { label: 'Evidence library', href: '#evidence' }),
-            outputs: evOutputs,
-          },
-        },
-        onAction(actId) {
-          if (actId === 'attach_data') { openBring('upload'); const f = $('#home-file', el); if (f) f.click(); }
-          else if (actId === 'open_planner') { setPlannerOpen(true); loadHomePlanner(); }
-          else if (actId === 'inspect_data') { openInspector('data'); }
-          else if (actId && actId.startsWith('inspect_work:')) { openInspector(actId.split(':')[1]); }
-          else if (actId === 'focus_composer') { const ta = $('#home-task', el); if (ta) ta.focus(); }
-        },
-      });
     }
 
     function analysisCard(a, assetId) {
@@ -2204,9 +2096,11 @@ DC.view('home', {
       const icon = tone === 'ok' ? '<span class="ds-sess-ic ok" aria-hidden="true">✓</span>' : tone === 'live' ? '<span class="ds-sess-ic live" aria-hidden="true"></span>'
         : tone === 'bad' || tone === 'warn' ? '<span class="ds-sess-ic bad" aria-hidden="true">!</span>' : '<span class="ds-sess-ic idle" aria-hidden="true"></span>';
       box.hidden = false;
+      const stepsCount = s ? ((s.steps || []).length) : (((cs.case || {}).changes || []).filter(x => x.field !== 'words').length);
+      const foldedSteps = steps ? `<details class="ds-plan"><summary>Activity log (${stepsCount})</summary><div class="ds-steps">${steps}</div></details>` : '';
       box.innerHTML = `<div class="ds-sess-head">${icon}<div class="ds-sess-text"><div class="ds-eyebrow">${esc(eyebrow)}</div><div class="ds-sess-title">${esc(clip(title, 200))}</div><div class="ds-sess-state">${esc(state)}</div></div></div>`
-        + (plan ? `<details class="ds-plan"><summary>Plan</summary><div class="ds-plan-body">${s ? esc(plan).replace(/\n/g, '<br>') : plan}</div></details>` : '')
-        + (meters ? `<div class="ds-sec-box">${meters}</div>` : '') + tiles + (steps ? `<div class="ds-steps">${steps}</div>` : '');
+        + (plan ? `<details class="ds-plan" open><summary>Problem plan</summary><div class="ds-plan-body">${s ? esc(plan).replace(/\n/g, '<br>') : plan}</div></details>` : '')
+        + (meters ? `<div class="ds-sec-box">${meters}</div>` : '') + tiles + foldedSteps;
       DC.applyDataStyles(box);
       paintHomeWorkflow();
     }
@@ -2372,6 +2266,9 @@ DC.view('home', {
     }
     $('#home-connect', el).addEventListener('click', () => { const card = $('#home-bring', el); if (card.hidden) openBring(); else { card.hidden = true; $('#home-connect', el).setAttribute('aria-expanded', 'false'); } });
     el.addEventListener('click', async e => {
+      if (e.target.closest('#ds-rail-close') || e.target.closest('[data-rail-toggle="1"]')) { const btn = document.getElementById('ds-rail-btn'); if (btn) btn.click(); return; }
+      if (e.target.closest('[data-rail-open="1"]')) { if (document.documentElement.dataset.dsRail !== 'open') { const btn = document.getElementById('ds-rail-btn'); if (btn) btn.click(); } return; }
+      if (e.target.closest('#ds-rail-build')) { build(); return; }
       const mp = e.target.closest('[data-map-act]'); if (mp) { mapAct(mp); return; }
       const ob = e.target.closest('[data-open-bring]'); if (ob) { openBring(ob.dataset.openBring); return; }
       const b = e.target.closest('[data-build]'); if (b) { build(); return; }
@@ -2462,7 +2359,7 @@ DC.view('home', {
     }
     function creating(on) {  // the header button while DCLab builds: it answers with the plan, or with what is missing first
       const b = $('#home-create', el); if (!b) return;
-      b.disabled = on; b.textContent = on ? 'Building…' : (S.draft && S.draft.project_id ? 'Open the project' : 'Build this chat as a project');
+      b.disabled = on; b.textContent = on ? 'Building…' : (S.draft && S.draft.project_id ? 'Open the project' : 'Build project');
     }
     $('#home-create', el).addEventListener('click', build);
     // dclab:closed-begin  (the understanding team: the full edition's)

@@ -22,6 +22,10 @@ class BuildTests(unittest.TestCase):
         self.assertIn('<link rel="stylesheet" href="/static/app/app.css">', page)
         self.assertEqual(len(re.findall(r"<script src=", page)), len(re.findall(r"<script", page)))
         self.assertIn('id="view-home"', page)
+        self.assertIn('id="view-features"', page)
+        self.assertIn('id="side-more-btn"', page)
+        self.assertNotIn('id="mode-switch"', page)
+        self.assertNotIn('data-mode="dev"', page)
         self.assertIn("/static/app/js/core.js", page)
 
     def test_fonts_are_served_by_the_app_and_nothing_loads_from_outside(self):
@@ -75,7 +79,7 @@ class ServeTests(unittest.TestCase):
         self.assertNotIn("unsafe-inline", csp)
         self.assertNotRegex(csp, r"https?:", "nothing is allowed from another host")
         self.assertIn("font-src 'self';", csp)
-        for asset in ("/static/app/app.css", "/static/app/js/core.js", "/static/app/js/views/home.js"):
+        for asset in ("/static/app/app.css", "/static/app/js/core.js", "/static/app/js/views/home.js", "/static/app/js/views/features.js"):
             self.assertEqual(self.client.get(asset).status_code, 200, asset)
         font = self.client.get("/static/app/fonts/inter-latin.woff2")
         self.assertEqual((font.status_code, font.content[:4]), (200, b"wOF2"))

@@ -80,25 +80,29 @@
     filter: '<path d="M3 5h18l-7 8v6l-4 2v-8z"/>',
     stop: '<rect x="6" y="6" width="12" height="12" rx="2"/>',
     tour: '<path d="M4 20 10 4l4 10 2-4 4 10"/>',
+    chat: '<path d="M5 5h14v10H9l-4 4z"/>',
   };
   const icon = (name, cls = '') => `<svg viewBox="0 0 24 24" class="${cls}" aria-hidden="true">${IC[name] || ''}</svg>`;
 
   /* ---------------- navigation model ---------------- */
-  const PROJECT_VIEWS = ['project', 'solution', 'notebook', 'audit', 'models', 'evaluation', 'decision', 'reliability', 'brief'];
+  const PROJECT_VIEWS = ['dashboard', 'project', 'solution', 'notebook', 'audit', 'features', 'models', 'evaluation', 'decision', 'reliability', 'brief'];
   /* A project page's crumb is the open project's name (setProjectLabel): "Project" until it is known, never a sample's name. */
   const VIEW_META = {
     home: { label: 'Home', crumbs: ['Workspace'] },
+    projects: { label: 'Projects', crumbs: ['Workspace'] },
+    dashboard: { label: 'Dashboard', crumbs: ['Project'] },
     new: { label: 'New project', crumbs: ['Workspace'] },
-    project: { label: 'Workflow', crumbs: ['Project'] },
-    solution: { label: 'Solution & data', crumbs: ['Project'] },
+    project: { label: 'Workflow DAG', crumbs: ['Project'] },
+    solution: { label: 'Data & Solution', crumbs: ['Project'] },
     notebook: { label: 'Notebook', crumbs: ['Project'] },
-    audit: { label: 'Leakage & features', crumbs: ['Project'] },
+    audit: { label: 'Leakage', crumbs: ['Project'] },
+    features: { label: 'Features', crumbs: ['Project'] },
     models: { label: 'Models', crumbs: ['Project'] },
-    evaluation: { label: 'Evaluation', crumbs: ['Project'] },
-    decision: { label: 'Decision', crumbs: ['Project'] },
+    evaluation: { label: 'Evaluation & Brief', crumbs: ['Project'] },
+    decision: { label: 'Decision & Pricing', crumbs: ['Project'] },
     reliability: { label: 'Reliability & holdout', crumbs: ['Project'] },
     brief: { label: 'Decision brief', crumbs: ['Project'] },
-    intern: { label: 'Intern', crumbs: ['Workspace'] },
+    intern: { label: 'Autonomous Agent', crumbs: ['Workspace'] },
     compute: { label: 'Compute & jobs', crumbs: ['Workspace'] },
     evidence: { label: 'Evidence library', crumbs: ['Knowledge'] },
     // dclab:closed-begin  (the research pages: the full edition's; a page left out is never offered or shown)
@@ -113,83 +117,109 @@
     blueprint: { label: 'Blueprint & roadmap', crumbs: ['Platform'] },
     // dclab:closed-end
   };
+  /* The menu (v6, the owner 2026-11-20): Home is the chat; Projects lists them, and a project's pages are its tabs (PROJECT_GROUPS);
+     everything else sits under More tools, as Project tools and Operations. */
   const NAV = [
     { group: 'Workspace', items: [
-      { id: 'home', label: 'Workbench Home', icon: 'home' },
-      { id: 'new', label: 'New project', icon: 'plus', devOnly: true },
-      { id: 'intern', label: 'Autonomous Agent', icon: 'intern', count: '1' },
-      { id: 'compute', label: 'Compute & Jobs', icon: 'cpu', count: '2' },
+      { id: 'home', label: 'Home', icon: 'chat' },
+      { id: 'projects', label: 'Projects', icon: 'folder' },
+      { id: 'intern', label: 'Agent', icon: 'intern', count: '' },
     ] },
-    { group: 'Project Pipeline', badgeId: 'side-project-pill', items: [
-      { id: 'project', label: 'Workflow DAG', icon: 'graph' },
-      { id: 'solution', label: 'Datasets & Schemas', icon: 'solution' },
-      { id: 'notebook', label: 'Interactive Notebook', icon: 'notebook', count: '.ipynb' },
-      { id: 'audit', label: 'Leakage & Drift', icon: 'shield' },
-      { id: 'models', label: 'Models & Registry', icon: 'models' },
-      { id: 'evaluation', label: 'Evaluation', icon: 'matrix', more: true },
-      { id: 'decision', label: 'Decision', icon: 'scale', more: true },
-      { id: 'reliability', label: 'Reliability', icon: 'pulse', more: true },
-      { id: 'brief', label: 'Decision brief', icon: 'brief', more: true },
+    { group: 'Project tools', more: true, items: [
+      { id: 'project', label: 'Workflow', icon: 'graph' },
+      { id: 'notebook', label: 'Notebook', icon: 'notebook' },
+      { id: 'audit', label: 'Leakage & drift', icon: 'shield' },
+      { id: 'evaluation', label: 'Evaluation', icon: 'matrix' },
+      { id: 'reliability', label: 'Reliability', icon: 'pulse' },
+      { id: 'decision', label: 'Decision', icon: 'scale' },
+      { id: 'brief', label: 'Decision brief', icon: 'brief' },
     ] },
-    { group: 'Knowledge', more: true, items: [
-      { id: 'evidence', label: 'Evidence library', icon: 'book', count: String(RECORDS.length || 133) },
-      // dclab:closed-begin  (the research pages: the full edition's)
-      { id: 'lab', label: 'Research lab', icon: 'flask' },
-      { id: 'benchmark', label: 'Benchmark', icon: 'target' },
-      { id: 'policy', label: 'Policy model', icon: 'brain' },
-      // dclab:closed-end
-    ] },
-    { group: 'Platform', more: true, items: [
-      { id: 'packs', label: 'Domain packs', icon: 'layers' },
+    { group: 'Operations', more: true, items: [
+      { id: 'compute', label: 'Compute & jobs', icon: 'cpu', count: '' },
       { id: 'integrations', label: 'Integrations', icon: 'plug' },
+      { id: 'packs', label: 'Domain packs', icon: 'layers' },
       { id: 'admin', label: 'Admin', icon: 'gear' },
       // dclab:closed-begin  (the planning page: the full edition's)
       { id: 'blueprint', label: 'Blueprint & roadmap', icon: 'map', count: '' },
       // dclab:closed-end
     ] },
+    /* The Library is hidden for now (the owner, 2026-11-20: "comment and hide it"). Its pages still exist and open from a
+       link; only the menu and the search leave them out. Put this group back to show it again.
+    { group: 'Knowledge', more: true, items: [
+      { id: 'evidence', label: 'Evidence Library', icon: 'book', count: String(RECORDS.length || 133) },
+      { id: 'lab', label: 'Research Lab', icon: 'flask' },
+      { id: 'benchmark', label: 'Benchmark', icon: 'target' },
+      { id: 'policy', label: 'Policy Model', icon: 'brain' },
+    ] },
+    */
   ];
+  const HIDDEN_VIEWS = new Set(['evidence', 'lab', 'benchmark', 'policy']);  // the hidden Library: not offered in search either
+
+  /* A project's pages as five tabs, each with a page picker (v6). A tab remembers the page last opened in it. */
+  const PROJECT_GROUPS = [
+    { id: 'dashboard', label: 'Dashboard', views: [['dashboard', 'Overview']] },
+    { id: 'workflow', label: 'Workflow', views: [['project', 'Workflow and steps'], ['notebook', 'Notebook']] },
+    { id: 'data', label: 'Data', views: [['solution', 'Data and solution'], ['audit', 'Leakage and drift'], ['features', 'Features']] },
+    { id: 'models', label: 'Models', views: [['models', 'Models'], ['evaluation', 'Evaluation'], ['reliability', 'Reliability and final test']] },
+    { id: 'brief', label: 'Brief', views: [['brief', 'Decision brief'], ['decision', 'Decision and costs']] },
+  ];
+  const projectBar = {
+    last: {},
+    groupOf(name) { return PROJECT_GROUPS.find(g => g.views.some(v => v[0] === name)); },
+    paint(name) {
+      const bar = $('#pbar');
+      if (!bar) return;
+      const g = this.groupOf(name);
+      bar.hidden = !g;
+      if (!g) return;
+      this.last[g.id] = name;
+      const tabs = PROJECT_GROUPS.map(x => {
+        const to = this.last[x.id] || x.views[0][0];
+        return `<a class="pbar-tab" href="#${esc(to)}" data-pgroup="${esc(x.id)}"${x === g ? ' aria-current="page"' : ''}>${esc(x.label)}</a>`;
+      }).join('');
+      const pick = g.views.length > 1
+        ? `<label class="pbar-pick"><span class="sr-only">Page in ${esc(g.label)}</span><select id="pbar-pick">${g.views.map(v => `<option value="${esc(v[0])}"${v[0] === name ? ' selected' : ''}>${esc(v[1])}</option>`).join('')}</select>${icon('chevron')}</label>`
+        : '';
+      bar.innerHTML = `<nav class="pbar-tabs" aria-label="Project">${tabs}</nav>${pick}`;
+      const sel = $('#pbar-pick', bar);
+      if (sel) sel.addEventListener('change', () => { location.hash = sel.value; });
+    },
+  };
 
   function renderNav() {
     const nav = $('#nav');
+    const moreMenu = $('#side-more-menu');
     if (!nav) return;
-    const itemHtml = it => `<a class="nav-item${it.devOnly ? ' ds-hide' : ''}" href="#${it.id}" data-nav="${it.id}">${icon(it.icon)}<span>${esc(it.label)}</span>${it.count != null ? `<span class="count">${esc(it.count)}</span>` : ''}</a>`;
-    const primary = [], secondary = [];
+    const itemHtml = it => `<a class="nav-item" href="#${it.id}" data-nav="${it.id}">${icon(it.icon)}<span>${esc(it.label)}</span>${it.count != null ? `<span class="count">${esc(it.count)}</span>` : ''}</a>`;
+    const primary = [], moreGroups = [];
     NAV.forEach(g => {
       if (g.more) {
-        secondary.push(`<div class="nav-group"><div class="nav-label">${esc(g.group)}</div>${g.items.map(itemHtml).join('')}</div>`);
+        moreGroups.push(`<div class="nav-group"><div class="nav-label">${esc(g.group)}</div>${g.items.map(itemHtml).join('')}</div>`);
         return;
       }
       const coreItems = g.items.filter(i => !i.more);
       const extraItems = g.items.filter(i => i.more);
       const head = g.badgeId
-        ? `<div class="nav-label nav-label-row"><span>${esc(g.group)}</span><span class="nav-proj-pill ds-only" id="${esc(g.badgeId)}">Draft</span></div>`
-        : `<div class="nav-label">${esc(g.group)}</div>`;
-      primary.push(`<div class="nav-group">${head}${coreItems.map(itemHtml).join('')}${extraItems.length ? `<div class="nav-extra-dev">${extraItems.map(itemHtml).join('')}</div>` : ''}</div>`);
+        ? `<div class="nav-label nav-label-row"><span>${esc(g.group)}</span><span class="ps-wrap side-ps-wrap"><button type="button" class="nav-proj-pill proj-switch" id="${esc(g.badgeId)}" aria-haspopup="listbox" aria-expanded="false" title="Switch active ML project"><span class="ps-name">Draft</span><span aria-hidden="true"> ⌄</span></button></span></div>`
+        : '';
+      primary.push(`<div class="nav-group">${head}${coreItems.map(itemHtml).join('')}</div>`);
       if (extraItems.length) {
-        secondary.unshift(`<div class="nav-group"><div class="nav-label">Project details</div>${extraItems.map(itemHtml).join('')}</div>`);
+        moreGroups.unshift(`<div class="nav-group"><div class="nav-label">${esc(g.group === 'Workspace' ? 'Operations' : 'More project views')}</div>${extraItems.map(itemHtml).join('')}</div>`);
       }
     });
-    nav.innerHTML = primary.join('') + `<details class="nav-more ds-only" id="nav-more"><summary class="nav-more-sum"><span>Knowledge &amp; platform</span><span class="nav-more-chev" aria-hidden="true">▾</span></summary><div class="nav-more-body">${secondary.join('')}</div></details>`;
+    nav.innerHTML = primary.join('');
+    if (moreMenu) moreMenu.innerHTML = moreGroups.join('');
   }
 
   /* The sidebar's project group follows the project that is open on the project pages. */
   /* A sidebar count ("" hides it): pages set their own once they know the real number. */
   function setNavCount(id, text) {
-    const c = $(`#nav [data-nav="${id}"] .count`);
+    const c = $(`.side [data-nav="${id}"] .count`);
     if (c) c.textContent = text == null ? '' : String(text);
   }
   function setProjectLabel(name) {
-    setNavCount('notebook', document.documentElement.dataset.mode === 'ds' ? '.ipynb' : '');
-    const pill = $('#side-project-pill');
-    if (pill) pill.textContent = name || 'Draft';
-    const branchPill = $('#top-branch-pill'), branchLbl = $('#top-branch-label');
-    if (branchPill && branchLbl) {
-      const slug = (name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 26);
-      branchLbl.textContent = slug ? `exp/${slug}` : 'draft/main';
-      branchPill.hidden = false;
-    }
-    const label = $$('#nav .nav-label').find(l => l.textContent.startsWith('Project Pipeline') || l.textContent.startsWith('Project'));
-    if (label && !label.classList.contains('nav-label-row')) label.textContent = 'Project · ' + (name || 'none');
+    const pillName = $('#side-project-pill .ps-name') || $('#side-project-pill');
+    if (pillName) pillName.textContent = name || 'Draft';
     PROJECT_VIEWS.forEach(v => { if (VIEW_META[v]) VIEW_META[v].crumbs = [name || 'Project']; });
     const meta = VIEW_META[state.view];
     if (meta && PROJECT_VIEWS.includes(state.view)) $('#crumbs').innerHTML = meta.crumbs.map(c => `<span>${esc(c)}</span><span class="sep">›</span>`).join('') + `<b>${esc(meta.label)}</b>`;
@@ -667,7 +697,11 @@
   const VIEWS = {};
   const state = { view: 'home', role: 'developer', bp: false, tour: null, step: 0, panes: {} };
   function view(name, def) { VIEWS[name] = Object.assign({ inited: false }, def); }
-  function parseHash() { const [v, p] = (location.hash || '').replace(/^#/, '').split('/'); return { view: VIEW_META[v] ? v : 'home', pane: p || '' }; }
+  function parseHash() {
+    const [v, p] = (location.hash || '').replace(/^#/, '').split('/');
+    if (v === 'audit' && p === 'ladder') return { view: 'features', pane: 'ladder' };
+    return { view: VIEW_META[v] ? v : 'home', pane: p || '' };
+  }
   function currentHash() { return parseHash().view; }
   function show(name, paneId) {
     const changed = state.view !== name;
@@ -678,17 +712,18 @@
     const def = VIEWS[name];
     if (el) buildPaneTabs(el);
     if (el) projectSwitch.mount(name, el);
+    projectBar.paint(name);
     if (def && el) {
       if (!def.inited) { def.inited = true; try { def.init && def.init(el); } catch (e) { console.error('init ' + name, e); } buildPaneTabs(el); hydrate(el); }
-      if (PROJECT_VIEWS.includes(name) || name === 'evidence') wfFlow.mountView(name, el);
       enterView(name, def, el);
-    } else if (el && (PROJECT_VIEWS.includes(name) || name === 'evidence')) {
-      wfFlow.mountView(name, el);
     }
     if (el) selectPane(el, paneId || '', { url: !!paneId });
-    // nav highlight
     $$('.nav-item').forEach(a => a.classList.remove('active'));
     const main = $(`[data-nav="${name}"]`); if (main) main.classList.add('active');
+    const railBtn = $('#ds-rail-btn');
+    if (railBtn) railBtn.hidden = name !== 'home';
+    const moreMenu = $('#side-more-menu'), moreBtn = $('#side-more-btn');
+    if (moreMenu && moreBtn) { moreMenu.hidden = true; moreBtn.setAttribute('aria-expanded', 'false'); }
     const meta = VIEW_META[name] || { label: name, crumbs: [] };
     $('#crumbs').innerHTML = meta.crumbs.map(c => `<span>${esc(c)}</span><span class="sep">›</span>`).join('') + `<b>${esc(meta.label)}</b>`;
     document.body.classList.remove('nav-open');
@@ -723,103 +758,49 @@
     document.dispatchEvent(new CustomEvent('rolechange', { detail: role }));
   }
 
-  /* ---------------- look: Developer or Data science (the owner, 2026-11-01) ----------------
-     Developer is the product as it is. Data science is the same pages, scripts and API drawn like Claude Code (ds.css,
-     every rule scoped to html[data-mode="ds"]): on Home the conversation is the page and its context (what needs you,
-     the workspace's numbers, what DCLab understood, the team, Claude beside DCLab) sits in a column on the right. It only moves and
-     restyles: no control is removed, and Developer gets every part back where it was. Kept in this browser. */
-  // The side panel opens with the session card (2026-11-02, as the dclab code app's Jobs panel): the task, its status, the plan, the
-  // meters, the ten workflow blocks as tiles and the steps (home.html paintSession). The wide workflow drawing stays in Developer.
-  const RAIL = ['#home-sess', '#home-inbox', '#view-home [data-f="home.kpis"]', '#home-case', '#home-understand', '#home-team', '#home-twin'];
-  // Stateless on purpose: each part and the comment marking its place are looked up live every time, so a page that
-  // redraws its parts can never leave a stale copy to be put back (found in testing: starting in Data science, then
-  // switching to Developer, lost the cards the rail held).
-  function railMark(sel) {
-    const home = $('#view-home');
-    if (!home) return null;
-    const walk = document.createTreeWalker(home, NodeFilter.SHOW_COMMENT);
-    for (let n = walk.nextNode(); n; n = walk.nextNode()) if (n.data === 'ds-rail ' + sel) return n;
-    return null;
+  /* ---------------- unified Data Science frame ----------------
+     Single calm Claude-style workspace: clean sidebar, More tools popover, toggleable Problem Plan drawer on Home,
+     and clean settings modal. Developer look mode is removed; every feature remains one click away. */
+  function openToursModal() {
+    modal.open({
+      eyebrow: '<span class="eyebrow accent">Guided tours</span>', title: 'Walk through the product', hideConfirm: true, cancel: 'Close',
+      html: `<p>Each tour opens the pages in order and points at the part that matters. Use the bar at the bottom to move.</p><div class="stack tight">${Object.entries(TOURS).map(([k, t]) => `<button type="button" class="list-item panel" data-tour-start="${k}" data-style="border-radius:10px"><div class="li-main"><span class="li-title">${esc(t.name)}</span><span class="li-sub">${esc(t.blurb)}</span></div><span class="pill outline">${t.steps.length} steps</span></button>`).join('')}</div>`,
+    });
   }
-  function placeRail(ds) {
-    const pane = $('#view-home [data-pane="overview"]');
-    if (!pane) return;
-    let rail = $('#ds-rail');
-    if (ds && !rail) {
-      rail = document.createElement('aside');
-      rail.id = 'ds-rail'; rail.className = 'ds-rail'; rail.setAttribute('aria-label', 'This conversation');
-      pane.appendChild(rail);
-    }
-    for (const sel of RAIL) {
-      const node = $(sel);
-      if (!node) continue;
-      const mark = railMark(sel);
-      if (ds && !rail.contains(node)) {
-        if (!mark) node.before(document.createComment('ds-rail ' + sel));  // where the part goes back in Developer
-        rail.appendChild(node);
-      } else if (!ds && mark) {
-        mark.replaceWith(node);
-      }
-    }
-    if (!ds && rail) {
-      if (rail.children.length) return;  // never drop a part: one with no place to go back stays in the rail
-      rail.remove();
-    }
-  }
-  function setMode(mode, save) {
-    const ds = mode === 'ds';
-    document.documentElement.dataset.mode = ds ? 'ds' : 'dev';
-    $$('.mode-switch button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === (ds ? 'ds' : 'dev'))));
-    placeRail(ds);
-    if (ds) dsFrame.init();
-    dsFrame.paint();
-    document.dispatchEvent(new CustomEvent('dclab:mode', { detail: ds ? 'ds' : 'dev' }));  // Home's session card follows the look
-    if (save) { try { localStorage.setItem('dclab-mode', ds ? 'ds' : 'dev'); } catch (e) { /* storage blocked: this visit only */ } }
-  }
-
-  /* The Data science frame (the owner, 2026-11-01: "Claude's style, beside the old one"): drawn like the Claude desktop app.
-     A sidebar with New session, Recents (Home's conversations and the projects) and the pages folded under Pages; a slim
-     top bar with back and forward, the side panel's toggle and Settings; a settings window holding only the product's own
-     switches (look, theme, view as, the pages, the blueprint layer, tours). Every control calls what Developer calls. */
   const dsFrame = {
     ready: false,
     init() {
       if (this.ready) return;
       this.ready = true;
+      document.documentElement.dataset.mode = 'ds';
       const on = (sel, ev, fn) => { const n = $(sel); if (n) n.addEventListener(ev, fn); };
-      on('#ds-back', 'click', () => history.back());
-      on('#ds-fwd', 'click', () => history.forward());
       $$('[data-ds-settings]').forEach(b => b.addEventListener('click', () => this.settings(true)));
       on('#ds-settings-close', 'click', () => this.settings(false));
       on('#ds-settings', 'click', e => { if (e.target.id === 'ds-settings') this.settings(false); });
-      document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#ds-settings').hidden) this.settings(false); });
-      $$('[data-ds-look]').forEach(b => b.addEventListener('click', () => { setMode(b.dataset.dsLook, true); if (b.dataset.dsLook !== 'ds') this.settings(false); }));
+      on('#ds-settings-compute', 'click', () => this.settings(false));
+      on('#ds-settings-admin', 'click', () => this.settings(false));
+      document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('#ds-settings') && !$('#ds-settings').hidden) this.settings(false); });
       $$('[data-ds-theme]').forEach(b => b.addEventListener('click', () => this.theme(b.dataset.dsTheme)));
       on('#ds-role', 'change', e => setRole(e.target.value));
-      on('#ds-pages-open', 'change', e => this.pages(e.target.value === 'open', true));
-      on('#ds-pages-toggle', 'click', () => this.pages($('#ds-pages-toggle').getAttribute('aria-expanded') !== 'true', true));
       on('#ds-bp', 'change', e => { if (typeof setBlueprint === 'function') setBlueprint(e.target.checked); });
-      on('#ds-tours', 'click', () => { this.settings(false); const t = $('#side-tours'); if (t) t.click(); });
-      on('#ds-rail-btn', 'click', () => {  // the panel as it is on screen (a conversation shows it unless closed), then the other way
-        const rail = $('#ds-rail');
-        this.rail(!(rail && getComputedStyle(rail).display !== 'none'), true);
+      on('#ds-tours', 'click', () => { this.settings(false); openToursModal(); });
+      on('#ds-rail-btn', 'click', () => {
+        const curOpen = document.documentElement.dataset.dsRail === 'open';
+        this.rail(!curOpen, true);
       });
-      let pages = true, rail = '';
-      try { pages = localStorage.getItem('dclab-ds-pages') !== 'closed'; rail = localStorage.getItem('dclab-ds-rail') || ''; } catch (e) { /* storage blocked */ }
-      this.pages(pages, false);
-      if (rail) this.rail(rail === 'open', false);
+      let rail = 'closed';
+      try { const savedRail = localStorage.getItem('dclab-ds-rail'); if (savedRail === 'open' || savedRail === 'closed') rail = savedRail; } catch (e) { /* storage blocked */ }
+      this.rail(rail === 'open', false);
       document.addEventListener('dclab:project', () => this.recents());
-      // 2026-11-04: Home's "Needs you" card is not shown in Data science (the owner), so its count no longer opens the side panel
-      // a conversation that opens on Home (a new draft, or one reopened) joins Recents at once, not on the next page change
+      document.addEventListener('dclab:draft', () => this.recents());
       const chat = $('#home-chat');
       if (chat && window.MutationObserver) new MutationObserver(() => { if (!chat.hidden) this.recents(); }).observe(chat, { attributes: true, attributeFilter: ['hidden'] });
       let last = 0;
       window.addEventListener('hashchange', () => { if (Date.now() - last > 15000) { last = Date.now(); this.recents(); } this.paint(); });
       this.recents();
     },
-    paint() {  // the switches show the state they control, whichever mode changed it
+    paint() {
       const root = document.documentElement;
-      $$('[data-ds-look]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.dsLook === (root.dataset.mode === 'ds' ? 'ds' : 'dev'))));
       const theme = root.dataset.theme || 'system';
       $$('[data-ds-theme]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.dsTheme === theme)));
       const role = $('#ds-role'); if (role) role.value = state.role;
@@ -833,7 +814,7 @@
       box.hidden = !open;
       if (open) { this.paint(); const first = $('button, select, input', box); if (first) first.focus(); }
     },
-    theme(choice) {  // the same switch as the top bar's: light, dark, or the system's
+    theme(choice) {
       const root = document.documentElement;
       if (choice === 'system') { delete root.dataset.theme; delete root.dataset.tsTheme; }
       else { root.dataset.theme = choice; root.dataset.tsTheme = choice; }
@@ -841,20 +822,14 @@
       const btn = $('#theme-btn'); if (btn) btn.innerHTML = icon(dark ? 'sun' : 'moon');
       this.paint();
     },
-    pages(open, save) {
-      const t = $('#ds-pages-toggle'); if (t) t.setAttribute('aria-expanded', String(open));
-      document.documentElement.dataset.dsPages = open ? 'open' : 'closed';
-      const sel = $('#ds-pages-open'); if (sel) sel.value = open ? 'open' : 'closed';
-      if (save) { try { localStorage.setItem('dclab-ds-pages', open ? 'open' : 'closed'); } catch (e) { /* storage blocked */ } }
-    },
-    rail(open, save) {  // the side panel: shown in a conversation unless closed; a person's choice is kept
+    rail(open, save) {
       document.documentElement.dataset.dsRail = open ? 'open' : 'closed';
       const b = $('#ds-rail-btn'); if (b) b.setAttribute('aria-pressed', String(open));
       if (save) { try { localStorage.setItem('dclab-ds-rail', open ? 'open' : 'closed'); } catch (e) { /* storage blocked */ } }
     },
-    async recents() {  // Home's conversations and the projects, newest first: the same lists Admin and the project menu read
+    async recents() {
       const box = $('#ds-recent-list');
-      if (!box || !window.DC || !DC.client || document.documentElement.dataset.mode !== 'ds') return;
+      if (!box || !window.DC || !DC.client) return;
       const [drafts, projects] = await Promise.all([
         DC.client.listDrafts({ quiet: true }).catch(() => []), DC.client.listProjects({ quiet: true }).catch(() => [])]);
       const when = x => String(x.updated || x.updated_at || x.created || x.created_at || '');
@@ -862,21 +837,21 @@
         ...(drafts || []).filter(d => !d.project_id && d.problem).map(d => ({ key: 'd:' + d.id, id: d.id, kind: d.no_data_solution ? 'no-data' : ((d.intent && d.intent.track) || 'draft'), title: d.problem, at: when(d) })),
         ...(projects || []).map(p => ({ key: 'p:' + p.id, id: p.id, kind: 'project', title: p.name || p.id, at: when(p) })),
       ].sort((a, b) => b.at.localeCompare(a.at)).slice(0, 12);
-      box.innerHTML = items.length ? items.map(i => `<button type="button" class="ds-recent" data-recent="${esc(i.key)}" data-kind="${esc(i.kind)}" title="${esc(i.title)}">`
-        + `<span class="ds-recent-title">${esc(i.title)}</span><span class="ds-recent-tag">${esc(i.kind)}</span></button>`).join('')
-        : '<div class="ds-recent-empty">Your experiments and conversations appear here.</div>';
+      box.innerHTML = items.length ? items.map(i => `<button type="button" class="ds-recent" data-recent="${esc(i.key)}" title="${esc(i.title)}">`
+        + `<span class="ds-recent-title">${esc(i.title)}</span></button>`).join('')
+        : '<div class="ds-recent-empty">Your conversations and projects appear here.</div>';
       $$('[data-recent]', box).forEach(b => b.addEventListener('click', () => {
         const [kind, id] = [b.dataset.recent.slice(0, 1), b.dataset.recent.slice(2)];
-        if (kind === 'd') {  // the way Admin's Sessions reopens a conversation: Home's enter reads it
+        if (kind === 'd') {
           state.resumeDraft = id;
           if (location.hash !== '#home') location.hash = '#home'; else show('home');
         } else {
           if ((projectSwitch.list || []).some(p => p.id === id)) projectSwitch.select(id);
-          else {  // the project menu has not read its list yet: choose it the way the menu does
+          else {
             state.project = 'p:' + id; state.projectId = null; currentProject.clear();
             try { localStorage.setItem('dclab-project', id); } catch (e) { /* storage blocked */ }
           }
-          location.hash = '#project';
+          location.hash = '#dashboard';
         }
         document.body.classList.remove('nav-open');
       }));
@@ -925,22 +900,19 @@
   let palItems = [], palIndex = 0;
   function paletteSource(q) {
     const items = [];
-    Object.entries(VIEW_META).forEach(([id, m]) => items.push({ group: 'Go to', label: m.label, hint: (m.crumbs || []).join(' / '), run: () => { location.hash = id; } }));
+    Object.entries(VIEW_META).filter(([id]) => !HIDDEN_VIEWS.has(id)).forEach(([id, m]) => items.push({ group: 'Go to', label: m.label, hint: (m.crumbs || []).join(' / '), run: () => { location.hash = id; } }));
     $$('.view > .pane').forEach((p, i, all) => {
       const v = p.closest('.view').id.replace(/^view-/, ''), m = VIEW_META[v];
-      if (!m || p === all.find(x => x.closest('.view') === p.closest('.view'))) return;
+      if (!m || HIDDEN_VIEWS.has(v) || p === all.find(x => x.closest('.view') === p.closest('.view'))) return;
       items.push({ group: 'Sections', label: `${m.label} › ${p.dataset.label || p.dataset.pane}`, hint: (m.crumbs || []).join(' / '), run: () => { location.hash = v + '/' + p.dataset.pane; } });
     });
-    if (document.documentElement.dataset.mode === 'ds') {  // the Data science frame's commands first, as Claude's command list has them
-      const go = sel => () => { const n = $(sel); if (n) n.click(); };
-      const first = items.length;
-      items.push({ group: 'Commands', label: 'New session', hint: 'a new problem on Home', run: go('#ds-new-chat') });
-      items.push({ group: 'Commands', label: 'Settings', hint: 'look, theme, view as', run: () => dsFrame.settings(true) });
-      items.push({ group: 'Commands', label: 'Show or hide the side panel', hint: 'panel', run: go('#ds-rail-btn') });
-      ['light', 'dark', 'system'].forEach(t => items.push({ group: 'Commands', label: 'Theme: ' + t, hint: 'theme', run: () => dsFrame.theme(t) }));
-      items.push({ group: 'Commands', label: 'Switch to the Developer look', hint: 'look', run: () => setMode('dev', true) });
-      items.unshift(...items.splice(first));  // before the pages
-    }
+    const first = items.length;
+    const go = sel => () => { const n = $(sel); if (n) n.click(); };
+    items.push({ group: 'Commands', label: 'New chat', hint: 'a new problem on Home', run: go('#ds-new-chat') });
+    items.push({ group: 'Commands', label: 'Settings', hint: 'theme, view as, runtime', run: () => dsFrame.settings(true) });
+    items.push({ group: 'Commands', label: 'Show or hide the plan panel', hint: 'panel', run: go('#ds-rail-btn') });
+    ['light', 'dark', 'system'].forEach(t => items.push({ group: 'Commands', label: 'Theme: ' + t, hint: 'theme', run: () => dsFrame.theme(t) }));
+    items.unshift(...items.splice(first));  // before the pages
     items.push({ group: 'Actions', label: 'Start a new project', hint: 'N', run: () => { location.hash = 'new'; } });
     // dclab:closed-begin  (the blueprint layer: the full edition's)
     items.push({ group: 'Actions', label: state.bp ? 'Hide the blueprint layer' : 'Show the blueprint layer', hint: 'B', run: () => setBlueprint(!state.bp) });
@@ -1461,11 +1433,18 @@
     $('#modal-cancel').addEventListener('click', modal.close);
     $('#modal-confirm').addEventListener('click', () => { const fn = modalConfirm; if (fn && fn($('#modal')) === false) return; modal.close(); });
     // dclab:closed-begin  (the blueprint layer's switch: the full edition's)
-    $('#bp-switch').addEventListener('change', e => setBlueprint(e.target.checked));
+    const bpSw = $('#bp-switch'); if (bpSw) bpSw.addEventListener('change', e => setBlueprint(e.target.checked));
     // dclab:closed-end
     $('#bp-close').addEventListener('click', () => setBlueprint(false));
     $('#bp-expand').addEventListener('click', () => { const p = $('#bp-panel'); const min = p.classList.toggle('min'); $('#bp-expand').textContent = min ? 'Show list' : 'Hide list'; $('#bp-expand').setAttribute('aria-expanded', String(!min)); renderBpPanel(); });
-    $('#role-select').addEventListener('change', e => setRole(e.target.value));
+    const moreBtn = $('#side-more-btn'), moreMenu = $('#side-more-menu');
+    if (moreBtn && moreMenu) {
+      const setMore = on => { moreMenu.hidden = !on; moreBtn.setAttribute('aria-expanded', String(on)); };
+      moreBtn.addEventListener('click', e => { e.stopPropagation(); setMore(moreMenu.hidden); });
+      document.addEventListener('click', e => { if (!moreMenu.hidden && !e.target.closest('#side-more-wrap')) setMore(false); });
+      document.addEventListener('keydown', e => { if (e.key === 'Escape' && !moreMenu.hidden) { setMore(false); moreBtn.focus(); } });
+    }
+    const roleSel = $('#role-select'); if (roleSel) roleSel.addEventListener('change', e => setRole(e.target.value));
     $('#theme-btn').addEventListener('click', () => {
       const root = document.documentElement;
       const dark = root.dataset.theme ? root.dataset.theme === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -1474,12 +1453,6 @@
       $('#theme-btn').innerHTML = icon(dark ? 'moon' : 'sun');
     });
     $('#theme-btn').innerHTML = icon(window.matchMedia('(prefers-color-scheme: dark)').matches ? 'sun' : 'moon');
-    $('#side-tours').addEventListener('click', () => {
-      modal.open({
-        eyebrow: '<span class="eyebrow accent">Guided tours</span>', title: 'Walk through the product', hideConfirm: true, cancel: 'Close',
-        html: `<p>Each tour opens the pages in order and points at the part that matters. Use the bar at the bottom to move.</p><div class="stack tight">${Object.entries(TOURS).map(([k, t]) => `<button type="button" class="list-item panel" data-tour-start="${k}" data-style="border-radius:10px"><div class="li-main"><span class="li-title">${esc(t.name)}</span><span class="li-sub">${esc(t.blurb)}</span></div><span class="pill outline">${t.steps.length} steps</span></button>`).join('')}</div>`,
-      });
-    });
     $('#tb-next').addEventListener('click', () => { const t = TOURS[state.tour]; if (!t) return; if (state.step < t.steps.length - 1) { state.step++; gotoStep(); } else { endTour(); toast(TOUR_DONE); } });
     $('#tb-back').addEventListener('click', () => { if (state.step > 0) { state.step--; gotoStep(); } });
     $('#tb-exit').addEventListener('click', endTour);
@@ -1492,7 +1465,6 @@
     let bpOn = false;
     try { bpOn = localStorage.getItem('dclab-demo-bp') === '1'; } catch (e) { /* ignore */ }
     setRole('developer');
-    $$('.mode-switch button').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode, true)));
     $('#ds-new-chat').addEventListener('click', () => {  // Home's own "New project from chat": the open chat is kept under Projects
       if (location.hash !== '#home') location.hash = '#home';
       show('home');
@@ -1501,12 +1473,12 @@
     });
     window.addEventListener('hashchange', () => { const h = parseHash(); show(h.view, h.pane); });
     projectSwitch.wire();
+    document.documentElement.dataset.mode = 'ds';
+    dsFrame.init();
     const h0 = parseHash();
     show(h0.view, h0.pane);
-    let mode0 = 'ds', kept = null;  // Data science is the default look (the owner, 2026-11-04); Developer when this browser kept it
-    try { kept = localStorage.getItem('dclab-mode'); mode0 = kept === 'dev' ? 'dev' : 'ds'; } catch (e) { /* storage blocked */ }
-    setMode(mode0, false);
-    if (mode0 === 'ds') ui.note('ui.action', { view: state.view || 'home', name: 'mode-ds', target: kept === 'ds' ? 'saved' : 'default' });  // a visit that starts in the kept mode is recorded too
+    dsFrame.paint();
+    ui.note('ui.action', { view: state.view || 'home', name: 'mode-ds', target: 'unified' });
     // dclab:closed-begin  (the blueprint layer: the full edition's)
     if (bpOn) setBlueprint(true);
     // dclab:closed-end

@@ -1,13 +1,17 @@
 <section class="view" id="view-audit" hidden>
   <header class="vh">
     <div class="vh-text" id="aud-head">
-      <div class="eyebrow accent">Term-deposit calls · WF-04 to WF-06</div>
-      <h1>Leakage &amp; features <span class="pill ok">WF-05 · WF-06 done · Sep 28</span></h1>
-      <p class="lede">A column is judged by when its value is written, not by its name or its score. The solution decides; an ablation on identical folds measures how much a leak would have lied.</p>
+      <div class="eyebrow accent">Term-deposit calls · WF-05</div>
+      <h1>Leakage <span class="pill ok">WF-05 done · Sep 28</span></h1>
+      <p class="lede">Every column is judged by when its value is written relative to the prediction moment, not by its name or score alone.</p>
+    </div>
+    <div class="vh-actions">
+      <a class="btn primary" href="#features">Features →</a>
     </div>
   </header>
 
   <div class="pane" data-pane="overview" data-label="Overview">
+    <div id="aud-advisor" class="stack tight" data-style="margin-bottom:16px"></div>
     <div class="stats" id="aud-stats">
       <div class="stat"><span class="v">16</span><span class="l">columns audited against solution v2</span></div>
       <div class="stat"><span class="v bad">1 <small>forbidden</small></span><span class="l">duration · written after the call · the only heuristic flag (AUC 0.812)</span></div>
@@ -56,21 +60,6 @@
     </div>
   </div>
 
-  <div class="pane" data-pane="ladder" data-label="Feature ladder">
-    <div class="panel" data-f="audit.ladder" id="aud-ladder">
-      <div class="panel-head"><div class="panel-title"><h2>Feature ladder</h2><span class="sub">Six recipes, each fitted inside the folds. The rule picks the smallest set within a tolerance declared before the run.</span></div>${chip:EXP-008}</div>
-      <div class="table-wrap"><table class="data compact" id="ladder-table"><thead><tr><th>Recipe</th><th class="num">Features</th><th class="num">Mean ROC-AUC</th><th class="num">Fold spread</th><th>Within tolerance</th></tr></thead><tbody></tbody></table></div>
-      <div class="panel-body stack tight">
-        <div class="row"><label for="tol" class="small strong" data-style="color:var(--ink)">Declared tolerance</label><input type="range" id="tol" min="0" max="0.01" step="0.0005" value="0.002" data-style="flex:1;min-width:160px"><span class="mono small" id="tol-val">0.0020</span></div>
-        <div id="tol-out"></div>
-      </div>
-    </div>
-    <div class="panel" data-f="audit.lineage" id="aud-lineage">
-      <div class="panel-head"><div class="panel-title"><h3>Feature lineage</h3><span class="sub">Top features of the chosen model</span></div></div>
-      <div class="list small" id="lineage-list"></div>
-    </div>
-  </div>
-
   <div class="pane" data-pane="critic" data-label="Critic review" data-count="5">
     <div class="panel" data-f="audit.critic" id="aud-critic">
       <div class="panel-head"><div class="panel-title"><h2>Critic review, checked against the numbers</h2><span class="sub">An LLM critic challenges every claim. The gate keeps a challenge only if it agrees with the recorded numbers.</span></div>${chip:DCLAB-R20}</div>
@@ -84,9 +73,9 @@ DC.view('audit', {
     const { $, esc, chip, chips, charts, icon, fmt, pct, int } = DC;
     el.innerHTML = el.innerHTML.replace(/\$\{chip:([A-Za-z0-9_-]+)\}/g, (m, id) => chip(id));
     /* Sample mode keeps the markup above; real mode writes the open project into the same panels and restores them on the way back. */
-    const SNAP = ['aud-head', 'aud-stats', 'aud-matrix-foot', 'aud-leaks', 'aud-eda', 'aud-ladder', 'aud-lineage', 'aud-critic'];
+    const SNAP = ['aud-head', 'aud-stats', 'aud-matrix-foot', 'aud-leaks', 'aud-eda', 'aud-critic'];
     const SAMPLE = Object.fromEntries(SNAP.map(id => [id, $('#' + id, el).innerHTML]));
-    let real = null, mode = 'sample', stopPoll = null, LAD = null;
+    let real = null, mode = 'sample', stopPoll = null, advCompare = {};
 
     /* ---------- sample: the term-deposit project ---------- */
     const COLS = [
@@ -105,28 +94,29 @@ DC.view('audit', {
       ['EXP-008', 'high', 'The selection rule is not satisfied because the selected stage mean ROC-AUC is 0.7029, not within 0.002 of the best stage mean 0.7172.', 'dropped', 'Contradicted by the numbers. The chosen recipe is ratios (0.7172, the best mean). 0.7029 belongs to a different recipe that happens to be named "selected".'],
       ['EXP-008', 'high', 'Higher training-CV ROC-AUC is treated as sufficient evidence; the improvement may be within sampling noise.', 'kept', 'Agrees with the numbers: +0.0042 against a fold spread of ±0.0129 to ±0.0165. Next test: 5×2 repeated CV before trusting the ladder.'],
     ];
-    const LADDER = [['raw', 15, 0.7130, 0.0129], ['logs', 23, 0.7130, 0.0129], ['ratios', 38, 0.7172, 0.0165], ['interactions', 46, 0.7136, 0.0169], ['full_fe', 51, 0.7130, 0.0216], ['selected', 25, 0.7029, 0.0106]];
-    const LIN = [
-      ['poutcome', 'outcome of the previous campaign', 'known before this campaign', 'ok', 'Category code · fine for trees'],
-      ['log1p_poutcome', 'log of the poutcome code', 'known before', 'bad', 'A log of a category code has no meaning. Restore the raw labels and one-hot or target-encode inside folds.'],
-      ['month', 'month of the scheduled call', 'known at scheduling', 'warn', 'Strong seasonality on few rows; no year, so drift cannot be tested.'],
-      ['log1p_month', 'log of the month code', 'known at scheduling', 'bad', 'Same problem: the codes follow first appearance in the file, not the calendar.'],
-      ['housing', 'housing loan', 'known at the snapshot', 'ok', 'Binary state · fine'],
-    ];
-    function drawLadder() {
-      const tol = Number($('#tol', el).value);
-      $('#tol-val', el).textContent = tol.toFixed(4);
-      const best = Math.max(...LADDER.map(r => r[2]));
-      const ok = LADDER.filter(r => r[2] >= best - tol - 1e-9);
-      const pick = ok.reduce((a, b) => (b[1] < a[1] ? b : a));
-      $('#ladder-table tbody', el).innerHTML = LADDER.map(r => `<tr class="${r === pick ? 'selected' : ''}"><td><span class="cell-main">${r[0]}</span>${r === pick ? ' <span class="pill accent">chosen</span>' : ''}</td><td class="num">${r[1]}</td><td class="num mono">${r[2].toFixed(4)}</td><td class="num mono">±${r[3].toFixed(4)}</td><td>${ok.includes(r) ? '<span class="yes">✓</span>' : '<span class="no">—</span>'}</td></tr>`).join('');
-      const declared = Math.abs(tol - 0.002) < 1e-9;
-      $('#tol-out', el).innerHTML = `<div class="callout ${declared ? 'info' : 'warn'}"><span class="ic">${icon(declared ? 'info' : 'alert')}</span><span>${declared
-        ? `With the declared 0.0020 the rule picks <b>ratios</b> (38 features, +0.0042 over raw), which is what the campaign recorded. The gap is smaller than the fold spread, so the critic's call for repeated CV stands.`
-        : `With ${tol.toFixed(4)} the rule would pick <b>${pick[0]}</b> (${pick[1]} features). Changing the tolerance after seeing the results is logged as a protocol change and needs a reason ${chip('DCLAB-R07')}.`}</span></div>`;
-      DC.hydrate(el);
+    function renderSampleAdvisor() {
+      const box = $('#aud-advisor', el);
+      if (!box) return;
+      const cmp = advCompare.campaign || null;
+      const excl = advCompare._excluded && advCompare._excluded.campaign;
+      if (excl) {
+        box.innerHTML = `<div class="panel"><div class="panel-body spread small"><span><b>✓ Confirmed in sample:</b> <code>campaign</code> marked forbidden against prediction moment.</span><button type="button" class="btn sm" data-adv-reset="campaign">Undo</button></div></div>`;
+        return;
+      }
+      box.innerHTML = `<div class="panel leak-adv-card">
+        <div class="panel-head"><div class="panel-title"><div class="row" data-style="gap:6px;flex-wrap:wrap"><span class="pill warn">Leakage Advisor · Very likely leakage</span><span class="pill outline mono">cell_values_sent: 0</span></div><h3>Column <code>campaign</code> may count future contacts</h3></div></div>
+        <div class="panel-body stack tight small">
+          <p class="m-0">Prediction moment: <b>Immediately before a marketing call</b>. Because <code>campaign</code> counts contacts performed during this campaign, it is very likely leakage. Choose how to proceed:</p>
+          ${cmp ? `<div class="leak-contrast-grid">
+            <div class="leak-contrast-box is-safe"><div class="xs muted">SAFE · Without campaign</div><div class="mono" data-style="font-size:20px;font-weight:600">0.7130</div><div class="xs muted">3-fold CV ROC-AUC (holdout sealed)</div></div>
+            <div class="leak-contrast-box"><div class="xs bad">LEAKY · With campaign</div><div class="mono" data-style="font-size:20px;font-weight:600">0.8972</div><div class="xs muted">+0.1842 inflated lift on training folds</div></div>
+          </div><div class="row" data-style="gap:8px;margin-top:8px"><button type="button" class="btn sm primary" data-adv-sample="exclude">Confirm: keep safe pipeline &amp; exclude campaign</button></div>`
+            : `<div class="row" data-style="gap:8px;flex-wrap:wrap"><button type="button" class="btn sm primary" data-adv-sample="compare">Compare both on training folds (Recommended)</button><button type="button" class="btn sm" data-adv-sample="exclude">Exclude directly</button></div>`}
+        </div>
+      </div>`;
     }
     function drawSample() {
+      renderSampleAdvisor();
       $('#avail-table tbody', el).innerHTML = COLS.map(([c, w, k, f, v]) => `<tr class="${v === 'forbidden' ? 'selected' : ''}"><td><code>${c}</code></td><td class="small">${esc(w)}</td><td>${known[k]}</td><td class="small">${f ? `<span class="pill warn">${esc(f)}</span> ${chip('LEAK-bank_marketing')}` : '<span class="faint">none</span>'}</td><td>${verdict(v)}</td></tr>`).join('');
       $('#ablation-chart', el).innerHTML = charts.barsH([
         { label: 'Safe (3,200 rows)', value: 0.7130, valueText: '0.7130', cls: '' },
@@ -147,9 +137,6 @@ DC.view('audit', {
         { label: '18–30', value: 0.164, valueText: '16.4%' }, { label: '31–40', value: 0.102, valueText: '10.2%' }, { label: '41–50', value: 0.091, valueText: '9.1%' },
         { label: '51–60', value: 0.099, valueText: '9.9%' }, { label: '61+', value: 0.421, valueText: '42.1%', cls: 'proof' },
       ], { width: 300, labelW: 60, valW: 52, min: 0, max: 0.5, rowH: 24, ticks: [0, 0.25, 0.5], tickFmt: p0, aria: 'Subscription rate by age band' });
-      drawLadder();
-      $('#lineage-list', el).innerHTML = LIN.map(([n, src, when, st, note]) => `<div class="list-item"><div class="li-main"><span class="li-title"><code>${n}</code></span><span class="li-sub">${esc(src)} · ${esc(when)}</span><span class="xs" data-style="color:var(--${st === 'ok' ? 'muted' : st})">${esc(note)}</span></div><span class="pill ${st}">${st === 'ok' ? 'clean' : st === 'bad' ? 'fix' : 'watch'}</span></div>`).join('') +
-        `<div class="list-item"><div class="li-main"><span class="xs muted">Top features come from the final model ${chip('EXP-010')}. Importance only nominates; a feature is promoted when its availability, stability and meaning check out ${chip('DCLAB-R10')} ${chip('DCLAB-R11')}.</span></div></div>`;
       DC.hydrate(el);
     }
     drawSample();
@@ -197,12 +184,12 @@ DC.view('audit', {
     }
 
     function headReal(p) {
-      const L = isDone(p, 'leakage'), Fe = isDone(p, 'features');
-      const at = ((p.stages || {}).features || {}).finished || ((p.stages || {}).leakage || {}).finished;
-      const pill = L && Fe ? `<span class="pill ok">WF-05 · WF-06 done · ${esc(day(at))}</span>` : L ? '<span class="pill warn">WF-05 done · WF-06 open</span>' : '<span class="pill outline">WF-05 · WF-06 not run yet</span>';
-      return `<div class="eyebrow accent">${esc(p.name)} · WF-04 to WF-06</div>
-        <h1>Leakage &amp; features ${pill}</h1>
-        <p class="lede">A column is judged by when its value is written, not by its name or its score. The solution decides; an ablation on identical folds measures how much a leak would have lied.</p>`;
+      const L = isDone(p, 'leakage');
+      const at = ((p.stages || {}).leakage || {}).finished;
+      const pill = L ? `<span class="pill ok">WF-05 done · ${esc(day(at))}</span>` : '<span class="pill outline">WF-05 pending</span>';
+      return `<div class="eyebrow accent">${esc(p.name)} · WF-05</div>
+        <h1>Leakage ${pill}</h1>
+        <p class="lede">Every column is judged by when its value is written relative to the prediction moment, not by its name or score alone.</p>`;
     }
     function statsReal(p, F) {
       const { lev, dev, forb, flagged, askF } = F;
@@ -349,82 +336,6 @@ DC.view('audit', {
         </div>${obfBox}
         <div class="panel-foot"><span class="pill ${dup ? 'warn' : 'ok'}">${dup ? int(dup) + ' repeated input rows' : 'no repeated input rows'}</span> Missing cells: ${pct(dev.missing_cell_rate_train, 2)} of training cells. ${risks.length ? `Review rules fired on ${risks.map(code).join(', ')}.` : 'No column triggered a review rule.'} Missing values are a state to model, not only to fill ${rc('DCLAB-R12')}; every imputer and encoder is fitted inside the training folds ${rc('DCLAB-R03')}.</div>`;
     }
-    function ladderReal(p, F) {
-      const r = F.R.features;
-      const head = n => `<div class="panel-head"><div class="panel-title"><h2>Feature ladder</h2><span class="sub">${n ? n + ' recipes' : 'Recipes'}, each fitted inside the folds. The rule picks the smallest set within a tolerance declared before the run.</span></div>${rc('DCLAB-R07')}</div>`;
-      if (!r) { LAD = null; return head(0) + `<div class="panel-body">${runBox(p, 'features', 'Not measured for this project yet: run the features stage.')}</div>`; }
-      const ev = r.evidence || {}, m = r.primary_metric || F.metric, dec = r.decision || {};
-      const opts = (dec.options && dec.options.length ? dec.options : (ev.stage_results || []).map(x => ({ id: x.recipe, label: x.recipe, description: x.description, features: x.feature_count_mean, mean: (x.metrics[m] || {}).mean, std: (x.metrics[m] || {}).std, elapsed_seconds: x.elapsed_seconds })))
-        .filter(o => o.mean != null);
-      if (!opts.length) { LAD = null; return head(0) + '<div class="empty">The features record lists no recipe scores.</div>'; }
-      const rule = ev.selection_rule || dec.rule || '';
-      const rel = /\(relative\)/.test(rule), mt = rule.match(rel ? /within ([\d.]+)%/ : /within ([\d.]+) of/);
-      const tol = mt ? (rel ? +mt[1] / 100 : +mt[1]) : 0.002;
-      const max = rel ? 0.05 : Math.max(0.01, tol * 5), step = rel ? 0.0025 : max / 20;
-      LAD = { opts, m, higher: !LOWER.has(m), tol, rel, selected: ev.selected_recipe || dec.selected, chosen: dec.chosen || ev.selected_recipe, ref: ev.reference_recipe };
-      return head(opts.length) + `<div class="table-wrap"><table class="data compact" id="ladder-table"><thead><tr><th>Recipe</th><th class="num">Features</th><th class="num">Mean ${esc(mlabel(m))}</th><th class="num">Fold spread</th><th>Within tolerance</th></tr></thead><tbody></tbody></table></div>
-        <div class="panel-body stack tight">
-          <div class="row"><label for="tol" class="small strong" data-style="color:var(--ink)">Declared tolerance</label><input type="range" id="tol" min="0" max="${max}" step="${step}" value="${tol}" data-style="flex:1;min-width:160px"><span class="mono small" id="tol-val"></span></div>
-          <div id="tol-out"></div>
-          <div class="xs muted">Rule recorded by the stage: ${esc(rule)}</div>
-        </div>`;
-    }
-    function drawRealLadder() {
-      const L = LAD;
-      if (!L || !$('#tol', el)) return;
-      const tol = Number($('#tol', el).value);
-      const show = v => (L.rel ? (v * 100).toFixed(2) + '%' : v.toFixed(4));
-      $('#tol-val', el).textContent = show(tol);
-      const means = L.opts.map(o => o.mean), best = L.higher ? Math.max(...means) : Math.min(...means);
-      const slack = L.rel ? Math.abs(best) * tol : tol;
-      const ok = L.opts.filter(o => (L.higher ? o.mean >= best - slack - 1e-12 : o.mean <= best + slack + 1e-12));
-      const pick = ok.reduce((a, b) => (b.features < a.features || (b.features === a.features && (b.elapsed_seconds || 0) < (a.elapsed_seconds || 0)) ? b : a));
-      $('#ladder-table tbody', el).innerHTML = L.opts.map(o => `<tr class="${o === pick ? 'selected' : ''}"><td><span class="cell-main">${esc(o.label || o.id)}</span>${o === pick ? ' <span class="pill accent">chosen</span>' : ''}${o.description ? `<div class="cell-sub">${esc(o.description)}</div>` : ''}</td><td class="num">${int(Math.round(o.features || 0))}</td><td class="num mono">${fmt(o.mean)}</td><td class="num mono">±${fmt(o.std)}</td><td>${ok.includes(o) ? '<span class="yes">✓</span>' : '<span class="no">—</span>'}</td></tr>`).join('');
-      const declared = Math.abs(tol - L.tol) < 1e-9;
-      const refO = L.opts.find(o => o.id === L.ref) || L.opts[0];
-      const gain = L.higher ? pick.mean - refO.mean : refO.mean - pick.mean;
-      const spread = Math.max(...L.opts.map(o => o.std || 0));
-      $('#tol-out', el).innerHTML = `<div class="callout ${declared ? 'info' : 'warn'}"><span class="ic">${icon(declared ? 'info' : 'alert')}</span><span>${declared
-        ? `With the declared ${show(L.tol)} the rule picks <b>${esc(pick.label || pick.id)}</b> (${int(Math.round(pick.features || 0))} features, ${signed(gain)} over ${esc(refO.label || refO.id)})${pick.id === L.selected ? ', which is what the stage recorded' : `; the stage recorded <b>${esc(L.selected)}</b>`}.${L.chosen && L.chosen !== L.selected ? ` You approved <b>${esc(L.chosen)}</b> instead.` : ''} ${pick !== refO && Math.abs(gain) < spread ? 'The gain is smaller than the fold spread, so the ladder cannot separate these recipes.' : ''}`
-        : `With ${show(tol)} the rule would pick <b>${esc(pick.label || pick.id)}</b> (${int(Math.round(pick.features || 0))} features). Changing the tolerance after seeing the results is logged as a protocol change and needs a reason ${rc('DCLAB-R07')}.`}</span></div>`;
-      DC.hydrate(el);
-    }
-    function lineageReal(p, F) {
-      const fin = F.fin, fe = F.R.features;
-      let feats = [], src = '';
-      if (fin && (fin.top_final_features || []).length) { feats = fin.top_final_features.map(t => ({ f: t.feature, imp: t.normalized_importance })); src = `the final model (${esc(fin.model)}, ${esc(fin.feature_recipe)} recipe)`; }
-      else if (fe) {
-        const ev = fe.evidence || {}, sel = (ev.stage_results || []).find(r => r.recipe === ev.selected_recipe) || {};
-        feats = (sel.top_features || []).map(t => ({ f: t.feature, imp: t.mean_normalized_importance }));
-        src = `the ${esc(ev.selected_recipe)} recipe in the features stage; the final stage has not run`;
-      }
-      const head = '<div class="panel-head"><div class="panel-title"><h3>Feature lineage</h3><span class="sub">Top features of the chosen model</span></div></div>';
-      if (!feats.length) return head + `<div class="panel-body">${runBox(p, fe ? 'final' : 'features', 'Not measured for this project yet: lineage needs a fitted model.')}</div>`;
-      const kinds = Object.fromEntries(F.prof.map(c => [c.name, c.kind]));
-      const names = F.prof.map(c => c.name).sort((a, b) => b.length - a.length);
-      const codes = new Set((F.fev && F.fev.category_code_columns) || []), forb = new Set(F.forb.map(f => f.column)), flagged = new Set(F.flagged.map(f => f.feature));
-      const dprof = Object.fromEntries(((F.dev || {}).feature_profiles || []).map(x => [x.feature, x]));
-      const parse = n => {
-        const eq = n.indexOf('=');
-        if (eq > 0 && kinds[n.slice(0, eq)]) return { base: [n.slice(0, eq)], how: `category ${code(n.slice(0, eq))} = ${esc(n.slice(eq + 1))}, one-hot fitted per fold`, op: 'onehot' };
-        if (kinds[n]) return { base: [n], how: `${esc(kinds[n])} input as given`, op: 'raw' };
-        const parts = n.split('*');
-        if (parts.length > 1 && parts.every(x => kinds[x])) return { base: parts, how: 'product of ' + parts.map(code).join(' and '), op: 'arith' };
-        const base = names.filter(c => n.includes(c)).slice(0, 2);
-        return { base, how: base.length ? 'derived from ' + base.map(code).join(', ') : 'derived feature', op: 'derived' };
-      };
-      const items = feats.slice(0, 6).map(({ f, imp }) => {
-        const x = parse(f);
-        let st = 'ok', note = 'Source column not forbidden and not flagged for review';
-        const risky = x.base.map(b => dprof[b]).filter(Boolean).find(d => (d.production_risks || []).length || (d.train_vs_holdout_psi || 0) > 0.2 || d.missing_rate > 0.05);
-        if (x.base.some(b => forb.has(b))) { st = 'bad'; note = 'Built from a forbidden column: it should not be in the model. Rerun from the leakage stage.'; }
-        else if (x.op !== 'onehot' && x.op !== 'raw' && x.base.some(b => codes.has(b))) { st = 'bad'; note = 'Arithmetic on a category code has no meaning. Encode the category inside the folds instead.'; }
-        else if (x.base.some(b => flagged.has(b))) { st = 'warn'; note = 'Its source column was flagged by the leakage scan and waits for the owner.'; }
-        else if (risky) { st = 'warn'; note = (risky.production_risks || []).length ? 'Production risk: ' + risky.production_risks.join(', ').replace(/_/g, ' ') : (risky.train_vs_holdout_psi || 0) > 0.2 ? `Drifts between training and holdout (PSI ${fmt(risky.train_vs_holdout_psi, 3)}).` : `Missing on ${pct(risky.missing_rate)} of training rows.`; }
-        return `<div class="list-item"><div class="li-main"><span class="li-title"><code>${esc(f)}</code> <span class="xs muted">${imp != null ? pct(imp) + ' of importance' : ''}</span></span><span class="li-sub">${x.how} · ${x.base.some(b => forb.has(b)) ? 'written after the moment' : 'known at the moment'}</span><span class="xs" data-style="color:var(--${st === 'ok' ? 'muted' : st})">${esc(note)}</span></div><span class="pill ${st}">${st === 'ok' ? 'clean' : st === 'bad' ? 'fix' : 'watch'}</span></div>`;
-      }).join('');
-      return head + `<div class="list small" id="lineage-list">${items}<div class="list-item"><div class="li-main"><span class="xs muted">Top features come from ${src}. Importance only nominates; a feature is promoted when its availability, stability and meaning check out ${rc('DCLAB-R10')} ${rc('DCLAB-R11')}.</span></div></div></div>`;
-    }
     function criticReal(p, F) {
       const notes = STAGES.flatMap(s => ((F.R[s] || {}).notes || []).map(n => Object.assign({ stage: s }, n)));
       const crit = notes.filter(n => ['warning', 'high', 'critical'].includes(n.severity) || n.source === 'llm');
@@ -439,20 +350,64 @@ DC.view('audit', {
       };
     }
 
+    function renderRealAdvisor(p, F) {
+      const box = $('#aud-advisor', el);
+      if (!box) return;
+      const lev = F.lev || {};
+      const adv = lev.leakage_advisor || null;
+      if (!adv) { box.innerHTML = ''; return; }
+      const forbiddenSet = new Set((F.forb || []).map(f => f.column));
+      const recs = (adv.recommendations || []).filter(r => r && r.column && !forbiddenSet.has(r.column) && (r.likely_leakage || r.action === 'block' || r.action === 'ask'));
+      if (!recs.length) {
+        const noted = adv.likely_leakage_columns || [];
+        if (noted.length && noted.every(c => forbiddenSet.has(c))) {
+          box.innerHTML = `<div class="callout ok small"><span class="ic">✓</span><span>Leakage Advisor suspects (${esc(noted.join(', '))}) are excluded in the active solution contract.</span></div>`;
+        } else {
+          box.innerHTML = '';
+        }
+        return;
+      }
+      const depMoment = (adv.depends_on || {}).prediction_moment || '';
+      const liveMoment = (F.sol || {}).prediction_moment || '';
+      const stale = Boolean(depMoment && liveMoment && depMoment.trim() !== liveMoment.trim());
+      box.innerHTML = recs.map(r => {
+        const col = r.column;
+        const cmp = advCompare[col];
+        return `<div class="panel leak-adv-card">
+          <div class="panel-head"><div class="panel-title">
+            <div class="row" data-style="gap:6px;flex-wrap:wrap">
+              <span class="pill warn">Leakage Advisor · Very likely leakage</span>
+              <span class="pill outline mono">cell_values_sent: ${int(adv.cell_values_sent || 0)}</span>
+              ${stale ? '<span class="pill bad">Stale · prediction moment changed (re-run leakage)</span>' : ''}
+            </div>
+            <h3>Column <code>${esc(col)}</code> is likely post-outcome leakage</h3>
+          </div></div>
+          <div class="panel-body stack tight small">
+            <p class="m-0">${esc(r.rationale || r.timing_assessment || 'This column may not exist at the prediction moment.')}</p>
+            ${cmp ? `<div class="leak-contrast-grid">
+              <div class="leak-contrast-box is-safe"><div class="xs muted">SAFE · Without ${esc(col)}</div><div class="mono" data-style="font-size:20px;font-weight:600">${fmt(cmp.clean_cv_mean)}</div><div class="xs muted">Training CV without suspect (holdout untouched)</div></div>
+              <div class="leak-contrast-box"><div class="xs bad">LEAKY · With ${esc(col)}</div><div class="mono" data-style="font-size:20px;font-weight:600">${fmt(cmp.leaky_cv_mean)}</div><div class="xs muted">${signed(cmp.apparent_lift || 0)} inflated lift on training folds</div></div>
+            </div>
+            <div class="row" data-style="gap:8px;margin-top:8px"><button type="button" class="btn sm primary" data-adv-col="${esc(col)}" data-adv-choice="confirm_compare">Confirm: Keep safe pipeline &amp; exclude ${esc(col)}</button></div>`
+            : `<div class="row" data-style="gap:8px;flex-wrap:wrap">
+              <button type="button" class="btn sm primary" data-adv-col="${esc(col)}" data-adv-choice="compare_both" ${stale ? 'disabled' : ''}>Compare both on training folds (Recommended)</button>
+              <button type="button" class="btn sm" data-adv-col="${esc(col)}" data-adv-choice="exclude_directly" ${stale ? 'disabled' : ''}>Exclude directly</button>
+            </div>`}
+          </div>
+        </div>`;
+      }).join('');
+    }
     function renderReal(p) {
-      const keepTol = mode === 'real' && real && real.id === p.id && $('#tol', el) ? $('#tol', el).value : null;
       real = p; mode = 'real';
       const F = facts(p);
       $('#aud-head', el).innerHTML = headReal(p);
+      renderRealAdvisor(p, F);
       $('#aud-stats', el).innerHTML = statsReal(p, F);
       const mx = matrixReal(p, F);
       $('#avail-table tbody', el).innerHTML = mx.rows;
       $('#aud-matrix-foot', el).innerHTML = mx.foot;
       $('#aud-leaks', el).innerHTML = leaksReal(p, F);
       $('#aud-eda', el).innerHTML = edaReal(p, F);
-      $('#aud-ladder', el).innerHTML = ladderReal(p, F);
-      if (LAD) { if (keepTol != null && $('#tol', el)) $('#tol', el).value = keepTol; drawRealLadder(); }
-      $('#aud-lineage', el).innerHTML = lineageReal(p, F);
       const cr = criticReal(p, F);
       $('#aud-critic', el).innerHTML = cr.html;
       const n = $('.ptab[data-ptab="critic"] .n', el);
@@ -462,7 +417,7 @@ DC.view('audit', {
     }
     function restoreSample() {
       if (stopPoll) { stopPoll(); stopPoll = null; }
-      real = null; LAD = null;
+      real = null;
       if (mode === 'sample') return;
       mode = 'sample';
       SNAP.forEach(id => { $('#' + id, el).innerHTML = SAMPLE[id]; });
@@ -483,8 +438,42 @@ DC.view('audit', {
       }, 1500);
     }
 
-    el.addEventListener('input', e => { if (e.target.id === 'tol') (mode === 'real' ? drawRealLadder() : drawLadder()); });
     el.addEventListener('click', async e => {
+      const sampleBtn = e.target.closest('[data-adv-sample], [data-adv-reset]');
+      if (sampleBtn && mode === 'sample') {
+        if (sampleBtn.dataset.advReset) { delete advCompare[sampleBtn.dataset.advReset]; delete advCompare._excluded; }
+        else if (sampleBtn.dataset.advSample === 'compare') { advCompare.campaign = true; }
+        else if (sampleBtn.dataset.advSample === 'exclude') { advCompare._excluded = { campaign: true }; }
+        renderSampleAdvisor();
+        return;
+      }
+      const advBtn = e.target.closest('[data-adv-choice]');
+      if (advBtn && real) {
+        const col = advBtn.dataset.advCol, ch = advBtn.dataset.advChoice;
+        advBtn.disabled = true;
+        try {
+          if (ch === 'compare_both') {
+            const res = await DC.client.decideLeakageAdvice(real.id, { body: { choice: 'compare_both', columns: [col] } });
+            advCompare[col] = res.comparison || {};
+            DC.toast(`Compared ${col} on training folds (holdout sealed).`);
+            renderReal(real);
+          } else {
+            const payload = ch === 'confirm_compare'
+              ? { choice: 'compare_both', columns: [col], confirm_exclude_after_compare: true }
+              : { choice: 'exclude_directly', columns: [col] };
+            await DC.client.decideLeakageAdvice(real.id, { body: payload });
+            delete advCompare[col];
+            DC.currentProject.clear();
+            const fresh = await DC.currentProject.get(true);
+            DC.toast(`Excluded ${col} through validated solution save path.`);
+            if (fresh) renderReal(fresh);
+          }
+        } catch (err) {
+          advBtn.disabled = false;
+          DC.toast(err.message || 'Could not update leakage decision', { ok: false });
+        }
+        return;
+      }
       const run = e.target.closest('[data-run-stage]');
       if (!run || !real) return;
       run.disabled = true;

@@ -1,0 +1,669 @@
+<title>DCLab UI v6</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: the reference dashboard's style (a rounded app frame, a quiet sidebar with a profile on top, soft white cards,
+   pill segmented tabs, green action buttons, a grey-framed table) applied to every DCLab page, on a warmer ground. */
+:root{
+  --page:#F3EEE7; --shell:#FBF9F6; --card:#FFFFFF; --soft:#F0EBE4; --soft-2:#E6E0D7; --hover:#F3EFE9;
+  --fg:#1D1B18; --fg-2:#58524A; --muted:#8C857B; --line:#EBE5DD;
+  --green:#55D163; --green-fg:#0D2911; --green-ink:#2C9638; --green-soft:#E5F6E5; --green-light:#A3E697;
+  --red:#D6403A; --red-soft:#FCEAE7; --amber:#A8690F; --amber-soft:#FBEFD9; --blue:#2F5FC4; --blue-soft:#E7EEFA;
+  --shadow:0 1px 2px rgb(70 50 25 / .04), 0 6px 18px -8px rgb(70 50 25 / .10);
+  --sans:Inter, system-ui, -apple-system, "Segoe UI", sans-serif; --mono:"JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --page:#171512; --shell:#1D1B18; --card:#262320; --soft:#2E2A26; --soft-2:#3A3530; --hover:#2B2824;
+  --fg:#F3EFE9; --fg-2:#CBC3B8; --muted:#8F877D; --line:#35302B;
+  --green:#5BD769; --green-fg:#0B230F; --green-ink:#7FE08A; --green-soft:#1D3220; --green-light:#3F8F46;
+  --red:#F0796D; --red-soft:#3B2321; --amber:#E6B65F; --amber-soft:#3A2E19; --blue:#93B2F2; --blue-soft:#1F2A3E;
+  --shadow:0 1px 2px rgb(0 0 0 / .3), 0 8px 20px -10px rgb(0 0 0 / .5); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --page:#171512; --shell:#1D1B18; --card:#262320; --soft:#2E2A26; --soft-2:#3A3530; --hover:#2B2824;
+  --fg:#F3EFE9; --fg-2:#CBC3B8; --muted:#8F877D; --line:#35302B;
+  --green:#5BD769; --green-fg:#0B230F; --green-ink:#7FE08A; --green-soft:#1D3220; --green-light:#3F8F46;
+  --red:#F0796D; --red-soft:#3B2321; --amber:#E6B65F; --amber-soft:#3A2E19; --blue:#93B2F2; --blue-soft:#1F2A3E;
+  --shadow:0 1px 2px rgb(0 0 0 / .3), 0 8px 20px -10px rgb(0 0 0 / .5); color-scheme:dark}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--page);color:var(--fg);font:15px/1.5 var(--sans);-webkit-font-smoothing:antialiased;
+  padding-block:20px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+button,input,select,textarea{font:inherit;color:inherit}
+button{background:none;border:0;padding:0;cursor:pointer}
+:focus-visible{outline:2px solid var(--green-ink);outline-offset:2px;border-radius:10px}
+.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.mono{font-family:var(--mono);font-size:.9em}
+.num{font-variant-numeric:tabular-nums}
+
+/* ---------- app frame ---------- */
+.shell{max-width:1440px;margin:0 auto;display:grid;grid-template-columns:300px minmax(0,1fr);min-height:calc(100vh - 40px);
+  background:var(--shell);border:1px solid var(--line);border-radius:22px;overflow:hidden}
+.side{display:flex;flex-direction:column;gap:4px;padding:26px 18px;border-right:1px solid var(--line);min-width:0}
+.profile{display:flex;align-items:center;gap:14px;padding:4px 10px 22px}
+.avatar{width:50px;height:50px;border-radius:50%;flex:none;background:radial-gradient(circle at 30% 30%,#FFE2B8,#F2A65A 55%,#C9733A)}
+.profile b{display:block;font-weight:500;font-size:17px}
+.profile small{display:block;color:var(--fg-2);font-size:14.5px}
+.nav{display:flex;align-items:center;gap:14px;padding:12px 16px;border-radius:14px;color:var(--fg);font-size:16.5px;text-decoration:none}
+.nav:hover{background:var(--hover)}
+.nav.on{background:var(--soft);font-weight:500}
+.nav .ic{color:var(--fg-2)}
+.nav .badge{margin-left:auto}
+.side .grow{flex:1}
+.shell.collapsed{grid-template-columns:0 minmax(0,1fr)}
+.shell.collapsed .side{visibility:hidden;padding:0;overflow:hidden}
+
+.main{min-width:0;padding:22px 32px 40px;display:flex;flex-direction:column;gap:24px}
+.head{display:flex;align-items:center;gap:14px;min-height:52px}
+.head h1{margin:0;font-size:27px;font-weight:600;letter-spacing:-.01em;flex:1;min-width:0;text-wrap:balance}
+.head .sub{display:block;font-size:14.5px;font-weight:400;color:var(--fg-2);letter-spacing:0}
+.round{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:var(--soft);flex:none}
+.round:hover{background:var(--soft-2)}
+.round.ghost{background:transparent}
+.round.ghost:hover{background:var(--soft)}
+.btn{display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 18px;border-radius:14px;background:var(--soft);font-weight:500;font-size:16px;white-space:nowrap}
+.btn:hover{background:var(--soft-2)}
+.btn.green{background:var(--green);color:var(--green-fg)}
+.btn.green:hover{filter:brightness(1.05)}
+.btn.sm{height:40px;padding:0 15px;font-size:15.5px;border-radius:13px}
+.btn .ic{width:19px;height:19px}
+
+.bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.bar .fill{flex:1}
+.seg{display:inline-flex;gap:2px;padding:5px;border-radius:16px;background:var(--soft);max-width:100%;overflow-x:auto}
+.seg button{padding:8px 20px;border-radius:12px;color:var(--fg-2);font-size:16px;white-space:nowrap}
+.seg button:hover{color:var(--fg)}
+.seg button[aria-selected="true"]{background:var(--card);color:var(--fg);box-shadow:var(--shadow)}
+.select{display:inline-flex;align-items:center;gap:10px;height:44px;padding:0 14px;border-radius:14px;background:var(--soft);font-size:16px;white-space:nowrap}
+.select .chev{width:16px;height:16px}
+
+/* ---------- cards ---------- */
+.grid{display:grid;gap:18px}
+.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.g-side{grid-template-columns:minmax(0,1fr) 360px}
+.card{background:var(--card);border-radius:20px;box-shadow:var(--shadow);padding:22px 24px;min-width:0}
+.stat .lbl{color:var(--fg-2);font-size:16px}
+.stat .row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:14px;flex-wrap:wrap}
+.stat .val{font-size:31px;font-weight:600;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+.chip{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:999px;font-size:14px;font-weight:500;white-space:nowrap;font-variant-numeric:tabular-nums}
+.chip.up,.chip.ok{background:var(--green-soft);color:var(--green-ink)}
+.chip.down,.chip.bad{background:var(--red-soft);color:var(--red)}
+.chip.warn{background:var(--amber-soft);color:var(--amber)}
+.chip.info{background:var(--blue-soft);color:var(--blue)}
+.chip.mute{background:var(--soft);color:var(--fg-2)}
+.badge{display:inline-flex;align-items:center;padding:2px 10px;border-radius:999px;font-size:14px;background:var(--green-soft);color:var(--green-ink)}
+.ctitle{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.ctitle h2{margin:0;font-size:19px;font-weight:500;flex:1;min-width:0}
+.legend{display:flex;gap:16px;color:var(--fg-2);font-size:15px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+.minis{display:flex;flex-wrap:wrap;gap:12px 36px;margin:18px 0 6px}
+.mini b{font-size:24px;font-weight:600;font-variant-numeric:tabular-nums}
+.mini .chip{background:none;padding:0 0 0 8px}
+.mini small{display:block;color:var(--fg-2);font-size:15px}
+.chart{width:100%;height:auto;display:block;margin-top:8px}
+.chart text{fill:var(--fg-2);font:13px var(--sans)}
+.chart .gl{stroke:var(--line);stroke-width:1}
+
+/* ---------- table ---------- */
+.thead{display:flex;align-items:center;gap:10px;margin-top:6px}
+.thead h2{margin:0;font-size:21px;font-weight:600}
+.count{padding:2px 10px;border-radius:999px;background:var(--soft);font-size:14.5px;font-weight:500}
+.search{display:flex;align-items:center;gap:10px;height:46px;padding:0 16px;border-radius:14px;background:var(--card);border:1px solid var(--line);min-width:0;flex:0 1 320px}
+.search input{border:0;outline:0;background:transparent;min-width:0;flex:1;font-size:16px}
+.search input::placeholder{color:var(--muted)}
+.tframe{background:var(--soft);border-radius:20px;padding:0 6px 6px;overflow-x:auto}
+table.t{width:100%;border-collapse:separate;border-spacing:0;min-width:720px}
+.t th{text-align:left;font-weight:400;color:var(--fg-2);font-size:15px;padding:14px 18px;white-space:nowrap;position:relative}
+.t th + th::before{content:"";position:absolute;left:0;top:12px;bottom:12px;width:1px;background:var(--soft-2)}
+.t th.r,.t td.r{text-align:right}
+.t td{background:var(--card);padding:14px 18px;border-bottom:1px solid var(--line);vertical-align:middle;font-size:16px}
+.t tbody tr:last-child td{border-bottom:0}
+.t tbody tr:first-child td:first-child{border-top-left-radius:16px}
+.t tbody tr:first-child td:last-child{border-top-right-radius:16px}
+.t tbody tr:last-child td:first-child{border-bottom-left-radius:16px}
+.t tbody tr:last-child td:last-child{border-bottom-right-radius:16px}
+.idc{display:inline-flex;align-items:center;gap:12px;font-size:18px;font-weight:500;font-variant-numeric:tabular-nums}
+.idc .ic{width:18px;height:18px;color:var(--fg-2)}
+.who{display:flex;align-items:center;gap:14px;min-width:0}
+.pav{width:44px;height:44px;border-radius:50%;flex:none}
+.who b{display:block;font-weight:500}
+.who small{display:block;color:var(--fg-2);font-size:14.5px}
+.acts{display:inline-flex;gap:8px}
+.acts .round{width:42px;height:42px}
+.acts .round.del{background:var(--red-soft);color:var(--red)}
+.ibar{display:flex;align-items:center;gap:10px}
+.ibar span{display:block;height:8px;border-radius:999px;background:var(--green)}
+.ibar em{font-style:normal;font-variant-numeric:tabular-nums;color:var(--fg-2);font-size:14.5px;min-width:36px}
+
+/* ---------- chat ---------- */
+.chatcard{display:flex;flex-direction:column;padding:0;min-height:620px}
+.thread{flex:1;padding:24px 26px;display:flex;flex-direction:column;gap:20px}
+.turn{display:flex;gap:14px;max-width:760px}
+.turn.me{align-self:flex-end;flex-direction:row-reverse}
+.turn .pav{width:38px;height:38px;display:grid;place-items:center;font-size:13px;font-weight:600}
+.bubble{padding:14px 18px;border-radius:18px;background:var(--soft);min-width:0}
+.turn.me .bubble{background:var(--green-soft)}
+.bubble p{margin:0 0 8px}.bubble p:last-child{margin:0}
+.bubble .t{min-width:0}
+.facts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:10px}
+.facts div{background:var(--card);border-radius:14px;padding:10px 14px}
+.facts small{display:block;color:var(--fg-2);font-size:14px}
+.facts b{font-size:19px;font-weight:600;font-variant-numeric:tabular-nums}
+.qcard{border:2px solid var(--green);background:var(--card)}
+.opts{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.opt{height:40px;padding:0 16px;border-radius:13px;background:var(--soft)}
+.opt:hover{background:var(--soft-2)}
+.opt[aria-pressed="true"]{background:var(--green);color:var(--green-fg)}
+.saved{margin-top:10px;color:var(--green-ink);font-weight:500}
+.composer{padding:16px 20px 20px;border-top:1px solid var(--line)}
+.cbox{display:flex;align-items:flex-end;gap:10px;padding:8px 8px 8px 16px;border-radius:16px;background:var(--soft)}
+.cbox textarea{flex:1;min-width:0;border:0;outline:0;background:transparent;resize:none;padding:10px 0;font-size:16px;min-height:44px}
+.cbox textarea::placeholder{color:var(--muted)}
+.note{margin:10px 2px 0;color:var(--muted);font-size:13.5px}
+
+.steps{list-style:none;margin:16px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+.steps li{display:flex;align-items:center;gap:14px;padding:10px 12px;border-radius:14px}
+.steps li.now{background:var(--soft)}
+.steps .n{width:32px;height:32px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:14px;font-weight:600;background:var(--soft);color:var(--fg-2);font-variant-numeric:tabular-nums}
+.steps li.done .n{background:var(--green-soft);color:var(--green-ink)}
+.steps li.now .n{background:var(--green);color:var(--green-fg)}
+.steps b{display:block;font-weight:500;font-size:15.5px}
+.steps small{display:block;color:var(--fg-2);font-size:14px}
+.lockbox{margin-top:16px;padding:14px 16px;border-radius:16px;background:var(--soft);font-size:14.5px;color:var(--fg-2)}
+.lockbox b{display:block;color:var(--fg);font-weight:500;font-size:15.5px}
+.prog{height:10px;border-radius:999px;background:var(--soft);overflow:hidden;margin-top:14px}
+.prog span{display:block;height:100%;background:var(--green);border-radius:999px}
+
+/* ---------- report, settings ---------- */
+.prose{max-width:68ch}
+.prose h3{margin:22px 0 6px;font-size:18px;font-weight:600}
+.prose p{margin:0 0 10px;color:var(--fg-2)}
+.locked{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:16px;background:var(--soft);color:var(--fg-2);margin-top:10px}
+.srow{display:flex;align-items:center;gap:18px;padding:16px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.srow:last-child{border-bottom:0;padding-bottom:0}
+.srow .txt{flex:1;min-width:220px}
+.srow b{display:block;font-weight:500}
+.srow small{display:block;color:var(--fg-2);font-size:14.5px}
+.field{height:44px;padding:0 14px;border-radius:13px;border:1px solid var(--line);background:var(--card);min-width:0;width:260px;max-width:100%}
+.toggle{width:52px;height:30px;border-radius:999px;background:var(--soft-2);position:relative;flex:none}
+.toggle::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgb(0 0 0 / .2)}
+.toggle[aria-checked="true"]{background:var(--green)}
+.toggle[aria-checked="true"]::after{left:25px}
+.empty{padding:40px 20px;text-align:center;color:var(--fg-2)}
+.empty b{display:block;color:var(--fg);font-size:18px;font-weight:600;margin-bottom:4px}
+
+.menu-btn{display:none}
+.demo-tag{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:max(16px,env(safe-area-inset-bottom,0px));z-index:5;
+  padding:8px 14px;border-radius:999px;background:var(--fg);color:var(--page);font-size:13.5px;box-shadow:var(--shadow)}
+
+@media (prefers-reduced-motion:no-preference){
+  .nav,.seg button,.btn,.round,.opt,.toggle,.toggle::after{transition:background-color .15s,color .15s,left .18s,box-shadow .15s}
+}
+@media (max-width:1180px){
+  .g4{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .g-side{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:900px){
+  body{padding-block:0;padding-left:0;padding-right:0}
+  .shell{grid-template-columns:minmax(0,1fr);border-radius:0;border:0;min-height:100vh}
+  .side{display:none;border-right:0;border-bottom:1px solid var(--line);
+    padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+  .shell.open .side{display:flex}
+  .side .grow{display:none}
+  .main{padding:16px max(16px,env(safe-area-inset-right,0px)) 32px max(16px,env(safe-area-inset-left,0px))}
+  .menu-btn{display:grid}
+  .g2,.g3{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:560px){
+  .g4{grid-template-columns:minmax(0,1fr)}
+  .head h1{font-size:22px}
+  .head .hide-sm,.bar .hide-sm{display:none}
+  .facts{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .thread{padding:18px 14px}
+  .composer{padding:12px 14px 14px}
+  .search{flex:1 1 100%}
+  .stat .val{font-size:27px}
+}
+
+/* ---------- v6 additions: page picker, agent cards, key-value rows, files, tools list, chat home ---------- */
+.newbtn{display:flex;align-items:center;justify-content:center;gap:8px;height:46px;margin:0 6px 14px;border-radius:14px;background:var(--green);color:var(--green-fg);font-weight:600;font-size:16px;text-decoration:none}
+.newbtn:hover{filter:brightness(1.05)}
+.slabel{font-size:14px;color:var(--muted);padding:16px 16px 4px}
+.recent{display:block;padding:8px 16px;border-radius:12px;color:var(--fg-2);font-size:15px;text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.recent:hover{background:var(--hover);color:var(--fg)}
+.crumb{display:flex;align-items:center;gap:8px;color:var(--fg-2);font-size:15px;flex-wrap:wrap}
+.crumb a{color:inherit;text-decoration:none}.crumb a:hover{color:var(--fg)}
+.crumb b{color:var(--fg);font-weight:500}
+.vpick{position:relative;display:inline-flex;align-items:center}
+.vpick select{appearance:none;-webkit-appearance:none;height:46px;padding:0 44px 0 18px;border-radius:14px;border:0;background:var(--card);box-shadow:var(--shadow);font-size:16.5px;font-weight:500;cursor:pointer;max-width:100%}
+.vpick .ic{position:absolute;right:14px;width:18px;height:18px;pointer-events:none;color:var(--fg-2)}
+.lede{margin:-14px 0 0;color:var(--fg-2);font-size:16px;max-width:70ch}
+.acard h3{margin:0 0 10px;font-size:19px;font-weight:600}
+.acard p{margin:0 0 14px;font-size:16px}
+.acard .out{color:var(--fg-2);font-size:15px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.kv{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 0;border-bottom:1px solid var(--line);font-size:16px;flex-wrap:wrap}
+.kv:last-child{border-bottom:0;padding-bottom:0}
+.kv > span:last-child{color:var(--fg-2);text-align:right}
+.kv select{height:42px;padding:0 12px;border-radius:13px;border:1px solid var(--line);background:var(--card)}
+.files{list-style:none;margin:8px 0 0;padding:0}
+.files li{display:flex;align-items:center;gap:14px;padding:13px 0;border-bottom:1px solid var(--line)}
+.files li:last-child{border-bottom:0}
+.files .name{flex:1;min-width:0;font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.files .kind{color:var(--fg-2);font-size:15px}
+.files a{color:inherit;text-decoration:none;display:contents}
+.tlist{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:2px}
+.tlist a{display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:14px;color:var(--fg);text-decoration:none;font-size:16.5px}
+.tlist a:hover{background:var(--soft)}
+.tlist a small{display:block;color:var(--fg-2);font-size:14px}
+.tlist a .ic:last-child{margin-left:auto;width:16px;height:16px;color:var(--muted)}
+.tlist .txt{min-width:0}
+.dag{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:16px}
+.node{padding:10px 14px;border-radius:14px;background:var(--soft);font-size:15px}
+.node small{display:block;color:var(--fg-2);font-size:13px;font-family:var(--mono)}
+.node.done{background:var(--green-soft)}.node.now{background:var(--green);color:var(--green-fg)}.node.now small{color:var(--green-fg)}
+.arrow{color:var(--muted)}
+.cell{border-radius:16px;background:var(--soft);overflow:hidden;margin-top:14px}
+.cell pre{margin:0;padding:14px 16px;font:14px/1.6 var(--mono);overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:16px 16px 0 0}
+.cell .outp{padding:12px 16px;font-size:14.5px;color:var(--fg-2)}
+.cell .cbar{display:flex;align-items:center;gap:8px;padding:8px 10px 0 16px;color:var(--muted);font:13px var(--mono)}
+.conf{width:100%;border-collapse:separate;border-spacing:6px;margin-top:6px}
+.conf th{font-weight:400;color:var(--fg-2);font-size:14.5px;text-align:left;padding:4px 6px}
+.conf td{background:var(--soft);border-radius:12px;padding:14px;font-size:20px;font-weight:600;font-variant-numeric:tabular-nums;text-align:center}
+.conf td.hit{background:var(--green-soft);color:var(--green-ink)}
+.home-hero{max-width:760px;margin:6vh auto 0;width:100%;display:flex;flex-direction:column;gap:18px}
+.home-hero h1{margin:0;font-size:34px;font-weight:600;letter-spacing:-.015em;text-align:center;text-wrap:balance}
+.home-hero .cbox{background:var(--card);box-shadow:var(--shadow);padding:10px 10px 10px 18px}
+.sugg{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
+.sugg button{height:40px;padding:0 16px;border-radius:13px;background:var(--soft);font-size:15px}
+.sugg button:hover{background:var(--soft-2)}
+.map td:first-child{font-weight:500}
+.map td:last-child{color:var(--fg-2)}
+.btnrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+.demo-tag{border:0;cursor:pointer;font:inherit;font-size:13.5px}
+</style>
+
+<div class="shell" id="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="profile"><span class="avatar" aria-hidden="true"></span><div><b>DCLab workspace</b><small>Owner</small></div></div>
+    <a class="newbtn" href="#home" data-newchat><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New chat</a>
+    <nav id="nav" style="display:contents"></nav>
+    <div class="slabel">Recent chats</div>
+    <a class="recent" href="#home">Which customers cancel next month?</a>
+    <a class="recent" href="#home">Why did AUC drop in March?</a>
+    <a class="recent" href="#home">Clean the orders table</a>
+    <div class="grow"></div>
+    <nav id="foot" style="display:contents"></nav>
+  </aside>
+  <main class="main" id="main"></main>
+</div>
+<button class="demo-tag" data-go="map">UI v6 · where everything went</button>
+
+<script>
+(function(){
+// ---------- icons ----------
+var P={
+ home:'<path d="M5 5h14v10H9l-4 4z"/>',
+ folder:'<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+ agent:'<rect x="5" y="8" width="14" height="11" rx="3"/><path d="M12 4v4M9 13h.01M15 13h.01M9.5 16h5"/>',
+ dots:'<circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/>',
+ gear:'<circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/>',
+ help:'<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5V14M12 17.5v.01"/>',
+ out:'<path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4M10 16l4-4-4-4M14 12H4"/>',
+ chart:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+ search:'<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+ bell:'<path d="M6 16V11a6 6 0 1 1 12 0v5l1.5 2h-15zM10 20a2 2 0 0 0 4 0"/>',
+ plus:'<path d="M12 5v14M5 12h14"/>',
+ panel:'<rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/>',
+ refresh:'<path d="M20 11a8 8 0 0 0-14.5-4.5L4 8M4 4v4h4M4 13a8 8 0 0 0 14.5 4.5L20 16M20 20v-4h-4"/>',
+ chev:'<path d="m6 9 6 6 6-6"/>', right:'<path d="m9 6 6 6-6 6"/>',
+ down:'<path d="M12 4v12M6 10l6 6 6-6M5 20h14"/>',
+ filter:'<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>',
+ sort:'<path d="M4 7h16M7 12h10M10 17h4"/>',
+ copy:'<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/>',
+ eye:'<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+ pen:'<path d="m4 20 4-1 11-11-3-3L5 16zM14 6l3 3"/>',
+ trash:'<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
+ send:'<path d="M12 19V5M5 12l7-7 7 7"/>',
+ clip:'<path d="M21 12.5 12.6 21a5 5 0 0 1-7.1-7.1L14 5.3a3.3 3.3 0 0 1 4.7 4.7l-8.5 8.5a1.7 1.7 0 0 1-2.4-2.4L15.5 8.4"/>',
+ lock:'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+ code:'<path d="m8 8-4 4 4 4M16 8l4 4-4 4M13 5l-2 14"/>',
+ menu:'<path d="M4 7h16M4 12h16M4 17h16"/>',
+ play:'<path d="M7 5v14l11-7z"/>',
+ db:'<ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3"/>',
+ layers:'<path d="m12 3 9 5-9 5-9-5zM3 13l9 5 9-5"/>',
+ book:'<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 3v18"/>',
+ target:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/>',
+ msg:'<path d="M5 5h14v10H9l-4 4z"/>',
+ mark:'<path d="M7 4h10v16l-5-4-5 4z"/>',
+ cpu:'<rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/>',
+ plug:'<path d="M9 3v5M15 3v5M6 8h12v4a6 6 0 0 1-12 0zM12 18v3"/>',
+ box:'<path d="m12 3 8 4.5v9L12 21l-8-4.5v-9z"/><path d="m4 7.5 8 4.5 8-4.5M12 12v9"/>',
+ shield:'<path d="M12 3 5 6v6c0 4.4 3 7.6 7 9 4-1.4 7-4.6 7-9V6z"/>'
+};
+function ic(n,cls){return '<svg class="ic'+(cls?' '+cls:'')+'" viewBox="0 0 24 24" aria-hidden="true">'+P[n]+'</svg>'}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+
+// ---------- data (examples shaped like the Telco churn project; not measured) ----------
+var PROJECTS=[
+ {id:'P-1042',name:'Customer churn',file:'telco.csv · 7,043 rows',kind:'Classification',stage:['Waiting for you','warn'],c:'linear-gradient(135deg,#FFD08A,#E88A3C)'},
+ {id:'P-1043',name:'Delivery fraud',file:'orders.parquet · 412,880 rows',kind:'Rare events',stage:['Building','info'],c:'linear-gradient(135deg,#BFD3FF,#5C7FE0)'},
+ {id:'P-1044',name:'Ticket routing',file:'tickets.csv · 58,210 rows',kind:'Text classification',stage:['Report ready','ok'],c:'linear-gradient(135deg,#C9F2C2,#46B85A)'},
+ {id:'P-1045',name:'Delivery time',file:'deliveries.csv · 96,402 rows',kind:'Regression',stage:['Leak found','bad'],c:'linear-gradient(135deg,#FFC6BD,#DE5F4E)'}
+];
+var COLUMNS=[
+ ['customerID','Text','0%',['Left out','mute'],'An ID. It would only memorise rows.'],
+ ['tenure','Number','0%',['Feature','ok'],'Months as a customer'],
+ ['Contract','Category','0%',['Feature','ok'],'Month-to-month, one year, two year'],
+ ['MonthlyCharges','Number','0%',['Feature','ok'],''],
+ ['TotalCharges','Number','0.2%',['Feature','ok'],'11 blanks, filled inside each training fold'],
+ ['CancelReason','Text','73.5%',['Left out','bad'],'Filled in only after a customer cancels'],
+ ['LastBillDate','Date','0%',['Left out','bad'],'Set after the month being predicted'],
+ ['Churn','Yes / No','0%',['Outcome','info'],'What we predict. 26.5% yes']
+];
+var FEATURES=[
+ ['tenure_months','tenure',true,true,.31],['contract_is_monthly','Contract',true,true,.24],['charges_per_month','MonthlyCharges',true,true,.15],
+ ['total_to_monthly_ratio','TotalCharges, MonthlyCharges',true,true,.11],['has_fiber','InternetService',true,true,.08],
+ ['cancel_reason_given','CancelReason',false,false,null],['days_since_last_bill','LastBillDate',false,false,null]
+];
+var CANDS=[['Gradient boosting','0.842','0.651','0.82 – 0.86'],['Random forest','0.823','0.622','0.80 – 0.84'],['Logistic regression','0.811','0.604','0.79 – 0.83'],['Tenure-only baseline','0.707','0.418','0.68 – 0.73']];
+
+// ---------- charts ----------
+function axes(W,H,L,R,T,B,ticks,y,fmt){var s='';ticks.forEach(function(t){s+='<line class="gl" x1="'+L+'" x2="'+(W-R)+'" y1="'+y(t)+'" y2="'+y(t)+'"/><text x="'+(L-10)+'" y="'+(y(t)+4)+'" text-anchor="end">'+fmt(t)+'</text>'});return s}
+function barChart(vals,labels,ticks,fmt,opt){
+  opt=opt||{};var W=600,H=250,L=44,R=10,T=14,B=34,lo=ticks[0],hi=ticks[ticks.length-1];
+  var y=function(v){return T+(H-T-B)*(1-(v-lo)/(hi-lo))};
+  var s='<svg class="chart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+esc(opt.label||'Bar chart')+'">'+axes(W,H,L,R,T,B,ticks,y,fmt);
+  var n=vals.length,slot=(W-L-R)/n,bw=Math.min(28,slot*.5);
+  vals.forEach(function(v,i){var cx=L+slot*i+slot/2,top=y(v);
+    s+='<rect x="'+(cx-bw/2)+'" y="'+top+'" width="'+bw+'" height="'+Math.max(y(lo)-top,0)+'" rx="'+(bw/2)+'" fill="'+(opt.hl===i?'var(--green-ink)':'var(--green)')+'"><title>'+esc(labels[i])+': '+fmt(v)+'</title></rect><text x="'+cx+'" y="'+(H-10)+'" text-anchor="middle">'+esc(labels[i])+'</text>'});
+  return s+'</svg>';
+}
+function lineChart(series,labels,ticks,label,fmt){
+  fmt=fmt||function(t){return t};var W=600,H=250,L=48,R=12,T=14,B=34,lo=ticks[0],hi=ticks[ticks.length-1];
+  var y=function(v){return T+(H-T-B)*(1-(v-lo)/(hi-lo))};var x=function(i){return L+(W-L-R)*i/(labels.length-1)};
+  var s='<svg class="chart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+esc(label)+'">'+axes(W,H,L,R,T,B,ticks,y,fmt);
+  labels.forEach(function(l,i){if(l!=='')s+='<text x="'+x(i)+'" y="'+(H-10)+'" text-anchor="middle">'+l+'</text>'});
+  series.forEach(function(se){s+='<polyline fill="none" stroke="'+se.c+'" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"'+(se.dash?' stroke-dasharray="5 5"':'')+' points="'+se.v.map(function(v,i){return x(i)+','+y(v)}).join(' ')+'"/>'});
+  return s+'</svg>';
+}
+function roc(){
+  var W=600,H=300,L=48,R=16,T=14,B=40,pts=[];
+  var X=function(v){return L+(W-L-R)*v},Y=function(v){return T+(H-T-B)*(1-v)};
+  for(var i=0;i<=40;i++){var f=i/40;pts.push(X(f)+','+Y(Math.pow(f,0.32)))}
+  var s='<svg class="chart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="ROC curve of gradient boosting, AUC 0.84">';
+  [0,.5,1].forEach(function(t){s+='<line class="gl" x1="'+L+'" x2="'+(W-R)+'" y1="'+Y(t)+'" y2="'+Y(t)+'"/><text x="'+(L-10)+'" y="'+(Y(t)+4)+'" text-anchor="end">'+t.toFixed(1)+'</text>'});
+  s+='<line x1="'+X(0)+'" y1="'+Y(0)+'" x2="'+X(1)+'" y2="'+Y(1)+'" stroke="var(--muted)" stroke-dasharray="4 5"/>';
+  s+='<polyline fill="none" stroke="var(--green-ink)" stroke-width="3" stroke-linejoin="round" points="'+pts.join(' ')+'"/>';
+  s+='<text x="'+X(0)+'" y="'+(H-14)+'" text-anchor="middle">0</text><text x="'+X(1)+'" y="'+(H-14)+'" text-anchor="middle">1.0</text><text x="'+X(.5)+'" y="'+(H-14)+'" text-anchor="middle">False positive rate</text>';
+  return s+'</svg>';
+}
+
+// ---------- shared pieces ----------
+function head(title,sub,extra,crumb){
+  return (crumb?'<div class="crumb">'+crumb+'</div>':'')+'<div class="head"><button class="round ghost menu-btn" data-menu aria-label="Open menu">'+ic('menu')+'</button>'+
+   '<button class="round ghost hide-sm" data-menu aria-label="Toggle sidebar">'+ic('panel')+'</button>'+
+   '<h1>'+title+(sub?'<span class="sub">'+sub+'</span>':'')+'</h1>'+
+   '<button class="round hide-sm" aria-label="Search">'+ic('search')+'</button>'+
+   '<button class="round" aria-label="Notifications">'+ic('bell')+'</button>'+(extra||'')+'</div>';
+}
+function seg(name,items,cur,attr){
+  return '<div class="seg" role="tablist" aria-label="'+esc(name)+'">'+items.map(function(it){
+    return '<button role="tab" '+(attr||'data-tab')+'="'+it[0]+'" aria-selected="'+(it[0]===cur)+'">'+it[1]+'</button>'}).join('')+'</div>';
+}
+function stat(lbl,val,c){return '<div class="card stat"><div class="lbl">'+lbl+'</div><div class="row"><span class="val">'+val+'</span>'+(c||'')+'</div></div>'}
+function chip(t,k){return '<span class="chip '+k+'">'+t+'</span>'}
+function card(title,body,right){return '<div class="card"><div class="ctitle"><h2>'+title+'</h2>'+(right||'')+'</div>'+body+'</div>'}
+function kv(rows){return rows.map(function(r){return '<div class="kv"><span>'+r[0]+'</span><span>'+r[1]+'</span></div>'}).join('')}
+function tools(title,count,ph){
+  return '<div class="thead"><h2>'+title+'</h2><span class="count">'+count+'</span></div>'+
+   '<div class="bar"><button class="btn sm">'+ic('filter')+'Filter</button><button class="btn sm">'+ic('sort')+'Sort</button><span class="fill"></span>'+
+   '<label class="search">'+ic('search')+'<input type="search" id="q-'+title.replace(/\W/g,'')+'" placeholder="'+ph+'"></label></div>';
+}
+function acts(){return '<span class="acts"><button class="round" aria-label="Open">'+ic('eye')+'</button><button class="round" aria-label="Edit">'+ic('pen')+'</button><button class="round del" aria-label="Delete">'+ic('trash')+'</button></span>'}
+function table(cols,rows){return '<div class="tframe"><table class="t"><thead><tr>'+cols.map(function(c){return '<th'+(c.r?' class="r"':'')+'>'+(c.t||c)+'</th>'}).join('')+'</tr></thead><tbody>'+rows.map(function(r){return '<tr>'+r.map(function(c,i){return '<td'+(cols[i].r?' class="r"':'')+'>'+c+'</td>'}).join('')+'</tr>'}).join('')+'</tbody></table></div>'}
+function stepsList(){
+  var S=[['Understand the problem','Who cancels next month','done'],['Check the data','7,043 rows, outcome complete','done'],['Find leaks','3 columns left out','done'],
+   ['Set the prediction moment','Waiting for your answer','now'],['Build and compare models','Not started',''],['Final test','Locked until step 5','']];
+  return '<ol class="steps">'+S.map(function(s,i){return '<li class="'+s[2]+'"><span class="n">'+(s[2]==='done'?'✓':i+1)+'</span><div><b>'+s[0]+'</b><small>'+s[1]+'</small></div></li>'}).join('')+'</ol>';
+}
+var PROJ_CRUMB='<a href="#projects">Projects</a><span>/</span><b>Customer churn</b>';
+
+// ---------- state ----------
+var state={ptab:'dashboard',sub:{dashboard:'overview',workflow:'agents',data:'solution',models:'results',brief:'brief'},prefs:'general',admin:'control',agent:'sessions'};
+var SUBS={
+  dashboard:[['overview','Overview']],
+  workflow:[['agents','Agents and steps'],['graph','Workflow graph'],['notebook','Notebook']],
+  data:[['solution','Data and solution'],['leakage','Leakage and drift'],['features','Features']],
+  models:[['results','Experiment results'],['reliability','Reliability and final test']],
+  brief:[['brief','Decision brief'],['decision','Decision and costs']]
+};
+var PAGES={};
+
+// ---------- Home = the chat ----------
+PAGES.home=function(){
+  if(state.fresh){
+    return head('','',' ')+'<div class="home-hero"><h1>What should we work on?</h1>'+
+     '<label class="cbox" for="prompt0"><button class="round ghost" aria-label="Attach data">'+ic('clip')+'</button><textarea id="prompt0" rows="2" placeholder="Describe a problem, or attach a table to start"></textarea><button class="round" style="background:var(--green);color:var(--green-fg)" aria-label="Send">'+ic('send')+'</button></label>'+
+     '<div class="sugg"><button>Predict which customers will cancel</button><button>Find what drives late deliveries</button><button>Check my notebook for leaks</button><button>Start from a sample table</button></div>'+
+     '<p class="note" style="text-align:center">Data from your computer, Kaggle, Hugging Face, a database or cloud storage. Or ask DCLab to make synthetic data.</p></div>';
+  }
+  return head('Customer churn','Chat','<button class="btn green">'+ic('box')+'Build project</button>')+
+  '<div class="grid g-side"><div class="card chatcard"><div class="thread">'+
+   '<div class="turn me"><span class="pav" style="background:var(--green);color:var(--green-fg)">You</span><div class="bubble"><p>Which customers will cancel next month? The data is <span class="mono">telco.csv</span>.</p></div></div>'+
+   '<div class="turn"><span class="pav" style="background:var(--fg);color:var(--page)">DC</span><div class="bubble"><p>I read the file. Each row is one customer. The outcome is <span class="mono">Churn</span>: did the customer cancel?</p>'+
+     '<div class="facts"><div><small>Customers</small><b>7,043</b></div><div><small>Columns</small><b>21</b></div><div><small>Cancelled</small><b>26.5%</b></div><div><small>Date column</small><b>None</b></div></div></div></div>'+
+   '<div class="turn"><span class="pav" style="background:var(--fg);color:var(--page)">DC</span><div class="bubble"><p>Three columns would give away the answer, so I left them out: <span class="mono">CancelReason</span>, <span class="mono">LastBillDate</span> and <span class="mono">customerID</span>.</p></div></div>'+
+   '<div class="turn"><span class="pav" style="background:var(--fg);color:var(--page)">DC</span><div class="bubble qcard"><p><b style="font-weight:600">When will you run this prediction?</b></p><p style="color:var(--fg-2)">This decides which data counts as known at that moment.</p>'+
+     '<div class="opts" role="group" aria-label="Answer"><button class="opt" aria-pressed="false">On the 1st of each month</button><button class="opt" aria-pressed="false">Any day of the month</button><button class="opt" aria-pressed="false">I\'m not sure yet</button></div><div class="saved" id="saved" hidden>Saved to the problem plan.</div></div></div>'+
+  '</div><div class="composer"><label class="cbox" for="prompt"><button class="round ghost" aria-label="Attach data">'+ic('clip')+'</button><textarea id="prompt" rows="1" placeholder="Answer, or ask DCLab anything"></textarea><button class="round" style="background:var(--green);color:var(--green-fg)" aria-label="Send">'+ic('send')+'</button></label>'+
+  '<p class="note">Or hand it to the Agent: it runs the steps and stops at every question that is yours.</p></div></div>'+
+  '<div class="grid" style="align-content:start">'+card('Problem plan',kv([['Outcome','Churn (yes / no)'],['One row is','a customer'],['Prediction moment',chip('Your answer','warn')],['Metric','AUC, then a cost threshold']]),chip('Draft','mute'))+
+  card('Memory',kv([['Project memory','3 notes'],['Your corrections','1']])+'<div class="btnrow"><button class="btn sm">Edit memory</button></div>')+'</div></div>';
+};
+
+// ---------- Projects list ----------
+PAGES.projects=function(){
+  return head('Projects','4 projects, 1 needs your answer','<a class="btn green" href="#home" data-newchat>'+ic('plus')+'New project</a>')+
+   tools('All projects',PROJECTS.length,'Search projects…')+table(['Project ID','Project','Problem','Stage',{t:'Actions',r:1}],
+   PROJECTS.map(function(p){return ['<span class="idc">#'+p.id+ic('copy')+'</span>','<a class="who" href="#project" style="color:inherit;text-decoration:none"><span class="pav" style="background:'+p.c+'"></span><span><b>'+p.name+'</b><small>'+p.file+'</small></span></a>',p.kind,chip(p.stage[0],p.stage[1]),acts()]}));
+};
+
+// ---------- One project: Dashboard, Workflow, Data, Models, Brief ----------
+PAGES.project=function(){
+  var tab=state.ptab, sub=state.sub[tab], subs=SUBS[tab];
+  var out=head('Customer churn','Predict, on the 1st of each month, who cancels that month','<button class="btn green">'+ic('code')+'Export code</button>',PROJ_CRUMB)+
+   '<div class="bar">'+seg('Project',[['dashboard','Dashboard'],['workflow','Workflow'],['data','Data'],['models','Models'],['brief','Brief']],tab,'data-ptab')+'<span class="fill"></span>'+
+   (subs.length>1?'<label class="vpick" for="vpick"><span class="sr-only" style="position:absolute;left:-9999px">Page</span><select id="vpick">'+subs.map(function(s){return '<option value="'+s[0]+'"'+(s[0]===sub?' selected':'')+'>'+s[1]+'</option>'}).join('')+'</select>'+ic('chev')+'</label>':'')+'</div>';
+  return out+(PROJ[tab+'.'+sub]||function(){return ''})();
+};
+var PROJ={};
+PROJ['dashboard.overview']=function(){
+  var auc=[.71,.74,.73,.78,.80,.79,.81,.82,.80,.83,.84,.84];
+  var files=[['db','telco.csv','Dataset','data'],['layers','Feature availability','17 inputs','data'],['chart','Churn model comparison','Validation','models'],['book','Churn notebook','Python','workflow'],['target','Decision brief','Draft','brief'],['box','Model registry','4 versions','models']];
+  return '<div class="grid g4">'+stat('Rows','7,043')+stat('Leaks caught','3',chip('left out','up'))+stat('Best validation AUC','0.84',chip('↑ 0.02','up'))+stat('Final test','Locked',chip('runs once','mute'))+'</div>'+
+  '<div class="grid g2">'+card('Model quality',barChart(auc,auc.map(function(_,i){return String(i+1).padStart(2,'0')}),[.5,.6,.7,.8,.9],function(v){return v.toFixed(2)},{label:'Validation AUC of the last 12 runs',hl:10}),'<span class="select">Last 12 runs'+ic('chev','chev')+'</span>')+
+   card('Current work',kv([['Prediction moment',chip('Waiting for you','warn')],['Next step','Build and compare models'],['Review owner','<select id="owner" aria-label="Review owner"><option>You</option><option>Data scientist</option></select>']])+'<div class="prog"><span style="width:50%"></span></div><p class="note">Step 4 of 6</p><div class="btnrow"><a class="btn green sm" href="#home">'+ic('msg')+'Answer in chat</a><button class="btn sm">'+ic('play')+'Run next step</button></div>')+'</div>'+
+  '<div class="grid g2">'+card('Project files','<ul class="files">'+files.map(function(f){return '<li><a href="#project" data-ptab-go="'+f[3]+'">'+ic(f[0])+'<span class="name">'+f[1]+'</span><span class="kind">'+f[2]+'</span></a></li>'}).join('')+'</ul>')+
+   card('Shared conversations','<ul class="files"><li>'+ic('msg')+'<span class="name">Which customers cancel next month?</span><span class="kind">Today</span></li><li>'+ic('msg')+'<span class="name">Renewal risk review</span><span class="kind">Yesterday</span></li></ul><p class="note" style="margin-top:16px">Save an output from its menu to keep it here.</p>')+'</div>';
+};
+PROJ['workflow.agents']=function(){
+  var A=[['Problem Agent','Define the prediction moment','Problem contract',['Done','ok']],['Data Agent','Inspect missing values and feature timing','Feature review',['Done','ok']],
+    ['Solution Agent','Plan validation and compare baselines','Workflow',['Waiting for you','warn']],['Model Agent','Fit candidates and evaluate predictions','Experiment results',['Not started','mute']],
+    ['Project Agent','Summarize the evidence for review','Decision brief',['Not started','mute']]];
+  return '<p class="lede" style="margin-top:0">The Project Agent coordinates these steps in the conversation.</p><div class="grid g2">'+
+   A.map(function(a){return '<div class="card acard"><h3>'+a[0]+'</h3><p>'+a[1]+'</p><div class="out"><span>Output: '+a[2]+'</span>'+chip(a[3][0],a[3][1])+'</div></div>'}).join('')+
+   '<div class="card acard"><h3>Run status</h3>'+kv([['Conversation','14 messages'],['Current step','Set the prediction moment'],['Stages left','2']])+
+   '<div class="btnrow"><button class="btn green sm">'+ic('play')+'Run the next stage</button><button class="btn sm">Run all remaining</button><button class="btn sm">Run with Claude beside</button></div></div></div>';
+};
+PROJ['workflow.graph']=function(){
+  var N=[['WF-01','Problem','done'],['WF-02','Data check','done'],['WF-03','Leakage audit','done'],['WF-04','Prediction moment','now'],['WF-05','Split design',''],['WF-06','Features',''],['WF-07','Model screen',''],['WF-08','Tuning',''],['WF-09','Final test',''],['WF-10','Brief','']];
+  return card('Workflow graph','<div class="dag">'+N.map(function(n,i){return (i?'<span class="arrow">'+ic('right')+'</span>':'')+'<span class="node '+n[2]+'"><small>'+n[0]+'</small>'+n[1]+'</span>'}).join('')+'</div><p class="note" style="margin-top:16px">Every move is checked by the validator and kept in the project record.</p>',chip('4 of 10','mute'))+
+   card('Tasks',kv([['Answer the prediction-moment question',chip('Blocked on you','warn')],['Review the leakage findings',chip('Done','ok')],['Invite a reviewer','<button class="btn sm">Invite</button>']]));
+};
+PROJ['workflow.notebook']=function(){
+  return '<div class="bar">'+seg('Who drives',[['me','I drive'],['agent','Agent drives']],'me','data-x')+'<span class="fill"></span><button class="btn sm">'+ic('refresh')+'Restart kernel</button><button class="btn sm">'+ic('down')+'Export</button><button class="btn green sm">'+ic('play')+'Run all</button></div>'+
+   '<div class="card"><div class="ctitle"><h2>churn_model.ipynb</h2>'+chip('1 fix suggested','warn')+'</div>'+
+   '<div class="cell"><pre>df = pd.read_csv("telco.csv")\ndf["TotalCharges"] = df["TotalCharges"].fillna(df["TotalCharges"].median())</pre><div class="cbar">[1] · DCLab: the median is taken from all rows, including the test part.</div><div class="outp"><button class="btn sm green">Apply fix to this cell</button> <button class="btn sm">Dismiss</button></div></div>'+
+   '<div class="cell"><pre>X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y, test_size=.2)</pre><div class="cbar">[2] · ok</div></div>'+
+   '<div class="sugg" style="justify-content:flex-start;margin-top:16px"><button>Is the score honest?</button><button>What was left out?</button><button>Why this model?</button><button>Can I use SMOTE?</button></div></div>';
+};
+PROJ['data.solution']=function(){
+  return '<div class="grid g2">'+card('Problem',kv([['Outcome','Churn'],['One row is','a customer'],['Prediction moment',chip('Waiting for you','warn')],['Metric','AUC, then a cost threshold']]),chip('Version 2','mute'))+
+   card('Split design',kv([['Method','Stratified random, 80 / 20'],['Why not by time','No date column'],['Folds','5, inside the training part'],['Final test','Sealed']]))+'</div>'+
+   '<div class="bar"><button class="btn sm">'+ic('pen')+'Edit the solution</button><button class="btn sm">Version history</button><span class="fill"></span><button class="btn green sm">Sign this version</button></div>'+
+   tools('Columns',COLUMNS.length+' of 21','Search columns…')+table(['Column','Type','Missing','Role','Why'],COLUMNS.map(function(c){return ['<span class="mono">'+c[0]+'</span>',c[1],'<span class="num">'+c[2]+'</span>',chip(c[3][0],c[3][1]),'<span style="color:var(--fg-2)">'+(c[4]||'—')+'</span>']}));
+};
+PROJ['data.leakage']=function(){
+  return '<div class="grid g3">'+stat('Columns checked','21')+stat('Left out','3',chip('known too late','down'))+stat('Open questions','1',chip('needs you','warn'))+'</div>'+
+   card('Open question','<p style="margin:12px 0 0">Is <span class="mono">TotalCharges</span> known on the 1st of the month, or does it include that month\'s bill?</p><div class="btnrow"><button class="btn green sm">Keep the safe version and exclude</button><button class="btn sm">Compare both on training folds</button></div>',chip('From the critic','info'))+
+   table(['Column','Known at prediction time','How much it inflates AUC','Decision'],[
+     ['<span class="mono">CancelReason</span>',chip('No','bad'),'+0.14','Left out'],['<span class="mono">LastBillDate</span>',chip('No','bad'),'+0.06','Left out'],
+     ['<span class="mono">customerID</span>',chip('ID','mute'),'+0.01','Left out'],['<span class="mono">TotalCharges</span>',chip('Unsure','warn'),'+0.00 to +0.02','Your answer']]);
+};
+PROJ['data.features']=function(){
+  return '<div class="grid g4">'+stat('Features made','7')+stat('Kept','5',chip('known in time','up'))+stat('Dropped','2',chip('known too late','down'))+stat('Recipes compared','3')+'</div>'+
+   tools('Features',FEATURES.length,'Search features…')+table(['Feature','Made from','Known at prediction time','Status','Importance'],FEATURES.map(function(f){
+     return ['<span class="mono">'+f[0]+'</span>','<span style="color:var(--fg-2)">'+f[1]+'</span>',f[2]?chip('Yes','ok'):chip('No','bad'),f[3]?chip('Kept','ok'):chip('Dropped','mute'),
+       f[4]==null?'<span style="color:var(--muted)">—</span>':'<span class="ibar"><span style="width:'+Math.round(f[4]*300)+'px;max-width:110px"></span><em>'+f[4].toFixed(2)+'</em></span>']}));
+};
+PROJ['models.results']=function(){
+  return '<p class="lede" style="margin-top:0">Experiment 1: 5,634 training customers, 5 folds. The final test is sealed.</p>'+
+   card('Candidate results','<div style="margin-top:14px">'+table(['Candidate','ROC-AUC','Avg. precision','Range (95%)'],CANDS.map(function(c,i){return ['<b style="font-weight:500">'+c[0]+'</b>'+(i===0?' '+chip('Chosen','up'):''),'<span class="num">'+c[1]+'</span>','<span class="num">'+c[2]+'</span>','<span class="num" style="color:var(--fg-2)">'+c[3]+'</span>']}))+'</div>')+
+   '<div class="card"><div class="bar"><span style="font-size:16.5px">Inspect</span><label class="vpick" for="inspect"><select id="inspect">'+CANDS.map(function(c){return '<option>'+c[0]+'</option>'}).join('')+'</select>'+ic('chev')+'</label><button class="btn sm">Compare two</button><span class="fill"></span><button class="btn sm">Try ways to improve</button></div></div>'+
+   '<div class="grid g2">'+card('ROC curve',roc())+
+   card('At a 0.50 threshold','<div style="margin-top:14px">'+table(['Precision','Recall','F1'],[['<span class="num">0.68</span>','<span class="num">0.55</span>','<span class="num">0.61</span>']])+'</div>'+
+     '<table class="conf" aria-label="Confusion matrix"><tr><th>Actual / predicted</th><th>Stays</th><th>Cancels</th></tr><tr><th>Stays</th><td class="hit">930</td><td>105</td></tr><tr><th>Cancels</th><td>169</td><td class="hit">205</td></tr></table>')+'</div>';
+};
+PROJ['models.reliability']=function(){
+  return card('Final test','<div class="locked">'+ic('lock')+'It runs once, on data no model has seen, after the build. Running it earlier would let us tune to it.</div><div class="btnrow"><button class="btn green sm" disabled style="opacity:.5">Open the final test</button><button class="btn sm">See the gate</button></div>',chip('Sealed','mute'))+
+   '<div class="grid g2">'+card('Checks after the final test',kv([['Calibration',chip('After the test','mute')],['Slices (contract, tenure)',chip('After the test','mute')],['Missing inputs',chip('After the test','mute')],['Operating points',chip('After the test','mute')]]))+
+   card('Production gate',kv([['Leakage checks',chip('Passed','ok')],['Final test read once',chip('Not yet','mute')],['Owner sign-off',chip('Not yet','mute')]]))+'</div>';
+};
+PROJ['brief.brief']=function(){
+  return '<div class="grid g-side"><div class="card"><div class="ctitle"><h2>Decision brief</h2>'+chip('3 of 5 parts written','mute')+'</div><div class="prose">'+
+   '<h3>The decision we need</h3><p>Which customers to call on the 1st of each month, and how many.</p>'+
+   '<h3>What we built</h3><p>7,043 customers, 21 columns. Three columns known only after a customer cancels were left out of every model.</p>'+
+   '<h3>How good it is, honestly</h3><div class="locked">'+ic('lock')+'Written after the one final test.</div>'+
+   '<h3>Risks and what we will do</h3><div class="locked">'+ic('lock')+'Written after the build.</div></div></div>'+
+   '<div class="grid" style="align-content:start">'+card('Sign-off',kv([['Solution signed',chip('Not yet','mute')],['Pilot approved',chip('Not yet','mute')]])+'<div class="btnrow"><button class="btn green sm">Sign the solution</button><button class="btn sm">Request changes</button></div>')+
+   card('Share','<div class="btnrow"><button class="btn sm">'+ic('down')+'Export PDF</button><button class="btn sm">'+ic('copy')+'Copy link</button></div>')+'</div></div>';
+};
+PROJ['brief.decision']=function(){
+  var v=[0,9,16,21,24,25.5,26,25.6,24.5,23,21];
+  return '<div class="grid g-side">'+card('Value by how many customers are called',lineChart([{c:'var(--green-ink)',v:v}],['0','','400','','800','','1,200','','1,600','','2,000'],[0,10,20,30],'Value in thousand euros by number of customers called',function(t){return '€'+t+'k'}),chip('Best: about 1,200','up'))+
+   card('What if',kv([['Cost of one call','<input class="field" id="cost" value="€4" style="width:110px">'],['Value of a saved customer','<input class="field" id="val" value="€180" style="width:110px">'],['Share saved by a call','<input class="field" id="share" value="25%" style="width:110px">']])+'<div class="btnrow"><button class="btn green sm">Use these amounts</button><button class="btn sm">Compare assumptions</button></div>')+'</div>';
+};
+
+// ---------- Agent ----------
+PAGES.agent=function(){
+  return head('Agent','Let DCLab run the steps by itself','<button class="btn green">'+ic('plus')+'New task</button>')+
+   '<div class="grid g3">'+stat('Running','1')+stat('Waiting for your approval','1',chip('needs you','warn'))+stat('Budget left','€3.20',chip('of €5','mute'))+'</div>'+
+   table(['Task','Project','Status','Spend',{t:'Actions',r:1}],[
+     ['<b style="font-weight:500">Build and compare churn models</b>','Customer churn',chip('Waiting for approval','warn'),'<span class="num">€0.42</span>','<span class="acts"><button class="btn sm green">Approve once</button><button class="btn sm">Not yet</button></span>'],
+     ['<b style="font-weight:500">Screen fraud models on time folds</b>','Delivery fraud',chip('Running','info'),'<span class="num">€0.81</span>','<span class="acts"><button class="btn sm">Stop</button></span>'],
+     ['<b style="font-weight:500">Write the routing report</b>','Ticket routing',chip('Done','ok'),'<span class="num">€0.57</span>','<span class="acts"><button class="round" aria-label="Open">'+ic('eye')+'</button></span>']])+
+   card('Guardrails',kv([['Stops at every owner question',chip('On','ok')],['Opens the final test',chip('Never by itself','ok')],['Budget per task','€1'],['Who decided what','Kept for every step']]));
+};
+
+// ---------- More tools (the overflow, like the attached page) ----------
+PAGES.tools=function(){
+  function li(href,icn,t,s,extra){return '<li><a href="'+href+'"'+(extra||'')+'>'+ic(icn)+'<span class="txt">'+t+'<small>'+s+'</small></span>'+ic('right')+'</a></li>'}
+  return head('More tools','Everything that is not on the main menu')+
+  '<div class="grid g2">'+card('Project tools','<ul class="tlist">'+
+    li('#project','layers','Workflow','Agents, steps and the workflow graph',' data-go-proj="workflow.agents"')+li('#project','book','Notebook','Cells with leak checks beside them',' data-go-proj="workflow.notebook"')+
+    li('#project','shield','Leakage and drift','What is known in time, and what is not',' data-go-proj="data.leakage"')+li('#project','chart','Experiment results','Candidates, ROC curve, thresholds',' data-go-proj="models.results"')+
+    li('#project','target','Reliability','The final test, calibration and slices',' data-go-proj="models.reliability"')+li('#project','chart','Decision and costs','How many to act on, and what if',' data-go-proj="brief.decision"')+
+    li('#project','book','Decision brief','The report to sign',' data-go-proj="brief.brief"')+'</ul>')+
+   card('Operations','<ul class="tlist">'+li('#agent','agent','Agent','Tasks the Agent runs by itself')+li('#compute','cpu','Compute and jobs','Runs, logs, spend and approvals')+
+    li('#integrations','plug','Integrations','MCP, REST API, command line, data sources')+li('#packs','box','Domain packs','Ready settings for a kind of business')+
+    li('#admin','shield','Admin','Members, models, spending, records')+li('#prefs','gear','Settings','Theme, view, your data')+'</ul>')+'</div>';
+  /* Library is hidden for now (owner, 2026-11-20). Kept here, not deleted:
+     li('#library','book','Library','Evidence, research lab, benchmark, policy model') */
+};
+
+// ---------- Operations pages ----------
+PAGES.compute=function(){
+  return head('Compute and jobs','','<button class="btn green">'+ic('plus')+'New job</button>','<a href="#tools">More tools</a><span>/</span><b>Compute and jobs</b>')+
+   '<div class="grid g3">'+stat('Running','2')+stat('Failed this week','1',chip('retry ready','warn'))+stat('Spent this month','€8.40',chip('of €20','mute'))+'</div>'+
+   table(['Job','Project','Status','Time',{t:'Actions',r:1}],[
+     ['Stage: model screen','Delivery fraud',chip('Running','info'),'<span class="num">4 min</span>','<span class="acts"><button class="btn sm">Logs</button><button class="btn sm">Stop</button></span>'],
+     ['Synthetic data','Ticket routing',chip('Done','ok'),'<span class="num">52 s</span>','<span class="acts"><button class="btn sm">Artifacts</button><button class="btn sm">Reproduce</button></span>'],
+     ['Data pipeline: clean','Delivery time',chip('Failed','bad'),'<span class="num">12 s</span>','<span class="acts"><button class="btn sm">Logs</button><button class="btn sm green">Retry</button></span>']]);
+};
+PAGES.integrations=function(){
+  return head('Integrations','','','<a href="#tools">More tools</a><span>/</span><b>Integrations</b>')+
+   '<div class="grid g2">'+card('MCP endpoint',kv([['Address','<span class="mono">http://localhost:8000/mcp</span>'],['Tools','18']])+'<div class="btnrow"><button class="btn sm">'+ic('copy')+'Copy</button><button class="btn sm">Claude Code</button><button class="btn sm">Chat UI</button></div>')+
+   card('Data sources',kv([['Kaggle',chip('Key needed','warn')],['Hugging Face',chip('Connected','ok')],['Databases',chip('2 saved','ok')],['S3 and GCS',chip('Not set up','mute')]]))+
+   card('REST API',kv([['Docs','<span class="mono">/docs</span>'],['Tokens','Made in Admin']]))+card('Command line and VS Code',kv([['Review a notebook','<span class="mono">python -m dclab_rnd.copilot review</span>'],['VS Code companion',chip('Available','ok')]]))+'</div>';
+};
+PAGES.packs=function(){
+  return head('Domain packs','','<button class="btn green">'+ic('plus')+'Build a pack</button>','<a href="#tools">More tools</a><span>/</span><b>Domain packs</b>')+
+   table(['Pack','For','Rules inside','Status'],[['Subscription churn','Telecom, SaaS','12',chip('Active','ok')],['Delivery fraud','Marketplaces','9',chip('Active','ok')],['Ticket routing','Support teams','7',chip('Draft','mute')]]);
+};
+PAGES.admin=function(){
+  var tab=state.admin,out=head('Admin','Owner only','','<a href="#tools">More tools</a><span>/</span><b>Admin</b>')+
+   '<div class="bar">'+seg('Admin',[['control','Control'],['members','Members'],['tokens','Tokens'],['models','Models'],['records','Records']],tab)+'</div>';
+  if(tab==='control') return out+'<div class="grid g2">'+card('Model calls',kv([['Live model calls','<button class="toggle" role="switch" id="live" aria-checked="true" aria-label="Live model calls"></button>'],['Monthly cap','€20'],['Spent','€8.40']])+'<div class="btnrow"><button class="btn sm">Resume paused models</button></div>')+
+     card('Jobs',kv([['Running','2'],['Queued','0']])+'<div class="btnrow"><button class="btn sm" style="color:var(--red)">Stop every job</button></div>')+'</div>';
+  if(tab==='members') return out+table(['Member','Role',{t:'Actions',r:1}],[['You','Owner',''],['Data scientist (invited)','ML engineer',acts()]]);
+  if(tab==='tokens') return out+table(['Token','Made','Last used',{t:'',r:1}],[['laptop-cli','2026-11-02','Today','<button class="btn sm">Revoke</button>']]);
+  if(tab==='models') return out+table(['Role','Model','Score','Cost this month'],[['Home agent','Claude Sonnet 5.5','—','€4.10'],['Reporter','Claude Sonnet 5.5','—','€1.20'],['Decision students','Local classifiers','shadow','€0']]);
+  return out+table(['Record','What it holds','Open'],[['Audit trail','Every governed action','<button class="btn sm">Open</button>'],['Sessions','Each visit, step by step','<button class="btn sm">Open</button>'],['Decisions','Every decision and its label','<button class="btn sm">Open</button>'],['Datasets','Sets your consent allows','<button class="btn sm">Open</button>']]);
+};
+PAGES.prefs=function(){
+  var tab=state.prefs,out=head('Settings','','<button class="btn green">Save changes</button>')+
+   '<div class="bar">'+seg('Settings',[['general','General'],['model','Model'],['usage','Jobs and usage']],tab)+'</div>';
+  function tg(id,on,l){return '<button class="toggle" role="switch" id="'+id+'" aria-checked="'+on+'" aria-label="'+l+'"></button>'}
+  if(tab==='general') return out+'<div class="grid g2">'+card('Workspace',kv([['Name','<input class="field" id="ws-name" value="DCLab workspace">'],['Theme','<span class="seg" style="padding:4px"><button aria-selected="true" style="padding:6px 14px">Auto</button><button style="padding:6px 14px">Light</button><button style="padding:6px 14px">Dark</button></span>'],['View as','<select class="field" id="viewas" style="width:180px"><option>Technical</option><option>Business</option><option>Researcher</option></select>'],['Guided tours','<button class="btn sm">Start a tour</button>']]))+
+    card('Your data',kv([['Use my projects to improve DCLab',tg('c1',false,'Improve DCLab')],['Use my projects to train DCLab\'s models',tg('c2',false,'Train models')]])+'<p class="note">Off by default. Only the owner can turn them on. Table cells and prompts are never sent.</p>')+'</div>';
+  if(tab==='model') return out+card('Model',kv([['Live model calls',tg('m1',true,'Live model calls')],['Monthly spending cap','<input class="field" id="cap" value="€20" style="width:120px">'],['Keep the model\'s thinking summary',tg('m2',true,'Thinking summary')]]));
+  return out+'<div class="grid g3">'+stat('Spent this month','€8.40',chip('of €20','mute'))+stat('Jobs running','2')+stat('Jobs this month','61',chip('↑ 12','up'))+'</div>'+card('Spending cap','<div class="prog"><span style="width:42%"></span></div>',chip('42%','mute'));
+};
+
+// ---------- Where everything went ----------
+PAGES.map=function(){
+  var M=[['Home (chat with the Home agent)','Home'],['Data & Solution','Project → Data → Data and solution'],['Leakage','Project → Data → Leakage and drift'],['Features','Project → Data → Features'],
+   ['Models','Project → Models → Experiment results'],['Evaluation & Brief','Project → Models → Experiment results, and Project → Brief'],['Reliability & Holdout','Project → Models → Reliability and final test'],
+   ['Decision & Pricing','Project → Brief → Decision and costs'],['Decision Brief','Project → Brief → Decision brief'],['Workflow DAG','Project → Workflow → Workflow graph'],['Notebook','Project → Workflow → Notebook'],
+   ['New project wizard','Home: start a chat or attach data, then Build project'],['Agent (intern)','Sidebar → Agent'],['Compute & Jobs','More tools → Compute and jobs'],['Integrations','More tools → Integrations'],
+   ['Domain Packs','More tools → Domain packs'],['Admin','More tools → Admin'],['Settings dialog','Sidebar → Settings'],['Search (⌘K)','Search button on every page'],
+   ['Evidence Library, Research Lab, Benchmark, Policy Model, Blueprint','Hidden for now. Kept in the code, not deleted.'],['The old Home dashboard','Project → Dashboard (one per project)']];
+  return head('Where everything went','Every page of today\'s product, and its place in v6')+table(['Today','In v6'],M);
+};
+
+// ---------- nav + router ----------
+var NAV=[['home','Home','home',['home']],['projects','Projects','folder',['projects','project']],['agent','Agent','agent',['agent']]];
+var FOOT=[['tools','More tools','dots',['tools','compute','integrations','packs','admin']],['prefs','Settings','gear',['prefs']],['map','Help','help',['map']],['home','Log out','out',[]]];
+var navEl=document.getElementById('nav'),footEl=document.getElementById('foot'),main=document.getElementById('main'),shell=document.getElementById('shell');
+function navHtml(list,h){return list.map(function(n){var on=n[3].indexOf(h)>-1;return '<a class="nav'+(on?' on':'')+'" href="#'+n[0]+'"'+(on?' aria-current="page"':'')+'>'+ic(n[2])+n[1]+'</a>'}).join('')}
+function render(){main.innerHTML=PAGES[main.dataset.page]();}
+function route(){
+  var h=(location.hash||'').slice(1); if(!PAGES[h]) h='home';
+  navEl.innerHTML=navHtml(NAV,h); footEl.innerHTML=navHtml(FOOT,h);
+  main.dataset.page=h; render(); shell.classList.remove('open'); window.scrollTo(0,0);
+}
+function go(h){ if(location.hash==='#'+h) route(); else location.hash=h; }
+document.addEventListener('click',function(e){
+  var t;
+  if((t=e.target.closest('[data-newchat]'))){state.fresh=true;if(location.hash==='#home'){e.preventDefault();route()}return}
+  if((t=e.target.closest('[data-go]'))){go(t.dataset.go);return}
+  if((t=e.target.closest('[data-go-proj]'))){var p=t.dataset.goProj.split('.');state.ptab=p[0];state.sub[p[0]]=p[1];if(location.hash==='#project'){e.preventDefault();route()}return}
+  if((t=e.target.closest('[data-ptab-go]'))){state.ptab=t.dataset.ptabGo;e.preventDefault();render();return}
+  if((t=e.target.closest('a.recent'))){state.fresh=false;if(location.hash==='#home'){e.preventDefault();route()}return}
+  if(!main.contains(e.target))return;
+  if((t=e.target.closest('[data-ptab]'))){state.ptab=t.dataset.ptab;render();return}
+  if((t=e.target.closest('[data-tab]'))&&t.closest('.bar')){state[main.dataset.page]=t.dataset.tab;render();return}
+  if((t=e.target.closest('[data-x]'))){t.parentNode.querySelectorAll('[data-x]').forEach(function(x){x.setAttribute('aria-selected',String(x===t))});return}
+  if((t=e.target.closest('[data-menu]'))){shell.classList.toggle(window.innerWidth>900?'collapsed':'open');return}
+  if((t=e.target.closest('.opt'))){t.parentNode.querySelectorAll('.opt').forEach(function(x){x.setAttribute('aria-pressed',String(x===t))});var s=document.getElementById('saved');if(s)s.hidden=false;return}
+  if((t=e.target.closest('.toggle'))){t.setAttribute('aria-checked',String(t.getAttribute('aria-checked')!=='true'));return}
+  if((t=e.target.closest('.seg:not([role]) button'))){t.parentNode.querySelectorAll('button').forEach(function(x){x.setAttribute('aria-selected',String(x===t))})}
+});
+main.addEventListener('change',function(e){if(e.target.id==='vpick'){state.sub[state.ptab]=e.target.value;render()}});
+window.addEventListener('hashchange',function(){ if(location.hash!=='#home') state.fresh=false; route(); });
+route();
+})();
+</script>
