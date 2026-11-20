@@ -395,6 +395,20 @@ def _collect_next_settle(s: Any, payload: dict[str, Any], reason: str, job: dict
     s.projects.log(payload["project_id"], "collect_next", {"job": job["id"], "missing": None, "why": TEXT.get(reason, "The weighing ended before it finished")})
 
 
+# ---------------------------------------------------------------------- W4: what travels between team agents, one outbox row
+
+def _team_delivery_run(s: Any, payload: dict[str, Any]) -> None:
+    from ..teamspace import delivery
+
+    delivery.run(s, payload)
+
+
+def _team_delivery_settle(s: Any, payload: dict[str, Any], reason: str, job: dict[str, Any]) -> None:
+    from ..teamspace import delivery
+
+    delivery.settle(s, payload, reason, job)
+
+
 def register() -> None:
     handler("stage", _stage_run, _stage_settle)
     handler("pipeline", _pipeline_run, _pipeline_settle)
@@ -406,6 +420,7 @@ def register() -> None:
     handler("data_value", _data_value_run, _data_value_settle)
     handler("retrain", _retrain_run, _retrain_settle)  # 34.11
     handler("collect_next", _collect_next_run, _collect_next_settle)  # 34.14
+    handler("team_delivery", _team_delivery_run, _team_delivery_settle)  # W4: keyed by the outbox row's id
     from ..extensions import available
 
     if available("twin"):  # the closed parts' jobs exist only in the full edition

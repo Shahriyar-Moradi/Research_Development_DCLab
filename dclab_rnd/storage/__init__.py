@@ -1,6 +1,6 @@
 """What the rest of the code may ask of storage.
 
-Projects, drafts, intern sessions and problem memory's bases and summaries are files in a workspace folder, or PostgreSQL rows. These Protocols are the whole surface
+Projects, drafts, intern sessions, problem memory's bases and summaries, and the work passed between team agents are files in a workspace folder, or PostgreSQL rows. These Protocols are the whole surface
 callers use, so a PostgreSQL implementation can replace the file stores without touching a route, an agent or the
 engine (docs/guides/PRODUCT_BUILD_PLAYBOOK.md, packages 9.1 and 9.2).
 
@@ -90,6 +90,41 @@ class MemoryBases(Protocol):
     def location(self) -> str: ...
 
 
+@runtime_checkable
+class TeamWork(Protocol):
+    """The work passed between team agents (W4, dclab_rnd/teamspace/store.py): tasks, actions, reports and the delivery
+    outbox. Every change goes through dclab_core.team_work's rules; a task and its delivery are saved together."""
+    def create_task(self, task: Any, *, initiator: Any = None) -> Any: ...
+    def delegate(self, project_id: str, parent_id: str, **child: Any) -> Any: ...                 # team_work.delegate, siblings from the store
+    def move(self, project_id: str, task_id: str, new_status: str, by: Any, **kw: Any) -> Any: ...   # validate_transition, children from the store
+    def record_action(self, project_id: str, action: Any) -> Any: ...
+    def finish_action(self, project_id: str, task_id: str, action_id: str, status: str, **kw: Any) -> Any: ...  # one terminal record
+    def store_report(self, project_id: str, task_id: str, **kw: Any) -> Any: ...                  # build_report + accept_reply; one per (task, revision)
+    def supersede_report(self, project_id: str, task_id: str, **kw: Any) -> Any: ...
+    def task(self, project_id: str, task_id: str) -> Any: ...
+    def task_view(self, project_id: str, task_id: str) -> Document | None: ...
+    def open_tasks(self, team: str, project_id: str | None = None) -> list[Any]: ...
+    def handoff_history(self, project_id: str, problem_id: str) -> list[Document]: ...
+    # the outbox (dclab_rnd/teamspace/delivery.py): a task's rows are delivered in order
+    def delivery(self, delivery_id: str, project_id: str | None = None) -> Document | None: ...
+    def deliveries(self, status: str | None = None, project_id: str | None = None, task_id: str | None = None) -> list[Document]: ...
+    def pending_heads(self) -> list[Document]: ...                                                 # each task's oldest pending row
+    def delivery_done(self, delivery_id: str, receipt: Any = None, project_id: str | None = None) -> tuple[Document, bool]: ...
+    def delivery_failed(self, delivery_id: str, error: Any, *, max_attempts: int, backoff_seconds: float, cap_seconds: float = 60.0,
+                        project_id: str | None = None) -> Document: ...
+    def delivery_stop(self, delivery_id: str, status: str, reason: str, *, error: Any = None, project_id: str | None = None) -> Document: ...
+    def counts(self) -> dict[str, int]: ...
+    def location(self) -> str: ...
+
+
+def open_team_work(home: Path, projects: Projects | None = None) -> TeamWork:
+    """The team work of the workspace in ``home``: PostgreSQL with DCLAB_DATABASE_URL set, else its folder's files.
+    ``projects`` is the workspace's projects store, which a new task's problem is checked against (opened when needed)."""
+    from ..teamspace.store import open_team_work as choose
+
+    return choose(home, projects=projects)
+
+
 def open_memory_bases(home: Path) -> MemoryBases:
     """The bases and summaries of the workspace in ``home``: PostgreSQL with DCLAB_DATABASE_URL set, else its files."""
     from .memory_bases import open_memory_bases as choose
@@ -121,4 +156,4 @@ def open_stores(home: Path, projects_home: Path | None = None) -> tuple[Projects
     return projects, drafts, SessionStore(Path(os.environ.get("DCLAB_INTERN_HOME") or (projects.home.parent / "intern")))
 
 
-__all__ = ["Document", "MemoryBases", "Projects", "Drafts", "Sessions", "open_memory_bases", "open_stores"]
+__all__ = ["Document", "MemoryBases", "Projects", "Drafts", "Sessions", "TeamWork", "open_memory_bases", "open_stores", "open_team_work"]

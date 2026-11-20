@@ -346,6 +346,75 @@ memory_summary = sa.Table(  # a problem's resumable summary, derived from its ba
     sa.Column("updated", TIME, nullable=False, server_default=NOW),
     sa.Index("ix_memory_summary_workspace_id_project_id", "workspace_id", "project_id"))
 
+# W4 of the collaborative workspace (dclab_rnd/teamspace/store.py, migration 0026): the work passed between team agents.
+# Each row keeps its dclab_core.team_work record whole in ``doc``; the columns are what a read filters or orders on. Ids
+# are unique within a project (as the file store keeps one document per project), so every key starts with the project.
+team_task = sa.Table(  # one assignment (dclab_core.team_work.TeamTask); a status change checks ``version``
+    "team_task", metadata,
+    sa.Column("workspace_id", sa.String(64), sa.ForeignKey("workspace.id", ondelete="CASCADE"), primary_key=True),
+    sa.Column("project_id", sa.Text, primary_key=True),
+    sa.Column("id", sa.Text, primary_key=True),
+    sa.Column("seq", sa.BigInteger, sa.Identity(), nullable=False),  # the order it was made in
+    sa.Column("problem_id", sa.Text, nullable=False),
+    sa.Column("parent_task_id", sa.Text),
+    sa.Column("owner_team", sa.Text, nullable=False), sa.Column("requester_team", sa.Text, nullable=False),
+    sa.Column("status", sa.Text, nullable=False),
+    sa.Column("version", sa.BigInteger, nullable=False, server_default="1"),
+    sa.Column("initiator", JSONB),  # the member who started it (user id, role, workspace): rechecked at delivery
+    sa.Column("doc", JSONB, nullable=False),
+    sa.Column("updated", TIME, nullable=False, server_default=NOW),
+    sa.Index("ix_team_task_workspace_id_project_id_problem_id", "workspace_id", "project_id", "problem_id"),
+    sa.Index("ix_team_task_workspace_id_project_id_parent_task_id", "workspace_id", "project_id", "parent_task_id"),
+    sa.Index("ix_team_task_workspace_id_owner_team_status", "workspace_id", "owner_team", "status"))
+
+team_action = sa.Table(  # one attempt (TeamAction): planned or running, then one terminal record
+    "team_action", metadata,
+    sa.Column("workspace_id", sa.String(64), sa.ForeignKey("workspace.id", ondelete="CASCADE"), primary_key=True),
+    sa.Column("project_id", sa.Text, primary_key=True),
+    sa.Column("task_id", sa.Text, primary_key=True), sa.Column("action_id", sa.Text, primary_key=True),
+    sa.Column("seq", sa.BigInteger, sa.Identity(), nullable=False),
+    sa.Column("retry_key", sa.Text, nullable=False),
+    sa.Column("status", sa.Text, nullable=False),
+    sa.Column("doc", JSONB, nullable=False),
+    sa.Column("updated", TIME, nullable=False, server_default=NOW),
+    # one side effect done once: a retry key has at most one succeeded or simulated record
+    sa.Index("uq_team_action_done_key", "workspace_id", "project_id", "retry_key", unique=True,
+             postgresql_where=sa.text("status in ('succeeded', 'simulated')")))
+
+team_report = sa.Table(  # a WorkReport at one revision: (task, revision) is the reply's identity, so a retry adds nothing
+    "team_report", metadata,
+    sa.Column("workspace_id", sa.String(64), sa.ForeignKey("workspace.id", ondelete="CASCADE"), primary_key=True),
+    sa.Column("project_id", sa.Text, primary_key=True),
+    sa.Column("task_id", sa.Text, primary_key=True), sa.Column("revision", sa.Integer, primary_key=True),
+    sa.Column("seq", sa.BigInteger, sa.Identity(), nullable=False),
+    sa.Column("parent_task_id", sa.Text),
+    sa.Column("status", sa.Text, nullable=False),
+    sa.Column("joined", sa.Boolean, nullable=False, server_default=sa.false()),  # accepted by its parent (accept_reply)
+    sa.Column("verdict", JSONB),
+    sa.Column("doc", JSONB, nullable=False),
+    sa.Column("updated", TIME, nullable=False, server_default=NOW),
+    sa.Index("ix_team_report_workspace_id_project_id_parent_task_id", "workspace_id", "project_id", "parent_task_id"))
+
+team_delivery = sa.Table(  # the outbox: what travels to another team, saved with what it carries, delivered by a job
+    "team_delivery", metadata, _id(),
+    sa.Column("workspace_id", sa.String(64), sa.ForeignKey("workspace.id", ondelete="CASCADE"), nullable=False),
+    sa.Column("seq", sa.BigInteger, sa.Identity(), nullable=False),  # delivery order within a task, and the problem's handoff history
+    sa.Column("key", sa.Text, nullable=False),  # what it carries (task:<id>, reply:<report id>, ...): one delivery each
+    sa.Column("kind", sa.Text, nullable=False),
+    sa.Column("project_id", sa.Text, nullable=False), sa.Column("problem_id", sa.Text, nullable=False),
+    sa.Column("task_id", sa.Text, nullable=False),
+    sa.Column("status", sa.Text, nullable=False),
+    sa.Column("attempts", sa.Integer, nullable=False, server_default="0"),
+    sa.Column("next_attempt_at", TIME),
+    sa.Column("version", sa.BigInteger, nullable=False, server_default="1"),
+    sa.Column("doc", JSONB, nullable=False),
+    sa.Column("updated", TIME, nullable=False, server_default=NOW),
+    sa.CheckConstraint("status in ('pending', 'delivered', 'blocked', 'refused')", name="status"),
+    sa.UniqueConstraint("workspace_id", "project_id", "key", name="uq_team_delivery_workspace_id_project_id_key"),
+    sa.Index("ix_team_delivery_workspace_id_status", "workspace_id", "status"),
+    sa.Index("ix_team_delivery_workspace_id_project_id_task_id_seq", "workspace_id", "project_id", "task_id", "seq"),
+    sa.Index("ix_team_delivery_workspace_id_project_id_problem_id_seq", "workspace_id", "project_id", "problem_id", "seq"))
+
 model_pause = sa.Table(  # requests to an endpoint and model stop until a time, after a refusal that stays (models/pause.py, 10.5)
     "model_pause", metadata,
     sa.Column("key", sa.Text, primary_key=True),  # endpoint, model and a hash of the API key: never the key

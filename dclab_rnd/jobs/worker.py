@@ -172,10 +172,22 @@ class Worker:
             self._started, self.stopping = True, False
             self._halt, self._wake = threading.Event(), threading.Event()
         self.recover()
+        self.requeue_deliveries()
         loops = [(self._keep, "dclab-job-heartbeat"), (self._retain, "dclab-retention")] + ([(self._loop, "dclab-job-dispatch")] if self.threads > 0 else [])
         for target, name in loops:
             threading.Thread(target=target, args=(self._halt,), name=name, daemon=True).start()
         return self
+
+    def requeue_deliveries(self) -> list[str]:
+        """W4, the outbox relay: every task with a team delivery due and no job gets one (at start and on each recovery
+        tick; idempotent: a task already queued or running keeps its job)."""
+        try:
+            from ..teamspace.delivery import requeue_undelivered
+
+            return requeue_undelivered(self.env, self.store)
+        except Exception:  # noqa: BLE001 — a workspace without team work, or a database briefly away: the next start tries again
+            traceback.print_exc()
+            return []
 
     def notify(self) -> None:
         self._wake.set()
@@ -303,6 +315,8 @@ class Worker:
                 if time.monotonic() - last_recovery >= min(self.stale / 2, 60):
                     last_recovery = time.monotonic()
                     self.recover()
+                    if self.requeue_deliveries():  # W4: the outbox relay (rows due again, jobs that failed or stopped)
+                        self._wake.set()
             except Exception:  # noqa: BLE001 — the next beat tries again
                 traceback.print_exc()
 
