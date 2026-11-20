@@ -143,6 +143,10 @@ class Layout:
         return self.records_of(kind) / ".shaped.json"
 
     # tier 3
+    def sets_root(self) -> Path:
+        """Every model type's sets, for code that reads them all (writers.audit)."""
+        return self.root / "sets"
+
     def sets(self, model_type: str, *parts: str) -> Path:
         if model_type not in MODEL_TYPES:
             raise ValueError(f"{model_type!r} is not a model type ({', '.join(MODEL_TYPES)})")

@@ -132,7 +132,7 @@ def audit(layout: Any = None) -> dict[str, Any]:
     from .layout import Layout
 
     layout = layout or Layout()
-    root = layout.root / "sets"
+    root = layout.sets_root()
     out: dict[str, Any] = {}
     for path in sorted(root.glob("**/train.jsonl")) + sorted(root.glob("**/dev.jsonl")):
         name = str(path.parent.relative_to(root))
