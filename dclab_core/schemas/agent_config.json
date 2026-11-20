@@ -1,0 +1,127 @@
+{
+  "$defs": {
+    "DirectoryAction": {
+      "additionalProperties": false,
+      "description": "One action an agent may take, bound to the tool that does it or the person whose recorded answer it is.",
+      "properties": {
+        "action": {
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "title": "Action",
+          "type": "string"
+        },
+        "bound_to": {
+          "pattern": "^(tool|human):[a-z][a-z0-9_]*$",
+          "title": "Bound To",
+          "type": "string"
+        },
+        "description": {
+          "maxLength": 300,
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "bound_to",
+        "description"
+      ],
+      "title": "DirectoryAction",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.agent_config.v1.json",
+  "additionalProperties": false,
+  "description": "An agent's job description: who it represents, what it owns, what it may do, report, read, and never do.",
+  "properties": {
+    "action_directory": {
+      "items": {
+        "$ref": "#/$defs/DirectoryAction"
+      },
+      "maxItems": 50,
+      "minItems": 1,
+      "title": "Action Directory",
+      "type": "array"
+    },
+    "forbidden": {
+      "description": "Permissions it never has.",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 20,
+      "title": "Forbidden",
+      "type": "array"
+    },
+    "identity": {
+      "description": "The team (or role) it represents.",
+      "maxLength": 300,
+      "minLength": 1,
+      "title": "Identity",
+      "type": "string"
+    },
+    "kind": {
+      "enum": [
+        "team_agent",
+        "specialist"
+      ],
+      "title": "Kind",
+      "type": "string"
+    },
+    "memory_scope": {
+      "items": {
+        "enum": [
+          "person",
+          "team",
+          "workspace",
+          "project",
+          "problem",
+          "model_version"
+        ],
+        "type": "string"
+      },
+      "maxItems": 6,
+      "minItems": 1,
+      "title": "Memory Scope",
+      "type": "array"
+    },
+    "name": {
+      "pattern": "^[a-z][a-z0-9_]*$",
+      "title": "Name",
+      "type": "string"
+    },
+    "required_report": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 20,
+      "minItems": 1,
+      "title": "Required Report",
+      "type": "array"
+    },
+    "responsibility": {
+      "description": "The task kinds it owns, in words.",
+      "maxLength": 300,
+      "minLength": 1,
+      "title": "Responsibility",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "dclab_core.agent_config.v1",
+      "default": "dclab_core.agent_config.v1",
+      "title": "Schema Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "name",
+    "kind",
+    "identity",
+    "responsibility",
+    "action_directory",
+    "required_report",
+    "memory_scope"
+  ],
+  "title": "AgentConfig",
+  "type": "object"
+}

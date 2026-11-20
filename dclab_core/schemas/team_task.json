@@ -1,0 +1,191 @@
+{
+  "$defs": {
+    "Requester": {
+      "additionalProperties": false,
+      "description": "Who asked: the team, the member who started it, and the conversation the answer goes back to.",
+      "properties": {
+        "member": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Member"
+        },
+        "team": {
+          "pattern": "^[a-z][a-z0-9_]*(:[A-Za-z0-9_.-]+)?$",
+          "title": "Team",
+          "type": "string"
+        },
+        "thread_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+          "title": "Thread Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "team",
+        "thread_id"
+      ],
+      "title": "Requester",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.team_task.v1.json",
+  "additionalProperties": false,
+  "description": "One assignment: a question, one accountable owner, what counts as done, what it may use.",
+  "properties": {
+    "allowed_inputs": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 50,
+      "title": "Allowed Inputs",
+      "type": "array"
+    },
+    "allowed_tools": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 50,
+      "title": "Allowed Tools",
+      "type": "array"
+    },
+    "brief_revision": {
+      "description": "The problem brief's revision the task was asked on.",
+      "minimum": 1,
+      "title": "Brief Revision",
+      "type": "integer"
+    },
+    "budget_eur": {
+      "default": 0.0,
+      "minimum": 0,
+      "title": "Budget Eur",
+      "type": "number"
+    },
+    "created_at": {
+      "title": "Created At",
+      "type": "string"
+    },
+    "done_criteria": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 20,
+      "minItems": 1,
+      "title": "Done Criteria",
+      "type": "array"
+    },
+    "expected_output": {
+      "maxLength": 300,
+      "minLength": 1,
+      "title": "Expected Output",
+      "type": "string"
+    },
+    "id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+      "title": "Id",
+      "type": "string"
+    },
+    "owner_team": {
+      "description": "The one accountable owner: a team or a specialist.",
+      "pattern": "^[a-z][a-z0-9_]*(:[A-Za-z0-9_.-]+)?$",
+      "title": "Owner Team",
+      "type": "string"
+    },
+    "parent_task_id": {
+      "anyOf": [
+        {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Parent Task Id"
+    },
+    "problem_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+      "title": "Problem Id",
+      "type": "string"
+    },
+    "project_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+      "title": "Project Id",
+      "type": "string"
+    },
+    "question": {
+      "maxLength": 2000,
+      "minLength": 1,
+      "title": "Question",
+      "type": "string"
+    },
+    "requester": {
+      "$ref": "#/$defs/Requester"
+    },
+    "schema_version": {
+      "const": "dclab_core.team_task.v1",
+      "default": "dclab_core.team_task.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "status": {
+      "default": "open",
+      "enum": [
+        "open",
+        "accepted",
+        "waiting_for_person",
+        "waiting_for_team",
+        "partial",
+        "complete",
+        "blocked",
+        "failed",
+        "cancelled",
+        "superseded"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "superseded_by": {
+      "anyOf": [
+        {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Superseded By"
+    },
+    "workspace_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+      "title": "Workspace Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "workspace_id",
+    "project_id",
+    "problem_id",
+    "brief_revision",
+    "requester",
+    "owner_team",
+    "question",
+    "expected_output",
+    "done_criteria",
+    "created_at"
+  ],
+  "title": "TeamTask",
+  "type": "object"
+}

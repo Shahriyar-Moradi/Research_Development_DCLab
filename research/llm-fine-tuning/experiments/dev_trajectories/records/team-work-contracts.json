@@ -1,0 +1,208 @@
+{
+ "package": "team-work-contracts",
+ "title": "W1: team tasks, actions, work reports and decisions as frozen contracts with pure rules",
+ "date": "2026-11-20",
+ "request": "The owner approved the collaborative workspace plan; package W1 asks for the records that travel between team agents and the rules that keep their reports honest, in dclab_core.",
+ "spec": "dclab_core/team_work.py: TeamTask, TeamAction, WorkReport, TeamDecision, AgentConfig with DIRECTORY, TeamWork (dclab_core.team_work.v1); validate_transition, may_take, can_claim, accept_reply, join_status, build_report, supersede, next_owner, may_approve; schemas, changelog, integration section, wheel check.",
+ "plan": [
+  "read the owner's plan and the approved package list",
+  "write the records and the rules as pure pydantic",
+  "write the owner's examples as tests",
+  "register the contracts, generate schemas, bump the version, document",
+  "run the contract, conformance and wheel checks"
+ ],
+ "decisions": [
+  {
+   "decision": "Each record is its own versioned contract, plus one TeamWork bundle named dclab_core.team_work.v1",
+   "why": "the contract test requires every contract name to match its schema_version, and the W4 store keeps tasks, actions and reports as separate rows"
+  },
+  {
+   "decision": "A correction is a new report revision on the same task, linked both ways by supersede()",
+   "why": "the plan deduplicates replies by task and report revision, and the unaffected acceptance report must keep its own snapshot untouched"
+  },
+  {
+   "decision": "join_status and build_report take the child tasks as a keyword argument",
+   "why": "the parent record does not list its children, so naming the outstanding one needs the children; without them nothing can be called outstanding"
+  },
+  {
+   "decision": "WorkReport carries parent_task_id and brief_revision copied from its task",
+   "why": "accept_reply must refuse another branch and an obsolete brief revision from the report alone, at delivery time"
+  },
+  {
+   "decision": "Home, Lead and Advisor are configured as specialists",
+   "why": "the brief allows two kinds (team agent or specialist) and these roles act inside a team's conversation, not as a team"
+  }
+ ],
+ "change": "dclab_core/team_work.py (new), dclab_core/schemas.py (import), dclab_core/adapters/conformance.py (six library-only entries), dclab_core/schemas/*.json and baseline v1 files for team_task, team_action, work_report, team_decision, agent_config, team_work, dclab_core/CHANGELOG.md, pyproject.toml and __init__.py (0.164.0), docs/guides/CORE_INTEGRATION.md, tests/test_core_team_work.py.",
+ "findings": [
+  {
+   "id": "TW-1",
+   "source": "test",
+   "severity": "gap",
+   "verdict": "confirmed",
+   "defect": "Every new contract failed the conformance gate until it had an adapter or a library-only reason.",
+   "scenario": "test_conformance.py listed 'contract agent_config: no adapter and no reason' for the six new contracts.",
+   "cause": "conformance.problems() requires every registered contract in CONTRACT_ADAPTERS.",
+   "fix": "six LIBRARY entries naming why the pinned main product has no field for them",
+   "test": "tests/test_conformance.py test_the_adapters_are_conformant_at_the_commit_their_field_lists_were_read"
+  },
+  {
+   "id": "TW-2",
+   "source": "self",
+   "severity": "latent",
+   "verdict": "confirmed",
+   "defect": "delegate() let a blocked task open a child task, a move the state machine never allows.",
+   "scenario": "A blocked Data Science task delegating to a model specialist would create a child while the parent could not wait on it.",
+   "cause": "the first check only refused closed and unaccepted parents",
+   "fix": "only an accepted, waiting_for_team or partial parent delegates",
+   "test": "tests/test_core_team_work.py FoodDeliveryTest test_children_join_once_in_either_order_and_the_parent_names_the_one_outstanding"
+  },
+  {
+   "id": "TW-3",
+   "source": "test",
+   "severity": "latent",
+   "verdict": "open",
+   "defect": "test_store.py fails on dclab_rnd/store/writers.py line 135, which joins a store path itself.",
+   "scenario": "Running test_store.py beside this package's tests; the file is unchanged since commit c0021683.",
+   "cause": "an earlier change, not part of this package",
+   "fix": "none here: out of this package's files",
+   "test": "tests/test_store.py test_the_layout_refuses_a_name_that_climbs_out_and_every_store_path_is_built_by_it"
+  },
+  {
+   "id": "TW-R1",
+   "source": "reviewer",
+   "severity": "privacy",
+   "verdict": "confirmed",
+   "defect": "A private team note reached the shared report through fields the check did not read.",
+   "scenario": "A skipped action's reason, a failure reference, next_task.unblocks and an evidence input_revision all quoting the Sales note survived build_report.",
+   "cause": "_quotes read only the answer, limits and some evidence fields",
+   "fix": "every action reason, output and failure, the next step and every evidence field are read; a quoting report is refused, never silently edited",
+   "test": "tests/test_core_team_work.py HonestReportTest test_private_notes_never_appear_in_a_report"
+  },
+  {
+   "id": "TW-R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "A parent could complete, and report complete, with a child still outstanding.",
+   "scenario": "validate_transition moved the dispatch task to complete with both model children out; build_report joined a child report with no children list, and a partial child report counted.",
+   "cause": "the transition never looked at children and build_report trusted the reports it was given",
+   "fix": "validate_transition takes children and child_reports and refuses complete while one is out; build_report refuses child reports without children; a partial child is never a result",
+   "test": "tests/test_core_team_work.py ReviewFindingsTest test_a_parent_never_completes_with_a_child_outstanding"
+  },
+  {
+   "id": "TW-R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "accept_reply accepted a superseded report and a revision older than one already joined.",
+   "scenario": "ETA r1 arriving after r2 was joined, on the same brief revision, was accepted; so was r1 after supersede marked it superseded.",
+   "cause": "only the brief revision and the exact id were compared",
+   "fix": "a superseded report, or one whose task already has a joined revision at or above it (parsed from task@rN), is refused as obsolete",
+   "test": "tests/test_core_team_work.py ReviewFindingsTest test_a_superseded_or_older_revision_reply_is_obsolete"
+  },
+  {
+   "id": "TW-R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "One action could appear twice in a report, and one side effect could be claimed twice.",
+   "scenario": "The same TeamAction passed twice was listed twice; two succeeded records with different ids and one retry_key were both listed as completed.",
+   "cause": "build_report listed every record it was given",
+   "fix": "one record per action id (a planned record followed by its terminal one collapses; two terminal ones conflict); two completed records sharing a retry key are refused",
+   "test": "tests/test_core_team_work.py ReviewFindingsTest test_an_action_is_listed_once_and_one_side_effect_is_never_claimed_twice"
+  },
+  {
+   "id": "TW-R5",
+   "source": "reviewer",
+   "severity": "latent",
+   "verdict": "confirmed",
+   "defect": "supersede could overwrite an existing link or chain from a superseded report.",
+   "scenario": "supersede(r1, r3) where r3 already superseded r2 rewrote r3.supersedes to r1; a superseded r2 could replace r1.",
+   "cause": "only the old report's link was checked",
+   "fix": "refuse a new report that already replaces another, and one that is itself superseded",
+   "test": "tests/test_core_team_work.py ReviewFindingsTest test_supersede_never_leaves_a_link_pointing_two_ways"
+  },
+  {
+   "id": "TW-R6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "A report said complete for a task still accepted or blocked.",
+   "scenario": "An accepted Data Science task with one finished action got a complete report; a blocked task accepted status='complete'.",
+   "cause": "the derived status ignored the task's own status unless it was blocked or failed",
+   "fix": "complete is derived only when the task is complete, partial otherwise; an explicit complete needs a complete task",
+   "test": "tests/test_core_team_work.py ReviewFindingsTest test_a_report_is_complete_only_when_its_task_is"
+  },
+  {
+   "id": "TW-R7",
+   "source": "reviewer",
+   "severity": "latent",
+   "verdict": "confirmed",
+   "defect": "A stored WorkReport did not enforce the rules build_report applies.",
+   "scenario": "A report with a simulated action line and simulated=False, and a complete report with no completed action and no child, both validated when read from storage.",
+   "cause": "the rules lived only in build_report",
+   "fix": "the model validator refuses both",
+   "test": "tests/test_core_team_work.py ReviewFindingsTest test_a_stored_report_keeps_its_own_rules"
+  },
+  {
+   "id": "TW-R8",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "An agent could be a decision owner or approver, and an action's actor kind was not checked.",
+   "scenario": "A decision owned and approved by 'business' validated; a person named 'data_science' passed may_take; record_decision had no person behind its human source.",
+   "cause": "approval and owner were plain strings; may_take compared names only",
+   "fix": "decision_owner and Approval.who are Actors that must be persons; may_take needs an agent actor; TeamAction.responded_by names the person behind a completed human-bound action (W5 checks the role)",
+   "test": "tests/test_core_team_work.py AuthorityTest test_the_actor_kind_and_the_responding_person_are_checked"
+  },
+  {
+   "id": "TW-R9",
+   "source": "reviewer",
+   "severity": "gap",
+   "verdict": "confirmed",
+   "defect": "Evidence and tools outside a task's allowed inputs and tools were reported.",
+   "scenario": "A task allowed only crm.renewals and inspect_schema still reported billing.invoices evidence and a check_leakage tool action.",
+   "cause": "allowed_inputs and allowed_tools were stored but never read",
+   "fix": "build_report refuses evidence from another source and an action through another tool when the task lists them",
+   "test": "tests/test_core_team_work.py ReviewFindingsTest test_only_permitted_evidence_and_tools_are_reported"
+  },
+  {
+   "id": "TW-R10",
+   "source": "reviewer",
+   "severity": "latent",
+   "verdict": "confirmed",
+   "defect": "A child on an older brief revision was joined, and children could overspend their parent.",
+   "scenario": "A child report on brief 1 joined a parent at brief 2; two children each given the parent's whole 1.0 EUR were both created.",
+   "cause": "join_status ignored brief revisions and delegate checked each child alone",
+   "fix": "join_status and build_report refuse a current child report older than the parent's brief; delegate takes siblings and budget_fits checks the sum",
+   "test": "tests/test_core_team_work.py ReviewFindingsTest test_an_older_brief_child_is_refused_and_children_share_the_parent_budget"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "dclab_core wheel built and used in a clean Python 3.12",
+   "gate": "make core-wheel-check status passed with no unexpected distributions",
+   "fixed_before_run": true,
+   "result": "passed: dclab-core 0.164.0, Python 3.12.13, unexpected_distributions empty",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "next": "W2 teams and membership in the R&D host",
+   "limits": [
+    "the wheel smoke run does not call team_work itself",
+    "no model is involved in W1"
+   ]
+  }
+ ],
+ "outcome": "The team work records and rules exist as six v1 contracts with the owner's examples passing as tests; nothing in the host uses them yet.",
+ "lessons": [
+  "A rule that needs to name what is missing needs the list of what was expected, not only what arrived.",
+  "An honesty rule enforced only in the builder is not a rule of the record: a stored report must refuse what the builder refuses."
+ ],
+ "risks": [
+  "accept_reply refuses any reply on an older brief revision, even one a correction did not affect; which tasks a correction affects is W6's job.",
+  "validate_transition and delegate check children and budgets only when the caller passes them; W4's store must always pass the parent's children.",
+  "That responded_by holds the bound human role (decision owner, requester) is the host's check in W5, not this module's."
+ ],
+ "commits": []
+}

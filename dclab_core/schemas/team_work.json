@@ -1,0 +1,949 @@
+{
+  "$defs": {
+    "ActionLine": {
+      "additionalProperties": false,
+      "description": "One terminal action as the report shows it.",
+      "properties": {
+        "action": {
+          "pattern": "^[a-z][a-z0-9_]*(:[A-Za-z0-9_.-]+)?$",
+          "title": "Action",
+          "type": "string"
+        },
+        "action_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+          "title": "Action Id",
+          "type": "string"
+        },
+        "actor": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Actor",
+          "type": "string"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason"
+        },
+        "ref": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Its output, or its failure.",
+          "title": "Ref"
+        },
+        "status": {
+          "enum": [
+            "planned",
+            "running",
+            "denied",
+            "timed_out",
+            "succeeded",
+            "failed",
+            "skipped",
+            "simulated"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "action_id",
+        "action",
+        "actor",
+        "status"
+      ],
+      "title": "ActionLine",
+      "type": "object"
+    },
+    "Actor": {
+      "additionalProperties": false,
+      "description": "Who did something: an agent (by its configuration's name), a team, or a person (by their id).",
+      "properties": {
+        "id": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "agent",
+            "team",
+            "person"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "team": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*(:[A-Za-z0-9_.-]+)?$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The team the actor belongs to or represents.",
+          "title": "Team"
+        }
+      },
+      "required": [
+        "kind",
+        "id"
+      ],
+      "title": "Actor",
+      "type": "object"
+    },
+    "Approval": {
+      "additionalProperties": false,
+      "properties": {
+        "when": {
+          "title": "When",
+          "type": "string"
+        },
+        "who": {
+          "$ref": "#/$defs/Actor",
+          "description": "The person who approved: always the decision owner."
+        }
+      },
+      "required": [
+        "who",
+        "when"
+      ],
+      "title": "Approval",
+      "type": "object"
+    },
+    "Assignment": {
+      "additionalProperties": false,
+      "description": "The question the report answers and what counted as done.",
+      "properties": {
+        "done_criteria": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 20,
+          "minItems": 1,
+          "title": "Done Criteria",
+          "type": "array"
+        },
+        "question": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Question",
+          "type": "string"
+        }
+      },
+      "required": [
+        "question",
+        "done_criteria"
+      ],
+      "title": "Assignment",
+      "type": "object"
+    },
+    "EvidenceRef": {
+      "additionalProperties": false,
+      "description": "A reference the reader may open: where it came from, the run or model, the input revision, its limits.",
+      "properties": {
+        "assumptions": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 20,
+          "title": "Assumptions",
+          "type": "array"
+        },
+        "input_revision": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Input Revision",
+          "type": "string"
+        },
+        "private": {
+          "default": false,
+          "description": "A team's own note: dropped by build_report, refused in a report.",
+          "title": "Private",
+          "type": "boolean"
+        },
+        "ref": {
+          "description": "A run, model version, report or fixture reference.",
+          "maxLength": 300,
+          "minLength": 1,
+          "title": "Ref",
+          "type": "string"
+        },
+        "source": {
+          "maxLength": 300,
+          "minLength": 1,
+          "title": "Source",
+          "type": "string"
+        },
+        "uncertainty": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Uncertainty"
+        }
+      },
+      "required": [
+        "source",
+        "ref",
+        "input_revision"
+      ],
+      "title": "EvidenceRef",
+      "type": "object"
+    },
+    "NextStep": {
+      "additionalProperties": false,
+      "description": "Who owes the next response and what unblocks it, or that the task is closed.",
+      "properties": {
+        "closed": {
+          "default": false,
+          "title": "Closed",
+          "type": "boolean"
+        },
+        "owner": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Owner"
+        },
+        "unblocks": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unblocks"
+        }
+      },
+      "title": "NextStep",
+      "type": "object"
+    },
+    "ReportActions": {
+      "additionalProperties": false,
+      "description": "Completed actions, failed attempts and skipped work, each a terminal action record.",
+      "properties": {
+        "completed": {
+          "items": {
+            "$ref": "#/$defs/ActionLine"
+          },
+          "maxItems": 200,
+          "title": "Completed",
+          "type": "array"
+        },
+        "failed": {
+          "items": {
+            "$ref": "#/$defs/ActionLine"
+          },
+          "maxItems": 200,
+          "title": "Failed",
+          "type": "array"
+        },
+        "skipped": {
+          "items": {
+            "$ref": "#/$defs/ActionLine"
+          },
+          "maxItems": 200,
+          "title": "Skipped",
+          "type": "array"
+        }
+      },
+      "title": "ReportActions",
+      "type": "object"
+    },
+    "Requester": {
+      "additionalProperties": false,
+      "description": "Who asked: the team, the member who started it, and the conversation the answer goes back to.",
+      "properties": {
+        "member": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Member"
+        },
+        "team": {
+          "pattern": "^[a-z][a-z0-9_]*(:[A-Za-z0-9_.-]+)?$",
+          "title": "Team",
+          "type": "string"
+        },
+        "thread_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+          "title": "Thread Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "team",
+        "thread_id"
+      ],
+      "title": "Requester",
+      "type": "object"
+    },
+    "TeamAction": {
+      "additionalProperties": false,
+      "description": "One attempt: who, which directory action, from which tool or human response, on which input, and how it ended.",
+      "properties": {
+        "action": {
+          "description": "A name from the actor's action directory.",
+          "pattern": "^[a-z][a-z0-9_]*(:[A-Za-z0-9_.-]+)?$",
+          "title": "Action",
+          "type": "string"
+        },
+        "action_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+          "title": "Action Id",
+          "type": "string"
+        },
+        "actor": {
+          "$ref": "#/$defs/Actor"
+        },
+        "ended_at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ended At"
+        },
+        "failure_ref": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Failure Ref"
+        },
+        "input_revision": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Input Revision",
+          "type": "string"
+        },
+        "output_ref": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Output Ref"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Why it was skipped or failed, in words.",
+          "title": "Reason"
+        },
+        "responded_by": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Actor"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The person whose recorded answer a human-bound action is. The host (W5) checks the person holds the bound role."
+        },
+        "retry_key": {
+          "maxLength": 300,
+          "minLength": 1,
+          "title": "Retry Key",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "dclab_core.team_action.v1",
+          "default": "dclab_core.team_action.v1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "source": {
+          "description": "tool:<name>, or human:<response id> for a recorded human answer.",
+          "pattern": "^(tool|human):[A-Za-z0-9_.:@-]+$",
+          "title": "Source",
+          "type": "string"
+        },
+        "started_at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Started At"
+        },
+        "status": {
+          "default": "planned",
+          "enum": [
+            "planned",
+            "running",
+            "denied",
+            "timed_out",
+            "succeeded",
+            "failed",
+            "skipped",
+            "simulated"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "task_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+          "title": "Task Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "task_id",
+        "action_id",
+        "actor",
+        "action",
+        "source",
+        "input_revision",
+        "retry_key"
+      ],
+      "title": "TeamAction",
+      "type": "object"
+    },
+    "TeamDecision": {
+      "additionalProperties": false,
+      "description": "The decision owner's choice, the evidence and constraints it rested on, and what happened after.",
+      "properties": {
+        "approval": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Approval"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "constraint_revisions": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 50,
+          "title": "Constraint Revisions",
+          "type": "array"
+        },
+        "decision_owner": {
+          "$ref": "#/$defs/Actor",
+          "description": "The person who decides."
+        },
+        "evidence_revisions": {
+          "description": "Report ids it rested on.",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 50,
+          "title": "Evidence Revisions",
+          "type": "array"
+        },
+        "follow_up_date": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Follow Up Date"
+        },
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "option": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Option",
+          "type": "string"
+        },
+        "outcome": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Outcome"
+        },
+        "problem_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+          "title": "Problem Id",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "dclab_core.team_decision.v1",
+          "default": "dclab_core.team_decision.v1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "simulated_follow_up": {
+          "default": false,
+          "title": "Simulated Follow Up",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "schema_version",
+        "id",
+        "problem_id",
+        "decision_owner",
+        "option"
+      ],
+      "title": "TeamDecision",
+      "type": "object"
+    },
+    "TeamTask": {
+      "additionalProperties": false,
+      "description": "One assignment: a question, one accountable owner, what counts as done, what it may use.",
+      "properties": {
+        "allowed_inputs": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 50,
+          "title": "Allowed Inputs",
+          "type": "array"
+        },
+        "allowed_tools": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 50,
+          "title": "Allowed Tools",
+          "type": "array"
+        },
+        "brief_revision": {
+          "description": "The problem brief's revision the task was asked on.",
+          "minimum": 1,
+          "title": "Brief Revision",
+          "type": "integer"
+        },
+        "budget_eur": {
+          "default": 0.0,
+          "minimum": 0,
+          "title": "Budget Eur",
+          "type": "number"
+        },
+        "created_at": {
+          "title": "Created At",
+          "type": "string"
+        },
+        "done_criteria": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 20,
+          "minItems": 1,
+          "title": "Done Criteria",
+          "type": "array"
+        },
+        "expected_output": {
+          "maxLength": 300,
+          "minLength": 1,
+          "title": "Expected Output",
+          "type": "string"
+        },
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "owner_team": {
+          "description": "The one accountable owner: a team or a specialist.",
+          "pattern": "^[a-z][a-z0-9_]*(:[A-Za-z0-9_.-]+)?$",
+          "title": "Owner Team",
+          "type": "string"
+        },
+        "parent_task_id": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parent Task Id"
+        },
+        "problem_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+          "title": "Problem Id",
+          "type": "string"
+        },
+        "project_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+          "title": "Project Id",
+          "type": "string"
+        },
+        "question": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Question",
+          "type": "string"
+        },
+        "requester": {
+          "$ref": "#/$defs/Requester"
+        },
+        "schema_version": {
+          "const": "dclab_core.team_task.v1",
+          "default": "dclab_core.team_task.v1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "status": {
+          "default": "open",
+          "enum": [
+            "open",
+            "accepted",
+            "waiting_for_person",
+            "waiting_for_team",
+            "partial",
+            "complete",
+            "blocked",
+            "failed",
+            "cancelled",
+            "superseded"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "superseded_by": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Superseded By"
+        },
+        "workspace_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+          "title": "Workspace Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "id",
+        "workspace_id",
+        "project_id",
+        "problem_id",
+        "brief_revision",
+        "requester",
+        "owner_team",
+        "question",
+        "expected_output",
+        "done_criteria",
+        "created_at"
+      ],
+      "title": "TeamTask",
+      "type": "object"
+    },
+    "WorkReport": {
+      "additionalProperties": false,
+      "description": "The answer and what actually happened, at one revision.",
+      "properties": {
+        "actions": {
+          "$ref": "#/$defs/ReportActions"
+        },
+        "answer": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Answer",
+          "type": "string"
+        },
+        "assignment": {
+          "$ref": "#/$defs/Assignment"
+        },
+        "brief_revision": {
+          "description": "The problem brief's revision this report answers.",
+          "minimum": 1,
+          "title": "Brief Revision",
+          "type": "integer"
+        },
+        "child_reports": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 50,
+          "title": "Child Reports",
+          "type": "array"
+        },
+        "created_at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Created At"
+        },
+        "evidence": {
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "maxItems": 100,
+          "title": "Evidence",
+          "type": "array"
+        },
+        "limits": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 50,
+          "title": "Limits",
+          "type": "array"
+        },
+        "next_task": {
+          "$ref": "#/$defs/NextStep"
+        },
+        "outstanding": {
+          "description": "Child tasks not yet returned.",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 50,
+          "title": "Outstanding",
+          "type": "array"
+        },
+        "owner": {
+          "description": "Who performed the work: the task's owner.",
+          "pattern": "^[a-z][a-z0-9_]*(:[A-Za-z0-9_.-]+)?$",
+          "title": "Owner",
+          "type": "string"
+        },
+        "parent_task_id": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parent Task Id"
+        },
+        "revision": {
+          "minimum": 1,
+          "title": "Revision",
+          "type": "integer"
+        },
+        "schema_version": {
+          "const": "dclab_core.work_report.v1",
+          "default": "dclab_core.work_report.v1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "simulated": {
+          "default": false,
+          "title": "Simulated",
+          "type": "boolean"
+        },
+        "status": {
+          "enum": [
+            "complete",
+            "partial",
+            "blocked",
+            "failed",
+            "superseded"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "superseded_by": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Superseded By"
+        },
+        "supersedes": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Supersedes"
+        },
+        "task_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+          "title": "Task Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "task_id",
+        "revision",
+        "brief_revision",
+        "answer",
+        "status",
+        "assignment",
+        "owner",
+        "next_task"
+      ],
+      "title": "WorkReport",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.team_work.v1.json",
+  "additionalProperties": false,
+  "description": "One problem's team work in one document: its tasks, actions, reports and decisions.",
+  "properties": {
+    "actions": {
+      "items": {
+        "$ref": "#/$defs/TeamAction"
+      },
+      "maxItems": 20000,
+      "title": "Actions",
+      "type": "array"
+    },
+    "decisions": {
+      "items": {
+        "$ref": "#/$defs/TeamDecision"
+      },
+      "maxItems": 500,
+      "title": "Decisions",
+      "type": "array"
+    },
+    "problem_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+      "title": "Problem Id",
+      "type": "string"
+    },
+    "reports": {
+      "items": {
+        "$ref": "#/$defs/WorkReport"
+      },
+      "maxItems": 5000,
+      "title": "Reports",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "dclab_core.team_work.v1",
+      "default": "dclab_core.team_work.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "tasks": {
+      "items": {
+        "$ref": "#/$defs/TeamTask"
+      },
+      "maxItems": 2000,
+      "title": "Tasks",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "problem_id"
+  ],
+  "title": "TeamWork",
+  "type": "object"
+}

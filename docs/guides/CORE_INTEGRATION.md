@@ -1482,3 +1482,27 @@ the unattended standard plan's time column (`dclab_rnd/intern/loop.py` `found_ti
 naming the date chosen. In the main product the calls belong where a run chooses its validation split before training:
 pass the problem statement and the training rows, and show the person the choice and its reason. No main-product field
 is mapped yet; the wiring is that repository's change.
+
+## Team work: tasks, actions and reports between team agents (2026-11-20, dclab-core 0.164.0)
+
+`dclab_core.team_work` holds what travels between team agents in the collaborative workspace
+(`Dev_Plans/Collaborative_Agentic_Workspace_2026-11-20.md`) and the rules that keep it honest. A `TeamTask` is one
+question with one accountable owner (`owner_team`), its done criteria, the inputs and tools it may use and its budget; a
+delegation is a child task (`delegate`) whose reply returns to the delegating agent. A `TeamAction` is one attempt,
+bound to a directory action and its source (`tool:<name>` or `human:<response id>`), with distinct states for planned,
+running, denied, timed out, succeeded, failed, skipped and simulated. A `WorkReport` is built only from the action log
+and the child reports (`build_report`): it lists only terminal actions, joins each child once, names the children still
+out, drops private notes and marks itself simulated when anything in it was. `accept_reply` refuses a reply from
+another branch, on an obsolete brief revision, a duplicate (same task and revision) or to a closed parent;
+`supersede` links a corrected report to the one it replaces; `may_approve` lets only the decision owner approve a
+`TeamDecision`. `AgentConfig` and `DIRECTORY` are the agents' job descriptions (Business, Data Science, ML Engineering,
+Sales, Marketing, Project, Problem, Model, Home, Lead, Advisor). Contracts: `team_task`, `team_action`, `work_report`,
+`team_decision`, `agent_config` (each `v1`) and `team_work` (`dclab_core.team_work.v1`, one problem's work in one
+document).
+
+The R&D host wires them in later packages (W2 teams and membership, W4 the task store with its outbox, W5 the agents).
+In the main product the records belong beside its own delegation and job tables: store each task, action and report as
+a row keyed by its id (a report by task and revision), call `accept_reply` when a delivery arrives and `validate_transition`
+before every status change, and build the report the requester sees with `build_report`, never by hand. No main-product
+field is mapped yet: the pinned inventory has no team, task or work-report fields, so no adapter invents them; the
+wiring is that repository's change.

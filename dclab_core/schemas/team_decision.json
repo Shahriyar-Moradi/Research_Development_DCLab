@@ -1,0 +1,162 @@
+{
+  "$defs": {
+    "Actor": {
+      "additionalProperties": false,
+      "description": "Who did something: an agent (by its configuration's name), a team, or a person (by their id).",
+      "properties": {
+        "id": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "agent",
+            "team",
+            "person"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "team": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*(:[A-Za-z0-9_.-]+)?$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The team the actor belongs to or represents.",
+          "title": "Team"
+        }
+      },
+      "required": [
+        "kind",
+        "id"
+      ],
+      "title": "Actor",
+      "type": "object"
+    },
+    "Approval": {
+      "additionalProperties": false,
+      "properties": {
+        "when": {
+          "title": "When",
+          "type": "string"
+        },
+        "who": {
+          "$ref": "#/$defs/Actor",
+          "description": "The person who approved: always the decision owner."
+        }
+      },
+      "required": [
+        "who",
+        "when"
+      ],
+      "title": "Approval",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.team_decision.v1.json",
+  "additionalProperties": false,
+  "description": "The decision owner's choice, the evidence and constraints it rested on, and what happened after.",
+  "properties": {
+    "approval": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Approval"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "constraint_revisions": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 50,
+      "title": "Constraint Revisions",
+      "type": "array"
+    },
+    "decision_owner": {
+      "$ref": "#/$defs/Actor",
+      "description": "The person who decides."
+    },
+    "evidence_revisions": {
+      "description": "Report ids it rested on.",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 50,
+      "title": "Evidence Revisions",
+      "type": "array"
+    },
+    "follow_up_date": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Follow Up Date"
+    },
+    "id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+      "title": "Id",
+      "type": "string"
+    },
+    "option": {
+      "maxLength": 2000,
+      "minLength": 1,
+      "title": "Option",
+      "type": "string"
+    },
+    "outcome": {
+      "anyOf": [
+        {
+          "maxLength": 2000,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Outcome"
+    },
+    "problem_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+      "title": "Problem Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "dclab_core.team_decision.v1",
+      "default": "dclab_core.team_decision.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "simulated_follow_up": {
+      "default": false,
+      "title": "Simulated Follow Up",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "problem_id",
+    "decision_owner",
+    "option"
+  ],
+  "title": "TeamDecision",
+  "type": "object"
+}

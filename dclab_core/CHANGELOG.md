@@ -4,6 +4,23 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.164.0 (2026-11-20)
+
+- `team_work` (new, W1 of the collaborative workspace): the records and rules of work passed between team agents.
+  `TeamTask` (one question, one accountable owner, done criteria, allowed inputs and tools, budget, a parent for a
+  delegation, ten statuses), `TeamAction` (one attempt bound to a tool or a recorded human response: planned, running,
+  denied, timed out, succeeded, failed, skipped or simulated), `WorkReport` (the answer, the assignment, completed,
+  failed and skipped actions, evidence, limits, the next owner or closed, the outstanding children, the report it
+  supersedes, a simulated flag), `TeamDecision` (the decision owner's option, the revisions it rested on, the approval,
+  the follow-up and outcome), `AgentConfig` with `DIRECTORY` (eleven job descriptions from the owner's action
+  directory, each forbidding approve and contact_customers) and `TeamWork` (one problem's work in one document,
+  `dclab_core.team_work.v1`). Six new contracts, each `v1`. Pure rules: `validate_transition`, `delegate`,
+  `may_take`, `can_claim`, `accept_reply` (refuses another branch, an obsolete brief revision, a duplicate and a
+  closed parent), `join_status`, `build_report` (only terminal actions, never a missing child result, never a private
+  note, only the task's allowed inputs and tools), `supersede`, `next_owner`, `budget_fits` and `may_approve` (only
+  the decision owner, a person). A completed human-bound action names the person who responded (`responded_by`).
+  Names and references only, never a table value.
+
 ## 0.163.0 (2026-11-19)
 
 - `split_hints` (new): `new_entities(brief)` reads whether a problem statement asks the model to serve entities it has

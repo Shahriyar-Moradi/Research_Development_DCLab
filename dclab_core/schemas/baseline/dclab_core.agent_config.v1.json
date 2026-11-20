@@ -1,0 +1,102 @@
+{
+  "$defs": {
+    "DirectoryAction": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "type": "string"
+        },
+        "bound_to": {
+          "pattern": "^(tool|human):[a-z][a-z0-9_]*$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "bound_to",
+        "description"
+      ],
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "action_directory": {
+      "items": {
+        "$ref": "#/$defs/DirectoryAction"
+      },
+      "maxItems": 50,
+      "minItems": 1,
+      "type": "array"
+    },
+    "forbidden": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 20,
+      "type": "array"
+    },
+    "identity": {
+      "maxLength": 300,
+      "minLength": 1,
+      "type": "string"
+    },
+    "kind": {
+      "enum": [
+        "team_agent",
+        "specialist"
+      ],
+      "type": "string"
+    },
+    "memory_scope": {
+      "items": {
+        "enum": [
+          "person",
+          "team",
+          "workspace",
+          "project",
+          "problem",
+          "model_version"
+        ],
+        "type": "string"
+      },
+      "maxItems": 6,
+      "minItems": 1,
+      "type": "array"
+    },
+    "name": {
+      "pattern": "^[a-z][a-z0-9_]*$",
+      "type": "string"
+    },
+    "required_report": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 20,
+      "minItems": 1,
+      "type": "array"
+    },
+    "responsibility": {
+      "maxLength": 300,
+      "minLength": 1,
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "dclab_core.agent_config.v1",
+      "default": "dclab_core.agent_config.v1",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "name",
+    "kind",
+    "identity",
+    "responsibility",
+    "action_directory",
+    "required_report",
+    "memory_scope"
+  ],
+  "type": "object"
+}

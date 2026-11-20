@@ -1,0 +1,340 @@
+{
+  "$defs": {
+    "ActionLine": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "pattern": "^[a-z][a-z0-9_]*(:[A-Za-z0-9_.-]+)?$",
+          "type": "string"
+        },
+        "action_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+          "type": "string"
+        },
+        "actor": {
+          "maxLength": 120,
+          "minLength": 1,
+          "type": "string"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "ref": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "status": {
+          "enum": [
+            "planned",
+            "running",
+            "denied",
+            "timed_out",
+            "succeeded",
+            "failed",
+            "skipped",
+            "simulated"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "action_id",
+        "action",
+        "actor",
+        "status"
+      ],
+      "type": "object"
+    },
+    "Assignment": {
+      "additionalProperties": false,
+      "properties": {
+        "done_criteria": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 20,
+          "minItems": 1,
+          "type": "array"
+        },
+        "question": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "question",
+        "done_criteria"
+      ],
+      "type": "object"
+    },
+    "EvidenceRef": {
+      "additionalProperties": false,
+      "properties": {
+        "assumptions": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 20,
+          "type": "array"
+        },
+        "input_revision": {
+          "maxLength": 120,
+          "minLength": 1,
+          "type": "string"
+        },
+        "private": {
+          "default": false,
+          "type": "boolean"
+        },
+        "ref": {
+          "maxLength": 300,
+          "minLength": 1,
+          "type": "string"
+        },
+        "source": {
+          "maxLength": 300,
+          "minLength": 1,
+          "type": "string"
+        },
+        "uncertainty": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "source",
+        "ref",
+        "input_revision"
+      ],
+      "type": "object"
+    },
+    "NextStep": {
+      "additionalProperties": false,
+      "properties": {
+        "closed": {
+          "default": false,
+          "type": "boolean"
+        },
+        "owner": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "unblocks": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "type": "object"
+    },
+    "ReportActions": {
+      "additionalProperties": false,
+      "properties": {
+        "completed": {
+          "items": {
+            "$ref": "#/$defs/ActionLine"
+          },
+          "maxItems": 200,
+          "type": "array"
+        },
+        "failed": {
+          "items": {
+            "$ref": "#/$defs/ActionLine"
+          },
+          "maxItems": 200,
+          "type": "array"
+        },
+        "skipped": {
+          "items": {
+            "$ref": "#/$defs/ActionLine"
+          },
+          "maxItems": 200,
+          "type": "array"
+        }
+      },
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "actions": {
+      "$ref": "#/$defs/ReportActions"
+    },
+    "answer": {
+      "maxLength": 2000,
+      "minLength": 1,
+      "type": "string"
+    },
+    "assignment": {
+      "$ref": "#/$defs/Assignment"
+    },
+    "brief_revision": {
+      "minimum": 1,
+      "type": "integer"
+    },
+    "child_reports": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 50,
+      "type": "array"
+    },
+    "created_at": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "evidence": {
+      "items": {
+        "$ref": "#/$defs/EvidenceRef"
+      },
+      "maxItems": 100,
+      "type": "array"
+    },
+    "limits": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 50,
+      "type": "array"
+    },
+    "next_task": {
+      "$ref": "#/$defs/NextStep"
+    },
+    "outstanding": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 50,
+      "type": "array"
+    },
+    "owner": {
+      "pattern": "^[a-z][a-z0-9_]*(:[A-Za-z0-9_.-]+)?$",
+      "type": "string"
+    },
+    "parent_task_id": {
+      "anyOf": [
+        {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "revision": {
+      "minimum": 1,
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": "dclab_core.work_report.v1",
+      "default": "dclab_core.work_report.v1",
+      "type": "string"
+    },
+    "simulated": {
+      "default": false,
+      "type": "boolean"
+    },
+    "status": {
+      "enum": [
+        "complete",
+        "partial",
+        "blocked",
+        "failed",
+        "superseded"
+      ],
+      "type": "string"
+    },
+    "superseded_by": {
+      "anyOf": [
+        {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "supersedes": {
+      "anyOf": [
+        {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "task_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "task_id",
+    "revision",
+    "brief_revision",
+    "answer",
+    "status",
+    "assignment",
+    "owner",
+    "next_task"
+  ],
+  "type": "object"
+}

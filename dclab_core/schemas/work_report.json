@@ -1,0 +1,395 @@
+{
+  "$defs": {
+    "ActionLine": {
+      "additionalProperties": false,
+      "description": "One terminal action as the report shows it.",
+      "properties": {
+        "action": {
+          "pattern": "^[a-z][a-z0-9_]*(:[A-Za-z0-9_.-]+)?$",
+          "title": "Action",
+          "type": "string"
+        },
+        "action_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+          "title": "Action Id",
+          "type": "string"
+        },
+        "actor": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Actor",
+          "type": "string"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason"
+        },
+        "ref": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Its output, or its failure.",
+          "title": "Ref"
+        },
+        "status": {
+          "enum": [
+            "planned",
+            "running",
+            "denied",
+            "timed_out",
+            "succeeded",
+            "failed",
+            "skipped",
+            "simulated"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "action_id",
+        "action",
+        "actor",
+        "status"
+      ],
+      "title": "ActionLine",
+      "type": "object"
+    },
+    "Assignment": {
+      "additionalProperties": false,
+      "description": "The question the report answers and what counted as done.",
+      "properties": {
+        "done_criteria": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 20,
+          "minItems": 1,
+          "title": "Done Criteria",
+          "type": "array"
+        },
+        "question": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Question",
+          "type": "string"
+        }
+      },
+      "required": [
+        "question",
+        "done_criteria"
+      ],
+      "title": "Assignment",
+      "type": "object"
+    },
+    "EvidenceRef": {
+      "additionalProperties": false,
+      "description": "A reference the reader may open: where it came from, the run or model, the input revision, its limits.",
+      "properties": {
+        "assumptions": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 20,
+          "title": "Assumptions",
+          "type": "array"
+        },
+        "input_revision": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Input Revision",
+          "type": "string"
+        },
+        "private": {
+          "default": false,
+          "description": "A team's own note: dropped by build_report, refused in a report.",
+          "title": "Private",
+          "type": "boolean"
+        },
+        "ref": {
+          "description": "A run, model version, report or fixture reference.",
+          "maxLength": 300,
+          "minLength": 1,
+          "title": "Ref",
+          "type": "string"
+        },
+        "source": {
+          "maxLength": 300,
+          "minLength": 1,
+          "title": "Source",
+          "type": "string"
+        },
+        "uncertainty": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Uncertainty"
+        }
+      },
+      "required": [
+        "source",
+        "ref",
+        "input_revision"
+      ],
+      "title": "EvidenceRef",
+      "type": "object"
+    },
+    "NextStep": {
+      "additionalProperties": false,
+      "description": "Who owes the next response and what unblocks it, or that the task is closed.",
+      "properties": {
+        "closed": {
+          "default": false,
+          "title": "Closed",
+          "type": "boolean"
+        },
+        "owner": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Owner"
+        },
+        "unblocks": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unblocks"
+        }
+      },
+      "title": "NextStep",
+      "type": "object"
+    },
+    "ReportActions": {
+      "additionalProperties": false,
+      "description": "Completed actions, failed attempts and skipped work, each a terminal action record.",
+      "properties": {
+        "completed": {
+          "items": {
+            "$ref": "#/$defs/ActionLine"
+          },
+          "maxItems": 200,
+          "title": "Completed",
+          "type": "array"
+        },
+        "failed": {
+          "items": {
+            "$ref": "#/$defs/ActionLine"
+          },
+          "maxItems": 200,
+          "title": "Failed",
+          "type": "array"
+        },
+        "skipped": {
+          "items": {
+            "$ref": "#/$defs/ActionLine"
+          },
+          "maxItems": 200,
+          "title": "Skipped",
+          "type": "array"
+        }
+      },
+      "title": "ReportActions",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.work_report.v1.json",
+  "additionalProperties": false,
+  "description": "The answer and what actually happened, at one revision.",
+  "properties": {
+    "actions": {
+      "$ref": "#/$defs/ReportActions"
+    },
+    "answer": {
+      "maxLength": 2000,
+      "minLength": 1,
+      "title": "Answer",
+      "type": "string"
+    },
+    "assignment": {
+      "$ref": "#/$defs/Assignment"
+    },
+    "brief_revision": {
+      "description": "The problem brief's revision this report answers.",
+      "minimum": 1,
+      "title": "Brief Revision",
+      "type": "integer"
+    },
+    "child_reports": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 50,
+      "title": "Child Reports",
+      "type": "array"
+    },
+    "created_at": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Created At"
+    },
+    "evidence": {
+      "items": {
+        "$ref": "#/$defs/EvidenceRef"
+      },
+      "maxItems": 100,
+      "title": "Evidence",
+      "type": "array"
+    },
+    "limits": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 50,
+      "title": "Limits",
+      "type": "array"
+    },
+    "next_task": {
+      "$ref": "#/$defs/NextStep"
+    },
+    "outstanding": {
+      "description": "Child tasks not yet returned.",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 50,
+      "title": "Outstanding",
+      "type": "array"
+    },
+    "owner": {
+      "description": "Who performed the work: the task's owner.",
+      "pattern": "^[a-z][a-z0-9_]*(:[A-Za-z0-9_.-]+)?$",
+      "title": "Owner",
+      "type": "string"
+    },
+    "parent_task_id": {
+      "anyOf": [
+        {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Parent Task Id"
+    },
+    "revision": {
+      "minimum": 1,
+      "title": "Revision",
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": "dclab_core.work_report.v1",
+      "default": "dclab_core.work_report.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "simulated": {
+      "default": false,
+      "title": "Simulated",
+      "type": "boolean"
+    },
+    "status": {
+      "enum": [
+        "complete",
+        "partial",
+        "blocked",
+        "failed",
+        "superseded"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "superseded_by": {
+      "anyOf": [
+        {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Superseded By"
+    },
+    "supersedes": {
+      "anyOf": [
+        {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Supersedes"
+    },
+    "task_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+      "title": "Task Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "task_id",
+    "revision",
+    "brief_revision",
+    "answer",
+    "status",
+    "assignment",
+    "owner",
+    "next_task"
+  ],
+  "title": "WorkReport",
+  "type": "object"
+}

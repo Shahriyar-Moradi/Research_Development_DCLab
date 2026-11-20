@@ -1,0 +1,196 @@
+{
+  "$defs": {
+    "Actor": {
+      "additionalProperties": false,
+      "description": "Who did something: an agent (by its configuration's name), a team, or a person (by their id).",
+      "properties": {
+        "id": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "agent",
+            "team",
+            "person"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "team": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*(:[A-Za-z0-9_.-]+)?$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The team the actor belongs to or represents.",
+          "title": "Team"
+        }
+      },
+      "required": [
+        "kind",
+        "id"
+      ],
+      "title": "Actor",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.team_action.v1.json",
+  "additionalProperties": false,
+  "description": "One attempt: who, which directory action, from which tool or human response, on which input, and how it ended.",
+  "properties": {
+    "action": {
+      "description": "A name from the actor's action directory.",
+      "pattern": "^[a-z][a-z0-9_]*(:[A-Za-z0-9_.-]+)?$",
+      "title": "Action",
+      "type": "string"
+    },
+    "action_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+      "title": "Action Id",
+      "type": "string"
+    },
+    "actor": {
+      "$ref": "#/$defs/Actor"
+    },
+    "ended_at": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Ended At"
+    },
+    "failure_ref": {
+      "anyOf": [
+        {
+          "maxLength": 300,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Failure Ref"
+    },
+    "input_revision": {
+      "maxLength": 120,
+      "minLength": 1,
+      "title": "Input Revision",
+      "type": "string"
+    },
+    "output_ref": {
+      "anyOf": [
+        {
+          "maxLength": 300,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Output Ref"
+    },
+    "reason": {
+      "anyOf": [
+        {
+          "maxLength": 300,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Why it was skipped or failed, in words.",
+      "title": "Reason"
+    },
+    "responded_by": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Actor"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "The person whose recorded answer a human-bound action is. The host (W5) checks the person holds the bound role."
+    },
+    "retry_key": {
+      "maxLength": 300,
+      "minLength": 1,
+      "title": "Retry Key",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "dclab_core.team_action.v1",
+      "default": "dclab_core.team_action.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "source": {
+      "description": "tool:<name>, or human:<response id> for a recorded human answer.",
+      "pattern": "^(tool|human):[A-Za-z0-9_.:@-]+$",
+      "title": "Source",
+      "type": "string"
+    },
+    "started_at": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Started At"
+    },
+    "status": {
+      "default": "planned",
+      "enum": [
+        "planned",
+        "running",
+        "denied",
+        "timed_out",
+        "succeeded",
+        "failed",
+        "skipped",
+        "simulated"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "task_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+      "title": "Task Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "task_id",
+    "action_id",
+    "actor",
+    "action",
+    "source",
+    "input_revision",
+    "retry_key"
+  ],
+  "title": "TeamAction",
+  "type": "object"
+}
