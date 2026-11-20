@@ -56,6 +56,11 @@ SPECIAL = {
     ("POST", "/api/workspace/members"): "admin",
     ("PATCH", "/api/workspace/members/{user_id}"): "admin",
     ("DELETE", "/api/workspace/members/{user_id}"): "admin",
+    # W2: teams beside the roles. Any member sees the teams; the owner makes them and places people in them
+    ("GET", "/api/workspace/teams"): "read",
+    ("POST", "/api/workspace/teams"): "admin",
+    ("POST", "/api/workspace/teams/{team_id}/members"): "admin",
+    ("DELETE", "/api/workspace/teams/{team_id}/members/{user_id}"): "admin",
     # the record of every session: what people wrote and what the agents answered (19.4; the owner's, proposed)
     ("GET", "/api/experience/sessions"): "timelines",
     ("GET", "/api/experience/sessions/{visit}"): "timelines",
@@ -143,7 +148,8 @@ def require(*needed: str):
 
 ROUTE_WORDS = {"audit": "read the audit trail", "read": "read this workspace", "write": "change this workspace", "approve_stage": "approve a stage",
                "approve_gate": "approve a gate", "review": "review this", "admin": "change this setting",
-               "timelines": "read the sessions' record"}
+               "timelines": "read the sessions' record", "contribute": "work on a team's task", "approve_decision": "approve a team's decision",
+               "contact_customers": "contact customers"}
 
 
 # ---------------------------------------------------------------------- identifying a request

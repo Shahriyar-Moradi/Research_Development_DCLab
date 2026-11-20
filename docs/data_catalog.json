@@ -62,6 +62,11 @@
  },
  "contracts": [
   {
+   "contract": "agent_config",
+   "reads": [],
+   "version": "dclab_core.agent_config.v1"
+  },
+  {
    "contract": "audit_verdict",
    "reads": [],
    "version": "dclab_core.audit_verdict.v1"
@@ -315,6 +320,11 @@
    "version": "dclab_core.knowledge_item.v1"
   },
   {
+   "contract": "leak_evidence",
+   "reads": [],
+   "version": "dclab_core.leak_evidence.v1"
+  },
+  {
    "contract": "learning_curve",
    "reads": [],
    "version": "dclab_core.learning_curve.v1"
@@ -346,8 +356,10 @@
   },
   {
    "contract": "memory_item",
-   "reads": [],
-   "version": "dclab_core.memory_item.v1"
+   "reads": [
+    "dclab_core.memory_item.v1"
+   ],
+   "version": "dclab_core.memory_item.v2"
   },
   {
    "contract": "metric_answer",
@@ -602,9 +614,29 @@
    "version": "dclab_core.task_graph.v1"
   },
   {
+   "contract": "team_action",
+   "reads": [],
+   "version": "dclab_core.team_action.v1"
+  },
+  {
+   "contract": "team_decision",
+   "reads": [],
+   "version": "dclab_core.team_decision.v1"
+  },
+  {
    "contract": "team_record",
    "reads": [],
    "version": "dclab_core.team_record.v1"
+  },
+  {
+   "contract": "team_task",
+   "reads": [],
+   "version": "dclab_core.team_task.v1"
+  },
+  {
+   "contract": "team_work",
+   "reads": [],
+   "version": "dclab_core.team_work.v1"
   },
   {
    "contract": "track_outcome",
@@ -630,6 +662,11 @@
    "contract": "twin_step",
    "reads": [],
    "version": "dclab_core.twin_step.v1"
+  },
+  {
+   "contract": "work_report",
+   "reads": [],
+   "version": "dclab_core.work_report.v1"
   },
   {
    "contract": "workflow_record",
@@ -719,7 +756,7 @@
    "what": "A solved project from its problem to its report, one row per project: the card, the map, the routes, the stages run and the report's kept sentences, never a row of its table; only projects whose consent allows training, and none at all below the builder's minimum of projects (30.19)."
   }
  ],
- "dclab_core": "0.161.0",
+ "dclab_core": "0.164.0",
  "decision_points": [
   {
    "about": "Which tool does the agent call next?",
@@ -1910,7 +1947,8 @@
     "dclab_rnd/agentic/pages/budgets.py",
     "dclab_rnd/draft/api.py",
     "dclab_rnd/draft/coordinator.py",
-    "dclab_rnd/experience/hooks.py"
+    "dclab_rnd/experience/hooks.py",
+    "dclab_rnd/memory/scope.py"
    ],
    "example": "python -m dclab_rnd.experience search --kind decision.accepted",
    "family": "decision",
@@ -1943,6 +1981,7 @@
   },
   {
    "emitted_by": [
+    "dclab_rnd/agents/decision_loop.py",
     "dclab_rnd/experience/hooks.py"
    ],
    "example": "python -m dclab_rnd.experience search --kind decision.proposed",
@@ -1960,9 +1999,11 @@
   },
   {
    "emitted_by": [
+    "dclab_rnd/agents/decision_loop.py",
     "dclab_rnd/draft/coordinator.py",
     "dclab_rnd/experience/hooks.py",
-    "dclab_rnd/ledger/use.py"
+    "dclab_rnd/ledger/use.py",
+    "dclab_rnd/memory/bases.py"
    ],
    "example": "python -m dclab_rnd.experience search --kind decision.refused",
    "family": "decision",
@@ -2167,6 +2208,7 @@
   },
   {
    "emitted_by": [
+    "dclab_rnd/memory/bases.py",
     "dclab_rnd/memory/writing.py"
    ],
    "example": "python -m dclab_rnd.experience search --kind memory.proposed",
@@ -2205,6 +2247,7 @@
   {
    "emitted_by": [
     "dclab_rnd/memory/__init__.py",
+    "dclab_rnd/memory/bases.py",
     "dclab_rnd/memory/upkeep.py",
     "dclab_rnd/memory/writing.py"
    ],
@@ -2245,6 +2288,7 @@
   {
    "emitted_by": [
     "dclab_rnd/memory/__init__.py",
+    "dclab_rnd/memory/bases.py",
     "dclab_rnd/memory/writing.py"
    ],
    "example": "python -m dclab_rnd.experience search --kind memory.written",
@@ -2639,7 +2683,8 @@
   },
   {
    "emitted_by": [
-    "dclab_rnd/orchestra/board.py"
+    "dclab_rnd/orchestra/board.py",
+    "dclab_rnd/teamspace/store.py"
    ],
    "example": "python -m dclab_rnd.experience search --kind team.handoff",
    "family": "team",
@@ -3117,6 +3162,26 @@
    "what": "A person's role in a workspace."
   },
   {
+   "append_only": false,
+   "columns": [
+    "id",
+    "workspace_id",
+    "scope",
+    "scope_id",
+    "project_id",
+    "problem_id",
+    "revision",
+    "version",
+    "doc",
+    "updated",
+    "purged_at",
+    "purge_reason"
+   ],
+   "files": null,
+   "table": "memory_base",
+   "what": "an editable Project or Problem base, one document a row (dclab_rnd/memory/bases.py, storage/memory_bases.py)"
+  },
+  {
    "append_only": true,
    "columns": [
     "seq",
@@ -3132,6 +3197,22 @@
    "files": null,
    "table": "memory_item_version",
    "what": "every version of a memory item, append-only: a retirement is a new version (dclab_rnd/memory, 35.2)"
+  },
+  {
+   "append_only": false,
+   "columns": [
+    "workspace_id",
+    "key",
+    "project_id",
+    "problem_id",
+    "visibility_class",
+    "cursor",
+    "doc",
+    "updated"
+   ],
+   "files": null,
+   "table": "memory_summary",
+   "what": "a problem's resumable summary, derived from its bases (dclab_rnd/memory/summary.py); published by cursor"
   },
   {
    "append_only": false,
@@ -3268,6 +3349,109 @@
    "files": null,
    "table": "stored_file",
    "what": "a table or artifact kept in file storage: where, how big, its hash (dclab_rnd/storage/files.py, 9.3); never a credential"
+  },
+  {
+   "append_only": false,
+   "columns": [
+    "id",
+    "workspace_id",
+    "name",
+    "kind",
+    "created"
+   ],
+   "files": null,
+   "table": "team",
+   "what": "a team of a workspace: whom an agent represents (a role says what a person may do; a team does not)"
+  },
+  {
+   "append_only": false,
+   "columns": [
+    "workspace_id",
+    "project_id",
+    "task_id",
+    "action_id",
+    "seq",
+    "retry_key",
+    "status",
+    "doc",
+    "updated"
+   ],
+   "files": null,
+   "table": "team_action",
+   "what": "one attempt (TeamAction): planned or running, then one terminal record"
+  },
+  {
+   "append_only": false,
+   "columns": [
+    "id",
+    "workspace_id",
+    "seq",
+    "key",
+    "kind",
+    "project_id",
+    "problem_id",
+    "task_id",
+    "status",
+    "attempts",
+    "next_attempt_at",
+    "version",
+    "doc",
+    "updated"
+   ],
+   "files": null,
+   "table": "team_delivery",
+   "what": "the outbox: what travels to another team, saved with what it carries, delivered by a job"
+  },
+  {
+   "append_only": false,
+   "columns": [
+    "team_id",
+    "user_id",
+    "since"
+   ],
+   "files": null,
+   "table": "team_membership",
+   "what": "a person in a team, one row a (team, person); leaving the workspace removes it (accounts/store.py)"
+  },
+  {
+   "append_only": false,
+   "columns": [
+    "workspace_id",
+    "project_id",
+    "task_id",
+    "revision",
+    "seq",
+    "parent_task_id",
+    "status",
+    "joined",
+    "verdict",
+    "doc",
+    "updated"
+   ],
+   "files": null,
+   "table": "team_report",
+   "what": "a WorkReport at one revision: (task, revision) is the reply's identity, so a retry adds nothing"
+  },
+  {
+   "append_only": false,
+   "columns": [
+    "workspace_id",
+    "project_id",
+    "id",
+    "seq",
+    "problem_id",
+    "parent_task_id",
+    "owner_team",
+    "requester_team",
+    "status",
+    "version",
+    "initiator",
+    "doc",
+    "updated"
+   ],
+   "files": null,
+   "table": "team_task",
+   "what": "one assignment (dclab_core.team_work.TeamTask); a status change checks ``version``"
   },
   {
    "append_only": false,

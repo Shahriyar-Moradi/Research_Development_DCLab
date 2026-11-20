@@ -383,6 +383,10 @@ def _logs(src: Source, wid: str, url: str | None, report: dict[str, Any]) -> Non
         _memory_bases(src, wid, url, report)
     except Exception as exc:  # noqa: BLE001 - the bases are reported failed; the rest still moves
         report["failed"].append(f"memory bases: {type(exc).__name__}")
+    try:  # W2: the folder's teams (their memberships are not people with accounts there, so they are counted, not moved)
+        _teams(src, wid, url, report)
+    except Exception as exc:  # noqa: BLE001 - the teams are reported failed; the rest still moves
+        report["failed"].append(f"teams: {type(exc).__name__}")
     routing = PgRouting(wid, url)
     path = src.home / "model_routing.json"
     if path.is_file() and not routing.get().get("history"):
@@ -403,6 +407,20 @@ def _memory(src: Source, wid: str, url: str | None, report: dict[str, Any]) -> N
         return
     target.write_many(versions)  # one transaction: a failed move leaves the database memory empty, so the next run copies it all
     report["logs"]["memory"] = {"source": len(versions), "copied": len(versions), "already": 0}
+
+
+def _teams(src: Source, wid: str, url: str | None, report: dict[str, Any]) -> None:
+    """Every team of the folder, with its id, name, kind and time; one whose id or name the database workspace holds is
+    left as it is. A file workspace has no accounts, so its memberships are counted and not moved: the owner places
+    people once they sign in."""
+    from .teams import TEAMS_FILE, FileTeams, PgTeams
+
+    if not (src.home / TEAMS_FILE).is_file():
+        return
+    teams = FileTeams(src.home).teams()
+    copied = sum(PgTeams(wid, url).import_team(t) for t in teams)
+    report["logs"]["teams"] = {"source": len(teams), "copied": copied, "already": len(teams) - copied,
+                               "memberships_not_moved": sum(len(t["members"]) for t in teams)}
 
 
 def _memory_bases(src: Source, wid: str, url: str | None, report: dict[str, Any]) -> None:

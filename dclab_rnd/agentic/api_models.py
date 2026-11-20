@@ -293,6 +293,33 @@ class MemoryProposal(Doc):
     source: Any = None
 
 
+class TeamCreate(Doc):
+    """W2: a new team of the workspace. ``kind`` is business, data_science, ml_engineering, sales, marketing or another word."""
+    name: Any = ""
+    kind: Any = ""
+
+
+class TeamMemberAdd(Doc):
+    """W2: a member of this workspace joins the team (``user_id`` from GET /api/workspace/members)."""
+    user_id: Any = ""
+
+
+class TeamDoc(Doc):
+    id: Any = None
+    name: Any = None
+    kind: Any = None
+    kind_label: Any = None
+    created: Any = None
+    members: list[Any] | None = None
+
+
+class TeamMembershipDoc(Doc):
+    team_id: Any = None
+    user_id: Any = None
+    since: Any = None
+    added: Any = None
+
+
 class ProblemCreate(Doc):
     name: Any = ""
     description: Any = ""

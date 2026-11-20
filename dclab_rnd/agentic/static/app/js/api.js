@@ -328,6 +328,27 @@
   /** @typedef {Object} TaskPlanConfirm
    *  @property {*=} answer
    */
+  /** @typedef {Object} TeamCreate
+   *  @property {*=} name
+   *  @property {*=} kind
+   */
+  /** @typedef {Object} TeamDoc
+   *  @property {*=} id
+   *  @property {*=} name
+   *  @property {*=} kind
+   *  @property {*=} kind_label
+   *  @property {*=} created
+   *  @property {(Array<*>|null)=} members
+   */
+  /** @typedef {Object} TeamMemberAdd
+   *  @property {*=} user_id
+   */
+  /** @typedef {Object} TeamMembershipDoc
+   *  @property {*=} team_id
+   *  @property {*=} user_id
+   *  @property {*=} since
+   *  @property {*=} added
+   */
   /** @typedef {Object} ValidationError
    *  @property {Array<(string|number)>} loc
    *  @property {string} msg
@@ -583,6 +604,10 @@
     addMember: ["POST", "/workspace/members", [], []],
     removeMember: ["DELETE", "/workspace/members/{user_id}", ["user_id"], []],
     changeMember: ["PATCH", "/workspace/members/{user_id}", ["user_id"], []],
+    listTeams: ["GET", "/workspace/teams", [], ["user_id"]],
+    createTeam: ["POST", "/workspace/teams", [], []],
+    addTeamMember: ["POST", "/workspace/teams/{team_id}/members", ["team_id"], []],
+    removeTeamMember: ["DELETE", "/workspace/teams/{team_id}/members/{user_id}", ["team_id", "user_id"], []],
   };
 
   function build(name, args) {
@@ -2064,6 +2089,30 @@
    *  @returns {Promise<Doc>} */
   client.changeMember = (...args) => call('changeMember', args);
   client.path.changeMember = (...args) => build('changeMember', args).path;
+  /** GET /api/workspace/teams: List Teams
+   *  @param {{query?: {user_id?: *}, headers?: Object}} [opts]
+   *  @returns {Promise<Array<TeamDoc>>} */
+  client.listTeams = (...args) => call('listTeams', args);
+  client.path.listTeams = (...args) => build('listTeams', args).path;
+  client.href.listTeams = (...args) => '/api' + build('listTeams', args).path;
+  /** POST /api/workspace/teams: Create Team
+   *  @param {{body: TeamCreate, headers?: Object}} [opts]
+   *  @returns {Promise<TeamDoc>} */
+  client.createTeam = (...args) => call('createTeam', args);
+  client.path.createTeam = (...args) => build('createTeam', args).path;
+  /** POST /api/workspace/teams/{team_id}/members: Add Team Member
+   *  @param {string} team_id
+   *  @param {{body: TeamMemberAdd, headers?: Object}} [opts]
+   *  @returns {Promise<TeamMembershipDoc>} */
+  client.addTeamMember = (...args) => call('addTeamMember', args);
+  client.path.addTeamMember = (...args) => build('addTeamMember', args).path;
+  /** DELETE /api/workspace/teams/{team_id}/members/{user_id}: Remove Team Member
+   *  @param {string} team_id
+   *  @param {string} user_id
+   *  @param {{headers?: Object}} [opts]
+   *  @returns {Promise<null>} */
+  client.removeTeamMember = (...args) => call('removeTeamMember', args);
+  client.path.removeTeamMember = (...args) => build('removeTeamMember', args).path;
 
   // A route this server does not have (the open edition leaves some out) answers like a 404, a rejected promise the
   // page's DC.states shows, never a TypeError thrown before the page can catch it.

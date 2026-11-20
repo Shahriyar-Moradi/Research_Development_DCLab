@@ -74,6 +74,22 @@ class Sessions(Protocol):
 
 
 @runtime_checkable
+class Teams(Protocol):
+    """Teams and who is in them (W2, storage/teams.py): a team says whom an agent represents, never what a person may do
+    (that is the role's). Every read sees this workspace's teams only."""
+    def create_team(self, name: str, kind: str) -> Document: ...          # TeamError: a bad name or kind, a name taken
+    def teams(self) -> list[Document]: ...                                # each with its members
+    def team(self, team_id: str) -> Document | None: ...
+    def add_member(self, team_id: str, user_id: str) -> tuple[Document, bool]: ...   # NoSuchTeam; (membership, whether new)
+    def remove_member(self, team_id: str, user_id: str) -> bool: ...
+    def remove_user(self, user_id: str) -> int: ...                       # the person left the workspace: every team
+    def teams_of(self, user_id: str) -> list[Document]: ...
+    def is_member(self, team_id: str, user_id: str) -> bool: ...
+    def counts(self) -> dict[str, int]: ...
+    def location(self) -> str: ...
+
+
+@runtime_checkable
 class MemoryBases(Protocol):
     """Problem memory's editable bases and their derived summaries (dclab_rnd/memory/bases.py and summary.py)."""
     # bases: one live document per (scope, scope_id); a change is read, step, write as one step across hosts
@@ -132,6 +148,13 @@ def open_memory_bases(home: Path) -> MemoryBases:
     return choose(home)
 
 
+def open_teams(home: Path) -> Teams:
+    """The teams of the workspace in ``home``: PostgreSQL with DCLAB_DATABASE_URL set, else its folder's file."""
+    from .teams import open_teams as choose
+
+    return choose(home)
+
+
 def open_stores(home: Path, projects_home: Path | None = None) -> tuple[Projects, Drafts, Sessions]:
     """The projects, drafts and intern sessions for the workspace in ``home``.
 
@@ -156,4 +179,4 @@ def open_stores(home: Path, projects_home: Path | None = None) -> tuple[Projects
     return projects, drafts, SessionStore(Path(os.environ.get("DCLAB_INTERN_HOME") or (projects.home.parent / "intern")))
 
 
-__all__ = ["Document", "MemoryBases", "Projects", "Drafts", "Sessions", "TeamWork", "open_memory_bases", "open_stores", "open_team_work"]
+__all__ = ["Document", "MemoryBases", "Projects", "Drafts", "Sessions", "TeamWork", "Teams", "open_memory_bases", "open_stores", "open_team_work", "open_teams"]

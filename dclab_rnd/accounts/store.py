@@ -16,6 +16,7 @@ from typing import Any
 
 import sqlalchemy as sa
 
+from ..storage.teams import leave_teams
 from .roles import ROLES
 
 def _number(name: str, default: float) -> float:
@@ -168,6 +169,7 @@ class Accounts:
             c.execute(sa.delete(t).where(t.c.workspace_id == workspace_id, t.c.user_id == user_id))
             c.execute(sa.delete(s).where(s.c.workspace_id == workspace_id, s.c.user_id == user_id))  # signed out of it now
             c.execute(sa.update(k).where(k.c.workspace_id == workspace_id, k.c.user_id == user_id).values(revoked=True))  # and its tokens end
+            leave_teams(c, workspace_id, user_id)  # W2: and its teams, in the same transaction
 
     def sync_memberships(self, user_id: str, wanted: dict[str, str], managed: set[str]) -> list[tuple[str, str | None, str | None]]:
         """Set a user's roles in the ``managed`` workspaces to ``wanted`` (absent: no membership), in one transaction.
@@ -187,6 +189,7 @@ class Accounts:
                     c.execute(sa.delete(t).where(t.c.workspace_id == workspace_id, t.c.user_id == user_id))
                     c.execute(sa.delete(s).where(s.c.workspace_id == workspace_id, s.c.user_id == user_id))
                     c.execute(sa.update(k).where(k.c.workspace_id == workspace_id, k.c.user_id == user_id).values(revoked=True))
+                    leave_teams(c, workspace_id, user_id)
                 else:
                     if new not in ROLES:
                         raise AccountError(f"the role is one of {', '.join(ROLES)}")

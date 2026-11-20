@@ -1,0 +1,203 @@
+{
+  "package": "teams-and-membership",
+  "title": "W2: teams beside the roles, who is in them, and three new permissions",
+  "date": "2026-11-20",
+  "request": "Build package W2 of the collaborative workspace: a team entity (Business, Data Science, ML Engineering, Sales, Marketing and others) with membership, on files and PostgreSQL, owner-only routes to manage teams, and the permissions contribute, approve_decision and contact_customers. A role says what a person may do; a team says whom an agent represents.",
+  "spec": "Migration 0027 (team: id, workspace_id, name, kind, created, name unique per workspace; team_membership: team_id, user_id, since, primary key (team_id, user_id)); storage/teams.py FileTeams and PgTeams behind the Teams Protocol and open_teams (create_team, teams, team, add_member, remove_member, remove_user, teams_of, is_member, counts); routes GET/POST /api/workspace/teams, POST /api/workspace/teams/{team_id}/members, DELETE /api/workspace/teams/{team_id}/members/{user_id}; PERMISSIONS contribute (owner, data_scientist), approve_decision (owner), contact_customers (nobody); leaving a workspace leaves its teams; storage migrate moves a folder's teams.",
+  "plan": [
+    "Read the storage Protocol pattern (memory bases, team work), the accounts guard, roles and members routes",
+    "Migration 0027 after 0026 and the two tables in storage/models.py",
+    "FileTeams and PgTeams with one contract, open_teams and the Teams Protocol",
+    "Permissions in accounts/roles.py; route words and SPECIAL entries in accounts/guard.py",
+    "The teams router, its request and response models, the regenerated client",
+    "Tests on files and PostgreSQL: a person in two teams, removal, a viewer refused, another workspace seeing nothing",
+    "Adversarial review by dclab-reviewer, fixes, record, commit after W4"
+  ],
+  "decisions": [
+    {
+      "decision": "Teams are a new table beside membership, not new roles",
+      "why": "the owner's decision: a role is what a person may do, a team is whom an agent represents; the CHECK on membership.role stays as it is"
+    },
+    {
+      "decision": "kind is a lowercase word checked by a pattern, the five plan kinds as labels, no CHECK",
+      "why": "kind is configuration; a workspace may add a Finance team without a migration"
+    },
+    {
+      "decision": "The routes live under /api/workspace/teams, not /api/teams",
+      "why": "GET /api/teams already lists the 28.8 team walks; the members routes are under /api/workspace"
+    },
+    {
+      "decision": "Listing teams is read for every member; creating teams and placing people is admin (the owner)",
+      "why": "agents and pages of every role need to know which teams exist; managing them is the owner's"
+    },
+    {
+      "decision": "A member is an account and a member of the workspace; without sign-in people are not placed (409), teams are still made",
+      "why": "without accounts the local owner is the only person, so a membership would name nobody; the agents still need teams"
+    },
+    {
+      "decision": "Leaving a workspace removes the person's teams there in the same transaction (remove_member and sync_memberships)",
+      "why": "a team must never keep someone who can no longer act in the workspace"
+    },
+    {
+      "decision": "Team changes are audited as role_change rows with team_* moves; no experience event yet",
+      "why": "the audit kinds and the experience vocabulary are closed lists; the experience kinds live in dclab_core, outside this package's files"
+    },
+    {
+      "decision": "No rename or delete route in W2",
+      "why": "the package lists create, list, add, remove, teams of a user and is_member; renaming and deleting a team is left for the owner to ask"
+    }
+  ],
+  "change": "dclab_rnd/storage/migrations/versions/0027_teams.py (new), dclab_rnd/storage/models.py (team, team_membership), dclab_rnd/storage/teams.py (new), dclab_rnd/storage/__init__.py (Teams, open_teams), dclab_rnd/storage/migrate.py (_teams), dclab_rnd/accounts/roles.py, dclab_rnd/accounts/guard.py, dclab_rnd/accounts/store.py (leave_teams), dclab_rnd/agentic/routers/teams.py (new) and routers/__init__.py, dclab_rnd/agentic/api_models.py, generated web/src/api.js and static/app/js/api.js, docs/DATA_CATALOG.md and docs/data_catalog.json (generated), tests/test_teams.py (new).",
+  "findings": [
+    {
+      "id": "W2-1",
+      "source": "test",
+      "severity": "behaviour",
+      "verdict": "confirmed",
+      "defect": "A kind written with a space was accepted although the test expected a refusal.",
+      "scenario": "POST /api/workspace/teams with kind 'no way' answered 201 in test_without_sign_in_teams_are_made_but_people_are_not_placed.",
+      "cause": "normal_kind turns spaces and hyphens into underscores on purpose, so 'no way' is the valid kind 'no_way'; the test's example was wrong, not the code.",
+      "fix": "the test uses 'ops!' as its invalid kind",
+      "test": "tests/test_teams.py FileTeamsTests.test_without_sign_in_teams_are_made_but_people_are_not_placed"
+    },
+    {
+      "id": "W2-2",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "verdict": "confirmed",
+      "defect": "The data catalog could not be built after the team table was added.",
+      "scenario": "python -m dclab_rnd.data_catalog stopped with 'table team has no description'; test_data_catalog errored four times.",
+      "cause": "data_catalog reads a table's description only from a comment on its sa.Table( line; the team table's description was in a block comment above it.",
+      "fix": "a comment on the sa.Table( line of team and team_membership; the catalog regenerated",
+      "test": "tests/test_data_catalog.py"
+    },
+    {
+      "id": "W2-3",
+      "source": "reviewer",
+      "severity": "latent",
+      "verdict": "confirmed",
+      "defect": "Migration 0027 names 0026 as its parent while 0026 (W4) was uncommitted.",
+      "scenario": "Committing W2 alone would make every upgrade fail with 'Can't locate revision 0026'.",
+      "cause": "W2 and W4 were built at the same time in one tree; W4's migration was not in HEAD.",
+      "fix": "W2 is committed after W4's commit, as agreed with the session building W4; the chain stays 0024, 0026, 0027",
+      "test": "tests/test_storage_postgres.py (models against migrations on a fresh database)"
+    },
+    {
+      "id": "W2-4",
+      "source": "reviewer",
+      "severity": "latent",
+      "verdict": "confirmed",
+      "defect": "The store placed an account in a team without checking it belongs to the workspace, and a removal racing the insert could leave a membership behind.",
+      "scenario": "A non-route caller (an agent tool) adds an outsider; or the owner adds Dana while another request removes Dana from the workspace: the route check passes, leave_teams deletes nothing, then the insert lands.",
+      "cause": "The workspace check was only in the route, in another transaction.",
+      "fix": "PgTeams.add_member selects the membership row FOR KEY SHARE in the insert's transaction and refuses a person who is not a member; a concurrent removal waits and its leave_teams sees the new row",
+      "test": "tests/test_teams.py PgTeamsTests.test_a_member_is_an_account_and_leaving_the_workspace_leaves_its_teams"
+    },
+    {
+      "id": "W2-5",
+      "source": "reviewer",
+      "severity": "privacy",
+      "verdict": "confirmed",
+      "defect": "A broken teams file put the server's absolute path in an HTTP answer, and invalid JSON was a 500.",
+      "scenario": "A hand-edited teams.json of the wrong shape: POST /api/workspace/teams answered 422 with '/var/folders/.../teams/teams.json is not a teams file'.",
+      "cause": "FileTeams._load put the path in the TeamError text, and JSONDecodeError was not caught.",
+      "fix": "BrokenTeamsFile with no path in its message for any unreadable file; the routes answer 503; the file is never overwritten",
+      "test": "tests/test_teams.py FileTeamsTests.test_the_file_is_in_the_workspace_folder_and_a_broken_one_is_never_overwritten and test_without_sign_in_teams_are_made_but_people_are_not_placed"
+    },
+    {
+      "id": "W2-6",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "verdict": "confirmed",
+      "defect": "The two stores compared team names differently.",
+      "scenario": "With 'Straße' saved, 'STRASSE' was refused on files (casefold) and accepted on PostgreSQL (lower).",
+      "cause": "FileTeams used str.casefold, PgTeams used SQL lower().",
+      "fix": "PgTeams reads the workspace's names under its advisory lock and compares with casefold, as the files do",
+      "test": "tests/test_teams.py _Contract.test_names_and_kinds on both stores"
+    },
+    {
+      "id": "W2-7",
+      "source": "reviewer",
+      "severity": "gap",
+      "verdict": "confirmed",
+      "defect": "storage migrate did not move a file workspace's teams.",
+      "scenario": "Teams made without sign-in on files were lost when the workspace moved to PostgreSQL.",
+      "cause": "migrate.py had no step for teams/teams.json.",
+      "fix": "_teams moves every team with its id, name, kind and time once (import_team skips an id or name already there); memberships are counted, not moved, since a file workspace has no accounts",
+      "test": "tests/test_teams.py PgTeamsTests.test_storage_migrate_moves_a_folders_teams_once"
+    },
+    {
+      "id": "W2-8",
+      "source": "reviewer",
+      "severity": "gap",
+      "verdict": "open",
+      "defect": "Team changes do not reach the session record (experience log).",
+      "scenario": "Creating a team or placing a person writes an audit row only; the experience log has no team event.",
+      "cause": "dclab_core.experience.KINDS is a closed vocabulary and audit role_change rows are not mirrored into it; dclab_core is outside this package's files.",
+      "fix": "left open: add team.created, team.member_added and team.member_removed (ids only) to dclab_core.experience.KINDS in a later package and emit them from the routes",
+      "test": "none yet"
+    },
+    {
+      "id": "W2-9",
+      "source": "reviewer",
+      "severity": "gap",
+      "verdict": "confirmed",
+      "defect": "Tests did not cover the store's refusal of an outsider, leaving the workspace over HTTP, the casefold parity or a broken file.",
+      "scenario": "The first test file passed while findings W2-4, W2-5 and W2-6 were possible.",
+      "cause": "The tests followed the happy paths of the routes.",
+      "fix": "tests for each: outsider refused by the store, DELETE /api/workspace/members removes the person's teams, Straße/STRASSE on both stores, broken files on the store and over HTTP",
+      "test": "tests/test_teams.py"
+    },
+    {
+      "id": "W2-10",
+      "source": "reviewer",
+      "severity": "gap",
+      "verdict": "open",
+      "defect": "No route renames or deletes a team.",
+      "scenario": "A mistyped team name stays, since names are unique per workspace.",
+      "cause": "The package listed create, list, add and remove member only.",
+      "fix": "left for the owner to ask for",
+      "test": "none"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "tests/test_teams.py on files and on PostgreSQL",
+      "gate": "every test passes with no skip on both stores, run through tests/run_parallel.py with and without --pg",
+      "fixed_before_run": true,
+      "result": "15 tests passed on files and 15 on PostgreSQL (0 skipped); test_accounts 19 and test_storage_migrate 9 passed on PostgreSQL",
+      "verdict": "pass",
+      "cost_eur": 0.0,
+      "next": "W3 team agents on the shared problem",
+      "limits": [
+        "no concurrency test runs a removal and an insert at the same moment; the lock is shown by reading the code",
+        "no model is involved in W2"
+      ]
+    },
+    {
+      "name": "generated client is fresh",
+      "gate": "python -m dclab_rnd.agentic.web.build --check exits 0",
+      "fixed_before_run": true,
+      "result": "passed after the build added listTeams, createTeam, addTeamMember, removeTeamMember and four types",
+      "verdict": "pass",
+      "cost_eur": 0.0,
+      "next": "a page for teams when the owner asks",
+      "limits": [
+        "no page calls the new routes yet"
+      ]
+    }
+  ],
+  "outcome": "Teams exist beside the roles on files and PostgreSQL; the owner makes them and places members of the workspace in them; every member can list them; another workspace sees none of them; leaving a workspace leaves its teams; contribute, approve_decision and contact_customers are in the permission table (nobody may contact customers by default).",
+  "lessons": [
+    "A check the route makes and the store does not is a check another caller skips; the rule belongs in the store's transaction.",
+    "When two stores must behave the same, compare names with the same function in both, not a database function that looks equal.",
+    "An error message that reaches an HTTP answer must not hold a server path.",
+    "A migration chain shared with parallel work must be committed in its order; agree the order before committing."
+  ],
+  "risks": [
+    "Team changes are audited but not in the experience log until the vocabulary has team events (W2-8).",
+    "Team names cannot be changed or a team removed through the API (W2-10).",
+    "The new permissions are in the table only; no route or agent demands contribute, approve_decision or contact_customers yet (W3, W5)."
+  ],
+  "commits": []
+}

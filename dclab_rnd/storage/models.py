@@ -54,6 +54,23 @@ membership = sa.Table(
     sa.Column("role", sa.String(32), nullable=False),
     sa.CheckConstraint("role in ('owner', 'data_scientist', 'reviewer', 'viewer')", name="role"))
 
+# W2 of the collaborative workspace (storage/teams.py, migration 0027): teams beside the roles. ``kind`` is configuration
+# (storage/teams.KINDS, or another), never a CHECK.
+team = sa.Table(  # a team of a workspace: whom an agent represents (a role says what a person may do; a team does not)
+    "team", metadata, _id(),
+    sa.Column("workspace_id", sa.String(64), sa.ForeignKey("workspace.id", ondelete="CASCADE"), nullable=False),
+    sa.Column("name", sa.Text, nullable=False),
+    sa.Column("kind", sa.String(64), nullable=False),
+    sa.Column("created", TIME, nullable=False, server_default=NOW),
+    sa.UniqueConstraint("workspace_id", "name"))
+
+team_membership = sa.Table(  # a person in a team, one row a (team, person); leaving the workspace removes it (accounts/store.py)
+    "team_membership", metadata,
+    sa.Column("team_id", sa.String(64), sa.ForeignKey("team.id", ondelete="CASCADE"), primary_key=True),
+    sa.Column("user_id", sa.String(64), sa.ForeignKey("app_user.id", ondelete="CASCADE"), primary_key=True),
+    sa.Column("since", TIME, nullable=False, server_default=NOW),
+    sa.Index("ix_team_membership_user_id", "user_id"))
+
 project = sa.Table(
     "project", metadata, _id(),
     sa.Column("workspace_id", sa.String(64), sa.ForeignKey("workspace.id", ondelete="CASCADE"), nullable=False),
