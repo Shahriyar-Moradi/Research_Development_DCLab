@@ -40,8 +40,19 @@ def chain(projects: Any, project_id: str | None, problem_id: str | None = None, 
         session_id=session_id,
         require_problem=False,
         auto_create_legacy_problem=False,
+        teams=_teams(projects),
     )
-    return resolved.chain(include_personal=True, include_session=bool(session_id))
+    return resolved.chain(include_personal=True, include_session=bool(session_id))  # no team: read through team_chain only
+
+
+def _teams(projects: Any) -> Any:
+    """The workspace's W2 teams behind a project store (W6), or None."""
+    from .scope import teams_store
+
+    try:
+        return teams_store(workspace_home(projects))
+    except Exception:  # noqa: BLE001 - no folder behind this store: no team
+        return None
 
 
 def lessons_read(projects: Any) -> list:
@@ -69,6 +80,7 @@ def _recall(box: Any, question: str, project_id: str | None = None) -> dict[str,
             project_id=project_id,
             require_problem=False,
             auto_create_legacy_problem=False,
+            teams=_teams(box.projects),
         )
     except (AccessDenied, AmbiguousProblemError) as exc:
         return {"error": str(exc), "items": [], "found": 0}
@@ -81,6 +93,7 @@ def _recall(box: Any, question: str, project_id: str | None = None) -> dict[str,
                 resolved = resolve_scope(
                     workspace_id=str(ws), projects=box.projects, project_id=project_id,
                     problem_id=active_probs[0]["problem_id"], require_problem=True, auto_create_legacy_problem=False,
+                    teams=_teams(box.projects),
                 )
         except Exception:  # noqa: BLE001
             pass

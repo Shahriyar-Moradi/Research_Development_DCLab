@@ -2,8 +2,8 @@
 
 A :class:`MemoryItem` is one line an agent may remember: a **kind** (``fact``: what is true about a person, a workspace
 or a project; ``episode``: what happened; ``know_how``: how to work; ``knowledge``: rules and evidence for everyone; the
-working memory of a conversation is never stored), a **scope** (``global`` → ``workspace`` → ``person`` → ``project``
-→ ``session``, wide to narrow) and its id, the **text** (one line, at most :data:`TEXT` characters, no control
+working memory of a conversation is never stored), a **scope** (``global`` → ``workspace`` → ``person`` → ``team`` →
+``project`` → ``problem`` → ``session``, wide to narrow) and its id, the **text** (one line, at most :data:`TEXT` characters, no control
 character: a stored line can never pass for an instruction of its own), its **source** (no source, no item), who wrote
 it, a **status** (``draft`` → ``active`` → ``retired``), the item it corrects, counters only code moves, and an
 optional vector named by the model that made it.
@@ -31,11 +31,11 @@ from .contracts import CONTRACTS, Contract, Versioned, _version
 TEXT = 300                 # characters of one item
 BRIEF_TOKENS = 800         # tokens of the brief an agent reads at the start of a session
 KINDS = ("fact", "episode", "know_how", "knowledge")
-SCOPES = ("global", "workspace", "person", "project", "problem", "session")  # wide to narrow
+SCOPES = ("global", "workspace", "person", "team", "project", "problem", "session")  # wide to narrow
 STATUSES = ("draft", "active", "retired")
 GLOBAL_KINDS = ("know_how", "knowledge")  # DCLab's own: never a fact about one person or project
 Kind = Literal["fact", "episode", "know_how", "knowledge"]
-Scope = Literal["global", "workspace", "person", "project", "problem", "session"]
+Scope = Literal["global", "workspace", "person", "team", "project", "problem", "session"]
 Status = Literal["draft", "active", "retired"]
 ID = r"^M-[0-9a-f]{12}$"
 
@@ -74,6 +74,17 @@ def problem_scope_id(workspace_id: str, project_id: str, problem_id: str) -> str
     return f"{ws}:{proj}:{prob}"
 
 
+def team_scope_id(workspace_id: str, team_id: str) -> str:
+    """Canonical scope id for a team's own memory (its working notes, its draft exceptions): the workspace and the team.
+    A team's items are read only by its members (the host checks membership); a shared summary never holds them."""
+    ws, team = str(workspace_id or "").strip(), str(team_id or "").strip()
+    if not (ws and team):
+        raise ValueError("team_scope_id requires non-empty workspace_id and team_id")
+    if ":" in ws or ":" in team:
+        raise ValueError("scope id segments may not contain ':'")
+    return f"{ws}:{team}"
+
+
 def item_id(kind: str, scope: str, scope_id: str, text: str) -> str:
     return "M-" + hashlib.sha256(f"{kind}:{scope}:{scope_id}:{_norm(text)}".encode()).hexdigest()[:12]
 
@@ -85,10 +96,10 @@ class Counters(Contract):
 
 
 class MemoryItem(Versioned):
-    """One remembered line (v2: adds the ``problem`` scope while keeping all v1 items readable)."""
+    """One remembered line (v3: adds the ``team`` scope; v2 added ``problem``; every v1 and v2 item reads unchanged)."""
 
-    schema_version: Literal["dclab_core.memory_item.v2"] = _version("memory_item", 2)
-    READS: ClassVar[frozenset[str]] = frozenset({"dclab_core.memory_item.v1"})
+    schema_version: Literal["dclab_core.memory_item.v3"] = _version("memory_item", 3)
+    READS: ClassVar[frozenset[str]] = frozenset({"dclab_core.memory_item.v1", "dclab_core.memory_item.v2"})
     id: str = Field(pattern=ID)
     kind: Kind
     scope: Scope
@@ -109,7 +120,7 @@ class MemoryItem(Versioned):
     @classmethod
     def read(cls, document: Any):
         data = json.loads(document) if isinstance(document, (str, bytes)) else dict(document)
-        if data.get("schema_version") == "dclab_core.memory_item.v1":
+        if data.get("schema_version") in cls.READS:  # an older item: the same fields, a narrower set of scopes
             data = {**data, "schema_version": cls.model_fields["schema_version"].default}
         return super().read(data)
 
@@ -281,5 +292,5 @@ def retire(item: MemoryItem, by: str | None = None) -> MemoryItem:
 CONTRACTS["memory_item"] = MemoryItem
 CONTRACTS["memory_brief"] = Brief
 
-__all__ = ["TEXT", "BRIEF_TOKENS", "KINDS", "SCOPES", "STATUSES", "GLOBAL_KINDS", "tokens", "problem_scope_id", "item_id", "Counters",
+__all__ = ["TEXT", "BRIEF_TOKENS", "KINDS", "SCOPES", "STATUSES", "GLOBAL_KINDS", "tokens", "problem_scope_id", "team_scope_id", "item_id", "Counters",
            "MemoryItem", "Brief", "new", "named", "check", "resolve", "select", "cited", "counted", "retire"]

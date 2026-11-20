@@ -1,0 +1,166 @@
+{
+  "package": "team-workspace-screens",
+  "title": "W8: the team screens, a Teams tab with the thread, the task page, the report, the shared handoff history and the agent's job",
+  "date": "2026-11-20",
+  "request": "Build package W8 (screens) of the collaborative workspace plan: a team thread with a composer that can ask another team and live updates over SSE; a task page (requested output, done criteria, actions with simulated/denied/failed told apart, evidence, remaining work, who owes the next response); a report with the answer first and folded details, Simulated marked and superseded links both ways; the shared handoff history in the owner's exact form; the agent's job description. Fit them into the v6 UI, from the owner's prototypes in docs/ui-demos/team-workspace/, with DC.client, the kit tokens and a browser test at 1280 and 375 px.",
+  "spec": "dclab_rnd/agentic/web/src/views/team.html (the Teams tab: thread, task, report, history, job); core.js (PROJECT_VIEWS, a sixth project tab Teams, a sidebar entry Team inbox); ds.css (the tm- styles on --ts-* tokens); agentic/routers/team_threads.py two read-only routes: GET /api/projects/{project_id}/team-tasks/{task_id} (store.task_view, read like a thread by the teams on the task's chain or the owner, deliveries by name and state only) and GET /api/team-agents/{name} (agents.job_description, by agent name or team id); api_models TeamTaskView and TeamAgentJobDoc; guard.SPECIAL entries; web/build.py VIEWS; the generated client and static/app; tests/test_team_screens.py; scripts/browser_e2e.py check_teamwork.",
+  "plan": [
+    "Read the plan's W8, the owner's report fields and acceptance checks, the two prototypes and the delivery preview.",
+    "Find where team data is: thread routes exist; the task view (store.task_view) and job_description had no route: add two read-only routes.",
+    "Place the screens in v6: a sixth project tab Teams and a Team inbox entry in the sidebar.",
+    "Write the view: inbox, thread with composer and SSE, task page, report, history, job.",
+    "Route tests on files and PostgreSQL, page source tests, a browser check that drives a real round trip and the food walkthrough at 1280 and 375 px."
+  ],
+  "decisions": [
+    {
+      "decision": "A sixth project tab named Teams, plus a Team inbox entry in the sidebar's Workspace group, both opening the same page.",
+      "why": "Team threads belong to a project's problems, so they are a project page; they are daily conversation, not a step of the Brief, so hiding them in the Brief tab's picker would make them hard to find. The sidebar entry is the inbox across projects. 'The team' already names the Home understanding walk, so the tab says Teams."
+    },
+    {
+      "decision": "The task page's route is read like a thread: a member of a team on the task's chain (requester and owner of the task and every task above it) or the owner.",
+      "why": "Business must open the specialist tasks its brief joined; a team outside the chain (Sales) sees only the shared history, never a task's actions."
+    },
+    {
+      "decision": "Deliveries are shown by kind, teams and state only.",
+      "why": "Their words and thread ids are a team's; the shared history already gives the first line to every reader."
+    },
+    {
+      "decision": "The history is drawn from the API's own lines, in a list without a second numbering, with the ' · not delivered: X' mark highlighted.",
+      "why": "The owner asked for exactly 'Shared handoff history · N' and '1. Business → Data Science · …'; the page must not re-word it."
+    },
+    {
+      "decision": "Deep links #team/<thread id> and #team/task:<task id>, without panes.",
+      "why": "The router passes the second part of the hash; a page with no panes leaves it alone, so a task can be linked and a reload returns to it."
+    },
+    {
+      "decision": "The browser check plays the food walkthrough through the server's own worker (the seed uses the server's job store), never a second pump.",
+      "why": "The worker's recovery tick requeues any pending row; a second deliverer in another process would race it."
+    }
+  ],
+  "change": "Added the Teams tab (views/team.html, core.js tab and sidebar entry, ds.css styles), two read-only routes with their models and guard entries, the regenerated client and build, tests/test_team_screens.py and the teamwork browser check; 'team' added to the build's and the browser test's page lists and to the unreadable check.",
+  "findings": [
+    {
+      "id": "TW-1",
+      "source": "test",
+      "severity": "behaviour",
+      "verdict": "confirmed",
+      "defect": "The unreadable-project check clicked Try again on the Brief page, which was no longer the page on screen once Teams was appended after it.",
+      "scenario": "PROJECT_PAGES ended with 'team'; the loop left #team visible; the click on #view-brief [data-state-retry] timed out after 30 s.",
+      "cause": "The check assumes Brief is the last page it visits.",
+      "fix": "Teams is placed before Brief in PROJECT_PAGES, with a comment saying why.",
+      "test": "make browser-test --only unreadable: 12 project pages hide the sample and Try again recovers."
+    },
+    {
+      "id": "TW-2",
+      "source": "self",
+      "severity": "behaviour",
+      "verdict": "confirmed",
+      "defect": "A task with a report but no evidence said 'nothing has been reported on this task'.",
+      "scenario": "The denied dispatch: a partial report exists, its evidence list is empty; the Evidence section claimed no report.",
+      "cause": "The empty text did not look at whether a report existed.",
+      "fix": "It now says the report names no evidence when a report exists.",
+      "test": "Seen on the browser check's screenshot; the denied task's page."
+    },
+    {
+      "id": "TW-3",
+      "source": "test",
+      "severity": "flaky",
+      "verdict": "confirmed",
+      "defect": "The route tests could race the app's worker when the walkthrough was pumped after the test client started.",
+      "scenario": "seed_food with a scratch job store while the TestClient's worker requeues pending rows on its recovery tick.",
+      "cause": "Two deliverers for the same outbox rows in one workspace.",
+      "fix": "The walkthrough is played before the client enters (no worker yet); the browser check uses the server's job store and only waits.",
+      "test": "tests/test_team_screens.py FileLocalTests."
+    },
+    {
+      "id": "TW-4",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "verdict": "confirmed",
+      "defect": "Leaving the Teams tab while a thread was still being read left a live stream open on a page no longer shown.",
+      "scenario": "Open #team/<thread>, go to Home before the thread's read answers: the read finishes, listen() opens an EventSource that stays open.",
+      "cause": "The hashchange handler only closed a stream already open; the read under way kept its generation and opened one after.",
+      "fix": "Leaving bumps the page's generation and stops the stream; listen() returns when the page is not shown and closes any earlier stream first.",
+      "test": "browser check teamwork: the thread's read is held, the page left, the read released: no team-thread EventSource is open; test_team_screens checks both guards."
+    },
+    {
+      "id": "TW-5",
+      "source": "reviewer",
+      "severity": "gap",
+      "verdict": "confirmed",
+      "defect": "The chain rule for reading a task was not tested with sign-in.",
+      "scenario": "Data Science delegates to ML Engineering: nothing showed that Business reads the child, ML Engineering is refused the parent and Sales the child.",
+      "cause": "The signed-in test covered only a top-level task.",
+      "fix": "A test with Mia in an ML Engineering team and a delegated child task.",
+      "test": "test_team_screens SignedInTaskAccessTests.test_a_delegated_task_is_read_up_its_chain_never_down_it_nor_by_another_team, on files and with --pg."
+    },
+    {
+      "id": "TW-6",
+      "source": "reviewer",
+      "severity": "privacy",
+      "verdict": "confirmed",
+      "defect": "A task whose problem was deleted or out of reach answered with the problem's refusal, not the task's, so the answer told that the task exists.",
+      "scenario": "GET a task id under a deleted problem: 403 'Not yours to read' instead of the 403 a missing task gets.",
+      "cause": "The second scope check (the task's problem) raised its own detail.",
+      "fix": "That check's refusal is mapped to 'Not your team's task'.",
+      "test": "The route's refusals share one answer (test_another_projects_task_and_a_missing_one_get_the_same_refusal)."
+    },
+    {
+      "id": "TW-7",
+      "source": "reviewer",
+      "severity": "latent",
+      "verdict": "confirmed",
+      "defect": "A child's owner label was put into the page's markup without escaping in the remaining-work list.",
+      "scenario": "A team label with markup characters would be drawn as HTML.",
+      "cause": "One template string missed DC.esc.",
+      "fix": "Wrapped in DC.esc.",
+      "test": "Seen in the source; the browser check draws the remaining work of the dispatch."
+    },
+    {
+      "id": "TW-8",
+      "source": "test",
+      "severity": "behaviour",
+      "verdict": "confirmed",
+      "defect": "The Teams tab was 207 to 229 px wider than a 375 px screen with a dispatch task open.",
+      "scenario": "The specialist tasks' one-line questions (nowrap) sized implicit grid columns to their full width.",
+      "cause": "Grids without a column template take their content's minimum width.",
+      "fix": "The page's grids and lists use minmax(0, 1fr) columns and min-width: 0.",
+      "test": "browser checks teamwork and mobile at 375 px."
+    }
+  ],
+  "measurements": [
+    {
+      "name": "browser checks teamwork, pages, mobile, unreadable (installed Chrome)",
+      "gate": "every check passes",
+      "fixed_before_run": true,
+      "result": "teamwork and mobile pass after the review's fixes (the leave check included); pages and unreadable passed before them",
+      "verdict": "pass",
+      "cost_eur": 0.0,
+      "next": "make check-quick before the commit",
+      "limits": [
+        "The other browser checks were not run in this session.",
+        "No model: the deterministic team agents only."
+      ]
+    },
+    {
+      "name": "unit tests test_team_screens, test_web_client, test_web_build",
+      "gate": "every test passes, none skipped",
+      "fixed_before_run": true,
+      "result": "21 tests pass (the PostgreSQL access test included)",
+      "verdict": "pass",
+      "cost_eur": 0.0,
+      "next": "",
+      "limits": []
+    }
+  ],
+  "outcome": "The Teams tab shows a team's thread with live replies, the task page, the report with the answer first, the owner's shared handoff history and the agent's job; a Business member reads what was decided, why, who acts next and what changed from the thread and its task.",
+  "lessons": [
+    "A browser check that lists pages may depend on their order: append a page only after reading how the list is used.",
+    "Seed an outbox scenario through the server's own worker, or before any worker starts; never run a second deliverer beside it."
+  ],
+  "risks": [
+    "The inbox loads every thread of the person; a workspace with many threads needs paging.",
+    "The task page reveals a task's actions to every team on its chain, including specialist outputs; a stricter rule may be wanted later."
+  ],
+  "commits": []
+}

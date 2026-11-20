@@ -1,4 +1,4 @@
-"""Active, versioned resumable summary per project/problem and visibility class (Package A5).
+"""Active, versioned resumable summary per project/problem and visibility class (Package A5; the team class is W6).
 
 Stores a compact deterministic projection (``<home>/memory/summaries/`` on files, the ``memory_summary`` table when
 DCLAB_DATABASE_URL is set: ``dclab_rnd.storage.open_memory_bases``) keyed by
@@ -6,6 +6,11 @@ DCLAB_DATABASE_URL is set: ``dclab_rnd.storage.open_memory_bases``) keyed by
 project and problem facts, decisions, open questions, pending approvals, provisional advice, and omitted
 counts. Personal preferences are never persisted in a shared summary; they are applied as a viewer-specific
 overlay only after authorization.
+
+A team's summary (visibility class ``team:<team id>``, :func:`read_team_summary`) is built from that team's own base
+only (its working notes, its draft exceptions) and read only by the team's members. The shared summary is built from the
+project and problem bases, so it never holds a team's fact: a team shares one on purpose through
+``bases.share_team_fact``, which writes it into the problem base with its source.
 
 Publishing uses a compare-and-swap check against the monotonic source cursor so a late worker building from
 an older state can never overwrite a correction that arrived in the meantime.
@@ -29,6 +34,8 @@ from .scope import AccessDenied, AuthorizedScope
 
 from ..storage.memory_bases import SUMMARY_DIR  # noqa: E402 - where the files live, kept for callers
 SCHEMA_VERSION = "dclab.problem_summary.v1"
+SHARED = "shared"
+TEAM_CLASS = "team:"  # a team's own summary: ``team:<team id>``, for its members only
 REQUIRED_FIELDS = frozenset({"prediction_moment", "target", "exclusions", "forbidden", "split", "metric", "acceptance_criteria"})
 
 
@@ -365,6 +372,98 @@ def read_summary(
     return out
 
 
+def team_class(team_id: str) -> str:
+    """The visibility class of a team's own summary."""
+    return f"{TEAM_CLASS}{team_id}"
+
+
+def _team_cursor(base: Mapping[str, Any]) -> list[int]:
+    rev = int(base.get("revision") or 0)
+    total = len(base.get("active") or []) + len(base.get("drafts") or []) + len(base.get("retired") or [])
+    return [rev, total, len(base.get("retired") or [])]
+
+
+def build_team_summary(scope: AuthorizedScope, team_id: str, team_base: Mapping[str, Any], *,
+                       budget: int = BRIEF_TOKENS) -> dict[str, Any]:
+    """A team's own summary in this problem's context: its confirmed notes (corrections first), its pending drafts and
+    its recent episodes, under the token budget. Nothing from the project or problem bases (the shared summary has them)."""
+    lines: list[str] = []
+    facts: list[dict[str, Any]] = []
+    omitted = 0
+    active = sorted(base_entries(team_base, "active"), key=lambda e: (not e.get("correction"), str(e.get("updated_at") or "")))
+    for e in active:
+        tag = "decision" if e.get("kind") == "episode" else f"team:{e.get('field', 'fact')}@r{int(e.get('effective_revision') or 0)}"
+        line = f"- [{tag}{'*' if e.get('correction') else ''}] {e.get('text', '')}"
+        if tokens("\n".join([*lines, line])) <= budget:
+            lines.append(line)
+            facts.append({k: e.get(k) for k in ("entry_id", "item_id", "kind", "subject", "field", "text", "source", "author",
+                                                "correction", "effective_revision", "updated_at")})
+        else:
+            omitted += 1
+    drafts = []
+    for d in base_entries(team_base, "drafts"):
+        line = f"- [team draft:{d.get('field', 'proposal')}] {d.get('text', '')}"
+        if tokens("\n".join([*lines, line])) <= budget:
+            lines.append(line)
+            drafts.append({k: d.get(k) for k in ("entry_id", "item_id", "field", "text", "author", "uncertainty", "stale")})
+        else:
+            omitted += 1
+    text = "\n".join(lines)
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "workspace_id": scope.workspace_id,
+        "project_id": scope.project_id,
+        "problem_id": scope.problem_id,
+        "visibility_class": team_class(team_id),
+        "team_id": team_id,
+        "cursor": _team_cursor(team_base),
+        "team_revision": int(team_base.get("revision") or 0),
+        "active_facts": facts,
+        "active_fact_ids": [f["item_id"] for f in facts],
+        "pending_drafts": drafts,
+        "omitted_count": omitted,
+        "tokens": tokens(text),
+        "budget": budget,
+        "text": text,
+        "rebuilt_at": _now(),
+    }
+
+
+def base_entries(base: Mapping[str, Any], status: str) -> list[Mapping[str, Any]]:
+    return [e for e in (base.get(status) or []) if isinstance(e, Mapping)]
+
+
+def read_team_summary(home: Path, scope: AuthorizedScope, team_id: str, *, budget: int = BRIEF_TOKENS,
+                      auto_rebuild: bool = True) -> dict[str, Any]:
+    """A team's own summary, for its members only (AccessDenied for anyone else, the workspace's owner included: a team's
+    notes are its own). Cached per (workspace, project, problem, ``team:<id>``) and published by compare-and-swap on the
+    team base's cursor, as the shared summary is."""
+    from .bases import team_target
+
+    if not (scope.project_id and scope.problem_id):
+        raise AccessDenied("authorized project_id and problem_id are required for a team summary")
+    target = team_target(team_id)
+    base = read_base(home, scope, target)  # AccessDenied unless the person is in the team
+    cursor = _team_cursor(base)
+    key = _summary_key(scope.workspace_id, scope.project_id, scope.problem_id, team_class(team_id))
+    held = _store(home).summary(key)
+    if (isinstance(held, dict) and held.get("visibility_class") == team_class(team_id) and held.get("cursor") == cursor
+            and int(held.get("budget") or BRIEF_TOKENS) == budget):
+        return {**held, "fresh": True, "from_cache": True}
+    built = build_team_summary(scope, team_id, base, budget=budget)
+    if not auto_rebuild:
+        return {**built, "text": "", "active_facts": [], "pending_drafts": [], "fresh": False, "from_cache": False}
+
+    def live_check() -> Optional[dict[str, Any]]:
+        live = tuple(_team_cursor(read_base(home, scope, target)))
+        if tuple(cursor) < live:
+            return {"published": False, "reason": "stale_source_cursor", "candidate_cursor": list(cursor), "live_cursor": list(live)}
+        return None
+
+    _store(home).publish(key, built, before=live_check)
+    return {**built, "fresh": True, "from_cache": False}
+
+
 def invalidate_summary(home: Path, workspace_id: Optional[str], project_id: Optional[str], problem_id: Optional[str] = None) -> int:
     """Delete cached summaries affected by a base change so the next read rebuilds from current sources. Matched on the raw
     project (and problem) id: the folder is one workspace's, and its callers do not all name it alike (a file workspace's
@@ -419,5 +518,5 @@ __all__ = [
     "REQUIRED_FIELDS", "SCHEMA_VERSION", "SUMMARY_DIR",
     "build_from_snapshot", "capture_snapshot", "invalidate_summary",
     "publish_summary", "purge_summary", "purge_vectors_for_texts",
-    "read_summary", "refresh_summary",
+    "SHARED", "TEAM_CLASS", "build_team_summary", "read_summary", "read_team_summary", "refresh_summary", "team_class",
 ]

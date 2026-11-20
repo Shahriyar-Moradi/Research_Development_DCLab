@@ -8,13 +8,18 @@
                                                                             opens a question for that team)
     GET  /api/projects/{project_id}/team-threads/{thread_id}/events         its new messages, as server-sent events
     GET  /api/projects/{project_id}/problems/{problem_id}/handoffs          the problem's shared handoff history
+    GET  /api/projects/{project_id}/team-tasks/{task_id}                    W8: a task's page (actions, reports, next owner)
+    GET  /api/team-agents/{name}                                            W8: a team agent's job description
 
 A thread is its team's (``teamspace/threads.py``, :func:`threads.access`): its members read it and, when their role may
 write, post to it; the owner reads every one. Anyone else, and any thread of another project or workspace, gets 403 (a
 thread that does not exist gets the same answer, so a refusal says nothing about what exists). Every route first checks
 the project and problem as the memory routes do (``memory.scope.resolve_scope``: the workspace, a project's own member
 list). The handoff history is for every reader of the project: who asked whom and what came back, as the owner writes it
-(``1. Business → Data Science · Can we rank accounts …?``), never a thread's own messages. The routes' permissions are in
+(``1. Business → Data Science · Can we rank accounts …?``), never a thread's own messages. A task's page (W8) is read
+like a thread: by a member of a team on the task's chain (who asked it, who owns it, and the same of every task above
+it, so Business opens the specialist tasks its brief joined) or the owner; its deliveries are shown by name and state,
+never their words. The routes' permissions are in
 ``accounts/guard.SPECIAL``. Without sign-in the local owner reads and posts everywhere, as on every other route.
 """
 
@@ -30,11 +35,14 @@ from fastapi.responses import StreamingResponse
 
 from ...memory import scope as mem_scope
 from ...teamspace import stream, threads as th
-from ..api_models import HandoffHistoryDoc, Router, TeamMessageDoc, TeamMessagePost, TeamThreadDoc, TeamThreadOpen, TeamThreadView
+from ..api_models import (HandoffHistoryDoc, Router, TeamAgentJobDoc, TeamMessageDoc, TeamMessagePost, TeamTaskView, TeamThreadDoc,
+                          TeamThreadOpen, TeamThreadView)
 from ..services import Services, services
 
 router = Router()
 REFUSED = "Not your team's thread"
+TASK_REFUSED = "Not your team's task"
+CHAIN_MAX = 20  # how many tasks above a task its readers are looked for in
 
 
 def _who() -> Any:
@@ -61,7 +69,8 @@ def _scope(s: Services, project_id: str, problem_id: Optional[str] = None, *, wr
     """The project (and problem) as this person may reach them: 403 otherwise, whatever the reason."""
     try:
         return mem_scope.resolve_scope(workspace_id=mem_scope.workspace_of(s.projects), projects=s.projects, drafts=s.drafts,
-                                       project_id=project_id, problem_id=problem_id, require_write=write)
+                                       project_id=project_id, problem_id=problem_id, require_write=write,
+                                       teams=mem_scope.teams_store(s.store.home))  # W6: the person's teams; a thread reads team_chain(its team) only
     except (mem_scope.AccessDenied, mem_scope.AmbiguousProblemError, KeyError) as exc:
         detail = "Not yours to change" if write and "write permission" in str(exc) else "Not yours to read"
         raise HTTPException(403, detail) from None
@@ -254,4 +263,110 @@ async def problem_handoffs(project_id: str, problem_id: str, s: Services = Depen
         entries = open_team_work(s.store.home, projects=s.projects).handoff_history(project_id, problem_id)
         return {"project_id": project_id, "problem_id": problem_id, "count": len(entries),
                 "title": f"Shared handoff history · {len(entries)}", "entries": entries, "lines": history_lines(entries)}
+    return await asyncio.to_thread(run)
+
+
+# ---------------------------------------------------------------------------------------------------------- W8: the screens' reads
+def _chain_teams(work: Any, project_id: str, task: Any) -> list[str]:
+    """The teams on a task's chain: who asked it and who owns it, and the same of every task above it."""
+    names: list[str] = []
+    seen: set[str] = set()
+    current = task
+    for _ in range(CHAIN_MAX):
+        for name in (current.requester.team, current.owner_team):
+            if name not in names:
+                names.append(name)
+        parent = current.parent_task_id
+        if not parent or parent in seen:
+            break
+        seen.add(parent)
+        current = work.task(project_id, parent)
+        if current is None:
+            break
+    return names
+
+
+def _who_label(name: Any, task: Any) -> Optional[dict[str, Any]]:
+    """Who owes the next response, for people: a team by its name, or the person who asked."""
+    from ...teamspace import team_label
+
+    if not name:
+        return None
+    if task is not None and name == task.requester.member and name != task.requester.team:
+        return {"id": name, "kind": "person", "label": f"The person who asked ({team_label(task.requester.team)})"}
+    return {"id": name, "kind": "team", "label": team_label(str(name))}
+
+
+def _report_doc(report: Any) -> dict[str, Any]:
+    from ...teamspace import team_label
+
+    return {**report.model_dump(mode="json"), "id": report.id, "owner_label": team_label(report.owner)}
+
+
+def _task_doc(task: Any) -> dict[str, Any]:
+    from ...teamspace import team_label
+
+    return {**task.model_dump(mode="json"), "owner_label": team_label(task.owner_team), "requester_label": team_label(task.requester.team)}
+
+
+DELIVERY_SHOWN = ("id", "kind", "item_id", "status", "reason", "attempts", "created_at", "delivered_at")
+
+
+@router.get("/api/projects/{project_id}/team-tasks/{task_id}", response_model=TeamTaskView)
+async def read_team_task(project_id: str, task_id: str, s: Services = Depends(services)):
+    """W8: a task's page: what was asked and what counts as done, every action with its status, its reports at every revision
+    (the answer first; superseded revisions linked both ways), its children and their joined reports, and who owes the next
+    response. A member of a team on the task's chain reads it, and the owner; anyone else, and another project's or a missing
+    task, gets the same 403."""
+    def run() -> dict[str, Any]:
+        from ...teamspace import team_label
+        from ...teamspace.store import open_team_work
+
+        try:
+            _scope(s, project_id)
+        except HTTPException as refused:
+            raise HTTPException(403, TASK_REFUSED if refused.detail == "Not yours to read" else refused.detail) from None
+        work = open_team_work(s.store.home, projects=s.projects)
+        task = work.task(project_id, task_id)
+        if task is None:
+            raise HTTPException(403, TASK_REFUSED)
+        try:
+            _scope(s, project_id, task.problem_id)
+        except HTTPException:  # a problem deleted or out of reach: the same answer as a task that does not exist
+            raise HTTPException(403, TASK_REFUSED) from None
+        teams, who, auth_on = _teams(s), _who(), _auth_on()
+        keys = [th.team_key(teams, name)[0] for name in _chain_teams(work, project_id, task)]
+        if not any(th.access({"team": key}, who, teams, auth_on=auth_on) is not None for key in keys):
+            raise HTTPException(403, TASK_REFUSED)
+        view = work.task_view(project_id, task_id)
+        if view is None:
+            raise HTTPException(403, TASK_REFUSED)
+        deliveries = [{**{k: row.get(k) for k in DELIVERY_SHOWN}, "from_team": team_label(str(row.get("from_team"))),
+                       "to_team": team_label(str(row.get("to_team")))} for row in view["deliveries"]]
+        join = view["join"]
+        return {"project_id": project_id, "task": _task_doc(view["task"]), "children": [_task_doc(c) for c in view["children"]],
+                "actions": [a.model_dump(mode="json") for a in view["actions"]],
+                "reports": [_report_doc(r) for r in view["reports"]], "child_reports": [_report_doc(r) for r in view["child_reports"]],
+                "join": join.model_dump(mode="json") if join is not None else None,
+                "next_owner": _who_label(view["next_owner"], view["task"]), "deliveries": deliveries}
+    return await asyncio.to_thread(run)
+
+
+@router.get("/api/team-agents/{name}", response_model=TeamAgentJobDoc)
+async def team_agent_job(name: str, s: Services = Depends(services)):
+    """W8: a team agent's job description, by the agent's name (``data_science``, ``model:eta``) or a team's id (its kind's
+    agent): its responsibility, the actions it may take and what performs each, the report it owes and what it may never do."""
+    from dclab_core import team_work as tw
+
+    def run() -> dict[str, Any]:
+        from ...teamspace.agents import job_description
+
+        key = str(name or "").strip()
+        base = key.split(":")[0]
+        if base not in tw.DIRECTORY:
+            found = _teams(s).team(key)
+            base = key = str((found or {}).get("kind") or "")
+            if base not in tw.DIRECTORY:
+                raise HTTPException(404, "No such team agent")
+        return job_description(key)
     return await asyncio.to_thread(run)

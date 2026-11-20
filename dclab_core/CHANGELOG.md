@@ -4,6 +4,15 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.165.0 (2026-11-20)
+
+- `memory` (W6 of the collaborative workspace): `MemoryItem` v3 adds the `team` scope, between `person` and `project`
+  in `SCOPES` (wide to narrow): a team's own memory (its working notes, its draft exceptions), read only by its
+  members. `team_scope_id(workspace_id, team_id)` is its canonical scope id (`<workspace>:<team>`, no `:` inside a
+  part). `dclab_core.memory_item.v3` reads every v1 and v2 item unchanged (same fields; the id is still the hash of
+  kind, scope and words, so no id moves). A host decides who is a member; `resolve` shows team items only to a chain
+  that names the team, and a shared summary's chain never does.
+
 ## 0.164.0 (2026-11-20)
 
 - `team_work` (new, W1 of the collaborative workspace): the records and rules of work passed between team agents.

@@ -105,6 +105,8 @@ def review(store: MemoryStore, item_id: str, action: str, *, by: str, role: str 
            log: Any = None) -> MemoryItem:
     """A draft accepted, edited or rejected. Know-how needs a reviewer's role; a person's preference, that person or the owner."""
     draft = _draft(store, item_id)
+    if draft.scope == "team":  # W6: a team's draft is its own: confirmed only by a member, through bases.confirm_draft
+        raise PermissionError("a team's draft is confirmed by a member of that team, in the team's base (bases.confirm_draft)")
     if draft.scope == "person":  # a person's preference: that person confirms or edits it; the owner may only accept or reject it
         if not (draft.scope_id == by or (role == "owner" and action in ("accept", "reject"))):
             raise PermissionError("a person's preference is confirmed by that person (the owner may only accept or reject it)")

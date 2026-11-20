@@ -43,6 +43,7 @@ def _resolve(s: Services, *, project_id: str | None = None, problem_id: str | No
             require_write=require_write,
             require_problem=require_problem,
             auto_create_legacy_problem=require_write if auto_create_legacy is None else auto_create_legacy,
+            teams=mem_scope.teams_store(s),  # W6: the person's teams (their memory is read through team_chain only)
         )
     except mem_scope.AmbiguousProblemError as exc:
         raise HTTPException(409, {"error": "ambiguous_problem", "message": str(exc), "candidates": exc.candidates}) from None

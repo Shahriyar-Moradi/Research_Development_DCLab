@@ -376,6 +376,38 @@ class HandoffHistoryDoc(Doc):
     lines: list[Any] | None = None
 
 
+class TeamTaskView(Doc):
+    """W8: one team task as its page shows it: the task (requested output, done criteria, its status), its child tasks,
+    every action with its status (succeeded, simulated, denied, failed, skipped…), its reports at every revision (each with
+    ``id``; ``supersedes`` and ``superseded_by`` link revisions both ways), the children's joined reports, how the children
+    stand (``join``), who owes the next response (``next_owner``) and its deliveries (names and states, never their words)."""
+    project_id: Any = None
+    task: Any = None
+    children: list[Any] | None = None
+    actions: list[Any] | None = None
+    reports: list[Any] | None = None
+    child_reports: list[Any] | None = None
+    join: Any = None
+    next_owner: Any = None
+    deliveries: list[Any] | None = None
+
+
+class TeamAgentJobDoc(Doc):
+    """W8: a team agent's job description: who it represents, what it is responsible for, the actions it may take (each with
+    what performs it and whether it is available), the report it owes, what it reads and what it may never do."""
+    name: Any = None
+    kind: Any = None
+    identity: Any = None
+    responsibility: Any = None
+    actions: list[Any] | None = None
+    required_report: list[Any] | None = None
+    report_in_words: list[Any] | None = None
+    reads: list[Any] | None = None
+    may_never: list[Any] | None = None
+    forbidden: list[Any] | None = None
+    text: Any = None
+
+
 class ProblemCreate(Doc):
     name: Any = ""
     description: Any = ""

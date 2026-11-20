@@ -336,6 +336,19 @@
   /** @typedef {Object} TaskPlanConfirm
    *  @property {*=} answer
    */
+  /** @typedef {Object} TeamAgentJobDoc
+   *  @property {*=} name
+   *  @property {*=} kind
+   *  @property {*=} identity
+   *  @property {*=} responsibility
+   *  @property {(Array<*>|null)=} actions
+   *  @property {(Array<*>|null)=} required_report
+   *  @property {(Array<*>|null)=} report_in_words
+   *  @property {(Array<*>|null)=} reads
+   *  @property {(Array<*>|null)=} may_never
+   *  @property {(Array<*>|null)=} forbidden
+   *  @property {*=} text
+   */
   /** @typedef {Object} TeamCreate
    *  @property {*=} name
    *  @property {*=} kind
@@ -370,6 +383,17 @@
   /** @typedef {Object} TeamMessagePost
    *  @property {*=} text
    *  @property {(string|null)=} ask
+   */
+  /** @typedef {Object} TeamTaskView
+   *  @property {*=} project_id
+   *  @property {*=} task
+   *  @property {(Array<*>|null)=} children
+   *  @property {(Array<*>|null)=} actions
+   *  @property {(Array<*>|null)=} reports
+   *  @property {(Array<*>|null)=} child_reports
+   *  @property {*=} join
+   *  @property {*=} next_owner
+   *  @property {(Array<*>|null)=} deliveries
    */
   /** @typedef {Object} TeamThreadDoc
    *  @property {*=} id
@@ -618,6 +642,7 @@
     confirmTaskPlan: ["POST", "/projects/{project_id}/task-plan/confirm", ["project_id"], []],
     projectTeam: ["GET", "/projects/{project_id}/team", ["project_id"], []],
     projectTeamWalk: ["POST", "/projects/{project_id}/team", ["project_id"], []],
+    readTeamTask: ["GET", "/projects/{project_id}/team-tasks/{task_id}", ["project_id", "task_id"], []],
     readTeamThread: ["GET", "/projects/{project_id}/team-threads/{thread_id}", ["project_id", "thread_id"], ["after"]],
     teamThreadEvents: ["GET", "/projects/{project_id}/team-threads/{thread_id}/events", ["project_id", "thread_id"], ["after", "wait"]],
     postTeamMessage: ["POST", "/projects/{project_id}/team-threads/{thread_id}/messages", ["project_id", "thread_id"], []],
@@ -638,6 +663,7 @@
     studentsRegister: ["GET", "/students", [], []],
     studioStatus: ["GET", "/studio", [], []],
     syntheticTemplates: ["GET", "/synthetic/templates", [], []],
+    teamAgentJob: ["GET", "/team-agents/{name}", ["name"], []],
     myTeamThreads: ["GET", "/team-threads", [], ["project_id"]],
     teamSettings: ["GET", "/team/settings", [], []],
     setTeamSettings: ["PUT", "/team/settings", [], []],
@@ -1969,6 +1995,14 @@
    *  @returns {Promise<Doc>} */
   client.projectTeamWalk = (...args) => call('projectTeamWalk', args);
   client.path.projectTeamWalk = (...args) => build('projectTeamWalk', args).path;
+  /** GET /api/projects/{project_id}/team-tasks/{task_id}: Read Team Task
+   *  @param {string} project_id
+   *  @param {string} task_id
+   *  @param {{headers?: Object}} [opts]
+   *  @returns {Promise<TeamTaskView>} */
+  client.readTeamTask = (...args) => call('readTeamTask', args);
+  client.path.readTeamTask = (...args) => build('readTeamTask', args).path;
+  client.href.readTeamTask = (...args) => '/api' + build('readTeamTask', args).path;
   /** GET /api/projects/{project_id}/team-threads/{thread_id}: Read Team Thread
    *  @param {string} project_id
    *  @param {string} thread_id
@@ -2100,6 +2134,13 @@
   client.syntheticTemplates = (...args) => call('syntheticTemplates', args);
   client.path.syntheticTemplates = (...args) => build('syntheticTemplates', args).path;
   client.href.syntheticTemplates = (...args) => '/api' + build('syntheticTemplates', args).path;
+  /** GET /api/team-agents/{name}: Team Agent Job
+   *  @param {string} name
+   *  @param {{headers?: Object}} [opts]
+   *  @returns {Promise<TeamAgentJobDoc>} */
+  client.teamAgentJob = (...args) => call('teamAgentJob', args);
+  client.path.teamAgentJob = (...args) => build('teamAgentJob', args).path;
+  client.href.teamAgentJob = (...args) => '/api' + build('teamAgentJob', args).path;
   /** GET /api/team-threads: My Team Threads
    *  @param {{query?: {project_id?: *}, headers?: Object}} [opts]
    *  @returns {Promise<Array<TeamThreadDoc>>} */

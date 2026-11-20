@@ -357,9 +357,10 @@
   {
    "contract": "memory_item",
    "reads": [
-    "dclab_core.memory_item.v1"
+    "dclab_core.memory_item.v1",
+    "dclab_core.memory_item.v2"
    ],
-   "version": "dclab_core.memory_item.v2"
+   "version": "dclab_core.memory_item.v3"
   },
   {
    "contract": "metric_answer",
@@ -756,7 +757,7 @@
    "what": "A solved project from its problem to its report, one row per project: the card, the map, the routes, the stages run and the report's kept sentences, never a row of its table; only projects whose consent allows training, and none at all below the builder's minimum of projects (30.19)."
   }
  ],
- "dclab_core": "0.164.0",
+ "dclab_core": "0.165.0",
  "decision_points": [
   {
    "about": "Which tool does the agent call next?",
@@ -2684,7 +2685,8 @@
   {
    "emitted_by": [
     "dclab_rnd/orchestra/board.py",
-    "dclab_rnd/teamspace/store.py"
+    "dclab_rnd/teamspace/store.py",
+    "dclab_rnd/teamspace/threads.py"
    ],
    "example": "python -m dclab_rnd.experience search --kind team.handoff",
    "family": "team",
@@ -3416,6 +3418,22 @@
   {
    "append_only": false,
    "columns": [
+    "thread_id",
+    "seq",
+    "id",
+    "workspace_id",
+    "project_id",
+    "key",
+    "doc",
+    "created"
+   ],
+   "files": null,
+   "table": "team_message",
+   "what": "one message of a team thread, whole; never rewritten"
+  },
+  {
+   "append_only": false,
+   "columns": [
     "workspace_id",
     "project_id",
     "task_id",
@@ -3452,6 +3470,22 @@
    "files": null,
    "table": "team_task",
    "what": "one assignment (dclab_core.team_work.TeamTask); a status change checks ``version``"
+  },
+  {
+   "append_only": false,
+   "columns": [
+    "id",
+    "workspace_id",
+    "project_id",
+    "problem_id",
+    "team",
+    "message_seq",
+    "doc",
+    "created"
+   ],
+   "files": null,
+   "table": "team_thread",
+   "what": "a team's private conversation on one problem of a project"
   },
   {
    "append_only": false,

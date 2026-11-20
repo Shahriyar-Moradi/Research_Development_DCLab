@@ -13,11 +13,11 @@ from __future__ import annotations
 import contextlib
 import os
 import secrets
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from typing import Any, Callable, Mapping, Optional
 
-from dclab_core.memory import problem_scope_id
+from dclab_core.memory import problem_scope_id, team_scope_id
 
 from ..accounts.roles import PERMISSIONS, ROLES
 
@@ -67,6 +67,11 @@ def _same_workspace(recorded: Any, workspace_id: str) -> bool:
     return not stamp or stamp == "local" or stamp == str(workspace_id)
 
 
+# A team's memory is keyed on one fixed stamp, never on the workspace id the store answers with: a file workspace says
+# ``local`` and the same workspace moved to PostgreSQL (``storage migrate``, which copies items, bases and team ids as they
+# are) says ``w…``. The store is already one workspace's, and team ids are random per team, so the stamp only names the kind.
+TEAM_STAMP = "workspace"
+
 # Person, project and session scope ids stay the raw ids every writer has always used (a project's notes, the build's
 # hand-off, a person's preferences): the store is already one workspace's (its folder, or its rows), so a workspace
 # prefix would only hide what was written before. Only the problem scope carries its parent chain (dclab_core's key).
@@ -102,6 +107,7 @@ class AuthorizedScope:
     session_id: Optional[str] = None
     auth_mode: str = "local"  # "local" (explicit no-auth mode) or "authenticated"
     problem_workspace: Optional[str] = None  # the workspace the problem was bound in (its key survives a move to PostgreSQL)
+    team_ids: tuple[str, ...] = ()  # the W2 teams the person is in (``teams_of``): the only team memories they read
 
     @property
     def can_write(self) -> bool:
@@ -125,11 +131,25 @@ class AuthorizedScope:
     def session_key(self) -> Optional[str]:
         return session_scope_id(self.workspace_id, self.session_id) if self.session_id else None
 
-    def chain(self, *, include_personal: bool = True, include_session: bool = False) -> list[tuple[str, str]]:
-        """Authorized (scope, scope_id) pairs wide to narrow for dclab_core.memory.resolve."""
+    def is_member(self, team_id: str) -> bool:
+        return str(team_id or "") in self.team_ids
+
+    def team_key(self, team_id: str) -> str:
+        """The team's memory scope id, for one of the person's own teams only (AccessDenied for any other team)."""
+        if not self.is_member(team_id):
+            raise AccessDenied(f"principal {self.principal_id!r} is not a member of team {team_id!r}")
+        return team_scope_id(TEAM_STAMP, team_id)
+
+    def chain(self, *, include_personal: bool = True, include_session: bool = False,
+              include_teams: bool = False) -> list[tuple[str, str]]:
+        """Authorized (scope, scope_id) pairs wide to narrow for dclab_core.memory.resolve. No team by default: a team's
+        memory is read through :meth:`team_chain` in that team's own conversation, so an agent answering a person who is in
+        two teams never mixes them (``include_teams`` adds every team of the person, for a person's own overview only)."""
         out: list[tuple[str, str]] = [("global", "dclab"), ("workspace", self.workspace_id)]
         if include_personal:
             out.append(("person", self.person_key))
+        if include_teams:
+            out.extend(("team", self.team_key(t)) for t in self.team_ids)
         if self.project_id:
             out.append(("project", self.project_key))  # type: ignore[arg-type]
         if self.project_id and self.problem_id:
@@ -139,8 +159,18 @@ class AuthorizedScope:
         return out
 
     def shared_chain(self) -> list[tuple[str, str]]:
-        """Authorized scopes containing ONLY shareable (non-personal, non-session) items."""
-        return self.chain(include_personal=False, include_session=False)
+        """Authorized scopes containing ONLY shareable (non-personal, non-team, non-session) items."""
+        return self.chain(include_personal=False, include_session=False, include_teams=False)
+
+    def team_chain(self, team_id: str, *, include_shared: bool = True) -> list[tuple[str, str]]:
+        """What an agent reads in one team's own conversation: the shared scopes and that one team's memory, never another
+        team's (AccessDenied for a team the person is not in)."""
+        return (self.shared_chain() if include_shared else []) + [("team", self.team_key(team_id))]
+
+    def with_teams(self, teams: Any) -> "AuthorizedScope":
+        """This scope with the person's teams read from a W2 teams store (``teams_of``); a store that cannot be read
+        gives no team (fails closed)."""
+        return replace(self, team_ids=teams_of_person(teams, self.principal_id))
 
     def personal_chain(self) -> list[tuple[str, str]]:
         """Viewer-specific private personal preference scope only."""
@@ -157,7 +187,49 @@ class AuthorizedScope:
             "session_id": self.session_id,
             "auth_mode": self.auth_mode,
             "problem_workspace": self.problem_workspace,
+            "team_ids": list(self.team_ids),
         }
+
+
+def teams_store(where: Any) -> Any:
+    """The W2 teams store of a workspace: ``where`` is a home folder, a services or job env (its ``teams``, else its
+    store's or its own home), or a project store; None when there is none to open (no team memory, never a guess)."""
+    held = getattr(where, "teams", None)
+    if held is not None and hasattr(held, "teams_of"):
+        return held
+    home = None
+    if isinstance(where, (str, os.PathLike)):
+        home = where
+    else:
+        home = getattr(getattr(where, "store", None), "home", None) or getattr(where, "home", None)
+        if home is None and where is not None and hasattr(where, "get"):
+            try:
+                from ..storage.files import files_for
+
+                home = files_for(where).root
+            except Exception:  # noqa: BLE001 - no folder behind this store
+                home = None
+    if home is None:
+        return None
+    try:
+        from pathlib import Path
+
+        from ..storage import open_teams
+
+        return open_teams(Path(home))
+    except Exception:  # noqa: BLE001 - the teams cannot be opened: no team memory
+        return None
+
+
+def teams_of_person(teams: Any, principal_id: str) -> tuple[str, ...]:
+    """The ids of the W2 teams a person is in, sorted; none when there is no store or it cannot be read."""
+    if teams is None or not principal_id:
+        return ()
+    try:
+        found = teams.teams_of(str(principal_id))
+    except Exception:  # noqa: BLE001 - the teams cannot be read: no team memory, never a guess
+        return ()
+    return tuple(sorted({str(t["id"]) for t in found if isinstance(t, Mapping) and t.get("id")}))
 
 
 # ------------------------------------------------------------------ Durable Problem Identity on Projects
@@ -381,8 +453,10 @@ def resolve_scope(
     require_problem: bool = False,
     auto_create_legacy_problem: bool = False,
     membership_checker: Optional[Callable[[str, str], Optional[str]]] = None,
+    teams: Any = None,
 ) -> AuthorizedScope:
-    """Resolve and verify an AuthorizedScope from validated server state. Fails closed on every violation."""
+    """Resolve and verify an AuthorizedScope from validated server state. Fails closed on every violation. ``teams``: the
+    workspace's W2 teams store; the person's own teams become ``team_ids`` (none without it)."""
     from ..accounts.principal import current
 
     who = principal if principal is not None else current()
@@ -472,6 +546,7 @@ def resolve_scope(
         session_id=session_id,
         auth_mode=auth_mode,
         problem_workspace=problem_ws,
+        team_ids=teams_of_person(teams, uid),
     )
 
 
@@ -545,6 +620,7 @@ def revalidate_job_scope(
         require_problem=require_problem,
         auto_create_legacy_problem=False,  # a check never writes the project
         membership_checker=membership_checker,
+        teams=teams_store(env),
     )
 
 
@@ -552,5 +628,5 @@ __all__ = [
     "AccessDenied", "AmbiguousProblemError", "AuthorizedScope", "NoProblemError", "READ_ROLES", "WRITE_ROLES",
     "auth_enabled", "create_problem", "ensure_default_problem", "list_problems", "live_membership",
     "person_scope_id", "problem_scope_id", "project_scope_id", "resolve_problem",
-    "resolve_scope", "revalidate_job_scope", "session_scope_id", "workspace_of",
+    "resolve_scope", "revalidate_job_scope", "session_scope_id", "TEAM_STAMP", "team_scope_id", "teams_of_person", "teams_store", "workspace_of",
 ]

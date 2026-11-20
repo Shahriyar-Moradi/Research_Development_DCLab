@@ -69,6 +69,10 @@ SPECIAL = {
     ("POST", "/api/projects/{project_id}/team-threads/{thread_id}/messages"): "write",
     ("GET", "/api/projects/{project_id}/team-threads/{thread_id}/events"): "read",
     ("GET", "/api/projects/{project_id}/problems/{problem_id}/handoffs"): "read",
+    # W8: a task's page reads like its thread (a member of a team on the task's chain, or the owner: the route checks the
+    # team itself); a team agent's job description is every reader's (it is the directory, no project's data)
+    ("GET", "/api/projects/{project_id}/team-tasks/{task_id}"): "read",
+    ("GET", "/api/team-agents/{name}"): "read",
     # the record of every session: what people wrote and what the agents answered (19.4; the owner's, proposed)
     ("GET", "/api/experience/sessions"): "timelines",
     ("GET", "/api/experience/sessions/{visit}"): "timelines",

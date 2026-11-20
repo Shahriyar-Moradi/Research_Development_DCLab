@@ -211,6 +211,43 @@ class _TeamWork:
 
         resolve_problem(self.projects, task.project_id, task.problem_id, workspace_id=self.workspace)
 
+    # ------------------------------------------------------------------ the facts work rests on (W6)
+    def _facts_scope(self, project_id: str, problem_id: str) -> Any:
+        """The problem's base as this store reaches it (the workspace's own write, as the team agents' steps are): the
+        problem's recorded workspace keeps its key the one people's corrections use."""
+        from ..memory.scope import AuthorizedScope, resolve_problem
+
+        prob = resolve_problem(self.projects, project_id, problem_id, workspace_id=self.workspace)
+        return AuthorizedScope(workspace_id=self.workspace, principal_id="teamspace", role="owner", project_id=project_id,
+                               problem_id=problem_id, problem_workspace=str(prob.get("workspace_id") or "") or None)
+
+    def _check_cites(self, project_id: str, problem_id: str, cites: Sequence[str]) -> None:
+        """Refuse a citation of a fact this problem does not hold, or of one at a revision it was never written at, before
+        anything is saved."""
+        if cites and self.home is not None:
+            from ..memory.bases import check_citations
+
+            check_citations(self.home, self._facts_scope(project_id, problem_id), cites)
+
+    def _link(self, project_id: str, task: Optional[tw.TeamTask] = None, report: Optional[tw.WorkReport] = None) -> None:
+        """Link what was saved to the facts it cites, in the problem base's ledger, so a later correction marks it stale in
+        its own write (whatever happens to the reconciliation after it). An error here is raised: the record is saved, and
+        the same call again links it (a retried call is a duplicate that links once)."""
+        if self.home is None:
+            return
+        if report is not None:
+            task = task or self.task(project_id, report.task_id)
+            cites = report_citations(report)
+            link = _report_link(report, task, project_id, cites) if cites else None
+        else:
+            cites = task_citations(task) if task is not None else []
+            link = _task_link(task, cites) if cites else None
+        if link is None or task is None:
+            return
+        from ..memory.bases import link_dependents
+
+        link_dependents(self.home, self._facts_scope(project_id, task.problem_id), [link])
+
     # ------------------------------------------------------------------ tasks
     def create_task(self, task: tw.TeamTask, *, initiator: Any = None) -> Written:
         """A new top-level task and its pending delivery to the owner, saved together. The same task asked again (same
@@ -222,18 +259,25 @@ class _TeamWork:
         if task.status != "open":
             raise ValueError("a new task starts open")
         self._check_problem(task)
+        self._check_cites(task.project_id, task.problem_id, task_citations(task))
         who = initiator_of(initiator)
         with self._tx(task.project_id) as tx:
             held = tx.task(task.id)
             if held is not None:
                 if _identity(held["task"]) != _identity(task):
                     raise ValueError(f"a task {task.id} already exists")
-                return Written(held["task"], tx.delivery_by_key(f"task:{task.id}"), duplicate=True)
-            tx.insert_task(task, who)
-            row = self._send(tx, self._delivery("task", f"task:{task.id}", task, item_id=task.id, from_team=task.requester.team,
-                                                to_team=task.owner_team, text=task.question, thread_id=None, initiator=who))
+                again = Written(held["task"], tx.delivery_by_key(f"task:{task.id}"), duplicate=True)
+            else:
+                again = None
+                tx.insert_task(task, who)
+                row = self._send(tx, self._delivery("task", f"task:{task.id}", task, item_id=task.id, from_team=task.requester.team,
+                                                    to_team=task.owner_team, text=task.question, thread_id=None, initiator=who))
+        if again is not None:
+            self._link(task.project_id, task=again.item)
+            return again
         self._emit([self._event("task.created", thread=task.requester.thread_id, team=task.owner_team, from_node=task.requester.team,
                                 to_node=task.owner_team, state=task.status, project=task.project_id)])
+        self._link(task.project_id, task=task)  # after the save: an error is raised, and the same call again links it
         return Written(task, row)
 
     def delegate(self, project_id: str, parent_id: str, *, id: str, owner_team: str, question: str, expected_output: str,
@@ -244,6 +288,12 @@ class _TeamWork:
         ``parent_waits``: an accepted parent moves to ``waiting_for_team`` in the same transaction (W5), so a crash never
         leaves a child out with its parent still saying it works alone."""
         who = initiator_of(initiator)
+        cites = _citations(allowed_inputs)
+        if cites:
+            held_parent = self.task(project_id, parent_id)
+            if held_parent is not None:
+                self._check_cites(project_id, held_parent.problem_id, cites)
+        child = None
         with self._tx(project_id) as tx:
             parent_row = tx.task(parent_id)
             parent = self._in_project(parent_row, project_id, parent_id)
@@ -252,20 +302,24 @@ class _TeamWork:
             held = tx.task(id)
             if held is not None:
                 same = held["task"]
-                if (same.parent_task_id, same.owner_team, same.question) == (parent_id, owner_team, question):
-                    self._parent_waits(tx, parent_row, by, parent_waits)
-                    return Written(same, tx.delivery_by_key(f"task:{id}"), duplicate=True)
-                raise ValueError(f"a task {id} already exists")
-            child = tw.delegate(parent, id=id, owner_team=owner_team, question=question, expected_output=expected_output,
-                                done_criteria=done_criteria, by=by, thread_id=thread_id, created_at=created_at,
-                                allowed_inputs=allowed_inputs, allowed_tools=allowed_tools, budget_eur=budget_eur, siblings=siblings)
-            tx.insert_task(child, who)
-            row = self._send(tx, self._delivery("task", f"task:{child.id}", child, item_id=child.id, from_team=parent.owner_team,
-                                                to_team=owner_team, text=question, thread_id=None, initiator=who))
-            self._parent_waits(tx, parent_row, by, parent_waits)
-        self._emit([self._event("task.created", thread=thread_id, team=owner_team, from_node=parent.owner_team, to_node=owner_team,
-                                state=child.status, project=project_id)])
-        return Written(child, row)
+                if (same.parent_task_id, same.owner_team, same.question) != (parent_id, owner_team, question):
+                    raise ValueError(f"a task {id} already exists")
+                self._parent_waits(tx, parent_row, by, parent_waits)
+                result = Written(same, tx.delivery_by_key(f"task:{id}"), duplicate=True)
+            else:
+                child = tw.delegate(parent, id=id, owner_team=owner_team, question=question, expected_output=expected_output,
+                                    done_criteria=done_criteria, by=by, thread_id=thread_id, created_at=created_at,
+                                    allowed_inputs=allowed_inputs, allowed_tools=allowed_tools, budget_eur=budget_eur, siblings=siblings)
+                tx.insert_task(child, who)
+                row = self._send(tx, self._delivery("task", f"task:{child.id}", child, item_id=child.id, from_team=parent.owner_team,
+                                                    to_team=owner_team, text=question, thread_id=None, initiator=who))
+                self._parent_waits(tx, parent_row, by, parent_waits)
+                result = Written(child, row)
+        if child is not None:
+            self._emit([self._event("task.created", thread=thread_id, team=owner_team, from_node=parent.owner_team, to_node=owner_team,
+                                    state=child.status, project=project_id)])
+        self._link(project_id, task=result.item)  # after the save: an error is raised, and the same call again links it
+        return result
 
     @staticmethod
     def _parent_waits(tx: Any, parent_row: Row, by: tw.Actor, wanted: bool) -> None:
@@ -382,7 +436,7 @@ class _TeamWork:
                            from_node=action.actor.id, to_node=action.action, state=action.status, project=task.project_id)
 
     # ------------------------------------------------------------------ reports
-    def store_report(self, project_id: str, task_id: str, *, current_brief_revision: int, answer: str, next_task: tw.NextStep,
+    def _store_report(self, project_id: str, task_id: str, *, current_brief_revision: int, answer: str, next_task: tw.NextStep,
                      evidence: Sequence[tw.EvidenceRef] = (), limits: Sequence[str] = (), private_notes: Sequence[str] = (),
                      revision: int = 1, status: Optional[str] = None, created_at: Optional[str] = None, initiator: Any = None) -> Written:
         """The task's report at ``revision``, built by ``team_work.build_report`` from the stored actions and joined child
@@ -405,7 +459,7 @@ class _TeamWork:
         self._emit([self._stored(task, written.item)])
         return written
 
-    def supersede_report(self, project_id: str, task_id: str, *, current_brief_revision: int, answer: str, next_task: tw.NextStep,
+    def _supersede_report(self, project_id: str, task_id: str, *, current_brief_revision: int, answer: str, next_task: tw.NextStep,
                          evidence: Sequence[tw.EvidenceRef] = (), limits: Sequence[str] = (), private_notes: Sequence[str] = (),
                          status: Optional[str] = None, created_at: Optional[str] = None, initiator: Any = None) -> Written:
         """A correction: the next revision of the task's current report, built from the stored actions, linked both ways
@@ -427,7 +481,7 @@ class _TeamWork:
         self._emit([self._stored(task, written.item)])
         return written
 
-    def report_task(self, project_id: str, task_id: str, *, revision: int, current_brief_revision: int, answer: str,
+    def _report_task(self, project_id: str, task_id: str, *, revision: int, current_brief_revision: int, answer: str,
                     next_task: tw.NextStep, move_to: Optional[str] = None, by: Optional[tw.Actor] = None,
                     evidence: Sequence[tw.EvidenceRef] = (), limits: Sequence[str] = (), private_notes: Sequence[str] = (),
                     status: Optional[str] = None, created_at: Optional[str] = None, initiator: Any = None) -> Written:
@@ -467,6 +521,30 @@ class _TeamWork:
             written.replaced = replaced
         self._emit(events + [self._stored(task, written.item)])
         return written
+
+    def _reported(self, how: Any, project_id: str, task_id: str, kw: dict) -> Written:
+        """A report saved through ``how``, its fact citations checked before and linked after (W6)."""
+        cites = _citations([v for e in kw.get("evidence") or () if not e.private for v in (e.source, e.ref)])
+        if cites:
+            task = self.task(project_id, task_id)
+            if task is not None:
+                self._check_cites(project_id, task.problem_id, cites)
+        written = how(project_id, task_id, **kw)
+        self._link(project_id, report=written.item)  # after the save: an error is raised, and the same call again links it
+        return written
+
+    def store_report(self, project_id: str, task_id: str, **kw: Any) -> Written:
+        """The task's report at a revision (see :meth:`_store_report`); a fact it cites is checked first and linked after."""
+        return self._reported(self._store_report, project_id, task_id, kw)
+
+    def supersede_report(self, project_id: str, task_id: str, **kw: Any) -> Written:
+        """A correction of the task's report (see :meth:`_supersede_report`); its fact citations checked and linked."""
+        return self._reported(self._supersede_report, project_id, task_id, kw)
+
+    def report_task(self, project_id: str, task_id: str, **kw: Any) -> Written:
+        """The owner's move and its report in one transaction (see :meth:`_report_task`); its fact citations checked and
+        linked."""
+        return self._reported(self._report_task, project_id, task_id, kw)
 
     def _build(self, tx: Any, task: tw.TeamTask, **kw: Any) -> tw.WorkReport:
         children = [r["task"] for r in tx.tasks(parent=task.id)]
@@ -533,6 +611,14 @@ class _TeamWork:
             rows = [r for r in tx.deliveries(problem_id=problem_id) if r["status"] != "refused"]
         return [{"n": n, "from_team": team_label(r["from_team"]), "to_team": team_label(r["to_team"]), "text": _shown(_first_line(r["text"])),
                  "state": r["status"]} for n, r in enumerate(rows, 1)]
+
+    def problem_records(self, project_id: str, problem_id: str) -> Row:
+        """Every task of one problem in the project and every report of those tasks (each revision), in the order made:
+        what a correction of the problem's facts is checked against (W6)."""
+        with self._read(project_id) as tx:
+            tasks = [r["task"] for r in tx.tasks(problem_id=problem_id) if r["task"].project_id == project_id]
+            reports = [r["report"] for r in tx.reports([t.id for t in tasks])] if tasks else []
+        return {"tasks": tasks, "reports": reports}
 
     # ------------------------------------------------------------------ deliveries (dclab_rnd/teamspace/delivery.py)
     def delivery(self, delivery_id: str, project_id: Optional[str] = None) -> Optional[Row]:
@@ -620,6 +706,245 @@ class _TeamWork:
     def counts(self) -> dict[str, int]:
         with self._read(None) as tx:
             return tx.counts()
+
+
+# ---------------------------------------------------------------------------------------------------------- facts (W6)
+# Team work rests on the problem's facts by citing them, ``fact:<entry id>@r<revision>`` (``memory.bases.fact_citation``):
+# a task in its allowed inputs, a report in an evidence source (or ref), a decision in its constraint revisions. A
+# correction of the fact (``memory.bases.correct_base_fact``) calls :func:`mark_fact_dependents_stale`: every dependent
+# citing the old revision is marked stale in the problem base's ledger, then what rested on it (a report joining a stale
+# child, a task whose current report is stale, a decision on a stale report), and each requester's thread gets one alert
+# through W3's post. Work that cites nothing corrected is never touched (the kitchen's correction is a superseded report,
+# not a fact: its acceptance report keeps its snapshot).
+
+
+def task_ref(project_id: str, task_id: str) -> str:
+    return f"team_task:{project_id}/{task_id}"
+
+
+def report_ref(project_id: str, report_id: str) -> str:
+    return f"work_report:{project_id}/{report_id}"
+
+
+def decision_ref(decision_id: str) -> str:
+    return f"team_decision:{decision_id}"
+
+
+def fact_citation(entry: Mapping[str, Any]) -> str:
+    """A base fact at its revision, as a task, a report or a decision cites it (``fact:<entry id>@r<revision>``)."""
+    from ..memory.bases import fact_citation as cite
+
+    return cite(entry)
+
+
+def fact_evidence(entry: Mapping[str, Any], *, uncertainty: Optional[str] = None) -> tw.EvidenceRef:
+    """A report's evidence that it rests on a problem-base fact: its source is the citation (so the task's allowed inputs
+    can name it), its ref the memory item, its input revision the fact's revision."""
+    citation = fact_citation(entry)
+    return tw.EvidenceRef(source=citation, ref=f"memory:{entry['item_id']}", input_revision=citation.rsplit("@", 1)[1],
+                          uncertainty=uncertainty)
+
+
+def _citations(values: Sequence[Any]) -> list[str]:
+    from ..memory.bases import parse_citation
+
+    return list(dict.fromkeys(str(v).strip() for v in values if parse_citation(v)))
+
+
+def task_citations(task: tw.TeamTask) -> list[str]:
+    return _citations(task.allowed_inputs)
+
+
+def report_citations(report: tw.WorkReport) -> list[str]:
+    return _citations([v for e in report.evidence for v in (e.source, e.ref)])
+
+
+def _task_link(task: tw.TeamTask, cites: Sequence[str]) -> Row:
+    return {"ref": task_ref(task.project_id, task.id), "kind": "team_task", "cites": list(cites), "project_id": task.project_id,
+            "task_id": task.id, "owner_team": task.owner_team, "requester_team": task.requester.team,
+            "thread_id": task.requester.thread_id, "label": f"task {task.id} ({team_label(task.owner_team)})"}
+
+
+def _report_link(report: tw.WorkReport, task: Optional[tw.TeamTask], project_id: str, cites: Sequence[str]) -> Row:
+    out = {"ref": report_ref(project_id, report.id), "kind": "work_report", "cites": list(cites), "project_id": project_id,
+           "task_id": report.task_id, "report_id": report.id, "owner_team": report.owner, "label": f"report {report.id}"}
+    if task is not None:
+        out.update(requester_team=task.requester.team, thread_id=task.requester.thread_id)
+    return out
+
+
+def _problem_scope(scope: Any) -> None:
+    from ..memory.scope import AccessDenied
+
+    if not (getattr(scope, "project_id", None) and getattr(scope, "problem_id", None)):
+        raise AccessDenied("a problem's team work needs an authorized project_id and problem_id")
+
+
+def record_decision(home: Path, scope: Any, decision: tw.TeamDecision, *, thread_id: Optional[str] = None, log: Any = None) -> Row:
+    """Keep a decision the owner made (or is asked to make) in the problem base's ledger, with the fact revisions it rests
+    on (its constraint revisions that cite facts) and the reports it rests on (its evidence revisions). A decision citing
+    a fact already corrected is stale at once. Recorded by a person who may write; the approval itself is the decision
+    owner's alone (``team_work`` refuses any other approver). Recording the same decision again (its approval, its
+    outcome) replaces the stored record; a record naming another decision owner is refused. Returns its ledger entry."""
+    from ..memory import bases
+    from ..memory.scope import AccessDenied
+
+    _problem_scope(scope)
+    if not scope.can_write:
+        raise AccessDenied(f"role {scope.role!r} cannot record a decision")
+    if decision.problem_id != scope.problem_id:
+        raise AccessDenied(f"decision {decision.id} belongs to problem {decision.problem_id}, not {scope.problem_id}")
+    bases.check_citations(home, scope, _citations(decision.constraint_revisions))  # a forged or foreign citation: refused
+    link = {"ref": decision_ref(decision.id), "kind": "team_decision", "cites": _citations(decision.constraint_revisions),
+            "project_id": scope.project_id, "decision_id": decision.id, "thread_id": thread_id,
+            "decision_owner": decision.decision_owner.id, "label": f"decision {decision.id}", "doc": _dump(decision),
+            "stale_via": [report_ref(scope.project_id, r) for r in decision.evidence_revisions]}
+    deps = bases.link_dependents(home, scope, [link], log=log)  # kept even when it cites nothing here, to be read back
+    return next(d for d in deps if d["ref"] == link["ref"])
+
+
+def stale_marks(home: Path, scope: Any) -> list[Row]:
+    """The problem's team work marked stale, each with what changed under it and whether its requester was alerted."""
+    from ..memory import bases
+
+    _problem_scope(scope)
+    return [d for d in bases.read_base(home, scope, "problem").get("dependents", []) if d.get("stale")]
+
+
+def decisions(home: Path, scope: Any) -> list[Row]:
+    """The problem's recorded decisions with their ledger state (stale, needs_review)."""
+    from ..memory import bases
+
+    _problem_scope(scope)
+    out = []
+    for d in bases.read_base(home, scope, "problem").get("dependents", []):
+        if d.get("kind") == "team_decision" and d.get("doc"):
+            out.append({**d, "decision": tw.TeamDecision.model_validate(d["doc"])})
+    return out
+
+
+def _alert_text(group: Sequence[Row], old: Optional[Row], new: Optional[Row], revision: int) -> str:
+    what = str((old or {}).get("field") or "a fact")
+    if old is not None and new is not None:
+        change = f"\"{old.get('text')}\" is now \"{new.get('text')}\""
+    elif old is not None:
+        change = f"\"{old.get('text')}\" was withdrawn"
+    else:
+        change = "a fact it rested on changed"
+    parts = []
+    for d in group:
+        label = str(d.get("label") or d["ref"])
+        if d.get("kind") == "team_decision":
+            label += f" (needs {d.get('decision_owner') or 'its owner'}'s review)"
+        parts.append(label)
+    return (f"Correction on this problem ({what}): {change} (problem base revision {revision}). "
+            f"Stale until rechecked: {', '.join(parts)}. Work that did not rest on it is unchanged.")
+
+
+def mark_fact_dependents_stale(home: Path, scope: Any, *, work: Any = None, threads: Any = None, log: Any = None) -> Row:
+    """Reconcile the problem's team work with its facts (called by every correction or retirement of a problem fact, and
+    safe to call again at any time, from any session: every step is idempotent).
+
+    1. Find the dependents: each task, report and recorded decision citing a fact of this problem's base, linked in the
+       base's ledger; whatever cites a revision no longer current is marked stale there (a correction already marked the
+       ones linked before it, in its own write).
+    2. Mark what rested on a stale item: a report joining a stale child report, a task whose current report is stale, a
+       decision resting on a stale report (a decision also waits for its owner's review).
+    3. Alert each requester once per corrected fact: one message in its thread (W3's ``post``, keyed so a retry adds
+       nothing), from the agent of the team whose work rested on it; then record that it was told.
+    Tasks and reports citing nothing corrected are not touched. Returns the stale refs and the alerts posted."""
+    from ..memory import bases
+
+    from ..memory.scope import AccessDenied
+
+    _problem_scope(scope)
+    if not scope.can_write:
+        raise AccessDenied(f"role {scope.role!r} cannot mark the problem's team work stale")
+    base = bases.read_base(home, scope, "problem")
+    facts = {str(e["entry_id"]): e for e in base["active"] + base["retired"] if e.get("kind") == "fact"}
+    work = work if work is not None else open_team_work(home)
+    records = work.problem_records(scope.project_id, scope.problem_id)
+    tasks = {t.id: t for t in records["tasks"]}
+    pid = scope.project_id
+
+    def here(cites: Sequence[str]) -> list[str]:
+        """The citations naming a fact of this base at the revision it was written at (one stored before citations were
+        checked, naming another revision, is never a reason to mark anything)."""
+        return [c for c in cites if (bases.parse_citation(c) or ("", 0))[0] in facts and not bases.citation_problems(facts.values(), [c])]
+
+    links = [_task_link(t, here(task_citations(t))) for t in tasks.values() if here(task_citations(t))]
+    links += [_report_link(r, tasks.get(r.task_id), pid, here(report_citations(r))) for r in records["reports"] if here(report_citations(r))]
+    deps = {d["ref"]: d for d in (bases.link_dependents(home, scope, links, log=log) if links else base.get("dependents") or [])}
+    def roots(ref: str) -> set[str]:
+        return {str(c["old_entry_id"]) for c in (deps.get(ref) or {}).get("changed_sources") or [] if c.get("old_entry_id")}
+
+    def behind(ref: str, via: Sequence[str]) -> bool:
+        """Whether ``ref`` misses a stale mark, or a corrected fact, that what it rests on carries (a second correction
+        under a dependent already stale from the first still reaches it)."""
+        return bool(via) and (not (deps.get(ref) or {}).get("stale") or bool(set().union(*(roots(v) for v in via)) - roots(ref)))
+
+    for _ in range(2 * (len(tasks) + len(records["reports"]) + len(deps)) + 1):  # a fixed point: each round adds a mark or a fact
+        stale = {r for r, d in deps.items() if d.get("stale")}
+        more: list[Row] = []
+        for r in records["reports"]:
+            via = [report_ref(pid, c) for c in r.child_reports if report_ref(pid, c) in stale]
+            if behind(report_ref(pid, r.id), via):
+                more.append({**_report_link(r, tasks.get(r.task_id), pid, []), "stale_via": via})
+        for t in tasks.values():
+            via = [report_ref(pid, r.id) for r in records["reports"] if r.task_id == t.id and r.status != "superseded"
+                   and report_ref(pid, r.id) in stale]
+            if behind(task_ref(pid, t.id), via):
+                more.append({**_task_link(t, []), "stale_via": via})
+        for ref, d in list(deps.items()):
+            if d.get("kind") == "team_decision" and d.get("doc"):
+                via = [report_ref(pid, r) for r in d["doc"].get("evidence_revisions") or [] if report_ref(pid, r) in stale]
+                if behind(ref, via):
+                    more.append({"ref": ref, "kind": "team_decision", "stale_via": via})
+        if not more:
+            break
+        deps = {d["ref"]: d for d in bases.link_dependents(home, scope, more, log=log)}
+
+    # 3. one alert per (thread, corrected fact), naming every item of that thread resting on it
+    groups: dict[tuple[str, str], list[Row]] = {}
+    for ref, d in deps.items():
+        if not d.get("stale"):
+            continue
+        where = str(d.get("thread_id") or (f"team:{d['requester_team']}" if d.get("requester_team") else ""))
+        if not where:
+            continue  # nobody to tell (a decision recorded with no thread): it stays stale and visible in the ledger
+        roots = {str(c["old_entry_id"]) for c in d.get("changed_sources") or [] if c.get("old_entry_id")}
+        for root in sorted(roots - set(d.get("alerted") or [])):
+            groups.setdefault((where, root), []).append(d)
+    posted: list[Row] = []
+    if groups:
+        from .threads import open_threads, team_key
+
+        threads = threads if threads is not None else open_threads(home)
+        teams = None
+        for (where, root), group in sorted(groups.items()):
+            old = facts.get(root)
+            new = facts.get(str((old or {}).get("retired_by") or "")) if old else None
+            target = threads.thread(where) if not where.startswith("team:") else None
+            if target is None or (target["project_id"], target["problem_id"]) != (scope.project_id, scope.problem_id):
+                team = str(group[0].get("requester_team") or "")
+                if not team:
+                    continue
+                if teams is None:
+                    from ..storage import open_teams
+
+                    teams = open_teams(Path(home))
+                key, label = team_key(teams, team)
+                target = threads.open_thread(scope.project_id, scope.problem_id, key, label=label)[0]
+            refs = sorted(d["ref"] for d in group)
+            author_team = next((str(d["owner_team"]) for d in group if d.get("kind") == "team_task" and d.get("owner_team")),
+                               next((str(d["owner_team"]) for d in group if d.get("owner_team")), "problem"))
+            digest = hashlib.sha256("|".join(refs).encode("utf-8")).hexdigest()[:12]
+            message, made = threads.post(target["id"], {"kind": "agent", "id": author_team, "team": author_team},
+                                         _alert_text(group, old, new, int(base["revision"])),
+                                         key=f"stale:{scope.problem_id}:{root}:{target['id']}:{digest}")
+            bases.mark_alerted(home, scope, {d["ref"]: [root] for d in group})
+            posted.append({"thread_id": target["id"], "message_id": message["id"], "posted": made, "fact": root, "refs": refs})
+    return {"stale": sorted(r for r, d in deps.items() if d.get("stale")), "alerts": posted}
 
 
 def _identity(task: tw.TeamTask) -> tuple:
@@ -1119,5 +1444,7 @@ def open_team_work(home: Path, url: Optional[str] = None, projects: Any = None) 
     return FileTeamWork(Path(home), projects=projects)
 
 
-__all__ = ["Conflict", "import_project", "reply_text", "simulated_sources", "DELIVERY_KINDS", "DELIVERY_STATES", "FileTeamWork", "PgTeamWork", "Written", "history_lines", "initiator_of",
+__all__ = ["decision_ref", "decisions", "fact_citation", "fact_evidence", "mark_fact_dependents_stale", "record_decision",
+           "report_citations", "report_ref", "stale_marks", "task_citations", "task_ref",
+           "Conflict", "import_project", "reply_text", "simulated_sources", "DELIVERY_KINDS", "DELIVERY_STATES", "FileTeamWork", "PgTeamWork", "Written", "history_lines", "initiator_of",
            "is_due", "open_team_work", "scrub", "team_label"]

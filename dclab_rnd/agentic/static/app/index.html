@@ -1581,6 +1581,83 @@
     </div>
   </div>
 </section>
+<section class="view" id="view-team" hidden>
+  <header class="vh">
+    <div class="vh-text">
+      <div class="eyebrow" id="tm-eyebrow">Project · teams</div>
+      <h1 id="tm-title">Team threads</h1>
+      <p class="lede">Each team talks to its own agent. The agents carry questions and answers between teams, and every task keeps its actions, its evidence and who answers next.</p>
+    </div>
+    <div class="vh-actions"></div>
+  </header>
+  <div id="tm-box">
+    <div id="tm-none" hidden></div>
+    <div class="tm-grid" id="tm-grid">
+      <div class="tm-main">
+        <section class="panel tm-thread" aria-labelledby="tm-thread-title">
+          <div class="panel-head tm-head">
+            <div class="panel-title"><div class="eyebrow" id="tm-thread-eyebrow">Team conversation</div><h2 id="tm-thread-title">Your team's thread</h2></div>
+            <span class="pill outline" id="tm-live" hidden>Live</span>
+          </div>
+          <div class="panel-body">
+            <div class="tm-stream" id="tm-stream" role="log" aria-live="polite" aria-label="Messages in this thread"></div>
+            <form class="tm-compose" id="tm-compose" hidden>
+              <label class="sr-only" for="tm-text">Your message</label>
+              <textarea id="tm-text" rows="3" placeholder="Write to your team's agent"></textarea>
+              <div class="tm-compose-row">
+                <label class="tm-ask" id="tm-ask-wrap"><span class="small muted">Send as</span>
+                  <select id="tm-ask">
+                    <option value="">A message in this thread</option>
+                    <option value="data_science">A question for Data Science</option>
+                    <option value="ml_engineering">A question for ML Engineering</option>
+                    <option value="sales">A question for Sales</option>
+                    <option value="marketing">A question for Marketing</option>
+                  </select>
+                </label>
+                <button type="submit" class="btn primary" id="tm-send">Send</button>
+              </div>
+              <p class="xs muted" id="tm-compose-note" aria-live="polite"></p>
+            </form>
+            <p class="small muted" id="tm-readonly" hidden>You may read this thread, not post to it.</p>
+          </div>
+        </section>
+        <section class="panel tm-task" id="tm-task" hidden aria-labelledby="tm-task-title" tabindex="-1"></section>
+        <section class="panel tm-reports" id="tm-report" hidden aria-labelledby="tm-report-title"></section>
+      </div>
+      <aside class="tm-side">
+        <section class="panel" aria-labelledby="tm-inbox-title">
+          <div class="panel-head tm-head">
+            <div class="panel-title"><h2 id="tm-inbox-title">Team inbox</h2></div>
+            <div class="seg tm-seg" role="group" aria-label="Which threads">
+              <button type="button" data-tm-scope="project" aria-pressed="true">This project</button>
+              <button type="button" data-tm-scope="all" aria-pressed="false">All</button>
+            </div>
+          </div>
+          <div class="panel-body">
+            <ul class="tm-inbox" id="tm-inbox"></ul>
+            <details class="tm-open" id="tm-open-wrap">
+              <summary>Open your team's thread</summary>
+              <form class="stack" id="tm-open">
+                <div class="field" id="tm-open-problem-field"><label for="tm-open-problem">Problem</label><select id="tm-open-problem"></select></div>
+                <div class="field" id="tm-open-name-field" hidden><label for="tm-open-name">Name the problem</label><input id="tm-open-name" type="text" maxlength="120" placeholder="For example: Renewal retention"></div>
+                <div class="field"><label for="tm-open-team">Team</label><select id="tm-open-team"></select></div>
+                <button type="submit" class="btn" id="tm-open-go">Open the thread</button>
+              </form>
+            </details>
+          </div>
+        </section>
+        <section class="panel" aria-labelledby="tm-history-title">
+          <div class="panel-head tm-head"><div class="panel-title"><div class="eyebrow">Every team of the project sees this</div><h2 id="tm-history-title">Handoffs</h2></div></div>
+          <div class="panel-body" id="tm-history"></div>
+        </section>
+        <section class="panel" id="tm-job" aria-labelledby="tm-job-title">
+          <div class="panel-head tm-head"><div class="panel-title"><div class="eyebrow" id="tm-job-eyebrow">Agent job</div><h2 id="tm-job-title">The agent's job</h2></div></div>
+          <div class="panel-body" id="tm-job-body"></div>
+        </section>
+      </aside>
+    </div>
+  </div>
+</section>
 <section class="view" id="view-intern" hidden>
   <header class="vh">
     <div class="vh-text">
@@ -2879,6 +2956,7 @@ df["job_rate"] = df.groupby("job")["target"].transform("mean")</pre>
 <script src="/static/app/js/views/decision.js"></script>
 <script src="/static/app/js/views/reliability.js"></script>
 <script src="/static/app/js/views/brief.js"></script>
+<script src="/static/app/js/views/team.js"></script>
 <script src="/static/app/js/views/intern.js"></script>
 <script src="/static/app/js/views/compute.js"></script>
 <script src="/static/app/js/views/evidence.js"></script>

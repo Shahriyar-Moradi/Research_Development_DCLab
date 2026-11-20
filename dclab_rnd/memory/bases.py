@@ -1,4 +1,5 @@
-"""Editable Project and Problem bases, idempotent material event capture, and provisional drafts (Package A4).
+"""Editable Project, Problem and Team bases, idempotent material event capture, and provisional drafts (Package A4; the
+team base and the problem base's ledger of team work are W6 of the collaborative workspace, 2026-11-20).
 
 Every confirmed fact is written both to the base ledger (tracking subject, field, source, optimistic revision, and
 dependencies) and to the append-only ``MemoryStore`` (``dclab_core.memory.MemoryItem`` v2) so existing brief, recall,
@@ -18,12 +19,20 @@ Rules enforced here:
 - Conflicts, stale marks and problem bindings are recorded in the workspace's experience log under the raw project id.
 - A deleted project's ledgers get a tombstone (``bases/purged/`` on files, ``purged_at`` on PostgreSQL: hidden, never deleted); only derived summaries
   and cached vectors are deleted.
+- A team's base (target ``team:<team id>``) is its own working notes and draft exceptions: only the team's members read
+  or edit it (``AuthorizedScope.team_key``), it belongs to no project, and a shared summary never reads it. A team shares
+  a fact on purpose with :func:`share_team_fact`: the problem base gets it with a source naming the team item.
+- The problem base keeps a ledger of the team work resting on its facts (``dependents``: tasks, reports and decisions
+  citing ``fact:<entry id>@r<revision>``, :func:`fact_citation`). A correction or a retirement marks every dependent
+  citing the old entry stale in the same write (``_mark_dependents_stale``), then ``teamspace.store.
+  mark_fact_dependents_stale`` finds the team work citing it, marks what rested on it, and alerts each requester's thread.
 - The ledgers are kept by the storage interface (``dclab_rnd.storage.open_memory_bases``): JSON files under the workspace
   folder, or PostgreSQL rows when DCLAB_DATABASE_URL is set, so every API and worker host reads and writes the same base.
 """
 
 from __future__ import annotations
 
+import json
 import os
 import re
 import secrets
@@ -90,7 +99,35 @@ def _store(home: Path):
     return open_memory_bases(Path(home))
 
 
+TEAM_TARGET = "team:"
+CITATION = re.compile(r"^fact:(ent_[0-9a-f]+)@r(\d+)$")
+
+
+def team_target(team_id: str) -> str:
+    """The ``target`` naming a team's own base."""
+    return f"{TEAM_TARGET}{team_id}"
+
+
+def fact_citation(entry: Mapping[str, Any]) -> str:
+    """How team work cites a base fact at its revision: ``fact:<entry id>@r<revision>`` (a task's allowed input, a
+    report's evidence source, a decision's constraint revision)."""
+    if entry.get("kind") != "fact" or not entry.get("entry_id"):
+        raise ValueError("only a base fact is cited")
+    return f"fact:{entry['entry_id']}@r{int(entry.get('effective_revision') or 0)}"
+
+
+def parse_citation(value: Any) -> Optional[tuple[str, int]]:
+    """The (entry id, revision) a citation names, or None when the text is not one."""
+    found = CITATION.match(str(value or "").strip())
+    return (found.group(1), int(found.group(2))) if found else None
+
+
 def _scope_target(scope: AuthorizedScope, target: str) -> tuple[str, str]:
+    if str(target).startswith(TEAM_TARGET) or target == "team":
+        team_id = str(target)[len(TEAM_TARGET):] if str(target).startswith(TEAM_TARGET) else ""
+        if not team_id:
+            raise ValueError("a team base names its team: target 'team:<team id>'")
+        return "team", scope.team_key(team_id)  # AccessDenied for a team the person is not in
     if target == "project":
         if not scope.project_id or not scope.project_key:
             raise AccessDenied("authorized project_id is required for project base")
@@ -99,27 +136,31 @@ def _scope_target(scope: AuthorizedScope, target: str) -> tuple[str, str]:
         if not (scope.project_id and scope.problem_id and scope.problem_key):
             raise AccessDenied("authorized project_id and problem_id are required for problem base")
         return "problem", scope.problem_key
-    raise ValueError(f"unsupported base target {target!r}; expected 'project' or 'problem'")
+    raise ValueError(f"unsupported base target {target!r}; expected 'project', 'problem' or 'team:<team id>'")
 
 
 def _empty_doc(scope_kind: str, scope_id: str, scope: AuthorizedScope) -> dict[str, Any]:
-    return {
+    doc = {
         "schema_version": "dclab.memory_base.v1",
         "scope": scope_kind,
         "scope_id": scope_id,
         "workspace_id": scope.workspace_id,
-        "project_id": scope.project_id,
+        "project_id": scope.project_id if scope_kind != "team" else None,  # a team's base outlives any one project
         "problem_id": scope.problem_id if scope_kind == "problem" else None,
         "revision": 0,
         "updated_at": _now(),
         "entries": [],
         "events_index": {},
     }
+    if scope_kind == "team":
+        doc["team_id"] = scope_id.split(":", 1)[1]
+    return doc
 
 
 def _ready(doc: dict[str, Any]) -> dict[str, Any]:
     doc.setdefault("entries", [])
     doc.setdefault("events_index", {})
+    doc.setdefault("dependents", {})
     return doc
 
 
@@ -169,7 +210,29 @@ def _mark_dependents_stale(doc: dict[str, Any], *, changed_field: str, old_entry
                 changes.append(change_info)
                 ent["changed_sources"] = changes[-8:]
                 affected.append(str(ent["entry_id"]))
+    # team work resting on the changed fact (the ledger :func:`link_dependents` keeps): exactly the dependents citing it
+    for ref, dep in (doc.get("dependents") or {}).items():
+        if old_entry_id and old_entry_id in {c.get("entry_id") for c in dep.get("cites") or []}:
+            if _stale_dependent(dep, [change_info], reason or f"{changed_field} changed at revision {new_revision}"):
+                affected.append(str(ref))
     return affected
+
+
+def _stale_dependent(dep: dict[str, Any], changes: list[dict[str, Any]], reason: str) -> bool:
+    """Mark one ledger dependent stale (a decision also waits for its owner's review); False when these changes were
+    already on it."""
+    held = list(dep.get("changed_sources") or [])
+    known = {(c.get("old_entry_id"), c.get("via")) for c in held}
+    new = [c for c in changes if (c.get("old_entry_id"), c.get("via")) not in known]
+    if not new:
+        return False
+    dep["stale"] = True
+    dep["stale_reason"] = dep.get("stale_reason") or reason
+    dep["changed_sources"] = (held + new)[-16:]
+    if dep.get("kind") == "team_decision":
+        dep["needs_review"] = True
+    dep["updated_at"] = _now()
+    return True
 
 
 SOLUTION_FIELDS = {"prediction_moment": "prediction moment", "target": "target", "forbidden": "forbidden columns"}
@@ -213,6 +276,7 @@ def _record_conflict(log: Any, scope: AuthorizedScope, scope_kind: str, action: 
 def _record_stale(log: Any, scope: AuthorizedScope, scope_kind: str, doc: Mapping[str, Any], stale_ids: Iterable[str]) -> None:
     """Each draft or recorded decision a base change made stale: refused until a person rechecks it."""
     by_id = {str(e.get("entry_id")): e for e in doc.get("entries") or []}
+    by_id.update({str(ref): dep for ref, dep in (doc.get("dependents") or {}).items()})
     for entry_id in stale_ids:
         entry = by_id.get(str(entry_id)) or {}
         _record(log, "decision.refused", scope, {"point": f"memory.base.{scope_kind}.stale", "choice": str(entry_id),
@@ -254,19 +318,40 @@ def _write_memory_item(home: Path, item: MemoryItem, *, protected: Iterable[str]
     return written
 
 
+def _team_dependents(home: Path, scope: AuthorizedScope, log: Any) -> dict[str, Any]:
+    """After a problem fact changed: the team work citing it marked stale, and each requester's thread alerted
+    (``teamspace.store.mark_fact_dependents_stale``). The change stands whatever happens here: a failure is reported in
+    the result and the next call (or ``mark_fact_dependents_stale`` itself) finishes the work, since every step is
+    idempotent and staleness is read from the base."""
+    try:
+        from ..teamspace.store import mark_fact_dependents_stale
+
+        return mark_fact_dependents_stale(home, scope, log=log)
+    except Exception as exc:  # noqa: BLE001 - the correction stands; the team work is reconciled on the next call
+        import sys
+
+        print(f"memory: team work not reconciled after a base change: {type(exc).__name__}", file=sys.stderr, flush=True)
+        _record(log, "decision.refused", scope, {"point": "memory.base.problem.team_work", "choice": "reconcile",
+                                                 "rule": "team_work_not_reconciled", "reason": type(exc).__name__})
+        return {"error": type(exc).__name__, "reconciled": False,
+                "retry": "the change is saved and the work already linked to it is marked stale; reconcile again with "
+                         "teamspace.store.mark_fact_dependents_stale (every step is idempotent)"}
+
+
 # ------------------------------------------------------------------ Public Read & Write Operations
 
 def read_base(home: Path, scope: AuthorizedScope, target: str = "problem") -> dict[str, Any]:
-    """Read an authorized Project or Problem base (active entries, pending drafts, retired history, current revision)."""
+    """Read an authorized Project, Problem or Team base (active entries, pending drafts, retired history, current
+    revision; a problem base also its ledger of the team work resting on its facts)."""
     scope_kind, scope_id = _scope_target(scope, target)
     found = _store(home).read(scope_kind, scope_id)
-    doc = _ready(found) if found is not None else _empty_doc(scope_kind, scope_id, scope)
+    doc = _ready(found) if found is not None else _ready(_empty_doc(scope_kind, scope_id, scope))
     entries = list(doc.get("entries") or [])
-    return {
+    out = {
         "scope": scope_kind,
         "scope_id": scope_id,
         "workspace_id": scope.workspace_id,
-        "project_id": scope.project_id,
+        "project_id": scope.project_id if scope_kind != "team" else None,
         "problem_id": scope.problem_id if scope_kind == "problem" else None,
         "revision": int(doc.get("revision") or 0),
         "updated_at": doc.get("updated_at"),
@@ -274,6 +359,11 @@ def read_base(home: Path, scope: AuthorizedScope, target: str = "problem") -> di
         "drafts": [dict(e) for e in entries if e.get("status") == "draft"],
         "retired": [dict(e) for e in entries if e.get("status") == "retired"],
     }
+    if scope_kind == "team":
+        out["team_id"] = scope_id.split(":", 1)[1]
+    if scope_kind == "problem":
+        out["dependents"] = [dict(d, ref=ref) for ref, d in (doc.get("dependents") or {}).items()]
+    return out
 
 
 def base_revision(home: Path, scope: AuthorizedScope, target: str = "problem") -> int:
@@ -402,6 +492,8 @@ def upsert_base_fact(
     _record_stale(log, scope, scope_kind, doc, stale_ids)
     _invalidate_summary_best_effort(home, scope)
     out = {"entry": dict(entry), "revision": new_rev, "unchanged": False, "stale_dependents": stale_ids}
+    if is_correction and scope_kind == "problem":
+        out["team_work"] = _team_dependents(home, scope, log)
     note = _solution_note(fld) if is_correction else None
     if note:
         out["solution_note"] = note
@@ -518,6 +610,8 @@ def correct_base_fact(
     _record_stale(log, scope, scope_kind, doc, stale_ids)
     _invalidate_summary_best_effort(home, scope)
     out = {"entry": dict(entry), "superseded": dict(old), "revision": new_rev, "stale_dependents": stale_ids}
+    if scope_kind == "problem":
+        out["team_work"] = _team_dependents(home, scope, log)
     note = _solution_note(old.get("field"))
     if note:
         out["solution_note"] = note
@@ -585,6 +679,8 @@ def retire_base_fact(
     _record_stale(log, scope, scope_kind, doc, stale_ids)
     _invalidate_summary_best_effort(home, scope)
     out = {"entry": dict(old), "revision": new_rev, "stale_dependents": stale_ids}
+    if scope_kind == "problem":
+        out["team_work"] = _team_dependents(home, scope, log)
     note = _solution_note(old.get("field")) if old.get("kind") == "fact" else None
     if note:
         out["solution_note"] = note
@@ -870,6 +966,191 @@ def confirm_draft(
     return kept["out"]
 
 
+# ------------------------------------------------------------------ Team work resting on problem facts (W6)
+
+DEPENDENT_KINDS = ("team_task", "work_report", "team_decision")
+_LINK_FIELDS = ("project_id", "task_id", "report_id", "decision_id", "owner_team", "requester_team", "thread_id", "label",
+                "decision_owner")
+
+
+def _obsolete(cite: Mapping[str, Any], by_id: Mapping[str, Mapping[str, Any]], revision: int) -> Optional[dict[str, Any]]:
+    """The change that made a citation obsolete (its entry corrected or retired since), or None."""
+    entry = by_id.get(str(cite.get("entry_id")))
+    if entry is None or entry.get("status") == "active":
+        return None
+    return {"field": entry.get("field", "fact"), "old_entry_id": entry.get("entry_id"), "new_entry_id": entry.get("retired_by"),
+            "new_revision": revision, "reason": f"{entry.get('field', 'fact')} changed after revision {cite.get('revision')}"}
+
+
+def citation_problems(entries: Iterable[Mapping[str, Any]], cites: Iterable[Any]) -> list[str]:
+    """Why each citation is refused: it names no fact of this base, or names one at a revision it was never written at (a
+    forged or mistyped revision would otherwise make the work look current, or stale, for the wrong reason)."""
+    by_id = {str(e.get("entry_id")): e for e in entries if e.get("kind") == "fact"}
+    out = []
+    for c in cites:
+        found = parse_citation(c)
+        if found is None:
+            continue
+        entry = by_id.get(found[0])
+        if entry is None:
+            out.append(f"{c} names no fact of this problem")
+        elif int(entry.get("effective_revision") or 0) != found[1]:
+            out.append(f"{c} names {found[0]} at revision {found[1]}, but it was written at revision "
+                       f"{int(entry.get('effective_revision') or 0)}")
+    return out
+
+
+def check_citations(home: Path, scope: AuthorizedScope, cites: Iterable[Any]) -> None:
+    """Refuse (ValueError) citations that name no fact of this problem's base or name one at a wrong revision."""
+    cites = list(cites)
+    if not cites:
+        return
+    found = read_base(home, scope, "problem")
+    problems = citation_problems(found["active"] + found["retired"], cites)
+    if problems:
+        raise ValueError("refused citation: " + "; ".join(problems))
+
+
+def _roots(dep: Mapping[str, Any]) -> set[str]:
+    return {str(c["old_entry_id"]) for c in dep.get("changed_sources") or [] if c.get("old_entry_id")}
+
+
+def link_dependents(home: Path, scope: AuthorizedScope, links: Iterable[Mapping[str, Any]], *,
+                    log: Any = None) -> list[dict[str, Any]]:
+    """Record team work resting on this problem's facts, in the problem base's ledger, and mark stale at once whatever
+    cites a fact already corrected or retired (a late reply on an obsolete revision). Each link: ``ref`` (its key),
+    ``kind`` (one of :data:`DEPENDENT_KINDS`), ``cites`` (``fact:<entry id>@r<revision>`` strings; ones naming no entry
+    of this base are ignored, one naming an entry at a revision it was never written at is refused), ``stale_via`` (refs
+    of stale dependents it rests on: a report joining a stale child, a task whose report is stale, a decision on a stale
+    report; every corrected fact under them is carried over), and who it concerns (``_LINK_FIELDS``); a decision also its
+    ``doc`` (a later record of the same decision replaces it, never with another decision owner). Idempotent per ref;
+    stale stays stale until a person rechecks it. Returns the ledger's dependents. Names, ids and revisions only, never a
+    table value. No revision moves: no fact changed."""
+    scope_kind, scope_id = _scope_target(scope, "problem")
+    wanted = [dict(link) for link in links]
+    for link in wanted:
+        if not link.get("ref") or link.get("kind") not in DEPENDENT_KINDS:
+            raise ValueError(f"a dependent names its ref and a kind among {DEPENDENT_KINDS}")
+    kept: dict[str, Any] = {}
+
+    def apply(doc: dict[str, Any]) -> tuple[bool, Any]:
+        rev = int(doc.get("revision") or 0)
+        facts = [e for e in doc["entries"] if e.get("kind") == "fact"]
+        by_id = {str(e.get("entry_id")): e for e in facts}
+        forged = [p for p in citation_problems(facts, [c for link in wanted for c in link.get("cites") or ()])
+                  if "names no fact" not in p]
+        if forged:
+            raise ValueError("refused citation: " + "; ".join(forged))
+        deps = doc["dependents"]
+        changed: list[str] = []
+        for link in wanted:
+            cites = [{"entry_id": p[0], "revision": p[1]} for p in map(parse_citation, link.get("cites") or ()) if p and p[0] in by_id]
+            via = [str(v) for v in link.get("stale_via") or () if str(v) in deps and deps[str(v)].get("stale")]
+            ref = str(link["ref"])
+            held = deps.get(ref)
+            if held is None and not cites and not via and link.get("doc") is None:
+                continue  # rests on nothing in this base (a decision is kept all the same: it is read back from here)
+            if held is not None and link.get("doc") is not None and held.get("doc") is not None:
+                owner = (held["doc"].get("decision_owner") or {}).get("id")
+                if owner != (link["doc"].get("decision_owner") or {}).get("id"):
+                    raise ValueError(f"{ref} is {owner}'s decision: another person's record cannot replace it")
+            if held is None:
+                held = deps[ref] = {"kind": link["kind"], "cites": [], "stale": False, "stale_reason": "", "changed_sources": [],
+                                    "alerted": [], "linked_at": _now(), "updated_at": _now()}
+                changed.append(ref)
+            before = json.dumps(held, sort_keys=True, default=str)
+            for c in cites:
+                if c not in held["cites"]:
+                    held["cites"].append(c)
+            for k in _LINK_FIELDS:
+                if link.get(k) is not None and held.get(k) is None:
+                    held[k] = link[k]
+            if link.get("doc") is not None and link["doc"] != held.get("doc"):
+                held["doc"] = link["doc"]
+                held["updated_at"] = _now()
+            obsolete = [o for o in (_obsolete(c, by_id, rev) for c in held["cites"]) if o is not None]
+            if obsolete:
+                _stale_dependent(held, obsolete, "cites a fact corrected after its revision")
+            for v in via:
+                inherited = [{**c, "via": v} for c in deps[v].get("changed_sources") or [] if c.get("old_entry_id")]
+                _stale_dependent(held, inherited or [{"old_entry_id": None, "via": v}], f"rests on {v}, which is stale")
+            if json.dumps(held, sort_keys=True, default=str) != before:
+                changed.append(ref)
+        kept["out"] = [dict(d, ref=r) for r, d in deps.items()]
+        kept["stale"] = [r for r in dict.fromkeys(changed) if deps[r].get("stale")]
+        if changed:
+            doc["updated_at"] = _now()
+        return bool(changed), None
+
+    _change(home, scope, scope_kind, scope_id, apply)
+    if kept.get("stale"):
+        _record_stale(log, scope, scope_kind, {"dependents": {d["ref"]: d for d in kept["out"]}}, kept["stale"])
+    return kept["out"]
+
+
+def mark_alerted(home: Path, scope: AuthorizedScope, alerted: Mapping[str, Iterable[str]]) -> None:
+    """Record that each dependent's requester was told of these changed entries (``{ref: [old entry id, …]}``), so the
+    next reconciliation does not tell them again."""
+    scope_kind, scope_id = _scope_target(scope, "problem")
+
+    def apply(doc: dict[str, Any]) -> tuple[bool, Any]:
+        dirty = False
+        for ref, entries in alerted.items():
+            dep = doc["dependents"].get(str(ref))
+            if dep is None:
+                continue
+            for e in entries:
+                if e not in dep.setdefault("alerted", []):
+                    dep["alerted"].append(e)
+                    dirty = True
+        return dirty, None
+
+    _change(home, scope, scope_kind, scope_id, apply)
+
+
+def share_team_fact(
+    home: Path,
+    scope: AuthorizedScope,
+    team_id: str,
+    entry_id: str,
+    *,
+    subject: Optional[str] = None,
+    field: Optional[str] = None,
+    expected_revision: Optional[int] = None,
+    supersede: Optional[str] = None,
+    reason: str = "",
+    protected: Iterable[str] = (),
+    log: Any = None,
+) -> dict[str, Any]:
+    """A team deliberately shares one of its confirmed facts with the other teams: written into the problem base through
+    :func:`upsert_base_fact`, its source naming the team item it came from (``team:<team>:<item id>@r<revision>``). Only
+    a member who may write shares, only an active fact (a draft is confirmed by its team first); the team's own base is
+    not changed, and nothing else of the team's memory leaves it. A share never replaces another team's fact unseen: when
+    the problem already holds an active fact with the same subject and field, the caller names that entry in
+    ``supersede`` (a correction of it, marking what rested on it stale), or the share is refused."""
+    found = read_base(home, scope, team_target(team_id))  # AccessDenied unless the person is in the team
+    entry = next((e for e in found["active"] if e.get("entry_id") == entry_id), None)
+    if entry is None:
+        if any(e.get("entry_id") == entry_id for e in found["drafts"]):
+            raise Refused("a team's draft is shared only after the team confirms it")
+        raise KeyError(entry_id)
+    if entry.get("kind") != "fact":
+        raise Refused("only a confirmed team fact is shared; an episode stays with its team")
+    subj = clean_line(subject or str(entry.get("subject") or "problem"))[:80] or "problem"
+    fld = clean_line(field or str(entry.get("field") or "fact"))[:80] or "fact"
+    held = next((e for e in read_base(home, scope, "problem")["active"]
+                 if e.get("kind") == "fact" and e.get("subject") == subj and e.get("field") == fld), None)
+    if held is not None and supersede != held.get("entry_id"):
+        raise Refused(f"the problem already holds {subj} {fld} ({held.get('entry_id')}: {held.get('text')!r}); "
+                      f"name it in supersede to replace it")
+    if held is None and supersede:
+        raise Refused(f"{supersede} is not the problem's active {subj} {fld}: nothing to supersede")
+    source = f"team:{team_id}:{entry['item_id']}@r{int(entry.get('effective_revision') or 0)}"
+    return upsert_base_fact(home, scope, target="problem", subject=subj, field=fld, text=str(entry["text"]), source=source,
+                            expected_revision=expected_revision, reason=reason or f"shared by team {team_id}",
+                            protected=protected, log=log)
+
+
 def _belongs(doc: Mapping[str, Any], scope_kind: str, scope_id: str, project_id: Optional[str], problem_id: Optional[str]) -> bool:
     """A base ledger of what was deleted: its own scope, or (for a project) every base of that project, matched on the raw
     project id. The folder is one workspace's, so the workspace stamp is not compared (a folder workspace keys its bases
@@ -931,7 +1212,8 @@ def purge_scope(home: Path, scope_kind: str, scope_id: str, *, workspace_id: Opt
 
 
 __all__ = [
-    "BASES_DIR", "OUTCOME_STATUSES", "PURGED_DIR", "SOLUTION_FIELDS", "RevisionConflictError", "StaleDependencyError",
-    "base_revision", "confirm_draft", "correct_base_fact", "propose_draft", "purge_scope",
-    "read_base", "record_material_event", "retire_base_fact", "upsert_base_fact",
+    "BASES_DIR", "DEPENDENT_KINDS", "OUTCOME_STATUSES", "PURGED_DIR", "SOLUTION_FIELDS", "TEAM_TARGET", "RevisionConflictError",
+    "StaleDependencyError", "base_revision", "check_citations", "citation_problems", "confirm_draft", "correct_base_fact", "fact_citation", "link_dependents",
+    "mark_alerted", "parse_citation", "propose_draft", "purge_scope", "read_base", "record_material_event",
+    "retire_base_fact", "share_team_fact", "team_target", "upsert_base_fact",
 ]

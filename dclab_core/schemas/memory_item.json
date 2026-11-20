@@ -26,9 +26,9 @@
       "type": "object"
     }
   },
-  "$id": "https://dclab.dev/schemas/dclab_core.memory_item.v2.json",
+  "$id": "https://dclab.dev/schemas/dclab_core.memory_item.v3.json",
   "additionalProperties": false,
-  "description": "One remembered line (v2: adds the ``problem`` scope while keeping all v1 items readable).",
+  "description": "One remembered line (v3: adds the ``team`` scope; v2 added ``problem``; every v1 and v2 item reads unchanged).",
   "properties": {
     "correction": {
       "default": false,
@@ -86,8 +86,8 @@
       "title": "Retired By"
     },
     "schema_version": {
-      "const": "dclab_core.memory_item.v2",
-      "default": "dclab_core.memory_item.v2",
+      "const": "dclab_core.memory_item.v3",
+      "default": "dclab_core.memory_item.v3",
       "title": "Schema Version",
       "type": "string"
     },
@@ -96,6 +96,7 @@
         "global",
         "workspace",
         "person",
+        "team",
         "project",
         "problem",
         "session"

@@ -80,7 +80,7 @@ class A3IdentityAndScopeTests(unittest.TestCase):
         }
         loaded = core_mem.MemoryItem.read(v1_doc)
         self.assertEqual(loaded.id, legacy_id)
-        self.assertEqual(loaded.schema_version, "dclab_core.memory_item.v2")
+        self.assertEqual(loaded.schema_version, core_mem.MemoryItem.model_fields["schema_version"].default)  # read as the current version
         fixed = core_mem.new(kind="fact", scope="project", scope_id="p1", text="Target is churn within 14 days.",
                              source=f"correction:{legacy_id}", who="person:owner", at="2026-10-29T09:00:00+00:00",
                              correction=True, supersedes=legacy_id)

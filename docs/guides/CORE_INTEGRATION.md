@@ -1506,3 +1506,24 @@ a row keyed by its id (a report by task and revision), call `accept_reply` when 
 before every status change, and build the report the requester sees with `build_report`, never by hand. No main-product
 field is mapped yet: the pinned inventory has no team, task or work-report fields, so no adapter invents them; the
 wiring is that repository's change.
+
+## A team's own memory and corrections across teams (2026-11-20, dclab-core 0.165.0)
+
+`dclab_core.memory` v3 (`dclab_core.memory_item.v3`, reading v1 and v2 unchanged) adds the `team` scope between
+`person` and `project`, with `team_scope_id(workspace_id, team_id)` as its key. A team's items are its working notes and
+draft exceptions (Sales' territory exceptions, for example): only the team's members read them, a shared summary never
+holds them, and a team shares a fact with the other teams on purpose, by writing it into the problem's base with a
+source naming the team item it came from. `resolve` does not check membership: the host builds each reader's chain from
+the teams that person is in, and builds a shared reader's chain without any team.
+
+The R&D host is the reference: `dclab_rnd/memory/scope.py` (`AuthorizedScope.team_ids`, filled from the person's W2
+teams; `chain()` and `shared_chain()` name no team, `team_chain(team)` reads one of the person's teams in that team's own conversation; the key uses one fixed stamp, so it survives `storage migrate`), `memory/bases.py` (a team's own editable base, target
+`team:<id>`; `share_team_fact`; the problem base's ledger of team work resting on its facts), `memory/summary.py` (a
+`team:<id>` summary for members only) and `teamspace/store.py` (`fact_citation`, `record_decision`,
+`mark_fact_dependents_stale`). A task cites a problem-base fact in its allowed inputs, a report in an evidence source,
+and a decision in its constraint revisions, each as `fact:<entry id>@r<revision>`; correcting the fact marks every task,
+report and decision citing the old revision stale (and what rested on them), posts one alert into each requester's
+thread, and flags each decision for its owner's review; work that did not cite it is untouched. In the main product
+the same rule belongs where its decisions are recorded: keep the fact revision each decision and handoff rested on, and
+reopen exactly those when the fact is corrected. No main-product field is mapped: the pinned inventory has no memory
+or team tables.

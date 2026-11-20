@@ -85,7 +85,7 @@
   const icon = (name, cls = '') => `<svg viewBox="0 0 24 24" class="${cls}" aria-hidden="true">${IC[name] || ''}</svg>`;
 
   /* ---------------- navigation model ---------------- */
-  const PROJECT_VIEWS = ['dashboard', 'project', 'solution', 'notebook', 'audit', 'features', 'models', 'evaluation', 'decision', 'reliability', 'brief'];
+  const PROJECT_VIEWS = ['dashboard', 'project', 'solution', 'notebook', 'audit', 'features', 'models', 'evaluation', 'decision', 'reliability', 'brief', 'team'];
   /* A project page's crumb is the open project's name (setProjectLabel): "Project" until it is known, never a sample's name. */
   const VIEW_META = {
     home: { label: 'Home', crumbs: ['Workspace'] },
@@ -102,6 +102,7 @@
     decision: { label: 'Decision & Pricing', crumbs: ['Project'] },
     reliability: { label: 'Reliability & holdout', crumbs: ['Project'] },
     brief: { label: 'Decision brief', crumbs: ['Project'] },
+    team: { label: 'Team threads', crumbs: ['Project'] },
     intern: { label: 'Autonomous Agent', crumbs: ['Workspace'] },
     compute: { label: 'Compute & jobs', crumbs: ['Workspace'] },
     evidence: { label: 'Evidence library', crumbs: ['Knowledge'] },
@@ -124,6 +125,7 @@
       { id: 'home', label: 'Home', icon: 'chat' },
       { id: 'projects', label: 'Projects', icon: 'folder' },
       { id: 'intern', label: 'Agent', icon: 'intern', count: '' },
+      { id: 'team', label: 'Team inbox', icon: 'users', count: '' },  // W8: my team threads (the project's Teams tab)
     ] },
     { group: 'Project tools', more: true, items: [
       { id: 'project', label: 'Workflow', icon: 'graph' },
@@ -162,6 +164,9 @@
     { id: 'data', label: 'Data', views: [['solution', 'Data and solution'], ['audit', 'Leakage and drift'], ['features', 'Features']] },
     { id: 'models', label: 'Models', views: [['models', 'Models'], ['evaluation', 'Evaluation'], ['reliability', 'Reliability and final test']] },
     { id: 'brief', label: 'Brief', views: [['brief', 'Decision brief'], ['decision', 'Decision and costs']] },
+    /* W8 (2026-11-20): the teams' threads on this project's problems, their tasks and reports. A tab of its own, not a page under
+       Brief: people talk here every day, and the brief is what the decision owner signs at the end. */
+    { id: 'teams', label: 'Teams', views: [['team', 'Team threads']] },
   ];
   const projectBar = {
     last: {},

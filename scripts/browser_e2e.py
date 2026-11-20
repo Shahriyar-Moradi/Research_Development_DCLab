@@ -17,6 +17,7 @@ Needs Playwright: pip install -r requirements/browser.txt && python -m playwrigh
   stats    the numbers on Home, Compute, Integrations and Packs equal the API's (read over HTTP, not through the page)
   pages    all 21 pages at 1280 px: no console error, no uncaught error, no CSP violation, no failed-load warning
   mobile   all 21 pages at 375 px: nothing wider than the screen (no sideways scroll)
+  teamwork W8: the Teams tab's four screens, a real round trip over the stream and the food walkthrough, 1280 and 375 px
 
 No model is used when the script starts its server: the chat asks its standard questions. Exit status 0 when every
 check passes; a failing check saves a screenshot under the output folder (--out, default $TMPDIR/dclab-browser).
@@ -38,7 +39,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 sys.path.insert(1, str(ROOT))  # the team check writes a replica's files (dclab_core)
 TELCO = ROOT / "data/project/telco/WA_Fn-UseC_-Telco-Customer-Churn.csv"
-VIEWS = ["home", "projects", "dashboard", "new", "project", "solution", "notebook", "audit", "features", "models", "evaluation", "decision", "reliability", "brief", "intern", "compute",
+VIEWS = ["home", "projects", "dashboard", "new", "project", "solution", "notebook", "audit", "features", "models", "evaluation", "decision", "reliability", "brief", "team", "intern", "compute",
          "evidence", "lab", "benchmark", "policy", "packs", "integrations", "admin", "blueprint"]
 STAGES = ("data", "leakage", "features", "models", "final")
 # every page reports what goes wrong: uncaught errors, CSP violations (an event, not always a console line)
@@ -859,7 +860,7 @@ def check_task_plan(b: Browser) -> str:
 CHECKS.update({'taskplan': (check_task_plan, 1280), 'taskplan-mobile': (check_task_plan, 375)})
 
 
-PROJECT_PAGES = ("dashboard", "project", "solution", "notebook", "audit", "features", "models", "evaluation", "decision", "reliability", "brief")
+PROJECT_PAGES = ("dashboard", "project", "solution", "notebook", "audit", "features", "models", "evaluation", "decision", "reliability", "team", "brief")  # brief last: the check retries on it
 SAMPLE_WORDS = ("Term-deposit", "HyperAck", "duration")  # the built-in sample's words: never under a real project's name
 
 
@@ -934,6 +935,154 @@ def check_unreadable(b: Browser) -> str:
 
 
 CHECKS.update({"unreadable": (check_unreadable, 1280)})
+
+
+def check_teamwork(b: Browser) -> str:
+    """W8: the Teams tab, the four screens. A person opens their Business thread on a new problem, asks Data Science, gets
+    its clarifying question over the stream, answers it, and the reply comes back with its report; the task page shows the
+    requested output, the actions with their statuses, the evidence and who answers next; the report puts the answer first
+    with its details folded; the shared handoff history is the API's own lines; the agent's job says what it may never do.
+    Then the owner's food delivery walkthrough (invented fixtures, played by the server's own worker): a corrected ETA
+    whose report r2 and r1 link each other, and a dispatch whose scores were denied, naming ML Engineering. At 1280 and 375 px."""
+    if WORKSPACE is None:
+        return "skipped: the team check sets a project's invented inputs in the script's own server's workspace (not with --base)"
+    sys.path.insert(0, str(ROOT / "tests"))
+    from dclab_rnd.studio import ProjectStore
+    from dclab_rnd.teamspace import delivery
+    from test_team_screens import ANSWER, BRIEF, food_env, seed_food
+
+    page = b.page
+    headers = {"X-DCLab-Token": b.api("/config")["csrf"]}
+    made = b.context.request.post(b.base + "/api/projects", data={"name": f"Team check {int(time.time())}", "goal": "Who should Sales call"}, headers=headers)
+    check(made.ok, f"create project answered {made.status}")
+    pid = made.json()["id"]
+    ProjectStore(WORKSPACE / "projects").update(pid, team_inputs=["sample:renewal_v1"])  # the invented sample the case may read
+    page.evaluate("id => { try { localStorage.setItem('dclab-project', id); localStorage.removeItem('dclab-team-thread'); } catch (e) {} DC.state.project = 'p:' + id; DC.currentProject.clear(); }", pid)
+    b.view("team", settle=1)
+    check(page.locator("#pbar .pbar-tab[aria-current='page']").inner_text().strip() == "Teams", "the Teams tab is not the current project tab")
+
+    # 1. the person opens their team's thread on a new problem, from the page
+    page.select_option("#tm-open-problem", "__new")
+    page.fill("#tm-open-name", "Renewal retention")
+    page.select_option("#tm-open-team", "business")
+    page.click("#tm-open-go")
+    page.wait_for_function("() => document.querySelector('#tm-thread-title').textContent === 'Business agent' && !document.querySelector('#tm-compose').hidden", timeout=30_000)
+    thread = page.evaluate("() => DC.$('#tm-inbox [aria-current=\"true\"]').dataset.tmThread")
+
+    # 2. a question for Data Science; its clarification arrives over the stream; the answer goes back; the reply comes
+    page.fill("#tm-text", BRIEF)
+    page.select_option("#tm-ask", "data_science")
+    page.click("#tm-send")
+    page.wait_for_selector("#tm-stream .tm-msg[data-handoff='clarification']", timeout=90_000)
+    check("answer" in page.locator("#tm-compose-note").inner_text(), "the composer does not say the next message answers the question")
+    page.fill("#tm-text", ANSWER)
+    page.click("#tm-send")
+    reply = page.locator("#tm-stream .tm-msg[data-handoff='reply']")
+    reply.first.wait_for(timeout=90_000)
+    check(reply.count() == 1, f"{reply.count()} replies in the thread, not one")
+    check(reply.first.locator(".tm-sim").count() == 1, "the reply on an invented sample is not marked Simulated")
+    check([t.strip() for t in reply.first.locator(".tm-four dt").all_inner_texts()] == ["Why", "Next", "Changed"], "the reply does not say why, who is next and what changed")
+
+    # 3. the task page and 4. the report
+    reply.first.locator("[data-tm-task]").click()
+    task = page.locator("#tm-task")
+    task.locator(".tm-act").first.wait_for(timeout=30_000)
+    text = task.inner_text()
+    for words in ("Requested output", "Done when", "Actions ·", "Evidence", "Remaining work", "Closed: nobody owes a response."):
+        check(words in text, f"the task page lacks {words!r}")
+    statuses = task.locator(".tm-act").evaluate_all("els => els.map(e => e.dataset.actionStatus)")
+    check(statuses and all(s in ("succeeded", "simulated") for s in statuses), f"the finished task's actions: {statuses}")
+    report = page.locator("#tm-report .tm-report").first
+    check(report.locator(".tm-answer").inner_text().startswith("Simulated:"), "the report's answer is not first, or not marked simulated")
+    folds = report.locator("details.tm-fold > summary").all_inner_texts()
+    check(folds == ["Assignment and owner", "Actions and observations", "Evidence and limits", "Next task"], f"the report's parts: {folds}")
+    check(not report.locator("details.tm-fold").first.evaluate("d => d.open"), "the report's details are not folded")
+    report.locator("details.tm-fold > summary").nth(1).click()
+    check(report.locator("details.tm-fold").nth(1).locator("li").count() >= 1, "Actions and observations shows nothing")
+
+    # 5. the shared handoff history, in the owner's words, and the agent's job
+    prob = b.api(f"/team-threads?project_id={pid}")[0]["problem_id"]
+    history = b.api(f"/projects/{pid}/problems/{prob}/handoffs")
+    page.wait_for_function("t => (document.querySelector('#tm-history-summary') || {}).textContent === t", arg=history["title"], timeout=30_000)
+    check(history["title"] == "Shared handoff history · 4", f"the history's title: {history['title']!r}")
+    shown = [t.strip() for t in page.locator("#tm-history .tm-lines li").all_inner_texts()]
+    check(shown == history["lines"] and shown[0].startswith("1. Business → Data Science · "), f"the history on the page is not the API's lines: {shown[:2]}")
+    job = page.locator("#tm-job").inner_text()
+    check("It may never" in job and "approve a decision" in job, "the agent's job does not say what it may never do")
+
+    # the food delivery walkthrough, played by the server's worker on invented fixtures
+    second = b.context.request.post(b.base + f"/api/projects/{pid}/problems", data={"name": "Order 1042"}, headers=headers)
+    check(second.ok, f"a second problem answered {second.status}")
+    prob2 = second.json()["problem_id"]
+    biz = b.context.request.post(b.base + f"/api/projects/{pid}/problems/{prob2}/team-threads", data={"team": "business"}, headers=headers).json()["id"]
+    env = food_env(WORKSPACE)  # the server's own job store: its worker delivers, nothing here races it
+    work = delivery.store_for(env)
+
+    def settled(_env, seconds=120):
+        deadline = time.time() + seconds
+        while time.time() < deadline:
+            if not work.deliveries(status="pending", project_id=pid):
+                return
+            time.sleep(0.5)
+        raise Failed("the server's worker did not deliver the walkthrough's handoffs")
+
+    ids = seed_food(env, pid, prob2, biz, settle=settled)
+    page.evaluate("t => { location.hash = '#team/' + t; }", biz)
+    page.wait_for_function("() => document.querySelectorAll('#tm-stream .tm-msg[data-handoff=\"reply\"]').length >= 3", timeout=60_000)
+    page.locator(f"#tm-stream [data-tm-task='{ids['fixed']}']").last.click()
+    page.wait_for_selector("#tm-report [data-report='T-fixed@r2']", timeout=30_000)
+    check(page.locator("#tm-task .tm-inbox [data-tm-task]").count() == 2, "the dispatch does not list its two specialist tasks")
+    page.locator("#tm-report [data-report='T-fixed@r2'] [data-tm-report='T-fixed@r1']").click()
+    old = page.locator("#tm-report [data-report='T-fixed@r1']")
+    page.wait_for_function("() => { const r = document.querySelector('#tm-report [data-report=\"T-fixed@r1\"]'); return r && r.offsetParent !== null; }", timeout=10_000)
+    check(old.locator("[data-tm-report='T-fixed@r2']").count() == 1, "the superseded report does not link to its replacement")
+    page.locator(f"#tm-report [data-tm-task='{ids['eta']}']").first.click()
+    page.wait_for_selector("#tm-report [data-report='T-fixed.eta@r2'] [data-tm-report='T-fixed.eta@r1']", timeout=30_000)
+    check(page.locator("#tm-task .tm-act[data-action-status='simulated'] .pill").first.inner_text().strip() == "Simulated", "a simulated action is not marked")
+    page.locator("#tm-task [data-tm-task='T-fixed']").click()  # back up to the brief it answers
+    page.wait_for_selector("#tm-report [data-report='T-fixed@r2']", timeout=30_000)
+    page.locator(f"#tm-stream [data-tm-task='{ids['denied']}']").last.click()
+    page.wait_for_function("() => (document.querySelector('#tm-task .tm-next') || {}).textContent === 'Next response owed by: ML Engineering' "
+                           "|| ((document.querySelector('#tm-task .tm-next') || {}).textContent || '').startsWith('Next response owed by: ML Engineering')", timeout=30_000)
+    check("%" not in page.locator("#tm-report").inner_text(), "a denied score shows a number")
+    page.locator(f"#tm-task [data-tm-task='{ids['denied_acceptance']}']").first.click()
+    page.wait_for_selector("#tm-task .tm-act[data-action-status='denied']", timeout=30_000)
+    check(page.locator("#tm-task .tm-act[data-action-status='denied'] .pill").inner_text().strip() == "Denied", "a denied action is not marked Denied")
+    b.shot("team-1280")
+
+    # leaving the page while its thread is still being read opens no stream (the review of W8)
+    page.evaluate("""() => { const Real = window.EventSource; window.__streams = [];
+        window.EventSource = function (url, opts) { const s = new Real(url, opts); window.__streams.push(s); return s; };
+        window.EventSource.prototype = Real.prototype; }""")
+    held = []
+    page.route(f"**/api/projects/{pid}/team-threads/{thread}", lambda route: held.append(route))
+    page.evaluate("t => { location.hash = '#team/' + t; }", thread)
+    for _ in range(100):
+        if held:
+            break
+        page.wait_for_timeout(100)
+    check(bool(held), "the thread's read was never asked")
+    b.view("home", settle=0.2)
+    held[0].continue_()
+    page.wait_for_timeout(1500)
+    page.unroute(f"**/api/projects/{pid}/team-threads/{thread}")
+    open_streams = page.evaluate("() => window.__streams.filter(s => s.url.includes('/team-threads/') && s.readyState !== 2).map(s => s.url)")
+    check(not open_streams, f"a stream stayed open after leaving the page during its read: {open_streams}")
+    page.evaluate("t => { location.hash = '#team/' + t; }", biz)
+    page.wait_for_selector("#tm-stream .tm-msg[data-handoff='reply']", timeout=30_000)
+    page.locator(f"#tm-stream [data-tm-task='{ids['denied']}']").last.click()
+    page.wait_for_selector("#tm-report [data-report='T-denied@r1']", timeout=30_000)
+    page.set_viewport_size({"width": 375, "height": 812})
+    time.sleep(0.8)
+    over = page.evaluate("() => document.documentElement.scrollWidth - document.documentElement.clientWidth")
+    check(over <= 1, f"the Teams tab is wider than 375 px (+{over}px, {page.evaluate(CULPRIT)})")
+    b.shot("team-375")
+    check(not b.problems(), f"the Teams tab: {b.problems()[:3]}")
+    return (f"thread {thread}: question, clarification over the stream, answer and one simulated reply; task page, report and "
+            f"the API's {len(shown)} history lines; superseded r1 ↔ r2, simulated and denied marked; fits 375 px; screenshots kept")
+
+
+CHECKS.update({"teamwork": (check_teamwork, 1280)})
 
 
 def main(argv: list[str] | None = None) -> int:
