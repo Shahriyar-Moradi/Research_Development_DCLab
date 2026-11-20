@@ -160,7 +160,8 @@ class DclabRegistryTests(unittest.TestCase):
                              "campaign": ("experiment",),
                              "home": __import__("dclab_rnd.draft.orchestrator", fromlist=["HOME_MOVES"]).HOME_MOVES,
                              "chat": __import__("dclab_rnd.chat_agents", fromlist=["CHAT_MOVES"]).CHAT_MOVES,
-                             "case": __import__("dclab_rnd.agents.case_agent", fromlist=["MOVES"]).MOVES.values()}[tool.scope]  # 37.3
+                             "case": __import__("dclab_rnd.agents.case_agent", fromlist=["MOVES"]).MOVES.values(),
+                             "team": __import__("dclab_rnd.teamspace.tools", fromlist=["MOVES"]).MOVES}[tool.scope]  # 37.3
                     self.assertIn(tool.move, moves)
                     self.assertEqual(tool.effect, "write")
         for old, new in LEGACY_TOOLS.items():

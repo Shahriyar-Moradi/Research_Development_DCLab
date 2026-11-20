@@ -7,8 +7,10 @@ corrects). For each row the job:
 
 1. rechecks the member who started it, now, with write permission (``memory.scope.revalidate_job_scope``): a member who
    lost access, or was made a viewer, gets the row refused and the target is never called;
-2. hands the row to the delivery target (:func:`set_target`; W5 supplies the agents; until then the default target only
-   acknowledges it: the row is the recipient's inbox), within a time limit (``DCLAB_TEAM_DELIVERY_TIMEOUT_SECONDS``, 30);
+2. hands the row to the delivery target, within a time limit (``DCLAB_TEAM_DELIVERY_TIMEOUT_SECONDS``, 30): the default,
+   :func:`default_target`, posts it into its team thread (W3, ``teamspace/threads.py``: the recipient's, or for a reply
+   the thread its task came from, once per row id) and then gives the recipient team's agent its turn (W5,
+   ``teamspace/agents.py``); :func:`set_target` replaces it (tests);
 3. marks the row delivered, and a reply posted to its thread, once.
 
 A failure ends the job: the attempt is counted on the row with its next time, doubling from
@@ -76,6 +78,17 @@ def acknowledge(env: Any, row: Row) -> Row:
     return {"inbox": row["to_team"]}
 
 
+def default_target(env: Any, row: Row) -> Any:
+    """The target when none is set: the row posted into its team thread, once per row id (W3, ``threads.deliver``), then
+    handed to the recipient team's agent (W5, ``agents.deliver``), whose rules read the stored task, so the same row handed
+    over again posts nothing and runs no step. The receipt keeps both."""
+    from .agents import deliver as act
+    from .threads import deliver as post
+
+    posted = post(env, row)
+    return {**posted, "agent": act(env, row)}
+
+
 def max_attempts() -> int:
     return max(1, int(os.environ.get("DCLAB_TEAM_DELIVERY_ATTEMPTS") or 5))
 
@@ -138,19 +151,40 @@ def _as_initiator(row: Row) -> Iterator[None]:
         yield
 
 
+def lane_of(store: Any, row: Mapping[str, Any]) -> str:
+    """The task whose job delivers this row (W5): a child's reply to its parent's owner travels in the parent's lane, so the
+    replies of two branches reach the agent that joins them one after the other, never in two turns at once; any other row
+    in its own task's lane."""
+    if row.get("kind") == "reply":
+        task = store.task(row["project_id"], row["task_id"])
+        if task is not None and task.parent_task_id:
+            parent = store.task(row["project_id"], task.parent_task_id)
+            if parent is not None and parent.owner_team == row["to_team"]:
+                return parent.id
+    return str(row["task_id"])
+
+
+def _lane_rows(store: Any, project_id: str, lane: str) -> list[Row]:
+    """The lane's pending rows, oldest first."""
+    return [r for r in store.deliveries(status="pending", project_id=project_id) if lane_of(store, r) == lane]
+
+
 def enqueue(env: Any, row: Optional[Row], jobs: Any = None) -> Optional[Row]:
-    """The job that delivers this row's task (the one already queued or running for it, if any); None when the row is not
-    pending. The job runs as the member of the task's oldest pending row."""
+    """The job that delivers this row's lane (``lane_of``: its task, or for a child's reply its parent; the one already
+    queued or running for it, if any); None when the row is not pending. The job runs as the member of the lane's oldest
+    pending row."""
     if not row or row.get("status") != "pending":
         return None
     from ..jobs import ActiveJob
 
-    heads = [r for r in store_for(env).deliveries(status="pending", project_id=row["project_id"], task_id=row["task_id"])]
+    store = store_for(env)
+    lane = lane_of(store, row)
+    heads = _lane_rows(store, row["project_id"], lane)
     head = heads[0] if heads else row
     try:
         with _as_initiator(head):
-            job = _jobs_for(env, jobs).enqueue(KIND, job_key(row["project_id"], row["task_id"]),
-                                               {"project_id": row["project_id"], "task_id": row["task_id"]}, by="agent")
+            job = _jobs_for(env, jobs).enqueue(KIND, job_key(row["project_id"], lane),
+                                               {"project_id": row["project_id"], "task_id": lane}, by="agent")
     except ActiveJob as held:
         job = held.job
     worker = getattr(env, "worker", None)
@@ -176,9 +210,12 @@ def requeue_undelivered(env: Any, jobs: Any = None) -> list[str]:
             and not (home is not None and (home / "teamspace").is_dir()):
         return []  # a folder workspace that never saved team work: nothing to read, nothing written
     queued = []
-    for row in store_for(env).pending_heads():
+    store = store_for(env)
+    for row in store.pending_heads():
         if is_due(row) and enqueue(env, row, jobs) is not None:
-            queued.append(job_key(row["project_id"], row["task_id"]))
+            key = job_key(row["project_id"], lane_of(store, row))
+            if key not in queued:
+                queued.append(key)
     return queued
 
 
@@ -218,8 +255,8 @@ def _failed(store: Any, row: Row, error: BaseException) -> Row:
 
 
 def run(env: Any, payload: Mapping[str, Any]) -> list[Row]:
-    """Deliver one task's pending rows, oldest first (the job's work); stop at a row whose next attempt is not due yet, or
-    after a failed attempt. Returns the rows as they ended."""
+    """Deliver one lane's pending rows, oldest first (the job's work: ``task_id`` names the lane, ``lane_of``); stop at a row
+    whose next attempt is not due yet, or after a failed attempt. Returns the rows as they ended."""
     from ..jobs.worker import checkpoint
     from ..memory.scope import AccessDenied
 
@@ -228,7 +265,7 @@ def run(env: Any, payload: Mapping[str, Any]) -> list[Row]:
     done: list[Row] = []
     while True:
         checkpoint()
-        pending = store.deliveries(status="pending", project_id=project_id, task_id=task_id)
+        pending = _lane_rows(store, project_id, task_id)
         if not pending or not is_due(pending[0]):
             return done  # nothing left, or the oldest waits for its next attempt: the relay queues the task again when due
         row = pending[0]
@@ -238,7 +275,7 @@ def run(env: Any, payload: Mapping[str, Any]) -> list[Row]:
             done.append(store.delivery_stop(row["id"], "refused", REFUSED, error=exc, project_id=project_id))
             continue
         try:
-            receipt = _call(_HOOKS["target"] or acknowledge, env, row, timeout_seconds())
+            receipt = _call(_HOOKS["target"] or default_target, env, row, timeout_seconds())
         except PermanentFailure as exc:
             done.append(store.delivery_stop(row["id"], "blocked", f"Not delivered: {team_label(row['to_team'])} cannot take it "
                                             f"({type(exc).__name__}).", error=exc, project_id=project_id))
@@ -262,8 +299,7 @@ def settle(env: Any, payload: Mapping[str, Any], reason: str, job: Mapping[str, 
         return
     try:
         store = store_for(env)
-        pending = store.deliveries(status="pending", project_id=str(payload.get("project_id") or ""),
-                                   task_id=str(payload.get("task_id") or ""))
+        pending = _lane_rows(store, str(payload.get("project_id") or ""), str(payload.get("task_id") or ""))
     except Exception:  # noqa: BLE001 — the store is away: the relay tries again
         return
     if not pending:
@@ -282,5 +318,5 @@ def settle(env: Any, payload: Mapping[str, Any], reason: str, job: Mapping[str, 
         pass
 
 
-__all__ = ["KIND", "JobFailed", "PermanentFailure", "REFUSED", "TargetTimeout", "TemporaryFailure", "acknowledge", "authorize", "enqueue",
-           "job_key", "requeue_undelivered", "run", "send", "set_membership_checker", "set_target", "settle", "store_for"]
+__all__ = ["KIND", "JobFailed", "PermanentFailure", "REFUSED", "TargetTimeout", "TemporaryFailure", "acknowledge", "authorize", "default_target", "enqueue",
+           "job_key", "lane_of", "requeue_undelivered", "run", "send", "set_membership_checker", "set_target", "settle", "store_for"]

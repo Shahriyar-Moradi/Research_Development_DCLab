@@ -96,6 +96,14 @@
   /** @typedef {Object} HTTPValidationError
    *  @property {Array<ValidationError>=} detail
    */
+  /** @typedef {Object} HandoffHistoryDoc
+   *  @property {*=} project_id
+   *  @property {*=} problem_id
+   *  @property {*=} title
+   *  @property {*=} count
+   *  @property {(Array<*>|null)=} entries
+   *  @property {(Array<*>|null)=} lines
+   */
   /** @typedef {Object} InternMessage
    *  @property {*=} text
    */
@@ -349,6 +357,40 @@
    *  @property {*=} since
    *  @property {*=} added
    */
+  /** @typedef {Object} TeamMessageDoc
+   *  @property {*=} id
+   *  @property {*=} thread_id
+   *  @property {*=} seq
+   *  @property {*=} author
+   *  @property {*=} text
+   *  @property {*=} handoff
+   *  @property {*=} visibility
+   *  @property {*=} created_at
+   */
+  /** @typedef {Object} TeamMessagePost
+   *  @property {*=} text
+   *  @property {(string|null)=} ask
+   */
+  /** @typedef {Object} TeamThreadDoc
+   *  @property {*=} id
+   *  @property {*=} project_id
+   *  @property {*=} problem_id
+   *  @property {*=} team
+   *  @property {*=} team_label
+   *  @property {*=} created_at
+   *  @property {*=} created_by
+   *  @property {*=} messages
+   *  @property {*=} access
+   *  @property {*=} opened
+   */
+  /** @typedef {Object} TeamThreadOpen
+   *  @property {*=} team
+   */
+  /** @typedef {Object} TeamThreadView
+   *  @property {*=} thread
+   *  @property {(Array<*>|null)=} messages
+   *  @property {*=} access
+   */
   /** @typedef {Object} ValidationError
    *  @property {Array<(string|number)>} loc
    *  @property {string} msg
@@ -555,6 +597,8 @@
     preparePriceStudy: ["POST", "/projects/{project_id}/price-scenarios/prepare", ["project_id"], []],
     projectProblemsList: ["GET", "/projects/{project_id}/problems", ["project_id"], []],
     projectProblemsCreate: ["POST", "/projects/{project_id}/problems", ["project_id"], []],
+    problemHandoffs: ["GET", "/projects/{project_id}/problems/{problem_id}/handoffs", ["project_id", "problem_id"], []],
+    openTeamThread: ["POST", "/projects/{project_id}/problems/{problem_id}/team-threads", ["project_id", "problem_id"], []],
     getProgramme: ["GET", "/projects/{project_id}/programme", ["project_id"], []],
     dropProgrammeLeaf: ["POST", "/projects/{project_id}/programme/drop", ["project_id"], []],
     runProgramme: ["POST", "/projects/{project_id}/programme/run", ["project_id"], ["wait"]],
@@ -574,6 +618,9 @@
     confirmTaskPlan: ["POST", "/projects/{project_id}/task-plan/confirm", ["project_id"], []],
     projectTeam: ["GET", "/projects/{project_id}/team", ["project_id"], []],
     projectTeamWalk: ["POST", "/projects/{project_id}/team", ["project_id"], []],
+    readTeamThread: ["GET", "/projects/{project_id}/team-threads/{thread_id}", ["project_id", "thread_id"], ["after"]],
+    teamThreadEvents: ["GET", "/projects/{project_id}/team-threads/{thread_id}/events", ["project_id", "thread_id"], ["after", "wait"]],
+    postTeamMessage: ["POST", "/projects/{project_id}/team-threads/{thread_id}/messages", ["project_id", "thread_id"], []],
     projectTwinRuns: ["GET", "/projects/{project_id}/twin", ["project_id"], []],
     runTwin: ["POST", "/projects/{project_id}/twin", ["project_id"], []],
     projectWorkflowRun: ["GET", "/projects/{project_id}/workflow-run", ["project_id"], []],
@@ -591,6 +638,7 @@
     studentsRegister: ["GET", "/students", [], []],
     studioStatus: ["GET", "/studio", [], []],
     syntheticTemplates: ["GET", "/synthetic/templates", [], []],
+    myTeamThreads: ["GET", "/team-threads", [], ["project_id"]],
     teamSettings: ["GET", "/team/settings", [], []],
     setTeamSettings: ["PUT", "/team/settings", [], []],
     teamWalks: ["GET", "/teams", [], []],
@@ -1783,6 +1831,21 @@
    *  @returns {Promise<ProblemDoc>} */
   client.projectProblemsCreate = (...args) => call('projectProblemsCreate', args);
   client.path.projectProblemsCreate = (...args) => build('projectProblemsCreate', args).path;
+  /** GET /api/projects/{project_id}/problems/{problem_id}/handoffs: Problem Handoffs
+   *  @param {string} project_id
+   *  @param {string} problem_id
+   *  @param {{headers?: Object}} [opts]
+   *  @returns {Promise<HandoffHistoryDoc>} */
+  client.problemHandoffs = (...args) => call('problemHandoffs', args);
+  client.path.problemHandoffs = (...args) => build('problemHandoffs', args).path;
+  client.href.problemHandoffs = (...args) => '/api' + build('problemHandoffs', args).path;
+  /** POST /api/projects/{project_id}/problems/{problem_id}/team-threads: Open Team Thread
+   *  @param {string} project_id
+   *  @param {string} problem_id
+   *  @param {{body: TeamThreadOpen, headers?: Object}} [opts]
+   *  @returns {Promise<TeamThreadDoc>} */
+  client.openTeamThread = (...args) => call('openTeamThread', args);
+  client.path.openTeamThread = (...args) => build('openTeamThread', args).path;
   /** GET /api/projects/{project_id}/programme: Get Programme
    *  @param {string} project_id
    *  @param {{headers?: Object}} [opts]
@@ -1906,6 +1969,29 @@
    *  @returns {Promise<Doc>} */
   client.projectTeamWalk = (...args) => call('projectTeamWalk', args);
   client.path.projectTeamWalk = (...args) => build('projectTeamWalk', args).path;
+  /** GET /api/projects/{project_id}/team-threads/{thread_id}: Read Team Thread
+   *  @param {string} project_id
+   *  @param {string} thread_id
+   *  @param {{query?: {after?: *}, headers?: Object}} [opts]
+   *  @returns {Promise<TeamThreadView>} */
+  client.readTeamThread = (...args) => call('readTeamThread', args);
+  client.path.readTeamThread = (...args) => build('readTeamThread', args).path;
+  client.href.readTeamThread = (...args) => '/api' + build('readTeamThread', args).path;
+  /** GET /api/projects/{project_id}/team-threads/{thread_id}/events: Team Thread Events
+   *  @param {string} project_id
+   *  @param {string} thread_id
+   *  @param {{query?: {after?: *, wait?: *}, headers?: Object}} [opts]
+   *  @returns {Promise<*>} */
+  client.teamThreadEvents = (...args) => call('teamThreadEvents', args);
+  client.path.teamThreadEvents = (...args) => build('teamThreadEvents', args).path;
+  client.href.teamThreadEvents = (...args) => '/api' + build('teamThreadEvents', args).path;
+  /** POST /api/projects/{project_id}/team-threads/{thread_id}/messages: Post Team Message
+   *  @param {string} project_id
+   *  @param {string} thread_id
+   *  @param {{body: TeamMessagePost, headers?: Object}} [opts]
+   *  @returns {Promise<TeamMessageDoc>} */
+  client.postTeamMessage = (...args) => call('postTeamMessage', args);
+  client.path.postTeamMessage = (...args) => build('postTeamMessage', args).path;
   /** GET /api/projects/{project_id}/twin: Project Twin Runs
    *  @param {string} project_id
    *  @param {{headers?: Object}} [opts]
@@ -2014,6 +2100,12 @@
   client.syntheticTemplates = (...args) => call('syntheticTemplates', args);
   client.path.syntheticTemplates = (...args) => build('syntheticTemplates', args).path;
   client.href.syntheticTemplates = (...args) => '/api' + build('syntheticTemplates', args).path;
+  /** GET /api/team-threads: My Team Threads
+   *  @param {{query?: {project_id?: *}, headers?: Object}} [opts]
+   *  @returns {Promise<Array<TeamThreadDoc>>} */
+  client.myTeamThreads = (...args) => call('myTeamThreads', args);
+  client.path.myTeamThreads = (...args) => build('myTeamThreads', args).path;
+  client.href.myTeamThreads = (...args) => '/api' + build('myTeamThreads', args).path;
   /** GET /api/team/settings: Team Settings
    *  @param {{headers?: Object}} [opts]
    *  @returns {Promise<Page>} */

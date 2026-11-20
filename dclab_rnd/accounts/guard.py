@@ -61,6 +61,14 @@ SPECIAL = {
     ("POST", "/api/workspace/teams"): "admin",
     ("POST", "/api/workspace/teams/{team_id}/members"): "admin",
     ("DELETE", "/api/workspace/teams/{team_id}/members/{user_id}"): "admin",
+    # W3: team threads. Reading needs a member of the thread's team (or the owner), posting one whose role may write: the
+    # routes check the team themselves (teamspace/threads.access); the handoff history is every reader's of the project
+    ("GET", "/api/team-threads"): "read",
+    ("POST", "/api/projects/{project_id}/problems/{problem_id}/team-threads"): "write",
+    ("GET", "/api/projects/{project_id}/team-threads/{thread_id}"): "read",
+    ("POST", "/api/projects/{project_id}/team-threads/{thread_id}/messages"): "write",
+    ("GET", "/api/projects/{project_id}/team-threads/{thread_id}/events"): "read",
+    ("GET", "/api/projects/{project_id}/problems/{problem_id}/handoffs"): "read",
     # the record of every session: what people wrote and what the agents answered (19.4; the owner's, proposed)
     ("GET", "/api/experience/sessions"): "timelines",
     ("GET", "/api/experience/sessions/{visit}"): "timelines",

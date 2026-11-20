@@ -320,6 +320,62 @@ class TeamMembershipDoc(Doc):
     added: Any = None
 
 
+class TeamThreadOpen(Doc):
+    """W3: open a team's thread on a problem. ``team`` is a team's id (GET /api/workspace/teams), or a team agent's name."""
+    team: Any = ""
+
+
+class TeamMessagePost(Doc):
+    """W3: a message to a team's thread, kept whole. W5: ``ask`` (a team agent's name, ``data_science``) makes the message a
+    question for that team, opened by this thread's agent; a message that answers an open question asked of the poster
+    in this thread is their answer, without ``ask``."""
+    text: Any = ""
+    ask: Optional[str] = None
+
+
+class TeamThreadDoc(Doc):
+    """W3: one team's conversation on a problem; ``access`` is what the reader may do (``write``: read and post; ``read``)."""
+    id: Any = None
+    project_id: Any = None
+    problem_id: Any = None
+    team: Any = None
+    team_label: Any = None
+    created_at: Any = None
+    created_by: Any = None
+    messages: Any = None
+    access: Any = None
+    opened: Any = None
+
+
+class TeamMessageDoc(Doc):
+    """W3: one message of a team thread: its number, its author (a person, or a team's agent), its words whole, and the
+    handoff it carries when the delivery outbox posted it."""
+    id: Any = None
+    thread_id: Any = None
+    seq: Any = None
+    author: Any = None
+    text: Any = None
+    handoff: Any = None
+    visibility: Any = None
+    created_at: Any = None
+
+
+class TeamThreadView(Doc):
+    thread: Any = None
+    messages: list[Any] | None = None
+    access: Any = None
+
+
+class HandoffHistoryDoc(Doc):
+    """W3: a problem's shared handoff history: ``entries`` and the same as ``lines`` (``1. Business → Data Science · …``)."""
+    project_id: Any = None
+    problem_id: Any = None
+    title: Any = None
+    count: Any = None
+    entries: list[Any] | None = None
+    lines: list[Any] | None = None
+
+
 class ProblemCreate(Doc):
     name: Any = ""
     description: Any = ""

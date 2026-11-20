@@ -387,6 +387,10 @@ def _logs(src: Source, wid: str, url: str | None, report: dict[str, Any]) -> Non
         _teams(src, wid, url, report)
     except Exception as exc:  # noqa: BLE001 - the teams are reported failed; the rest still moves
         report["failed"].append(f"teams: {type(exc).__name__}")
+    try:  # W4, W3: the work between team agents and the team threads, project by project
+        _teamspace(src, wid, url, report)
+    except Exception as exc:  # noqa: BLE001 - the team work is reported failed; the rest still moves
+        report["failed"].append(f"teamspace: {type(exc).__name__}")
     routing = PgRouting(wid, url)
     path = src.home / "model_routing.json"
     if path.is_file() and not routing.get().get("history"):
@@ -421,6 +425,38 @@ def _teams(src: Source, wid: str, url: str | None, report: dict[str, Any]) -> No
     copied = sum(PgTeams(wid, url).import_team(t) for t in teams)
     report["logs"]["teams"] = {"source": len(teams), "copied": copied, "already": len(teams) - copied,
                                "memberships_not_moved": sum(len(t["members"]) for t in teams)}
+
+
+def _teamspace(src: Source, wid: str, url: str | None, report: dict[str, Any]) -> None:
+    """Every project's ``teamspace/<project>/work.json`` (tasks, actions, reports, the outbox, in the order they were made)
+    and ``threads.json`` (the team threads and their messages, numbered as they were). The workspace id ``local`` becomes
+    the database's; a row already there is left as it is, so a second run copies nothing."""
+    from ..teamspace.store import FILE as WORK, PgTeamWork, import_project as import_work
+    from ..teamspace.threads import FILE as THREADS, PgThreads, import_project as import_threads
+
+    folder = src.home / "teamspace"
+    if not folder.is_dir():
+        return
+    work, threads = PgTeamWork(wid, url), PgThreads(wid, url)
+    totals: dict[str, dict[str, int]] = {}
+    for project in sorted(p for p in folder.iterdir() if p.is_dir()):
+        if (project / WORK).is_file():
+            data = _json(project / WORK)
+            pid = str(data.get("project_id") or project.name)
+            held = sum(len(data.get(k) or {}) for k in ("tasks", "actions", "reports", "deliveries"))
+            done = sum(import_work(work, pid, data).values())
+            t = totals.setdefault("team_work", {"source": 0, "copied": 0})
+            t["source"] += held
+            t["copied"] += done
+        if (project / THREADS).is_file():
+            data = _json(project / THREADS)
+            held = len(data.get("threads") or {}) + sum(len(v) for v in (data.get("messages") or {}).values())
+            done = sum(import_threads(threads, data).values())
+            t = totals.setdefault("team_threads", {"source": 0, "copied": 0})
+            t["source"] += held
+            t["copied"] += done
+    for name, t in totals.items():
+        report["logs"][name] = {**t, "already": t["source"] - t["copied"]}
 
 
 def _memory_bases(src: Source, wid: str, url: str | None, report: dict[str, Any]) -> None:

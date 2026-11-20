@@ -73,7 +73,8 @@ class DeclaredMoveTests(unittest.TestCase):
                          "campaign": ("experiment",),
                          "home": __import__("dclab_rnd.draft.orchestrator", fromlist=["HOME_MOVES"]).HOME_MOVES,
                          "chat": __import__("dclab_rnd.chat_agents", fromlist=["CHAT_MOVES"]).CHAT_MOVES,
-                         "case": __import__("dclab_rnd.agents.case_agent", fromlist=["MOVES"]).MOVES.values()}[tool.scope]  # A7: DCLab's agents behind a chat
+                         "case": __import__("dclab_rnd.agents.case_agent", fromlist=["MOVES"]).MOVES.values(),
+                         "team": __import__("dclab_rnd.teamspace.tools", fromlist=["MOVES"]).MOVES}[tool.scope]  # A7: DCLab's agents behind a chat
                 self.assertIn(tool.move, moves)
 
     def test_every_project_write_tool_has_a_refusal_case(self):

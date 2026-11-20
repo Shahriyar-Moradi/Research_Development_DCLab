@@ -8,6 +8,7 @@ workflow move it makes. Scopes say who may call it:
     session   the intern's own notes on its session (its plan, its report)
     campaign  the research campaign's one write: an experiment
     chat      DCLab's own agents as tools for an external chat at /mcp (A7: the Home agent, ...); each agent checks its writes
+    team      the team agents' tasks, actions and reports (W5): each names an action of the agent's directory
 
 A call is checked against the schema before the handler runs; a bad call comes back as ``{"error": ...}`` that a
 model can read and correct, never as an exception.
@@ -29,7 +30,7 @@ from typing import Any, Callable, Mapping, Protocol
 
 import jsonschema
 
-SCOPES = ("project", "draft", "session", "campaign", "workspace", "home", "chat", "case")  # case: 37.3, the lead agent's case-file tools  # workspace: 30.21, the chat over the workspace's tables; home: the Home orchestrator's team on a built project; chat: A7, DCLab's agents behind an external chat
+SCOPES = ("project", "draft", "session", "campaign", "workspace", "home", "chat", "case", "team")  # team: W5, the team agents' tools (dclab_rnd/teamspace/tools.py), every write through the team guard  # case: 37.3, the lead agent's case-file tools  # workspace: 30.21, the chat over the workspace's tables; home: the Home orchestrator's team on a built project; chat: A7, DCLab's agents behind an external chat
 EFFECTS = ("read", "write")
 
 _OBSERVATION = ContextVar("registry_call_observation", default=None)

@@ -1,0 +1,196 @@
+{
+ "package": "team-agents",
+ "title": "W5: team agent configurations, the team tool scope and its guard, and deterministic Business, Data Science and fixture model-specialist agents delivered through the outbox",
+ "date": "2026-11-20",
+ "request": "Build W5 of the approved collaborative workspace plan: every agent knows its tasks, the actions it may take, its responsibility and the report it owes; deterministic agents (no language model) on Policy and run() with a scripted client; team tools in a new registry scope with a guard over the action directory; the delivery target running the recipient agent, idempotent on the outbox row id.",
+ "spec": "dclab_rnd/teamspace/agents.py (TeamAgentConfig built from team_work.DIRECTORY, job_description, the deterministic agents' rules, ScriptedChoices, run_turn, open_case, person_replies, correct, preview_report, deliver, install); dclab_rnd/teamspace/tools.py (scope team: accept, block, clarify, record_human_response, answer, delegate, act, model_call, return_report; TeamGuard); dclab_rnd/teamspace/fixtures.py (invented renewal samples, ETA E1 and acceptance A1); registry scope team, GROUPS team, harness.AGENTS teamspace; tests/test_teamspace_agents.py on files and PostgreSQL.",
+ "plan": [
+  "read the plan's core design and W5, the owner's action directory, walkthroughs and report fields",
+  "read W1 team_work (DIRECTORY, may_take, can_claim, build_report, next_owner, may_approve), the W4 store and delivery, W2 teams, the agent runtime, registry and harness gates",
+  "derive each configuration from the directory and bind every action to a team-scope tool or a recorded human answer",
+  "write the guard: directory, binding, forbidden actions, the person behind a human answer, task ownership, authority at tool execution",
+  "write the agents as rules over the stored task so a repeated delivery finds nothing left",
+  "test the renewal round trip, the blocker, the two branches in both orders, a denied specialist, the kitchen correction and duplicate delivery on files and PostgreSQL",
+  "run the harness, prompt and harness-suite gates and the registry tests"
+ ],
+ "decisions": [
+  {
+   "decision": "The deterministic agents choose each call from the task as stored, not from the row that woke them.",
+   "why": "a delivery handed over twice (a crash after the agent acted, before the row was marked delivered) then finds its work done and runs no step, and a turn cut off midway resumes where it stopped; per-row markers would skip the rest of a half-done turn"
+  },
+  {
+   "decision": "Business records its own actions on the task it requested, not on a task of its own.",
+   "why": "a Business-owned task would put a Business to Business row in the shared handoff history; on the requested task the history reads exactly as the owner's example and the Business thread gets one reply"
+  },
+  {
+   "decision": "Task moves (accept, block, complete through return_report) record no directory action; work actions do.",
+   "why": "the directory lists work (inspect, confirm, delegate, score), not status changes; validate_transition already checks who moves a task"
+  },
+  {
+   "decision": "Actions are written running and then finished, with an action id derived from the retry key.",
+   "why": "the W4 store has no update from planned to running (a second record is refused); a derived id makes a retried call find its record"
+  },
+  {
+   "decision": "The outbox's default target posts the row into its team thread (W3) and then gives the recipient agent its turn (W5).",
+   "why": "no start-up call is needed; both halves are idempotent on the row id (the post keyed delivery:<id>, the agent reading the stored task)"
+  },
+  {
+   "decision": "The answer to a clarification is a public store call, send_answer, on files and PostgreSQL.",
+   "why": "the store only wrote an answer row when the owner moved its task, which would make Business act as Data Science; private store methods from another module would break silently"
+  },
+  {
+   "decision": "The team agents' Policy carries chooser rules, and the ledger records their tool choices and stops as rule:teamspace.<agent>.",
+   "why": "code chose those steps; recording them as model_role would label rules as a model's decisions in the training data"
+  }
+ ],
+ "change": "dclab_rnd/teamspace/agents.py, tools.py, fixtures.py (new); dclab_rnd/agents/registry.py (scope team); dclab_rnd/agents/__init__.py (GROUPS team); dclab_rnd/agents/harness.py (AGENTS teamspace); tests/test_teamspace_agents.py (new); tests/test_agent_harness.py (its probe); tests/test_agents_runtime.py and tests/test_agents_validator.py (the team scope's moves). Wiring after W3: teamspace/delivery.py default_target composes threads.deliver and agents.deliver; teamspace/store.py send_answer and storage TeamWork Protocol; ledger/capture.py records rules-chosen agent steps as rules; tests/test_teamspace_threads.py pins its delivery suite to the thread post alone. Joint review: store.report_task and delegate(parent_waits), store.reply_text, threads and team work in storage migrate, delivery lanes (lane_of), the SSE recheck on the live role, the post route handing a message to the thread's agent (TeamMessagePost.ask, api.js regenerated), tests/test_teamspace_routes.py.",
+ "findings": [
+  {
+   "id": "TA-1",
+   "source": "self",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "Data Science opened only the first of the two specialist tasks for the food delivery question.",
+   "scenario": "the dispatch question needs ETA and acceptance; after the first delegation the parent moved to waiting_for_team and the rules only delegated from accepted, so the acceptance child never existed",
+   "cause": "the delegation branch was guarded by the accepted status that the delegation itself changes",
+   "fix": "delegate every missing specialist while the task is accepted or waiting_for_team",
+   "test": "tests/test_teamspace_agents.py test_the_two_branches_finish_in_opposite_orders_and_are_joined_exactly_once"
+  },
+  {
+   "id": "TA-2",
+   "source": "self",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "The preview of a finished task's report was forced to partial.",
+   "scenario": "a complete parent previewed after both children returned would read partial",
+   "cause": "the preview passed status partial for every unblocked task",
+   "fix": "partial only while a child is still out; otherwise the status build_report derives",
+   "test": "tests/test_teamspace_agents.py test_the_two_branches_finish_in_opposite_orders_and_are_joined_exactly_once"
+  },
+  {
+   "id": "TA-3",
+   "source": "self",
+   "severity": "gap",
+   "verdict": "confirmed",
+   "defect": "Authority was rechecked at delivery but not when a team tool ran.",
+   "scenario": "sara is removed from the workspace after her case is delivered; person_replies in her name would still record a response and send an answer",
+   "cause": "the guard checked the directory and the task but not the member the turn acts for",
+   "fix": "the guard rechecks the initiating member through delivery.authorize before every team tool",
+   "test": "tests/test_teamspace_agents.py test_a_member_who_lost_access_gets_no_tool_run_in_their_name"
+  },
+  {
+   "id": "TA-4",
+   "source": "test",
+   "severity": "gap",
+   "verdict": "confirmed",
+   "defect": "The registry tests enumerate every scope's moves and failed on the new team scope.",
+   "scenario": "test_agents_runtime and test_agents_validator raised KeyError team",
+   "cause": "a new scope needs its moves in the tests' scope-to-moves maps",
+   "fix": "tools.MOVES lists the team scope's moves and both tests read it",
+   "test": "tests/test_agents_runtime.py test_every_tool_is_registered_once_and_well_formed"
+  },
+  {
+   "id": "TA-R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "An agent could record a person's answer that the person never gave.",
+   "scenario": "person_replies(person='sara', initiator=omar) recorded confirm_terms as answered by sara; a direct team_record_human_response with responded_by='sara' in omar's turn did the same",
+   "cause": "responded_by came from the tool's arguments and was checked only against the case member",
+   "fix": "the guard requires responded_by to be the turn's member and person, and the owner's relayed record needs the requester's finished record of the same response and person",
+   "test": "tests/test_teamspace_agents.py test_an_answer_by_another_person_is_refused_and_nothing_travels"
+  },
+  {
+   "id": "TA-R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "A crash between the move to complete and the report left a task complete with no report, never reported again.",
+   "scenario": "the worker dies after move(complete), before store_report: the next turn sees complete and does nothing",
+   "cause": "two store writes in sequence, and rules that did not resume a complete task without a report",
+   "fix": "store.report_task moves and reports in one transaction (files and PostgreSQL); the rules report again for a complete task without a report; delegate moves the parent in the child's transaction",
+   "test": "tests/test_teamspace_agents.py test_a_crash_while_reporting_leaves_neither_the_move_nor_the_report_and_the_turn_resumes"
+  },
+  {
+   "id": "TA-R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "Two Data Science turns on one parent raced, and the loser's row was blocked.",
+   "scenario": "both branch replies delivered at once by two jobs: the second turn's move to complete fails with 'already complete' and becomes a PermanentFailure",
+   "cause": "one delivery job per child task, and a refusal for a move already made",
+   "fix": "a child's reply travels in its parent's lane (one job); the report is a duplicate when another turn stored the same revision; a move to the status the task already has is the same move",
+   "test": "tests/test_teamspace_agents.py test_two_branch_replies_share_one_lane_and_a_forced_race_is_a_duplicate_not_a_failure"
+  },
+  {
+   "id": "TA-R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "Fixture results were not labelled as simulated in threads or the handoff history.",
+   "scenario": "the dispatch brief read 'At 18:00 the estimated arrival was 18:32...' in the Business thread with no sign it came from fixtures",
+   "cause": "the reply text was the bare answer",
+   "fix": "the reply's first line says 'Simulated (fixture E1/A1):' whenever the report is simulated; the history shows that first line",
+   "test": "tests/test_teamspace_agents.py test_the_two_branches_finish_in_opposite_orders_and_are_joined_exactly_once"
+  },
+  {
+   "id": "TA-R5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "Data Science's checks on an invented sample were recorded as real successes.",
+   "scenario": "inspect_schema, check_leakage, define_baseline and explain_uncertainty on sample:renewal_v1 were succeeded and the report not simulated",
+   "cause": "the act tool did not know its input was a fixture",
+   "fix": "checks on a fixtures.SAMPLES table are recorded simulated, so the report is simulated",
+   "test": "tests/test_teamspace_agents.py test_the_renewal_round_trip_returns_one_answer_and_one_report_to_the_business_thread"
+  },
+  {
+   "id": "TA-RA",
+   "source": "reviewer",
+   "severity": "gap",
+   "verdict": "confirmed",
+   "defect": "Two signed-in people finishing steps 1-4 through the routes was not proven.",
+   "scenario": "a person's answer posted in their thread never reached the agent",
+   "cause": "the post route only saved the message",
+   "fix": "the post route hands the message to the thread's agent (ask opens a case; an answer to an open question is the person's answer); Sara and Dan finish the case through the routes with sign-in on",
+   "test": "tests/test_teamspace_routes.py test_sara_and_dan_finish_the_renewal_round_trip_through_their_own_threads"
+  },
+  {
+   "id": "TA-RB",
+   "source": "reviewer",
+   "severity": "gap",
+   "verdict": "confirmed",
+   "defect": "A Business member could not read the four questions from the thread alone.",
+   "scenario": "the reply message carried only the answer",
+   "cause": "no reply text beyond the answer",
+   "fix": "each reply says what was found, Why (evidence and a limit), Next (owner and what unblocks it) and Changed (the report it replaces and the current one)",
+   "test": "tests/test_teamspace_agents.py test_the_kitchens_eight_minutes_supersede_the_eta_report_and_leave_acceptance_alone"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "team agents tests on files and on PostgreSQL, and the agent gates",
+   "gate": "test_teamspace_agents passes on files and with --pg with no skipped test; test_agent_harness, test_prompt_gate, test_harness_gate, test_agents_runtime, test_agents_validator, test_harness_stage2, test_mcp, test_teamspace_store and test_teamspace_delivery still pass",
+   "fixed_before_run": true,
+   "result": "after the joint review: test_teamspace_agents 31 and test_teamspace_routes 7 pass on files and --pg (the signed-in route test and the migrate test on PostgreSQL), with W2, W3, W4 and storage tests, the harness, prompt and harness-suite gates, registry, web client and decision capture tests",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "next": "W6: corrections through bases and stale marking; wire install() (or delivery's default target) once W3 lands",
+   "limits": [
+    "no language model is involved; every choice is code's",
+    "the samples and model results are invented fixtures; the specialists' results are labelled simulated",
+    "make check-quick and make check-all were not run in this package"
+   ]
+  }
+ ],
+ "outcome": "Every directory row has a configuration and a job description built from the directory itself. The team scope's tools record each action through the W4 store behind a guard over the directory, the binding, forbidden actions, the person behind a human answer and the member's authority. Deterministic Business, Data Science and fixture model-specialist agents carry the renewal round trip, the blocker, the two-branch food delivery, a denied specialist and the kitchen correction through the outbox, and a repeated delivery runs no step.",
+ "lessons": [
+  "Rules that read the stored state make a delivery target idempotent and resumable at once; a per-row marker gives only the first.",
+  "A move that a step makes (accepted to waiting_for_team) can close the branch that should run next; test the second delegation, not only the first."
+ ],
+ "risks": [
+  "W3's delivery tests now pin the target to threads.deliver; any test that relies on the default target alone will see the agents act.",
+  "make sft-dev must run with the commit (test_devlog is stale until then)."
+ ],
+ "commits": []
+}

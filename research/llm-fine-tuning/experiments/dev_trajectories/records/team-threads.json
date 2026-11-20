@@ -1,0 +1,184 @@
+{
+ "package": "team-threads",
+ "title": "W3: each team's own thread on a problem, the shared handoff history, and deliveries posted into the threads",
+ "date": "2026-11-20",
+ "request": "Build W3 of the approved collaborative workspace plan: one private thread per team, project and problem with messages appended whole, access for the team's members and the owner, the shared handoff history for every project reader in the owner's wording, server-sent events for new messages, and the W4 delivery posting into the threads once per delivery.",
+ "spec": "dclab_rnd/teamspace/threads.py (FileThreads: threads.json in W4's project folder under its lock; PgThreads: team_thread and team_message in migration 0028, a trigger refusing UPDATE of a message; access(), team_key(), post_delivery() and deliver(), the outbox's new default target), dclab_rnd/teamspace/stream.py (the drafts' SSE loop as a helper), dclab_rnd/agentic/routers/team_threads.py (six routes, guard.SPECIAL entries, api_models, the generated client), the TeamThreads Protocol in dclab_rnd/storage, and tests on files and PostgreSQL with sign-in on and off.",
+ "plan": [
+  "read the W3 plan section, the owner's workspace plan, the W1 contracts, the W4 store and delivery, the W2 teams store and routes, the guard and the draft event stream",
+  "decide what a thread's team is: a W2 team id, with the agent's team name mapped to the workspace's one team of that kind",
+  "write the migration and models, then the file and PostgreSQL thread stores behind one Protocol",
+  "write the access rule and the routes, checking the project through memory.scope.resolve_scope before the team",
+  "hook the W4 outbox: a default target posting each delivered row into its thread under the key delivery:<id>",
+  "write the tests on files and PostgreSQL, sign-in on and off, then an independent review and its fixes"
+ ],
+ "decisions": [
+  {
+   "decision": "A thread's team is a W2 team id; an agent's team name maps to the workspace's one team of that kind, and keeps the bare name when there is none or several",
+   "why": "membership is checked on team ids, and guessing between two Business teams could show one team's words to the other; a name-keyed thread is read by the owner only"
+  },
+  {
+   "decision": "Idempotency of a delivery is a unique key per project (delivery:<id>), not per thread",
+   "why": "if the team mapping changes between two attempts the retry would land in another thread; a project-wide key still posts it once"
+  },
+  {
+   "decision": "Every refusal on a thread is 403 with the same words, and the project is checked before the thread is looked up",
+   "why": "a different answer for a missing thread would tell an outsider which ids exist"
+  },
+  {
+   "decision": "A viewer in the team reads the thread but cannot post; the owner reads every thread and posts only in their own teams",
+   "why": "the plan says team members and the owner; reading needs membership, posting needs the write permission, and the owner answering for a team it is not in would blur whose words they are"
+  },
+  {
+   "decision": "PostgreSQL streams reuse the drafts' notify channel with keys prefixed team_thread:",
+   "why": "each server holds one LISTEN connection; a second channel would need a second connection and changes to storage/notify.py"
+  },
+  {
+   "decision": "Capture reuses the team.handoff kind with what set to thread.opened or thread.message, names only",
+   "why": "new dclab_core experience kinds are W7's package, and the words of a private thread must never reach the shared record"
+  }
+ ],
+ "change": "dclab_rnd/teamspace/threads.py, stream.py (new); dclab_rnd/agentic/routers/team_threads.py (new); dclab_rnd/storage/migrations/versions/0028_team_threads.py (new); dclab_rnd/storage/models.py (team_thread, team_message appended); dclab_rnd/storage/__init__.py (TeamThreads Protocol, open_team_threads); dclab_rnd/accounts/guard.py (six SPECIAL entries); dclab_rnd/agentic/api_models.py (thread, message and history models); dclab_rnd/agentic/routers/__init__.py (the router registered); dclab_rnd/teamspace/delivery.py (default_target posts into the threads); the generated api.js; tests/test_teamspace_threads.py (new) and two WRITE_ROUTES lines in tests/test_experience_log.py.",
+ "findings": [
+  {
+   "id": "TT-1",
+   "source": "test",
+   "severity": "gap",
+   "verdict": "confirmed",
+   "defect": "The two new write routes were not declared in the list of what each write route records, so the session record suite failed.",
+   "scenario": "test_every_write_route_says_what_it_records compared the OpenAPI write routes with WRITE_ROUTES and found the thread open and message post routes missing.",
+   "cause": "a new write route must say which experience kinds it records",
+   "fix": "both routes declared as recording team.handoff",
+   "test": "tests/test_experience_log.py test_every_write_route_says_what_it_records"
+  },
+  {
+   "id": "TT-2",
+   "source": "reviewer",
+   "severity": "privacy",
+   "verdict": "confirmed",
+   "defect": "The event stream checked access only when it opened, so a member removed from the team kept receiving its private messages for up to ten minutes.",
+   "scenario": "Dan has the Business thread's events open; the owner removes him from Business; a teammate posts and the message still reaches Dan's open stream.",
+   "cause": "the access check ran once before the streaming body, which lives for STREAM_SECONDS",
+   "fix": "the stream's read checks access again every DCLAB_TEAM_THREAD_RECHECK_SECONDS (15) as the reader captured at the start, and ends the stream when refused",
+   "test": "tests/test_teamspace_threads.py test_a_member_removed_from_the_team_stops_receiving_its_stream",
+   "open": "a role demotion inside the workspace is read from the session's principal, so it takes effect on the next sign-in or reconnect"
+  },
+  {
+   "id": "TT-3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "With two teams of one kind, a reply never went back into the thread its task came from.",
+   "scenario": "A workspace has Business and Business EU; Sara asks from the Business thread; the clarification to business maps to no single team and lands in a new owner-only thread Sara cannot read.",
+   "cause": "the named thread was accepted only when its team equalled the mapped team or the bare name",
+   "fix": "the named thread is also accepted when its team is of the recipient's kind and the member who started the task is in it",
+   "test": "tests/test_teamspace_threads.py test_with_two_teams_of_a_kind_the_reply_goes_back_to_the_askers_own_team_thread"
+  },
+  {
+   "id": "TT-4",
+   "source": "reviewer",
+   "severity": "privacy",
+   "verdict": "confirmed",
+   "defect": "A person outside the project got different refusal words for an existing thread and a missing one.",
+   "scenario": "An outsider asks for a thread id under project P: an existing thread answered 'Not yours to read', a missing one 'Not your team's thread'.",
+   "cause": "the thread was looked up before the project was checked",
+   "fix": "the project is checked first and every refusal carries the same words",
+   "test": "tests/test_teamspace_threads.py test_another_workspace_sees_nothing_and_every_project_reader_gets_the_history"
+  },
+  {
+   "id": "TT-5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "A report answer of only spaces, valid for team_work, made the delivery retry five times and then block.",
+   "scenario": "Data Science stores a report whose answer is a single space; the thread store refused it as empty and the outbox counted it as a temporary failure.",
+   "cause": "the empty-message rule written for people applied to what agents carry, and its error was not a permanent failure",
+   "fix": "an agent's words are posted as they travelled (only nothing at all is refused), and a refusal of the thread store is a PermanentFailure, blocked at once",
+   "test": "tests/test_teamspace_threads.py test_an_agents_words_are_posted_as_they_travelled_and_nothing_at_all_is_blocked_at_once"
+  },
+  {
+   "id": "TT-6",
+   "source": "reviewer",
+   "severity": "gap",
+   "verdict": "confirmed",
+   "defect": "The PostgreSQL path where two workers post the same delivery at once was never run by a test.",
+   "scenario": "Both workers pass the key check before either commits; the second insert meets the unique key and must return the first message.",
+   "cause": "every test reached the earlier key check instead",
+   "fix": "a test makes the first key check miss and asserts the existing message comes back unposted, with the losing number rolled back",
+   "test": "tests/test_teamspace_threads.py test_two_workers_posting_one_delivery_at_once_leave_one_message"
+  },
+  {
+   "id": "TT-R6",
+   "source": "reviewer",
+   "severity": "privacy",
+   "verdict": "confirmed",
+   "defect": "The stream's recheck used the role the reader had when the stream opened.",
+   "scenario": "an owner demoted to viewer mid-stream kept receiving a team's messages",
+   "cause": "the recheck replayed the stored principal",
+   "fix": "the recheck reads the live role (memory.scope.live_membership), refuses when there is none, and rebuilds the principal before access",
+   "test": "tests/test_teamspace_routes.py test_an_owner_demoted_while_reading_a_stream_stops_receiving_it"
+  },
+  {
+   "id": "TT-R7a",
+   "source": "reviewer",
+   "severity": "gap",
+   "verdict": "confirmed",
+   "defect": "storage migrate did not move team work or threads into PostgreSQL.",
+   "scenario": "a file workspace's teamspace/<project>/work.json and threads.json were left behind",
+   "cause": "no migrate step for them",
+   "fix": "migrate copies both, in their order, once, the workspace id 'local' becoming the database's",
+   "test": "tests/test_teamspace_routes.py test_the_team_work_and_threads_move_once_and_read_the_same"
+  },
+  {
+   "id": "TT-R7b",
+   "source": "reviewer",
+   "severity": "gap",
+   "verdict": "confirmed",
+   "defect": "A deleted project's threads were not documented or tested.",
+   "scenario": "after a project is deleted its threads could be read or not depending on the route",
+   "cause": "the store keeps deleted data; only the routes hide it",
+   "fix": "the threads module says so; a test shows every route refuses and the store still holds the messages",
+   "test": "tests/test_teamspace_routes.py test_a_deleted_projects_threads_are_kept_and_unreadable"
+  },
+  {
+   "id": "TT-R7c",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "verdict": "confirmed",
+   "defect": "A reply could land in an old owner-only thread after a real team of that kind existed.",
+   "scenario": "a thread opened as 'business' before a Business team existed kept receiving Business replies",
+   "cause": "a thread named after the agent counted as the recipient's whatever teams existed",
+   "fix": "that thread counts only while no real team of the kind exists",
+   "test": "tests/test_teamspace_routes.py test_a_reply_goes_to_the_real_teams_thread_once_one_exists"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "team thread tests on files and on PostgreSQL",
+   "gate": "test_teamspace_threads passes with and without --pg with no skipped test, and the W4, W2, storage, experience, API contract, web build, accounts and jobs tests still pass",
+   "fixed_before_run": true,
+   "result": "37 thread tests a run, 0 skipped, with and without --pg; test_teamspace_delivery, test_teamspace_store, test_teams, test_storage_postgres pass with --pg; those plus test_storage_interface, test_experience_log, test_api_contract, test_web_build, test_accounts, test_jobs pass on files (133 tests); the web build check is clean",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "next": "W5: the agents' delivery target calls threads.post_delivery; W8: the thread and history screens",
+   "limits": [
+    "no live model is involved",
+    "make check-quick and make check-all were not run in this package",
+    "storage migrate does not move a folder's threads into PostgreSQL, and deleting a project leaves its threads",
+    "the file store rewrites a project's threads document whole on each post, which grows with the conversation"
+   ]
+  }
+ ],
+ "outcome": "Each team has its own thread per project and problem on files or PostgreSQL, readable by its members and the owner and refused with one answer to everyone else; the handoff history reads like the owner's example with no thread words in it; deliveries land in the right thread once; the stream sends new messages, resumes from Last-Event-ID and stops for a member who left; six findings fixed with tests.",
+ "lessons": [
+  "Check the container before the item: looking a thread up before its project lets the refusal words tell which ids exist.",
+  "A stream is a long read: an access check at its start is not a check for its whole life.",
+  "A rule meant for people (no empty message) must not be applied blindly to what agents carry under another contract."
+ ],
+ "risks": [
+  "A target set by W5 must call post_delivery itself, or deliveries stop reaching the threads.",
+  "Two teams of one kind keep agent-only messages in an owner-only thread until a task names a team id.",
+  "The drafts' event stream keeps its own copy of the loop that stream.py now holds."
+ ],
+ "commits": []
+}

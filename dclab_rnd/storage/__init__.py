@@ -1,6 +1,6 @@
 """What the rest of the code may ask of storage.
 
-Projects, drafts, intern sessions, problem memory's bases and summaries, and the work passed between team agents are files in a workspace folder, or PostgreSQL rows. These Protocols are the whole surface
+Projects, drafts, intern sessions, problem memory's bases and summaries, the work passed between team agents and the teams' threads are files in a workspace folder, or PostgreSQL rows. These Protocols are the whole surface
 callers use, so a PostgreSQL implementation can replace the file stores without touching a route, an agent or the
 engine (docs/guides/PRODUCT_BUILD_PLAYBOOK.md, packages 9.1 and 9.2).
 
@@ -113,6 +113,9 @@ class TeamWork(Protocol):
     def create_task(self, task: Any, *, initiator: Any = None) -> Any: ...
     def delegate(self, project_id: str, parent_id: str, **child: Any) -> Any: ...                 # team_work.delegate, siblings from the store
     def move(self, project_id: str, task_id: str, new_status: str, by: Any, **kw: Any) -> Any: ...   # validate_transition, children from the store
+    def send_answer(self, project_id: str, task_id: str, *, response_id: str, text: str, initiator: Any = None) -> Any: ...  # W5: a person's answer, once per response
+    def report_task(self, project_id: str, task_id: str, *, revision: int, current_brief_revision: int, answer: str, next_task: Any,
+                    **kw: Any) -> Any: ...                                                          # W5: the owner's move and its report, one transaction
     def record_action(self, project_id: str, action: Any) -> Any: ...
     def finish_action(self, project_id: str, task_id: str, action_id: str, status: str, **kw: Any) -> Any: ...  # one terminal record
     def store_report(self, project_id: str, task_id: str, **kw: Any) -> Any: ...                  # build_report + accept_reply; one per (task, revision)
@@ -131,6 +134,28 @@ class TeamWork(Protocol):
     def delivery_stop(self, delivery_id: str, status: str, reason: str, *, error: Any = None, project_id: str | None = None) -> Document: ...
     def counts(self) -> dict[str, int]: ...
     def location(self) -> str: ...
+
+
+@runtime_checkable
+class TeamThreads(Protocol):
+    """Each team's own conversation on a problem (W3, dclab_rnd/teamspace/threads.py): one thread a (project, problem,
+    team), its messages appended whole and never rewritten. Who may read or post is ``threads.access``'s."""
+    def open_thread(self, project_id: str, problem_id: str, team: str, *, label: str = "", by: Any = None) -> tuple[Document, bool]: ...
+    def thread(self, thread_id: str) -> Document | None: ...                                     # this workspace's only
+    def find_thread(self, project_id: str, problem_id: str, team: str) -> Document | None: ...
+    def threads(self, *, project_id: str | None = None, problem_id: str | None = None, teams: Any = None) -> list[Document]: ...
+    def post(self, thread_id: str, author: Any, text: Any, *, handoff: Any = None, key: str | None = None) -> tuple[Document, bool]: ...   # a key once a project
+    def messages(self, thread_id: str, after: int = 0) -> list[Document]: ...                   # numbered from 1, oldest first
+    def wait_for_events(self) -> Any: ...                                                        # PostgreSQL's listener, or None
+    def counts(self) -> dict[str, int]: ...
+    def location(self) -> str: ...
+
+
+def open_team_threads(home: Path) -> TeamThreads:
+    """The team threads of the workspace in ``home``: PostgreSQL with DCLAB_DATABASE_URL set, else its folder's files."""
+    from ..teamspace.threads import open_threads as choose
+
+    return choose(home)
 
 
 def open_team_work(home: Path, projects: Projects | None = None) -> TeamWork:
@@ -179,4 +204,4 @@ def open_stores(home: Path, projects_home: Path | None = None) -> tuple[Projects
     return projects, drafts, SessionStore(Path(os.environ.get("DCLAB_INTERN_HOME") or (projects.home.parent / "intern")))
 
 
-__all__ = ["Document", "MemoryBases", "Projects", "Drafts", "Sessions", "TeamWork", "Teams", "open_memory_bases", "open_stores", "open_team_work", "open_teams"]
+__all__ = ["Document", "MemoryBases", "Projects", "Drafts", "Sessions", "TeamThreads", "TeamWork", "Teams", "open_memory_bases", "open_stores", "open_team_threads", "open_team_work", "open_teams"]

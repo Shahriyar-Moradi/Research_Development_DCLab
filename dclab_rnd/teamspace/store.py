@@ -238,9 +238,11 @@ class _TeamWork:
 
     def delegate(self, project_id: str, parent_id: str, *, id: str, owner_team: str, question: str, expected_output: str,
                  done_criteria: Sequence[str], by: tw.Actor, thread_id: str, created_at: str, allowed_inputs: Sequence[str] = (),
-                 allowed_tools: Sequence[str] = (), budget_eur: float = 0.0, initiator: Any = None) -> Written:
+                 allowed_tools: Sequence[str] = (), budget_eur: float = 0.0, initiator: Any = None, parent_waits: bool = False) -> Written:
         """A child task asked by the parent's owner (``team_work.delegate`` given the stored siblings), saved with its
-        delivery. The same child asked again returns the saved one. A child acts for the parent's member when none is given."""
+        delivery. The same child asked again returns the saved one. A child acts for the parent's member when none is given.
+        ``parent_waits``: an accepted parent moves to ``waiting_for_team`` in the same transaction (W5), so a crash never
+        leaves a child out with its parent still saying it works alone."""
         who = initiator_of(initiator)
         with self._tx(project_id) as tx:
             parent_row = tx.task(parent_id)
@@ -251,6 +253,7 @@ class _TeamWork:
             if held is not None:
                 same = held["task"]
                 if (same.parent_task_id, same.owner_team, same.question) == (parent_id, owner_team, question):
+                    self._parent_waits(tx, parent_row, by, parent_waits)
                     return Written(same, tx.delivery_by_key(f"task:{id}"), duplicate=True)
                 raise ValueError(f"a task {id} already exists")
             child = tw.delegate(parent, id=id, owner_team=owner_team, question=question, expected_output=expected_output,
@@ -259,9 +262,16 @@ class _TeamWork:
             tx.insert_task(child, who)
             row = self._send(tx, self._delivery("task", f"task:{child.id}", child, item_id=child.id, from_team=parent.owner_team,
                                                 to_team=owner_team, text=question, thread_id=None, initiator=who))
+            self._parent_waits(tx, parent_row, by, parent_waits)
         self._emit([self._event("task.created", thread=thread_id, team=owner_team, from_node=parent.owner_team, to_node=owner_team,
                                 state=child.status, project=project_id)])
         return Written(child, row)
+
+    @staticmethod
+    def _parent_waits(tx: Any, parent_row: Row, by: tw.Actor, wanted: bool) -> None:
+        parent = parent_row["task"]
+        if wanted and parent.status == "accepted":
+            tx.update_task(tw.validate_transition(parent, "waiting_for_team", by), parent_row["version"])
 
     def move(self, project_id: str, task_id: str, new_status: str, by: tw.Actor, *, superseded_by: Optional[str] = None,
              note: Optional[str] = None, initiator: Any = None) -> Written:
@@ -291,6 +301,28 @@ class _TeamWork:
         self._emit([self._event("task.moved", thread=moved.requester.thread_id, team=moved.owner_team, from_node=task.status,
                                 to_node=new_status, state=new_status, project=project_id)])
         return Written(moved, sent)
+
+    def send_answer(self, project_id: str, task_id: str, *, response_id: str, text: str, initiator: Any = None) -> Written:
+        """A person's answer to a task waiting for them, carried by the requesting team to the owner as its own ``answer``
+        delivery (W5): saved once per response (``answer:<task>:r-<response>``; the same response again returns the saved
+        row and adds nothing). The task does not move here: its owner takes it up again when the row reaches it. Refused
+        when the task does not wait for a person."""
+        who = initiator_of(initiator)
+        key = f"answer:{task_id}:r-{response_id}"
+        with self._tx(project_id) as tx:
+            row = tx.task(task_id)
+            task = self._in_project(row, project_id, task_id)
+            held = tx.delivery_by_key(key)
+            if held is not None:
+                return Written(task, held, duplicate=True)
+            if task.status != "waiting_for_person":
+                raise ValueError(f"{task_id} is {task.status}: it does not wait for an answer")
+            sent = self._send(tx, self._delivery("answer", key, task, item_id=task.id, from_team=task.requester.team,
+                                                 to_team=task.owner_team, text=str(text), thread_id=None,
+                                                 initiator=who or row["initiator"]))
+        self._emit([self._event("answer.sent", thread=task.requester.thread_id, team=task.owner_team, from_node=task.requester.team,
+                                to_node=task.owner_team, state="pending", project=project_id)])
+        return Written(task, sent)
 
     # ------------------------------------------------------------------ actions
     def record_action(self, project_id: str, action: tw.TeamAction) -> Written:
@@ -395,6 +427,47 @@ class _TeamWork:
         self._emit([self._stored(task, written.item)])
         return written
 
+    def report_task(self, project_id: str, task_id: str, *, revision: int, current_brief_revision: int, answer: str,
+                    next_task: tw.NextStep, move_to: Optional[str] = None, by: Optional[tw.Actor] = None,
+                    evidence: Sequence[tw.EvidenceRef] = (), limits: Sequence[str] = (), private_notes: Sequence[str] = (),
+                    status: Optional[str] = None, created_at: Optional[str] = None, initiator: Any = None) -> Written:
+        """The owner's move (``move_to``: complete or partial, through ``validate_transition``) and its report at
+        ``revision`` with the reply, in ONE transaction (W5): a crash leaves both or neither, never a complete task without
+        its report. Revision 1 is the first report; a later one supersedes the current report (a correction). The same
+        revision again is a duplicate, not a failure, whatever the task's status now (two turns of one agent raced)."""
+        who = initiator_of(initiator)
+        events: list[dict] = []
+        with self._tx(project_id) as tx:
+            row = tx.task(task_id)
+            task = self._in_project(row, project_id, task_id)
+            held = tx.report(task_id, revision)
+            if held is not None:
+                return Written(held["report"], tx.delivery_by_key(f"reply:{held['report'].id}"), self._verdict(held), duplicate=True)
+            current = [r for r in tx.reports([task_id]) if r["report"].status != "superseded"]
+            top = max((r["report"].revision for r in current), default=0)
+            if revision != top + 1:
+                raise ValueError(f"revision {revision} does not follow the current report's revision ({top})")
+            if move_to and task.status != move_to:
+                if by is None:
+                    raise ValueError("a move names who makes it")
+                children = [r["task"] for r in tx.tasks(parent=task_id)]
+                moved = tw.validate_transition(task, move_to, by, children=children, child_reports=self._joined(tx, task_id))
+                tx.update_task(moved, row["version"])
+                events.append(self._event("task.moved", thread=moved.requester.thread_id, team=moved.owner_team, from_node=task.status,
+                                          to_node=move_to, state=move_to, project=project_id))
+                task = moved
+            report = self._build(tx, task, answer=answer, next_task=next_task, evidence=evidence, limits=limits,
+                                 private_notes=private_notes, revision=revision, status=status, created_at=created_at)
+            replaced = None
+            if current:
+                old = max(current, key=lambda r: r["report"].revision)
+                replaced, report = tw.supersede(old["report"], report)
+                tx.update_report({**old, "report": replaced})
+            written = self._keep_report(tx, task, report, current_brief_revision, who or row["initiator"])
+            written.replaced = replaced
+        self._emit(events + [self._stored(task, written.item)])
+        return written
+
     def _build(self, tx: Any, task: tw.TeamTask, **kw: Any) -> tw.WorkReport:
         children = [r["task"] for r in tx.tasks(parent=task.id)]
         return tw.build_report(task, tx.actions(task.id), self._joined(tx, task.id), children=children, **kw)
@@ -411,7 +484,7 @@ class _TeamWork:
         sent = None
         if verdict is None or verdict.ok:
             sent = self._send(tx, self._delivery("reply", f"reply:{report.id}", task, item_id=report.id, from_team=task.owner_team,
-                                                 to_team=task.requester.team, text=report.answer, thread_id=task.requester.thread_id,
+                                                 to_team=task.requester.team, text=reply_text(report), thread_id=task.requester.thread_id,
                                                  initiator=initiator))
         return Written(report, sent, verdict)
 
@@ -458,7 +531,7 @@ class _TeamWork:
         it. The text is cut for showing; the row keeps it whole."""
         with self._read(project_id) as tx:
             rows = [r for r in tx.deliveries(problem_id=problem_id) if r["status"] != "refused"]
-        return [{"n": n, "from_team": team_label(r["from_team"]), "to_team": team_label(r["to_team"]), "text": _shown(r["text"]),
+        return [{"n": n, "from_team": team_label(r["from_team"]), "to_team": team_label(r["to_team"]), "text": _shown(_first_line(r["text"])),
                  "state": r["status"]} for n, r in enumerate(rows, 1)]
 
     # ------------------------------------------------------------------ deliveries (dclab_rnd/teamspace/delivery.py)
@@ -553,6 +626,44 @@ def _identity(task: tw.TeamTask) -> tuple:
     """What makes two asks the same task (its time and status may differ on a retry)."""
     return (task.id, task.project_id, task.problem_id, task.parent_task_id, task.requester.team, task.requester.thread_id,
             task.owner_team, task.question)
+
+
+def _first_line(text: str) -> str:
+    """A reply's first line: its answer (labelled when simulated); the lines after it are the thread's details."""
+    return str(text).split("\n", 1)[0]
+
+
+def simulated_sources(report: tw.WorkReport) -> list[str]:
+    """The fixtures a simulated report rests on (``E1``, ``A1``, ``sample:renewal_v1``), in order, once each."""
+    out: list[str] = []
+    for e in report.evidence:
+        name = e.ref[len("fixture:"):] if e.ref.startswith("fixture:") else e.source if e.source.startswith("sample:") else None
+        if name and name not in out:
+            out.append(name)
+    return out
+
+
+def reply_text(report: tw.WorkReport) -> str:
+    """What a reply says in its thread (W5), so a reader answers the four questions from the thread alone:
+
+    1. what was decided or found: the answer, labelled ``Simulated (fixture E1/A1):`` when anything in it was simulated;
+    2. ``Why:`` the evidence and the first limit (or the failed attempt), on one line;
+    3. ``Next:`` who acts next and what unblocks them, or that nothing is owed;
+    4. ``Changed:`` the report it replaces and the current one, or that it is the first.
+    The row keeps it whole; the handoff history shows its first line."""
+    head = ""
+    if report.simulated:
+        names = simulated_sources(report)
+        head = f"Simulated (fixture {'/'.join(names)}): " if names else "Simulated: "
+    why = [e.ref for e in report.evidence[:3]] + [f"{l.action} {l.status}: {l.ref}" for l in report.actions.failed[:2] if l.ref]
+    why += report.limits[:1]
+    nxt = report.next_task
+    lines = [head + report.answer,
+             "Why: " + ("; ".join(why) if why else "the report's actions"),
+             "Next: closed, nothing is owed." if nxt.closed else f"Next: {team_label(str(nxt.owner))} — {nxt.unblocks}.",
+             f"Changed: replaces {report.supersedes}; the current report is {report.id}." if report.supersedes
+             else f"Changed: first report ({report.id})."]
+    return "\n".join(lines)
 
 
 def _shown(text: str) -> str:
@@ -943,6 +1054,60 @@ class PgTeamWork(_TeamWork):
             yield _PgTx(c, self.workspace, project_id)
 
 
+def _rehomed(value: Any, workspace_id: str) -> Any:
+    """A file workspace's document as the database workspace keeps it: its workspace id ``local`` is the database's."""
+    if isinstance(value, dict):
+        return {k: (workspace_id if k == "workspace_id" and v in (None, "local") else _rehomed(v, workspace_id)) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_rehomed(v, workspace_id) for v in value]
+    return value
+
+
+def import_project(work: "PgTeamWork", project_id: str, data: Row) -> dict[str, int]:
+    """One project's ``work.json`` copied into the database workspace (``storage migrate``), every row in the order it was
+    made (its ``seq``), so a task's deliveries and the handoff history keep their order. A row the database already holds
+    (the same task, action, report, or delivery key) is left as it is, so a second run copies nothing. Returns how many of
+    each kind were copied."""
+    import sqlalchemy as sa
+    from sqlalchemy.dialects.postgresql import insert
+
+    from ..storage import models as m
+
+    ws = work.workspace
+    entries = [("tasks", e) for e in (data.get("tasks") or {}).values()] + [("actions", e) for e in (data.get("actions") or {}).values()]
+    entries += [("reports", e) for e in (data.get("reports") or {}).values()]
+    entries += [("deliveries", e) for e in (data.get("deliveries") or {}).values()]
+    entries.sort(key=lambda kv: int(kv[1].get("seq") or 0))
+    copied = {"tasks": 0, "actions": 0, "reports": 0, "deliveries": 0}
+    with work.engine.begin() as c:
+        for kind, entry in entries:
+            if kind == "deliveries":
+                row = _rehomed({k: v for k, v in entry.items() if k not in ("seq", "version")}, ws)
+                values = dict(id=row["id"], workspace_id=ws, key=row["key"], kind=row["kind"], project_id=project_id,
+                              problem_id=row["problem_id"], task_id=row["task_id"], **_PgTx._columns(row))
+                q = insert(m.team_delivery).values(**values)
+            else:
+                doc = _rehomed(entry["doc"], ws)
+                if kind == "tasks":
+                    task = tw.TeamTask.model_validate(doc)
+                    q = insert(m.team_task).values(workspace_id=ws, project_id=project_id, id=task.id, problem_id=task.problem_id,
+                                                   parent_task_id=task.parent_task_id, owner_team=task.owner_team,
+                                                   requester_team=task.requester.team, status=task.status, version=int(entry.get("version") or 1),
+                                                   initiator=_rehomed(entry.get("initiator"), ws), doc=doc)
+                elif kind == "actions":
+                    action = tw.TeamAction.model_validate(doc)
+                    q = insert(m.team_action).values(workspace_id=ws, project_id=project_id, task_id=action.task_id, action_id=action.action_id,
+                                                     retry_key=action.retry_key, status=action.status, doc=doc)
+                else:
+                    report = tw.WorkReport.model_validate(doc)
+                    q = insert(m.team_report).values(workspace_id=ws, project_id=project_id, task_id=report.task_id, revision=report.revision,
+                                                     parent_task_id=report.parent_task_id, status=report.status, joined=bool(entry.get("joined")),
+                                                     verdict=entry.get("verdict"), doc=doc)
+            if c.execute(q.on_conflict_do_nothing().returning(sa.literal(1))).first() is not None:
+                copied[kind] += 1
+    return copied
+
+
 def open_team_work(home: Path, url: Optional[str] = None, projects: Any = None) -> "FileTeamWork | PgTeamWork":
     """The team work of the workspace in ``home``: PostgreSQL when DCLAB_DATABASE_URL is set (as the other stores choose),
     else the folder's files. On files the workspace is ``local``, as ``memory.scope.workspace_of`` names it. ``projects``:
@@ -954,5 +1119,5 @@ def open_team_work(home: Path, url: Optional[str] = None, projects: Any = None) 
     return FileTeamWork(Path(home), projects=projects)
 
 
-__all__ = ["Conflict", "DELIVERY_KINDS", "DELIVERY_STATES", "FileTeamWork", "PgTeamWork", "Written", "history_lines", "initiator_of",
+__all__ = ["Conflict", "import_project", "reply_text", "simulated_sources", "DELIVERY_KINDS", "DELIVERY_STATES", "FileTeamWork", "PgTeamWork", "Written", "history_lines", "initiator_of",
            "is_due", "open_team_work", "scrub", "team_label"]

@@ -1110,6 +1110,9 @@ def tool_choice(policy: Any, step: Any, allowed: list[str], trace: Any) -> int:
     """A model's choice of a tool among those its policy offered (acted on through the scope's guard)."""
     run = getattr(trace, "run_id", None)
     state = {"agent": _code(policy.name), "step": int(step.n), "tools_offered": len(allowed), "steps_left": max(int(policy.max_steps) - int(step.n), 0)}
+    if _by_rules(policy):  # W5: a deterministic agent's code chose the tool; no model was asked
+        return int(bool(_put("agent.tool_choice", ("conversation", str(run or policy.name)), [answer("rule", f"rule:{policy.name}", str(step.tool)[:200])],
+                             str(step.tool)[:200], "rule", state=state, options=allowed, level=0, **({"run": run} if run else {}))))
     answers = [answer("model_role", str(policy.name), str(step.tool)[:200])]
     from . import use
 
@@ -1123,6 +1126,11 @@ def tool_choice(policy: Any, step: Any, allowed: list[str], trace: Any) -> int:
                          str(step.tool)[:200], "model_role", state=state, options=allowed, level=2, **({"run": run} if run else {}))))
 
 
+def _by_rules(policy: Any) -> bool:
+    """Whether the agent's choices are code's, not a model's (``chooser`` "rules": the team agents of W5)."""
+    return getattr(policy, "chooser", "model") == "rules"
+
+
 @_quiet
 def stopped(policy: Any, result: Any, trace: Any, interrupted: bool = False) -> int:
     """Why an agent's run ended: the model said it was done (an answer, a final tool), or a rule ended it (a budget, an
@@ -1130,7 +1138,9 @@ def stopped(policy: Any, result: Any, trace: Any, interrupted: bool = False) -> 
     reason = getattr(result, "stopped", None) if result is not None else ("stopped" if interrupted else "failed")
     run = getattr(trace, "run_id", None)
     by_rule = reason in ("steps", "time", "replies", "failed", "tools_as_text", "stopped") or interrupted
-    answers = [answer("rule", "rule:budget" if reason in ("steps", "time", "replies") else "rule:ended", True)] if by_rule \
+    by_rule = by_rule or _by_rules(policy)  # W5: a deterministic agent's code ended its own run too
+    answers = [answer("rule", "rule:budget" if reason in ("steps", "time", "replies") else
+                      f"rule:{policy.name}" if _by_rules(policy) and reason not in ("failed", "stopped") else "rule:ended", True)] if by_rule \
         else [answer("model_role", str(policy.name), True)]
     steps = len(getattr(result, "steps", None) or [])
     return int(bool(_put("workflow.stop", ("workflow", f"{policy.name}:{run or ''}"[:200]), answers, True, "rule" if by_rule else "model_role",

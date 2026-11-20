@@ -162,6 +162,21 @@ WRITE_ROUTES = {
     "POST /api/workspace/members": (NONE, "account administration"),
     "PATCH /api/workspace/members/{user_id}": (NONE, "account administration"),
     "DELETE /api/workspace/members/{user_id}": (NONE, "account administration"),
+    # 2026-11-20: the problem-memory, team and pricing routes (their events are the memory store's, the audit is beside them)
+    "POST /api/projects/{project_id}/problems": (EVENTS, ["decision.accepted"]),  # memory scope: the problem made, a problem.created decision
+    "POST /api/projects/{project_id}/memory/base": (EVENTS, ["memory.written", "memory.proposed", "memory.retired", "decision.refused"]),  # a fact written or proposed, the one it replaces retired; a stale revision refused
+    "POST /api/projects/{project_id}/memory/base/{entry_id}/correct": (EVENTS, ["memory.written", "memory.retired", "decision.refused"]),
+    "POST /api/projects/{project_id}/memory/base/{entry_id}/retire": (EVENTS, ["memory.retired", "decision.refused"]),
+    "POST /api/projects/{project_id}/memory/base/{entry_id}/confirm": (EVENTS, ["memory.written", "memory.retired", "decision.refused"]),  # a draft accepted or rejected
+    "POST /api/projects/{project_id}/leakage/decide": (EVENTS, ["graph.move", "solution.saved"]),  # excluding a column saves the solution as a person does; compare and keep are kept on the leakage record
+    "POST /api/projects/{project_id}/price-scenarios/assumptions": (NONE, "a read: the assumptions are worked out from the request and nothing is stored"),
+    "POST /api/projects/{project_id}/price-scenarios/prepare": (NONE, "the prepared study is kept on the project (price_study), where the Decision page reads it"),
+    "POST /api/workspace/teams": (NONE, "account administration: a team is made, and the audit trail says who made it"),
+    "POST /api/workspace/teams/{team_id}/members": (NONE, "account administration: a member added to a team, audited"),
+    "DELETE /api/workspace/teams/{team_id}/members/{user_id}": (NONE, "account administration: a member removed from a team, audited"),
+    # W3: a team's thread opened, a message posted (W4's kind, its ``what`` thread.opened or thread.message; never the words)
+    "POST /api/projects/{project_id}/problems/{problem_id}/team-threads": (EVENTS, ["team.handoff"]),
+    "POST /api/projects/{project_id}/team-threads/{thread_id}/messages": (EVENTS, ["team.handoff"]),
 }
 
 
@@ -286,7 +301,7 @@ class OneSessionTest(unittest.TestCase):
                 and not e.kind.startswith("pipeline.step_")]  # 23.8: each step of a run is two events: counted in test_steps, not in the flow
         self.assertEqual(mine, [
             ("draft.created", "home"), ("data.uploaded", ""), ("data.cleaned", ""), ("data.analysed", ""), ("solution.proposed", ""), ("solution.saved", ""), ("decision.accepted", "settings"), ("problem.mapped", ""), ("solution.routed", ""), ("graph.move", "map:confirm"), ("problem.part_changed", ""),
-            ("graph.move", "map:redraw"), ("problem.mapped", ""), ("graph.move", "set_solution"), ("draft.built", ""), ("job.started", ""), ("stage.started", "data"), ("stage.finished", "data"), ("run.recorded", ""), ("graph.move", "run_stage"),
+            ("graph.move", "map:redraw"), ("problem.mapped", ""), ("graph.move", "set_solution"), ("decision.accepted", "problem.created"), ("draft.built", ""), ("job.started", ""), ("stage.started", "data"), ("stage.finished", "data"), ("run.recorded", ""), ("graph.move", "run_stage"),
             ("job.stopped", ""), ("graph.move", "approve_stage"), ("stage.approved", "data"), ("chat.person", "project"), ("chat.agent", "project"),
             ("solution.refused", "")])  # the raising /ask failed before its question was logged; its error is the visit's, not the project's
 

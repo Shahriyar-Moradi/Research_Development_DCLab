@@ -470,6 +470,33 @@ usage_counter = sa.Table(  # requests and bytes counted per user and per workspa
     sa.Column("window", sa.Float, primary_key=True),  # the window's start, seconds since the epoch
     sa.Column("amount", sa.Float, nullable=False))
 
+# W3 of the collaborative workspace (dclab_rnd/teamspace/threads.py, migration 0028): each team's own conversation on a
+# problem. One thread a (workspace, project, problem, team); its messages are inserted, never rewritten (a trigger refuses
+# UPDATE). A message that carries a delivery has its ``key`` (``delivery:<id>``), so a delivery is posted once a project.
+team_thread = sa.Table(  # a team's private conversation on one problem of a project
+    "team_thread", metadata, _id(),
+    sa.Column("workspace_id", sa.String(64), sa.ForeignKey("workspace.id", ondelete="CASCADE"), nullable=False),
+    sa.Column("project_id", sa.Text, nullable=False), sa.Column("problem_id", sa.Text, nullable=False),
+    sa.Column("team", sa.Text, nullable=False),  # a team's id (storage/teams.py), or a team agent's name when no team has it
+    sa.Column("message_seq", sa.BigInteger, nullable=False, server_default="0"),  # the last message's number
+    sa.Column("doc", JSONB, nullable=False),  # who opened it, the team's label, when
+    sa.Column("created", TIME, nullable=False, server_default=NOW),
+    sa.UniqueConstraint("workspace_id", "project_id", "problem_id", "team"),
+    sa.Index("ix_team_thread_workspace_id_team", "workspace_id", "team"))
+
+team_message = sa.Table(  # one message of a team thread, whole; never rewritten
+    "team_message", metadata,
+    sa.Column("thread_id", sa.String(64), sa.ForeignKey("team_thread.id", ondelete="CASCADE"), primary_key=True),
+    sa.Column("seq", sa.BigInteger, primary_key=True),  # 1, 2, … within the thread: the stream's Last-Event-ID
+    sa.Column("id", sa.String(64), nullable=False),
+    sa.Column("workspace_id", sa.String(64), sa.ForeignKey("workspace.id", ondelete="CASCADE"), nullable=False),
+    sa.Column("project_id", sa.Text, nullable=False),
+    sa.Column("key", sa.Text),  # delivery:<id> for a handoff posted by the outbox; none for a person's message
+    sa.Column("doc", JSONB, nullable=False),  # author, the words whole, the handoff it carries, visibility
+    sa.Column("created", TIME, nullable=False, server_default=NOW),
+    sa.UniqueConstraint("id"),
+    sa.UniqueConstraint("workspace_id", "project_id", "key"))
+
 TABLES = [t.name for t in metadata.sorted_tables]
 
 
