@@ -65,6 +65,8 @@ SPECIAL = {
     ("POST", "/api/projects/{project_id}/memory/base/reconcile"): "write",
     ("POST", "/api/workspace/teams"): "admin",
     ("POST", "/api/workspace/teams/{team_id}/members"): "admin",
+    ("PATCH", "/api/workspace/teams/{team_id}"): "admin",  # W7: rename and remove a team, the owner only
+    ("DELETE", "/api/workspace/teams/{team_id}"): "admin",
     ("DELETE", "/api/workspace/teams/{team_id}/members/{user_id}"): "admin",
     # W3: team threads. Reading needs a member of the thread's team (or the owner), posting one whose role may write: the
     # routes check the team themselves (teamspace/threads.access); the handoff history is every reader's of the project

@@ -293,6 +293,11 @@ class MemoryProposal(Doc):
     source: Any = None
 
 
+class TeamRename(Doc):
+    """W7: a team's new name (the owner)."""
+    name: Any = ""
+
+
 class TeamCreate(Doc):
     """W2: a new team of the workspace. ``kind`` is business, data_science, ml_engineering, sales, marketing or another word."""
     name: Any = ""

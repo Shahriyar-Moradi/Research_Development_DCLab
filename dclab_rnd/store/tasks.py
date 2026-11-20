@@ -23,7 +23,8 @@ AGENT_TASKS: dict[str, tuple[str, ...]] = {
     "conductor": ("agent_step",),
     "tutor": ("agent_step", "student_version"),
     "case": ("agent_step", "model_request", "conversation_turn"),  # 37.3, 37.12: steps, calls, and each case change as an event
-    "learning": ("agent_step",),  # the harness that learns (H0): an attempt's steps, each with its verdict and codes; its grades are files of its campaign
+    "learning": ("agent_step",),
+    "teamspace": ("agent_step", "decision"),  # W5, W7: the team agents' steps, and each task's owning team as a decision  # the harness that learns (H0): an attempt's steps, each with its verdict and codes; its grades are files of its campaign
 }
 
 __all__ = ["AGENT_TASKS"]

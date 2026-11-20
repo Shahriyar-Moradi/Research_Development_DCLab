@@ -95,6 +95,7 @@ STATE_FIELDS: dict[str, tuple[str, tuple[str, ...]]] = {
     # 29.6: the teams' own choices (28.x), as codes, counts and flags
     "team": (CODE, ()), "field": (CODE, ()), "concern_source": (CODE, ()), "pending": (FLAG, ()), "critic_passed": (FLAG, ()),
     "rounds": (COUNT, ()), "answered": (FLAG, ()),
+    "from_team": (CODE, ()), "routed_by": (CODE, ()), "child": (FLAG, ()),  # W7: a task's routing (the asking team, who chose, a child task)
     "verdict": (CODE, ()), "agreed": (FLAG, ()),  # 28.6: the second opinion's judge, and whether its two readers agreed
     # 30.11: the modifiers' evidence, as aggregates of the training rows
     "rows_per_key": (MEASURE, ()), "rate_change": (MEASURE, ()), "class_shift": (MEASURE, ()), "level_shift": (MEASURE, ()),
@@ -253,6 +254,9 @@ POINTS: dict[str, Point] = {p.key: p for p in (
     # 29.6: the teams of agents (28.x): every step of a walk and every send-back of the critic, recorded where they are made
     _p("team.next_node", W, DP, "value", "Which node does the team's walk take next?"),
     _p("critic.send_back", W, DP, "noul", "Does the understanding critic send this card field back to the person?"),
+    # W7 (2026-11-21): the collaborative workspace's routing, which team owns a task between team agents (the requester's
+    # choice, or the parent's owner when it delegates); a team's kind (business, data_science, ...), open-ended
+    _p("team.task_owner", W, "project", "value", "Which team owns a task between team agents?"),
     # H2 (2026-10-28): the kind of help a request needs, read before anything else on Home; labelled by the person's choice
     _p("request.intent", W, "draft", "choice", "Which kind of help does the request need?",
        choices=("prediction", "analysis", "preparation", "reporting", "business", "advice")),

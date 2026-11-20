@@ -87,6 +87,11 @@ KINDS_MISSING = {
     **{k: "no memory for its agents there yet (35.3): an item written, proposed, retired, shown, recalled or cited is recorded when it "
           "adopts dclab_core.memory" for k in ("memory.written", "memory.proposed", "memory.retired", "memory.shown", "memory.recalled", "memory.cited")},
     "case.changed": "no case file there yet (37.12): a case's changes are recorded when it adopts dclab_core.case",
+    **{k: "no team workspace there yet (W7 of the collaborative workspace): its teams, the tasks between their agents, the "
+          "actions and the reports are recorded when it adopts dclab_core.team_work"
+       for k in ("team.task.created", "team.task.moved", "team.task.stale", "team.task.delivered", "team.action.started",
+                 "team.action.ended", "team.report.written", "team.report.superseded", "team.created", "team.renamed",
+                 "team.removed", "team.member_added", "team.member_removed")},
     "track.outcome": "no Home front door with kinds of help there yet (36.2): what a person did with an answer, table, brief or dashboard is recorded when it adopts dclab_core.track_outcome",
     "team.handoff": "no team of agents there yet (28.2): its agent runs are one loop; a hand-off is recorded when it adopts the board",
     "team.interrupt": "no team of agents there yet (28.2): its pauses for a person are rows of their own pages, not a team's",

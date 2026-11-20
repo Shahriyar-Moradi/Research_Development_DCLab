@@ -60,7 +60,8 @@ READ_AS_CURRENT = frozenset({"dclab_core.experience_event.v1", "dclab_core.exper
                              "dclab_core.experience_event.v9", "dclab_core.experience_event.v10",
                              "dclab_core.experience_event.v11", "dclab_core.experience_event.v12",
                              "dclab_core.experience_event.v13", "dclab_core.experience_event.v14",
-                             "dclab_core.experience_event.v15", "dclab_core.experience_event.v16"})  # v17 (37.12): case.changed; v16 is read as v17  # v16 (36.2): track.outcome; v15 is read as v16  # v15 (35.3): the memory.* kinds; v14 is read as v15  # v14 (A7): draft.created's surface (home, or mcp: an external chat); v13 is read as v14  # v13 (D2): agent.step's thought_source; v12 is read as v13  # v12: model.request's prompt-cache tokens (cache_read_tokens, cache_write_tokens); v11 is read as v12  # v11 (28.4) added chat.agent's question_source (the understanding critic's questions); v10 is read as v11  # v10 (28.2) added team.handoff, team.interrupt and team.recorded; v9 is read as v10  # read as v9: v9 added the problem.*, solution.* and programme.* kinds of a problem of several parts; read as v8: each a subset (v3 added consent; v4 the ui.* and auth.* kinds; v5 the error fingerprint; v6 outcome.observed; v7 feedback kinds, column sensitivity and the pipeline steps; v8 trace, span and parent_span in the ids)
+                             "dclab_core.experience_event.v15", "dclab_core.experience_event.v16",
+                             "dclab_core.experience_event.v17"})  # v18 (W7): the team.task.*, team.action.*, team.report.* and team membership kinds; v17 is read as v18  # v17 (37.12): case.changed; v16 is read as v17  # v16 (36.2): track.outcome; v15 is read as v16  # v15 (35.3): the memory.* kinds; v14 is read as v15  # v14 (A7): draft.created's surface (home, or mcp: an external chat); v13 is read as v14  # v13 (D2): agent.step's thought_source; v12 is read as v13  # v12: model.request's prompt-cache tokens (cache_read_tokens, cache_write_tokens); v11 is read as v12  # v11 (28.4) added chat.agent's question_source (the understanding critic's questions); v10 is read as v11  # v10 (28.2) added team.handoff, team.interrupt and team.recorded; v9 is read as v10  # read as v9: v9 added the problem.*, solution.* and programme.* kinds of a problem of several parts; read as v8: each a subset (v3 added consent; v4 the ui.* and auth.* kinds; v5 the error fingerprint; v6 outcome.observed; v7 feedback kinds, column sensitivity and the pipeline steps; v8 trace, span and parent_span in the ids)
 FINAL_STAGES = frozenset({"final", "terminal"})  # the last stage: this studio's, and the main product's
 
 M, C, P, A, X, V = "meta", "count", "person_text", "agent_text", "model_text", "cell_values"
@@ -169,6 +170,26 @@ KINDS: dict[str, dict[str, str]] = {
     # v17 (37.12): one change of a case file (dclab_core.case), written when it is made: the case, its version, the field, how
     # it changed (set, add, remove, counts), who made it, and the value after (facts with their sources, the person's words)
     "case.changed": {"case": M, "version": C, "field": M, "op": M, "by": M, "after": A},
+    # v18 (W7 of the collaborative workspace, dclab_core.team_work): the work between team agents, written where it is saved.
+    # A task made, moved or marked stale (who asked, which team owns it, its states); an action started and ended (its name,
+    # actor, source and terminal status, never its output, only the output's reference); a report written or superseded
+    # (its status, counts of evidence and actions; the answer is an agent's words); a delivery's end. And the teams
+    # themselves: made, renamed, removed, a member placed or taken out. Names, ids and states; never a cell or a note
+    "team.task.created": {"task": M, "problem": M, "owner_team": M, "requester_team": M, "parent": M, "status": M, "by": M,
+                          "inputs": C, "routed_by": M},
+    "team.task.moved": {"task": M, "problem": M, "owner_team": M, "from": M, "to": M, "by": M},
+    "team.task.stale": {"task": M, "problem": M, "cause": M},
+    "team.task.delivered": {"task": M, "delivery": M, "to_team": M, "status": M, "attempts": C, "reason": M},
+    "team.action.started": {"task": M, "action": M, "name": M, "actor": M, "source": M, "input_revision": M},
+    "team.action.ended": {"task": M, "action": M, "name": M, "actor": M, "status": M, "output": M, "error": M},
+    "team.report.written": {"task": M, "report": M, "revision": C, "status": M, "by": M, "evidence": C, "actions": C,
+                            "children": C, "answer": A},
+    "team.report.superseded": {"task": M, "report": M, "by_report": M, "reason": M},
+    "team.created": {"team": M, "kind": M, "by": M},
+    "team.renamed": {"team": M, "by": M},
+    "team.removed": {"team": M, "by": M, "members": C},
+    "team.member_added": {"team": M, "member": M, "by": M},
+    "team.member_removed": {"team": M, "member": M, "by": M},
 }
 
 
@@ -221,7 +242,7 @@ class ExperienceEvent(Versioned):
 
     model_config = ConfigDict(frozen=True, extra="forbid", allow_inf_nan=False, json_schema_extra=_vocabulary)
 
-    schema_version: Literal["dclab_core.experience_event.v17"] = _version("experience_event", 17)
+    schema_version: Literal["dclab_core.experience_event.v18"] = _version("experience_event", 18)
     id: str = Field(pattern=r"^[A-Za-z0-9_.:-]{6,80}$")
     at: str = Field(description="ISO 8601 with microseconds, UTC.")
     seq: int = Field(default=0, ge=0)

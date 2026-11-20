@@ -167,13 +167,18 @@ WRITE_ROUTES = {
     "POST /api/projects/{project_id}/memory/base": (EVENTS, ["memory.written", "memory.proposed", "memory.retired", "decision.refused"]),  # a fact written or proposed, the one it replaces retired; a stale revision refused
     "POST /api/projects/{project_id}/memory/base/{entry_id}/correct": (EVENTS, ["memory.written", "memory.retired", "decision.refused"]),
     "POST /api/projects/{project_id}/memory/base/{entry_id}/retire": (EVENTS, ["memory.retired", "decision.refused"]),
+    "POST /api/projects/{project_id}/memory/base/reconcile": (EVENTS, ["team.task.stale", "decision.refused"]),  # W6 follow-up: the work a correction left
+    "POST /api/workspace/teams/{team_id}/memory/base": (EVENTS, ["memory.written", "memory.proposed", "memory.retired", "decision.refused"]),
+    "POST /api/workspace/teams/{team_id}/memory/base/{entry_id}/correct": (EVENTS, ["memory.written", "memory.retired", "decision.refused"]),
     "POST /api/projects/{project_id}/memory/base/{entry_id}/confirm": (EVENTS, ["memory.written", "memory.retired", "decision.refused"]),  # a draft accepted or rejected
     "POST /api/projects/{project_id}/leakage/decide": (EVENTS, ["graph.move", "solution.saved"]),  # excluding a column saves the solution as a person does; compare and keep are kept on the leakage record
     "POST /api/projects/{project_id}/price-scenarios/assumptions": (NONE, "a read: the assumptions are worked out from the request and nothing is stored"),
     "POST /api/projects/{project_id}/price-scenarios/prepare": (NONE, "the prepared study is kept on the project (price_study), where the Decision page reads it"),
-    "POST /api/workspace/teams": (NONE, "account administration: a team is made, and the audit trail says who made it"),
-    "POST /api/workspace/teams/{team_id}/members": (NONE, "account administration: a member added to a team, audited"),
-    "DELETE /api/workspace/teams/{team_id}/members/{user_id}": (NONE, "account administration: a member removed from a team, audited"),
+    "POST /api/workspace/teams": (EVENTS, ["team.created"]),  # W7: and the audit trail says who made it
+    "PATCH /api/workspace/teams/{team_id}": (EVENTS, ["team.renamed"]),
+    "DELETE /api/workspace/teams/{team_id}": (EVENTS, ["team.removed"]),
+    "POST /api/workspace/teams/{team_id}/members": (EVENTS, ["team.member_added"]),
+    "DELETE /api/workspace/teams/{team_id}/members/{user_id}": (EVENTS, ["team.member_removed"]),
     # W3: a team's thread opened, a message posted (W4's kind, its ``what`` thread.opened or thread.message; never the words)
     "POST /api/projects/{project_id}/problems/{problem_id}/team-threads": (EVENTS, ["team.handoff"]),
     "POST /api/projects/{project_id}/team-threads/{thread_id}/messages": (EVENTS, ["team.handoff"]),

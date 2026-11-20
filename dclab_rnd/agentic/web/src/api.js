@@ -384,6 +384,9 @@
    *  @property {*=} text
    *  @property {(string|null)=} ask
    */
+  /** @typedef {Object} TeamRename
+   *  @property {*=} name
+   */
   /** @typedef {Object} TeamTaskView
    *  @property {*=} project_id
    *  @property {*=} task
@@ -685,6 +688,8 @@
     changeMember: ["PATCH", "/workspace/members/{user_id}", ["user_id"], []],
     listTeams: ["GET", "/workspace/teams", [], ["user_id"]],
     createTeam: ["POST", "/workspace/teams", [], []],
+    deleteTeam: ["DELETE", "/workspace/teams/{team_id}", ["team_id"], []],
+    renameTeam: ["PATCH", "/workspace/teams/{team_id}", ["team_id"], []],
     addTeamMember: ["POST", "/workspace/teams/{team_id}/members", ["team_id"], []],
     removeTeamMember: ["DELETE", "/workspace/teams/{team_id}/members/{user_id}", ["team_id", "user_id"], []],
     teamMemoryBaseView: ["GET", "/workspace/teams/{team_id}/memory/base", ["team_id"], []],
@@ -2247,6 +2252,18 @@
    *  @returns {Promise<TeamDoc>} */
   client.createTeam = (...args) => call('createTeam', args);
   client.path.createTeam = (...args) => build('createTeam', args).path;
+  /** DELETE /api/workspace/teams/{team_id}: Delete Team
+   *  @param {string} team_id
+   *  @param {{headers?: Object}} [opts]
+   *  @returns {Promise<null>} */
+  client.deleteTeam = (...args) => call('deleteTeam', args);
+  client.path.deleteTeam = (...args) => build('deleteTeam', args).path;
+  /** PATCH /api/workspace/teams/{team_id}: Rename Team
+   *  @param {string} team_id
+   *  @param {{body: TeamRename, headers?: Object}} [opts]
+   *  @returns {Promise<TeamDoc>} */
+  client.renameTeam = (...args) => call('renameTeam', args);
+  client.path.renameTeam = (...args) => build('renameTeam', args).path;
   /** POST /api/workspace/teams/{team_id}/members: Add Team Member
    *  @param {string} team_id
    *  @param {{body: TeamMemberAdd, headers?: Object}} [opts]

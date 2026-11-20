@@ -41,7 +41,8 @@ class PermissionTests(unittest.TestCase):
 
         self.assertEqual(permission("GET", "/api/workspace/teams"), "read")
         for method, path in (("POST", "/api/workspace/teams"), ("POST", "/api/workspace/teams/{team_id}/members"),
-                             ("DELETE", "/api/workspace/teams/{team_id}/members/{user_id}")):
+                             ("DELETE", "/api/workspace/teams/{team_id}/members/{user_id}"),
+                             ("PATCH", "/api/workspace/teams/{team_id}"), ("DELETE", "/api/workspace/teams/{team_id}")):  # W7
             self.assertEqual(permission(method, path), "admin", path)
 
 
@@ -113,6 +114,23 @@ class _Contract:
         store.create_team("Straße", "sales")
         with self.assertRaises(TeamError):  # the same name on both stores, by casefold
             store.create_team("STRASSE", "sales")
+
+    def test_a_team_is_renamed_and_removed_with_its_memberships(self):
+        """W7: a new name keeps the team's kind and members; a name another team has is refused; removing a team removes its
+        memberships, and its id is then unknown."""
+        store = open_teams(self.home)
+        sales = store.create_team("Sales", "sales")
+        store.create_team("Marketing", "marketing")
+        renamed = store.rename_team(sales["id"], "  Sales  Ops ")
+        self.assertEqual((renamed["name"], renamed["kind"]), ("Sales Ops", "sales"))
+        with self.assertRaises(TeamError):
+            store.rename_team(sales["id"], "MARKETING")  # another team's name, by casefold
+        self.assertEqual(store.rename_team(sales["id"], "sales ops")["name"], "sales ops")  # its own name in another case
+        self.assertEqual(store.delete_team(sales["id"]), 0)
+        self.assertEqual([t["name"] for t in store.teams()], ["Marketing"])
+        for change in (lambda: store.rename_team(sales["id"], "Again"), lambda: store.delete_team(sales["id"])):
+            with self.assertRaises(NoSuchTeam):
+                change()
 
     def test_another_workspace_sees_nothing(self):
         mine, theirs = open_teams(self.home), open_teams(self.other_home)
@@ -322,9 +340,44 @@ class TeamRoutesTests(unittest.TestCase):
         self.assertEqual(owner.delete(f"/api/workspace/members/{leaver}").status_code, 204)
         self.assertEqual(owner.get("/api/workspace/teams", params={"user_id": leaver}).json(), [])
         self.assertNotIn(leaver, {m["user_id"] for t in owner.get("/api/workspace/teams").json() for m in t["members"]})
+        # W7: rename and remove, the owner only; the other workspace's owner reaches neither
+        self.assertEqual(scientist.patch(f"/api/workspace/teams/{b}", json={"name": "Biz"}).status_code, 403)
+        self.assertEqual(stranger.patch(f"/api/workspace/teams/{b}", json={"name": "Biz"}).status_code, 404)
+        self.assertEqual(owner.patch(f"/api/workspace/teams/{b}", json={"name": "Data science"}).status_code, 409)  # taken
+        renamed = owner.patch(f"/api/workspace/teams/{b}", json={"name": "Business & Finance"})
+        self.assertEqual((renamed.status_code, renamed.json()["name"]), (200, "Business & Finance"), renamed.text)
+        self.assertEqual(stranger.delete(f"/api/workspace/teams/{b}").status_code, 404)
+        # a team with open work is not removed: its replies would land in a thread no member reads any more
+        from dclab_core import team_work as tw
+        from dclab_rnd.storage import open_team_work
+
+        app_services = self.app.state.services
+        pid = app_services.projects.create("Renewal", goal="Who should Sales call")["id"]
+        from dclab_rnd.memory.scope import create_problem
+
+        prob = create_problem(app_services.projects, pid, "Renewal", workspace_id=app_services.workspace_id)["problem_id"]
+        work = open_team_work(app_services.store.home, projects=app_services.projects)
+        work.create_task(tw.TeamTask(id="T-open", workspace_id=work.workspace, project_id=pid, problem_id=prob, brief_revision=1,
+                                     requester=tw.Requester(team="business", member=ds1, thread_id="th-open"), owner_team="data_science",
+                                     question="Can we rank accounts?", expected_output="a yes or no", done_criteria=["says why"],
+                                     created_at="2026-11-21T09:00:00Z"),
+                         initiator={"user_id": ds1, "role": "data_scientist", "workspace_id": work.workspace})
+        busy = owner.delete(f"/api/workspace/teams/{b}")
+        self.assertEqual(busy.status_code, 409, busy.text)
+        self.assertIn("T-open", busy.json()["detail"])
+        work.move(pid, "T-open", "cancelled", tw.Actor(kind="person", id=ds1, team="business"))  # closed: the team may go
+        self.assertEqual(viewer.delete(f"/api/workspace/teams/{b}").status_code, 403)
+        self.assertEqual(owner.delete(f"/api/workspace/teams/{b}").status_code, 204)
+        self.assertEqual(owner.delete(f"/api/workspace/teams/{b}").status_code, 404)
+        self.assertNotIn(b, {t["id"] for t in owner.get("/api/workspace/teams").json()})
         moves = [e.get("move") for e in owner.get("/api/platform/audit").json()["items"]]
-        for move in ("team_create", "team_add_member", "team_remove_member"):
+        for move in ("team_create", "team_add_member", "team_remove_member", "team_rename", "team_delete"):
             self.assertIn(move, moves)
+        events = self.app.state.services.experience.read(kinds=("team.created", "team.renamed", "team.removed", "team.member_added",
+                                                                 "team.member_removed"))
+        self.assertEqual({e.kind for e in events}, {"team.created", "team.renamed", "team.removed", "team.member_added", "team.member_removed"})
+        for e in events:
+            self.assertNotIn("name", e.payload)  # a team's name stays in the audit, never in an event
 
 
 if __name__ == "__main__":

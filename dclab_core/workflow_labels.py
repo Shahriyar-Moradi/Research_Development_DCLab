@@ -52,6 +52,8 @@ NOT_LEARNED = {
     "solution.compose": "labelled where it is decided, by the holdout's measured comparison (24.7)",
     "team.next_node": "the walk's own routing rule (situate) chooses the node from the coordinator's answer: a classifier on it can only copy the rule (29.6)",
     "critic.send_back": "labelled where it is decided, by whether the person's answer changed the card's field (29.6)",
+    "team.task_owner": "W7: recorded where a task between team agents is saved; no journey plays the team workspace yet, so no "
+                       "label exists to learn from (the deterministic agents route by their rules)",
     "command.intent_route": "not decided by the studio yet",
     "proposal.completeness": "not decided by the studio yet",
     "department.proposal": "labelled where it is judged: a person's judgment of each proposal, not a journey (30.22)",

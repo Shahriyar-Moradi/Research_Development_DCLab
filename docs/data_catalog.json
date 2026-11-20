@@ -272,7 +272,7 @@
   {
    "contract": "experience_event",
    "reads": [],
-   "version": "dclab_core.experience_event.v17"
+   "version": "dclab_core.experience_event.v18"
   },
   {
    "contract": "experience_session",
@@ -757,7 +757,7 @@
    "what": "A solved project from its problem to its report, one row per project: the card, the map, the routes, the stages run and the report's kept sentences, never a row of its table; only projects whose consent allows training, and none at all below the builder's minimum of projects (30.19)."
   }
  ],
- "dclab_core": "0.165.0",
+ "dclab_core": "0.166.0",
  "decision_points": [
   {
    "about": "Which tool does the agent call next?",
@@ -1523,6 +1523,17 @@
    "point": "team.next_node",
    "subjects": [
     "draft",
+    "project"
+   ]
+  },
+  {
+   "about": "Which team owns a task between team agents?",
+   "answer": "value",
+   "decided_in": "teamspace/store.py create_task and delegate (W7): the team that owns each task between team agents, the requester's choice or the parent owner's, with the asking team and whether it is a child task",
+   "kind": "workflow",
+   "main_product": null,
+   "point": "team.task_owner",
+   "subjects": [
     "project"
    ]
   },
@@ -2684,6 +2695,61 @@
   },
   {
    "emitted_by": [
+    "dclab_rnd/teamspace/store.py"
+   ],
+   "example": "python -m dclab_rnd.experience search --kind team.action.ended",
+   "family": "team",
+   "fields": {
+    "action": "meta",
+    "actor": "meta",
+    "error": "meta",
+    "name": "meta",
+    "output": "meta",
+    "status": "meta",
+    "task": "meta"
+   },
+   "kind": "team.action.ended",
+   "leaves_at": "improve",
+   "never_leaves": [],
+   "train_only": []
+  },
+  {
+   "emitted_by": [
+    "dclab_rnd/teamspace/store.py"
+   ],
+   "example": "python -m dclab_rnd.experience search --kind team.action.started",
+   "family": "team",
+   "fields": {
+    "action": "meta",
+    "actor": "meta",
+    "input_revision": "meta",
+    "name": "meta",
+    "source": "meta",
+    "task": "meta"
+   },
+   "kind": "team.action.started",
+   "leaves_at": "improve",
+   "never_leaves": [],
+   "train_only": []
+  },
+  {
+   "emitted_by": [
+    "dclab_rnd/agentic/routers/teams.py"
+   ],
+   "example": "python -m dclab_rnd.experience search --kind team.created",
+   "family": "team",
+   "fields": {
+    "by": "meta",
+    "kind": "meta",
+    "team": "meta"
+   },
+   "kind": "team.created",
+   "leaves_at": "improve",
+   "never_leaves": [],
+   "train_only": []
+  },
+  {
+   "emitted_by": [
     "dclab_rnd/orchestra/board.py",
     "dclab_rnd/teamspace/store.py",
     "dclab_rnd/teamspace/threads.py"
@@ -2730,6 +2796,38 @@
   },
   {
    "emitted_by": [
+    "dclab_rnd/agentic/routers/teams.py"
+   ],
+   "example": "python -m dclab_rnd.experience search --kind team.member_added",
+   "family": "team",
+   "fields": {
+    "by": "meta",
+    "member": "meta",
+    "team": "meta"
+   },
+   "kind": "team.member_added",
+   "leaves_at": "improve",
+   "never_leaves": [],
+   "train_only": []
+  },
+  {
+   "emitted_by": [
+    "dclab_rnd/agentic/routers/teams.py"
+   ],
+   "example": "python -m dclab_rnd.experience search --kind team.member_removed",
+   "family": "team",
+   "fields": {
+    "by": "meta",
+    "member": "meta",
+    "team": "meta"
+   },
+   "kind": "team.member_removed",
+   "leaves_at": "improve",
+   "never_leaves": [],
+   "train_only": []
+  },
+  {
+   "emitted_by": [
     "dclab_rnd/orchestra/board.py"
    ],
    "example": "python -m dclab_rnd.experience search --kind team.recorded",
@@ -2748,6 +2846,152 @@
     "thread": "meta"
    },
    "kind": "team.recorded",
+   "leaves_at": "improve",
+   "never_leaves": [],
+   "train_only": []
+  },
+  {
+   "emitted_by": [
+    "dclab_rnd/agentic/routers/teams.py"
+   ],
+   "example": "python -m dclab_rnd.experience search --kind team.removed",
+   "family": "team",
+   "fields": {
+    "by": "meta",
+    "members": "count",
+    "team": "meta"
+   },
+   "kind": "team.removed",
+   "leaves_at": "improve",
+   "never_leaves": [],
+   "train_only": []
+  },
+  {
+   "emitted_by": [
+    "dclab_rnd/agentic/routers/teams.py"
+   ],
+   "example": "python -m dclab_rnd.experience search --kind team.renamed",
+   "family": "team",
+   "fields": {
+    "by": "meta",
+    "team": "meta"
+   },
+   "kind": "team.renamed",
+   "leaves_at": "improve",
+   "never_leaves": [],
+   "train_only": []
+  },
+  {
+   "emitted_by": [
+    "dclab_rnd/teamspace/store.py"
+   ],
+   "example": "python -m dclab_rnd.experience search --kind team.report.superseded",
+   "family": "team",
+   "fields": {
+    "by_report": "meta",
+    "reason": "meta",
+    "report": "meta",
+    "task": "meta"
+   },
+   "kind": "team.report.superseded",
+   "leaves_at": "improve",
+   "never_leaves": [],
+   "train_only": []
+  },
+  {
+   "emitted_by": [
+    "dclab_rnd/teamspace/store.py"
+   ],
+   "example": "python -m dclab_rnd.experience search --kind team.report.written",
+   "family": "team",
+   "fields": {
+    "actions": "count",
+    "answer": "agent_text",
+    "by": "meta",
+    "children": "count",
+    "evidence": "count",
+    "report": "meta",
+    "revision": "count",
+    "status": "meta",
+    "task": "meta"
+   },
+   "kind": "team.report.written",
+   "leaves_at": "improve",
+   "never_leaves": [],
+   "train_only": []
+  },
+  {
+   "emitted_by": [
+    "dclab_rnd/teamspace/store.py"
+   ],
+   "example": "python -m dclab_rnd.experience search --kind team.task.created",
+   "family": "team",
+   "fields": {
+    "by": "meta",
+    "inputs": "count",
+    "owner_team": "meta",
+    "parent": "meta",
+    "problem": "meta",
+    "requester_team": "meta",
+    "routed_by": "meta",
+    "status": "meta",
+    "task": "meta"
+   },
+   "kind": "team.task.created",
+   "leaves_at": "improve",
+   "never_leaves": [],
+   "train_only": []
+  },
+  {
+   "emitted_by": [
+    "dclab_rnd/teamspace/store.py"
+   ],
+   "example": "python -m dclab_rnd.experience search --kind team.task.delivered",
+   "family": "team",
+   "fields": {
+    "attempts": "count",
+    "delivery": "meta",
+    "reason": "meta",
+    "status": "meta",
+    "task": "meta",
+    "to_team": "meta"
+   },
+   "kind": "team.task.delivered",
+   "leaves_at": "improve",
+   "never_leaves": [],
+   "train_only": []
+  },
+  {
+   "emitted_by": [
+    "dclab_rnd/teamspace/store.py"
+   ],
+   "example": "python -m dclab_rnd.experience search --kind team.task.moved",
+   "family": "team",
+   "fields": {
+    "by": "meta",
+    "from": "meta",
+    "owner_team": "meta",
+    "problem": "meta",
+    "task": "meta",
+    "to": "meta"
+   },
+   "kind": "team.task.moved",
+   "leaves_at": "improve",
+   "never_leaves": [],
+   "train_only": []
+  },
+  {
+   "emitted_by": [
+    "dclab_rnd/teamspace/store.py"
+   ],
+   "example": "python -m dclab_rnd.experience search --kind team.task.stale",
+   "family": "team",
+   "fields": {
+    "cause": "meta",
+    "problem": "meta",
+    "task": "meta"
+   },
+   "kind": "team.task.stale",
    "leaves_at": "improve",
    "never_leaves": [],
    "train_only": []

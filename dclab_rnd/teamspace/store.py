@@ -198,12 +198,70 @@ class _TeamWork:
 
     @staticmethod
     def _emit(events: list[dict]) -> None:
-        """After the change is saved: one ``team.handoff`` event each, names and states only (never the words)."""
+        """After the change is saved: one ``team.handoff`` event each (names and states only, never the words), and the W7
+        kinds (``team.task.*``, ``team.action.*``, ``team.report.*``) made by :meth:`_w7`."""
         from .. import experience
 
         for e in events:
             project = e.pop("project", None)
-            experience.record("team.handoff", "agent", e, project=project)
+            kind = e.pop("_kind", None)
+            if kind is not None:
+                experience.record(kind, e.pop("_actor", "agent"), e, project=project)
+            else:
+                experience.record("team.handoff", "agent", e, project=project)
+
+    @staticmethod
+    def _w7(kind: str, project: str, _who: Any = None, /, **payload: Any) -> dict:
+        """A W7 event (dclab_core.experience v18): ids, names, states and counts; None fields dropped. ``_who``: a
+        ``team_work.Actor`` or an initiator row; a person is recorded as a person, anything else as an agent."""
+        kind_of = getattr(_who, "kind", None) or ("person" if isinstance(_who, Mapping) and _who.get("user_id") else None)
+        return {"_kind": kind, "_actor": "person" if kind_of == "person" else "agent", "project": project,
+                **{k: v for k, v in payload.items() if v is not None}}
+
+    @staticmethod
+    def _routed(task: tw.TeamTask, who: Any, *, by: Any = None, routed_by: str) -> None:
+        """W7: the routing choice (which team owns the task) as a ledger decision, after the save. A top-level task's team
+        is chosen by the requesting team's agent (its rules; the initiator is only the member the work acts for); a child's
+        by the parent's owner (``by``), a person when a person delegates."""
+        from ..ledger import capture
+
+        kind = getattr(by, "kind", None) or "agent"
+        capture.team_task_routed(task.project_id, task.id, task.owner_team, from_team=task.requester.team if by is None else
+                                 (getattr(by, "team", None) or task.requester.team), routed_by=routed_by, by_kind=kind,
+                                 by=getattr(by, "id", None) or (who or {}).get("user_id"), child=task.parent_task_id is not None)
+
+    @classmethod
+    def _created(cls, task: tw.TeamTask, who: Any, *, by: Any = None, routed_by: str) -> dict:
+        actor = by  # who routed it, as the ledger says: the asking team's agent for a top-level task, the parent's owner for a child
+        return cls._w7("team.task.created", task.project_id, actor, task=task.id, problem=task.problem_id, owner_team=task.owner_team,
+                       requester_team=task.requester.team, parent=task.parent_task_id, status=task.status,
+                       by=getattr(by, "id", None) or (who or {}).get("user_id") or task.requester.member,
+                       inputs=len(task.allowed_inputs), routed_by=routed_by)
+
+    @classmethod
+    def _moved(cls, task: tw.TeamTask, old: str, new: str, by: Any) -> dict:
+        return cls._w7("team.task.moved", task.project_id, by, task=task.id, problem=task.problem_id, owner_team=task.owner_team,
+                       **{"from": old}, to=new, by=getattr(by, "id", None))
+
+    @classmethod
+    def _action_event(cls, task: tw.TeamTask, action: tw.TeamAction) -> dict:
+        if tw.can_claim(action):
+            return cls._w7("team.action.ended", task.project_id, action.actor, task=task.id, action=action.action_id, name=action.action,
+                           actor=action.actor.id, status=action.status, output=action.output_ref, error=action.failure_ref)
+        return cls._w7("team.action.started", task.project_id, action.actor, task=task.id, action=action.action_id, name=action.action,
+                       actor=action.actor.id, source=action.source, input_revision=action.input_revision)
+
+    @classmethod
+    def _report_events(cls, task: tw.TeamTask, report: tw.WorkReport, replaced: Optional[tw.WorkReport] = None) -> list[dict]:
+        acts = report.actions
+        out = [cls._w7("team.report.written", task.project_id, None, task=task.id, report=report.id, revision=report.revision,
+                       status=report.status, by=report.owner, evidence=len([e for e in report.evidence if not e.private]),
+                       actions=len(acts.completed) + len(acts.failed) + len(acts.skipped), children=len(report.child_reports),
+                       answer=report.answer)]
+        if replaced is not None:
+            out.append(cls._w7("team.report.superseded", task.project_id, None, task=task.id, report=replaced.id, by_report=report.id,
+                               reason="a later revision of the report"))
+        return out
 
     def _check_problem(self, task: tw.TeamTask) -> None:
         """The task's problem is one its project has, in this workspace (AccessDenied otherwise)."""
@@ -276,7 +334,9 @@ class _TeamWork:
             self._link(task.project_id, task=again.item)
             return again
         self._emit([self._event("task.created", thread=task.requester.thread_id, team=task.owner_team, from_node=task.requester.team,
-                                to_node=task.owner_team, state=task.status, project=task.project_id)])
+                                to_node=task.owner_team, state=task.status, project=task.project_id),
+                    self._created(task, who, routed_by="requester")])
+        self._routed(task, who, routed_by="requester")
         self._link(task.project_id, task=task)  # after the save: an error is raised, and the same call again links it
         return Written(task, row)
 
@@ -317,7 +377,9 @@ class _TeamWork:
                 result = Written(child, row)
         if child is not None:
             self._emit([self._event("task.created", thread=thread_id, team=owner_team, from_node=parent.owner_team, to_node=owner_team,
-                                    state=child.status, project=project_id)])
+                                    state=child.status, project=project_id),
+                        self._created(child, who, by=by, routed_by="parent_owner")])
+            self._routed(child, who, by=by, routed_by="parent_owner")
         self._link(project_id, task=result.item)  # after the save: an error is raised, and the same call again links it
         return result
 
@@ -353,7 +415,8 @@ class _TeamWork:
                                                      from_team=moved.requester.team, to_team=moved.owner_team, text=str(note),
                                                      thread_id=None, initiator=who or row["initiator"]))
         self._emit([self._event("task.moved", thread=moved.requester.thread_id, team=moved.owner_team, from_node=task.status,
-                                to_node=new_status, state=new_status, project=project_id)])
+                                to_node=new_status, state=new_status, project=project_id),
+                    self._moved(moved, task.status, new_status, by)])
         return Written(moved, sent)
 
     def send_answer(self, project_id: str, task_id: str, *, response_id: str, text: str, initiator: Any = None) -> Written:
@@ -394,6 +457,7 @@ class _TeamWork:
             tx.insert_action(action)
             if tw.can_claim(action):
                 events.append(self._finished(task, action))
+            events.append(self._action_event(task, action))
         self._emit(events)
         return Written(action)
 
@@ -420,7 +484,7 @@ class _TeamWork:
                 raise ValueError(f"action {action_id} already ended as {held.status}: a second terminal record is refused")
             self._one_done(tx, ended)
             tx.update_action(ended)
-        self._emit([self._finished(task, ended)])
+        self._emit([self._finished(task, ended), self._action_event(task, ended)])
         return Written(ended)
 
     @staticmethod
@@ -456,7 +520,7 @@ class _TeamWork:
             report = self._build(tx, task, answer=answer, next_task=next_task, evidence=evidence, limits=limits,
                                  private_notes=private_notes, revision=revision, status=status, created_at=created_at)
             written = self._keep_report(tx, task, report, current_brief_revision, who or row["initiator"])
-        self._emit([self._stored(task, written.item)])
+        self._emit([self._stored(task, written.item)] + self._report_events(task, written.item))
         return written
 
     def _supersede_report(self, project_id: str, task_id: str, *, current_brief_revision: int, answer: str, next_task: tw.NextStep,
@@ -478,7 +542,7 @@ class _TeamWork:
             tx.update_report({**old, "report": old_report})
             written = self._keep_report(tx, task, new_report, current_brief_revision, who or row["initiator"])
             written.replaced = old_report
-        self._emit([self._stored(task, written.item)])
+        self._emit([self._stored(task, written.item)] + self._report_events(task, written.item, old_report))
         return written
 
     def _report_task(self, project_id: str, task_id: str, *, revision: int, current_brief_revision: int, answer: str,
@@ -509,6 +573,7 @@ class _TeamWork:
                 tx.update_task(moved, row["version"])
                 events.append(self._event("task.moved", thread=moved.requester.thread_id, team=moved.owner_team, from_node=task.status,
                                           to_node=move_to, state=move_to, project=project_id))
+                events.append(self._moved(moved, task.status, move_to, by))
                 task = moved
             report = self._build(tx, task, answer=answer, next_task=next_task, evidence=evidence, limits=limits,
                                  private_notes=private_notes, revision=revision, status=status, created_at=created_at)
@@ -519,7 +584,7 @@ class _TeamWork:
                 tx.update_report({**old, "report": replaced})
             written = self._keep_report(tx, task, report, current_brief_revision, who or row["initiator"])
             written.replaced = replaced
-        self._emit(events + [self._stored(task, written.item)])
+        self._emit(events + [self._stored(task, written.item)] + self._report_events(task, written.item, replaced))
         return written
 
     def _reported(self, how: Any, project_id: str, task_id: str, kw: dict) -> Written:
@@ -603,6 +668,14 @@ class _TeamWork:
             rows = tx.tasks(owner=team)
         return [r["task"] for r in rows if tw.is_open(r["task"]) and (project_id is None or r["task"].project_id == project_id)]
 
+    def open_work_of(self, names: Sequence[str]) -> list[tw.TeamTask]:
+        """W7: every open task, in any project, that one of ``names`` (a team's id or the kind its agent speaks for) owns or
+        asked for: a team with open work is not removed (its replies would go to a thread nobody can read)."""
+        wanted = set(names)
+        with self._read(None) as tx:
+            rows = tx.tasks()
+        return [r["task"] for r in rows if tw.is_open(r["task"]) and (r["task"].owner_team in wanted or r["task"].requester.team in wanted)]
+
     def handoff_history(self, project_id: str, problem_id: str) -> list[Row]:
         """Who asked whom and what came back, in order: ``{n, from_team, to_team, text, state}`` per thing that travelled
         or is on its way (a refused row never left, and is not shown). No thread id, no private note: other teams may read
@@ -649,8 +722,12 @@ class _TeamWork:
             return tx.update_delivery(changed, row["version"]), True
 
     def _ended(self, row: Row, status: str) -> None:
-        self._emit([self._event(f"{row['kind']}.{status}", thread=row.get("thread_id"), team=row["to_team"], from_node=row["from_team"],
-                                to_node=row["to_team"], state=status, project=row["project_id"])])
+        events = [self._event(f"{row['kind']}.{status}", thread=row.get("thread_id"), team=row["to_team"], from_node=row["from_team"],
+                              to_node=row["to_team"], state=status, project=row["project_id"])]
+        if row.get("kind") == "task":  # W7: a task's own delivery to its owner ended (delivered or blocked)
+            events.append(self._w7("team.task.delivered", row["project_id"], None, task=row.get("task_id"), delivery=row["id"],
+                                   to_team=row["to_team"], status=status, attempts=int(row.get("attempts") or 0), reason=row.get("reason")))
+        self._emit(events)
 
     def delivery_done(self, delivery_id: str, receipt: Any = None, project_id: Optional[str] = None) -> tuple[Row, bool]:
         """Mark it delivered, once: a reply is posted to its thread here and nowhere else. False when it was not pending."""
@@ -946,6 +1023,13 @@ def mark_fact_dependents_stale(home: Path, scope: Any, *, work: Any = None, thre
                                          key=f"stale:{scope.problem_id}:{root}:{target['id']}:{digest}")
             bases.mark_alerted(home, scope, {d["ref"]: [root] for d in group})
             posted.append({"thread_id": target["id"], "message_id": message["id"], "posted": made, "fact": root, "refs": refs})
+            if made:  # W7: each task found resting on the corrected fact, recorded once, when its requester is told
+                from .. import experience
+
+                for d in group:
+                    if d.get("kind") == "team_task":
+                        experience.record("team.task.stale", "system", {"task": str(d["ref"]).rsplit("/", 1)[-1], "problem": scope.problem_id,
+                                                                        "cause": f"fact:{root}"}, log=log, project=scope.project_id)
     return {"stale": sorted(r for r, d in deps.items() if d.get("stale")), "alerts": posted}
 
 

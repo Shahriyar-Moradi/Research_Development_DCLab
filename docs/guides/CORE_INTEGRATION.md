@@ -1527,3 +1527,30 @@ thread, and flags each decision for its owner's review; work that did not cite i
 the same rule belongs where its decisions are recorded: keep the fact revision each decision and handoff rested on, and
 reopen exactly those when the fact is corrected. No main-product field is mapped: the pinned inventory has no memory
 or team tables.
+
+## The work between team agents as records (2026-11-21, dclab-core 0.166.0)
+
+`dclab_core.experience` v18 (`dclab_core.experience_event.v18`, reading every earlier event unchanged) adds the kinds of
+the collaborative workspace's work (`dclab_core.team_work`), each written where the work is saved:
+
+| Kind | When | Holds |
+|---|---|---|
+| `team.task.created` | a task between team agents is saved | the task, its problem, the owning and asking teams, the parent, its status, who asked, the number of inputs, `routed_by` (`requester` or `parent_owner`) |
+| `team.task.moved` | a task changes status | the task, its owning team, `from` and `to`, who moved it |
+| `team.task.stale` | a corrected fact reaches a task (its requester is told) | the task, its problem, `fact:<entry id>` |
+| `team.task.delivered` | a task's delivery to its owner ends | the task, the delivery, the team, `delivered` or `blocked`, the attempts, the fixed reason |
+| `team.action.started` / `team.action.ended` | an action is recorded / gets its terminal record | the task, the action's id and name, the actor, its source or terminal status, the output's or failure's reference (never the output) |
+| `team.report.written` / `team.report.superseded` | a report is saved / a later revision replaces it | the report, its revision and status, counts of shared evidence, actions and child reports, the answer (`agent_text`) / the old and new report |
+| `team.created`, `team.renamed`, `team.removed`, `team.member_added`, `team.member_removed` | the owner changes the teams | the team's id and kind, the member, who did it (a team's name stays in the audit trail, never in an event) |
+
+Every field is `meta`, `count` or, for a report's answer, `agent_text`: never a table's value or a team's private note
+(a private evidence reference is not counted). The ledger gains the workflow point `team.task_owner` (which team owns a
+task): a top-level task's team is chosen by the asking team's agent (its rules), a child's by the parent's owner (a
+person when a person delegates), with the asking team and whether it is a child task as its state.
+
+The R&D host is the reference: `dclab_rnd/teamspace/store.py` (`_w7`, `_routed`; the events after each save, the
+routing decision through `ledger/capture.team_task_routed`), `agentic/routers/teams.py` (the team events, and the
+owner's new `PATCH` and `DELETE /api/workspace/teams/{team_id}`) and `tests/test_team_acceptance.py` (the owner's seven
+acceptance checks, end to end, with these records). In the main product the same events belong where its agents hand
+work to each other, once it has a team workspace: until then `adapters/main_product_experience.KINDS_MISSING` lists
+every new kind and `conformance.POINTS_NOT_MAPPED` the new point, each with its reason.

@@ -1299,3 +1299,20 @@ def department_proposal(agent: str, step: Any, right: Optional[bool] = None, per
     if record is not None and right is not None:
         label(record, bool(right), "user_decision_exposed", person)
     return record
+
+
+# ---------------------------------------------------------------------- W7: the collaborative workspace's routing
+
+@_quiet
+def team_task_routed(project_id: str, task_id: str, owner_team: str, *, from_team: str, routed_by: str, by_kind: str = "agent",
+                     by: Optional[str] = None, child: bool = False) -> Optional[str]:
+    """W7: which team owns a task between team agents, recorded where the task is saved. ``routed_by``: the requester
+    (a person or their team's agent) or the parent's owner when it delegates. The deterministic team agents answer by their
+    rules, a person by their choice; the state is the asking team and whether it is a child task (names, never words)."""
+    used = "person" if by_kind == "person" else "rule"
+    who = f"person:{by}" if used == "person" and by else f"rule:{routed_by}"
+    record = _put("team.task_owner", ("project", f"{project_id}:{task_id}"[:200]), [answer(used, who, _code(owner_team))],
+                  _code(owner_team), used, state={"from_team": _code(from_team), "child": bool(child),
+                                                  "routed_by": _code(routed_by)}, project=project_id)
+    return getattr(record, "id", None)
+

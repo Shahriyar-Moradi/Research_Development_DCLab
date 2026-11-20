@@ -166,6 +166,33 @@ class FileTeams:
             self._save(doc)
         return True
 
+    def rename_team(self, team_id: str, name: str) -> Document:
+        """W7: a new name (its kind and members unchanged); refused when another team of the workspace has it."""
+        name = normal_name(name)
+        with self._held():
+            doc = self._load()
+            team = next((t for t in doc["teams"] if t["id"] == team_id), None)
+            if team is None:
+                raise NoSuchTeam(team_id)
+            if any(t["id"] != team_id and t["name"].casefold() == name.casefold() for t in doc["teams"]):
+                raise TeamError(f"this workspace already has a team named {name!r}")
+            team["name"] = name
+            self._save(doc)
+        return self.team(team_id)
+
+    def delete_team(self, team_id: str) -> int:
+        """W7: the team removed with its memberships; how many members it had. Its threads and its memory stay in the
+        workspace's records (the store keeps what was written), read by the owner only."""
+        with self._held():
+            doc = self._load()
+            if not any(t["id"] == team_id for t in doc["teams"]):
+                raise NoSuchTeam(team_id)
+            members = sum(1 for m in doc["members"] if m["team_id"] == team_id)
+            doc["teams"] = [t for t in doc["teams"] if t["id"] != team_id]
+            doc["members"] = [m for m in doc["members"] if m["team_id"] != team_id]
+            self._save(doc)
+        return members
+
     def remove_user(self, user_id: str) -> int:
         """The person leaves every team of this workspace (they left the workspace); how many."""
         with self._held():
@@ -312,6 +339,35 @@ class PgTeams:
             if not self._owns(c, team_id):
                 raise NoSuchTeam(team_id)
             return bool(c.execute(sa.delete(m).where(m.c.team_id == team_id, m.c.user_id == user_id)).rowcount)
+
+    def rename_team(self, team_id: str, name: str) -> Document:
+        import sqlalchemy as sa
+
+        from .models import team as t
+
+        name = normal_name(name)
+        with self.engine.begin() as c:
+            self._lock(c)
+            if not self._owns(c, team_id):
+                raise NoSuchTeam(team_id)
+            names = c.execute(sa.select(t.c.name).where(t.c.workspace_id == self.workspace_id, t.c.id != team_id)).scalars()
+            if any(n.casefold() == name.casefold() for n in names):
+                raise TeamError(f"this workspace already has a team named {name!r}")
+            c.execute(sa.update(t).where(t.c.id == team_id, t.c.workspace_id == self.workspace_id).values(name=name))
+        return self.team(team_id)
+
+    def delete_team(self, team_id: str) -> int:
+        import sqlalchemy as sa
+
+        from .models import team as t, team_membership as m
+
+        with self.engine.begin() as c:
+            self._lock(c)
+            if not self._owns(c, team_id):
+                raise NoSuchTeam(team_id)
+            members = c.execute(sa.delete(m).where(m.c.team_id == team_id)).rowcount
+            c.execute(sa.delete(t).where(t.c.id == team_id, t.c.workspace_id == self.workspace_id))
+        return int(members or 0)
 
     def remove_user(self, user_id: str) -> int:
         with self.engine.begin() as c:

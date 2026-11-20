@@ -1,0 +1,109 @@
+{
+ "package": "W7",
+ "title": "W7: the work between team agents recorded for training, each task's owning team as a decision, team rename and removal, and the owner's acceptance checks end to end",
+ "date": "2026-11-21",
+ "request": "Continue the collaborative workspace from the handover's 'Left to do': the W6 open items, then W7 (capture and acceptance).",
+ "spec": "Dev_Plans/HANDOVER_team_workspace_2026-11-20.md, 'Left to do' items 1 and 2",
+ "plan": [
+  "W6 follow-ups: team memory routes, a retry route for a failed correction fix-up, steady timing tests.",
+  "dclab-core 0.166.0: experience v18 with the team.task.*, team.action.*, team.report.* and team membership kinds; the ledger point team.task_owner.",
+  "Emit them where the work is saved; rename and remove teams (owner only).",
+  "The owner's seven acceptance checks as one end-to-end test on files and PostgreSQL."
+ ],
+ "decisions": [
+  {
+   "decision": "Events carry ids, names, states and counts only; a report's answer as agent text",
+   "why": "never a cell, a team's private note or a team's name (the name stays in the audit trail)"
+  },
+  {
+   "decision": "A top-level task's owning team is recorded as the asking team's agent's rule, not the person's choice",
+   "why": "the deterministic agent picks the team; the initiator is only the member the work acts for"
+  },
+  {
+   "decision": "A team with open work cannot be removed",
+   "why": "its replies would land in a thread no member can read any more"
+  }
+ ],
+ "change": "dclab_core experience.py, ledger.py, workflow_labels.py, adapters; dclab_rnd teamspace/store.py, ledger/capture.py and __init__.py, store/tasks.py, storage/teams.py, agentic/routers/teams.py and memory.py, api_models.py, accounts/guard.py; tests/test_team_acceptance.py and others; CORE_INTEGRATION.md.",
+ "findings": [
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "The delivery timing tests failed on a busy machine",
+   "scenario": "another session's gate loaded the machine: the backoff read -0.16 s and the cut-off 0.93 s",
+   "cause": "the wait was measured from the reader's clock after the call",
+   "fix": "a failed attempt records failed_at and the wait is measured from it; the cut-off has a wide margin",
+   "test": "tests/test_teamspace_delivery.py test_a_failure_is_counted_with_its_next_time_and_the_relay_retries_it_when_due"
+  },
+  {
+   "id": "S2",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "A team's memory had no route and a failed correction fix-up had no retry",
+   "scenario": "team_work.error was shown with no way to finish the work",
+   "cause": "W6 built the functions but not the routes",
+   "fix": "GET/POST team memory routes, members only; POST memory/base/reconcile, idempotent",
+   "test": "tests/test_team_memory_corrections.py test_a_teams_memory_base_through_its_routes"
+  },
+  {
+   "id": "S3",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "The acceptance file re-ran every walkthrough test it imported",
+   "scenario": "importing the W5 contract brought its test methods into the new classes",
+   "cause": "test methods are inherited",
+   "fix": "the inherited tests are set to None in the acceptance base",
+   "test": "tests/test_team_acceptance.py"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Every routing decision was refused by the ledger, so nothing was recorded",
+   "scenario": "team_task_routed printed 'from_team: not a state field' and returned None",
+   "cause": "the state keys were not in STATE_FIELDS, and the tests patched the recorder and had no ledger",
+   "fix": "the fields are allowed (child as a flag); the acceptance tests use a real ledger and read the stored record",
+   "test": "tests/test_team_acceptance.py test_1_the_round_trip_has_one_answer_one_linked_report_and_reads_like_the_owners_example"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The other-project check proved nothing",
+   "scenario": "it read a project that was never created",
+   "cause": "an empty read by construction",
+   "fix": "a second project with its own problem and task; each project's deliveries, threads and history never show the other's",
+   "test": "tests/test_team_acceptance.py test_5_a_restart_delivers_once_and_other_teams_projects_workspaces_and_revoked_members_are_kept_out"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Permitted evidence was not checked",
+   "scenario": "only the action's directory binding was asserted",
+   "cause": "the evidence was never tied to the task's allowed inputs",
+   "fix": "every shared evidence source is one of the task's allowed inputs",
+   "test": "tests/test_team_acceptance.py test_1_the_round_trip_has_one_answer_one_linked_report_and_reads_like_the_owners_example"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Removing a team with open work stranded its threads",
+   "scenario": "delete Business while T-renewal is open, make it again: the reply lands in a thread no member reads",
+   "cause": "nothing refused the delete",
+   "fix": "409 while the team owns or asked for an open task",
+   "test": "tests/test_teams.py test_the_owner_manages_teams_and_others_are_refused"
+  }
+ ],
+ "measurements": [],
+ "outcome": "The owner's seven acceptance checks pass end to end on files and PostgreSQL, with every task, action and report recorded as an event and each task's owning team stored as a ledger decision.",
+ "lessons": [
+  "A test that patches the recorder can hide that the real recorder refuses every row: read what was stored."
+ ],
+ "risks": [
+  "When a model writes reports (R4), a report's answer becomes model text; an output reference may carry real values once R3 reads real tables."
+ ],
+ "commits": []
+}

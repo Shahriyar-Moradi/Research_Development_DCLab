@@ -4,6 +4,16 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.166.0 (2026-11-21)
+
+- `experience` (W7 of the collaborative workspace): `ExperienceEvent` v18 adds the kinds of the work between team agents
+  (`dclab_core.team_work`), written where it is saved: `team.task.created` (with `routed_by`, who chose the owning team),
+  `team.task.moved`, `team.task.stale`, `team.task.delivered`, `team.action.started`, `team.action.ended` (its terminal
+  status and its output's reference, never the output), `team.report.written` (counts of evidence, actions and child
+  reports; the answer as `agent_text`), `team.report.superseded`, and the teams' own `team.created`, `team.renamed`,
+  `team.removed`, `team.member_added` and `team.member_removed`. Names, ids, states and counts only; never a cell or a
+  team's private note. `dclab_core.experience_event.v18` reads every earlier event unchanged.
+
 ## 0.165.0 (2026-11-20)
 
 - `memory` (W6 of the collaborative workspace): `MemoryItem` v3 adds the `team` scope, between `person` and `project`
