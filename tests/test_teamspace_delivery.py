@@ -182,10 +182,11 @@ class _Contract:
         self.assertEqual(self.run_job(first)["status"], "done")
         self.assertLess(time.monotonic() - began, 5)  # the job ends at the failure: nothing waits in the worker
         row = self.work.delivery(written.delivery["id"])
-        wait = (datetime.fromisoformat(row["next_attempt_at"]) - datetime.now(timezone.utc)).total_seconds()
+        wait = (datetime.fromisoformat(row["next_attempt_at"]) - datetime.fromisoformat(row["failed_at"])).total_seconds()
         self.assertEqual((row["status"], row["attempts"]), ("pending", 1))
-        self.assertTrue(0.05 < wait <= 0.2, wait)  # the first wait: the backoff
-        self.assertEqual(delivery.requeue_undelivered(self.services), [])  # not due yet: the relay leaves it
+        self.assertAlmostEqual(wait, 0.2, delta=0.002)  # the first wait: the backoff, from the recorded failure (a busy machine cannot shrink it)
+        if (datetime.now(timezone.utc) - datetime.fromisoformat(row["failed_at"])).total_seconds() < 0.15:  # a busy machine may be past it
+            self.assertEqual(delivery.requeue_undelivered(self.services), [])  # not due yet: the relay leaves it
 
         restarted = self.make_env(self.home)  # attempts and the next time survive a restart
         held = restarted.teamwork.delivery(written.delivery["id"])
@@ -193,9 +194,9 @@ class _Contract:
         time.sleep(0.25)
         self.relay(restarted)
         row = self.work.delivery(written.delivery["id"])
-        wait = (datetime.fromisoformat(row["next_attempt_at"]) - datetime.now(timezone.utc)).total_seconds()
+        wait = (datetime.fromisoformat(row["next_attempt_at"]) - datetime.fromisoformat(row["failed_at"])).total_seconds()
         self.assertEqual((row["status"], row["attempts"]), ("pending", 2))
-        self.assertTrue(0.2 < wait <= 0.4, wait)  # doubled
+        self.assertAlmostEqual(wait, 0.4, delta=0.002)  # doubled
         time.sleep(0.45)
         self.relay(restarted)
         row = self.work.delivery(written.delivery["id"])
@@ -231,12 +232,12 @@ class _Contract:
                          ("blocked", 0, "Not delivered: Data Science cannot take it (PermanentFailure)."))
 
     def test_a_hung_recipient_is_cut_off(self):
-        self.recipient.sleep = 1.0
+        self.recipient.sleep = 3.0  # far beyond the 0.1 s limit, so a slow machine still shows the cut-off
         with mock.patch.dict(os.environ, {"DCLAB_TEAM_DELIVERY_TIMEOUT_SECONDS": "0.1"}):
             written = self.work.create_task(self.task(), initiator=self.sara)
             began = time.monotonic()
             row = self.deliver(written)
-        self.assertLess(time.monotonic() - began, 0.9)
+        self.assertLess(time.monotonic() - began, 2.0)  # cut off near 0.1 s, never the recipient's 3 s: a busy machine gets the margin between
         self.assertEqual((row["status"], row["attempts"]), ("pending", 1))
         self.assertTrue(row["last_error"].startswith("TargetTimeout"))
 

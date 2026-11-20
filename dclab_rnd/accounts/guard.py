@@ -58,6 +58,11 @@ SPECIAL = {
     ("DELETE", "/api/workspace/members/{user_id}"): "admin",
     # W2: teams beside the roles. Any member sees the teams; the owner makes them and places people in them
     ("GET", "/api/workspace/teams"): "read",
+    # W6 follow-ups: a team's memory base (the route checks the person is in the team; the owner reads every team's)
+    ("GET", "/api/workspace/teams/{team_id}/memory/base"): "read",
+    ("POST", "/api/workspace/teams/{team_id}/memory/base"): "write",
+    ("POST", "/api/workspace/teams/{team_id}/memory/base/{entry_id}/correct"): "write",
+    ("POST", "/api/projects/{project_id}/memory/base/reconcile"): "write",
     ("POST", "/api/workspace/teams"): "admin",
     ("POST", "/api/workspace/teams/{team_id}/members"): "admin",
     ("DELETE", "/api/workspace/teams/{team_id}/members/{user_id}"): "admin",

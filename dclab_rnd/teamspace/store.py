@@ -674,14 +674,16 @@ class _TeamWork:
         kind = type(error).__name__ if isinstance(error, BaseException) else "DeliveryError"
 
         def put(row: Row) -> bool:
+            failed = datetime.now(timezone.utc)
             row["attempts"] = int(row.get("attempts") or 0) + 1
             row["last_error"] = scrub(f"{kind}: {error}")
+            row["failed_at"] = failed.isoformat(timespec="milliseconds")  # the wait is measured from here, not from a reader's clock
             if row["attempts"] >= max_attempts:
                 row.update(status="blocked", next_attempt_at=None,
                            reason=f"Not delivered to {team_label(row['to_team'])} after {row['attempts']} attempts ({kind}).")
             else:
                 wait = min(cap_seconds, backoff_seconds * (2 ** (row["attempts"] - 1)))
-                row["next_attempt_at"] = (datetime.now(timezone.utc) + timedelta(seconds=wait)).isoformat(timespec="milliseconds")
+                row["next_attempt_at"] = (failed + timedelta(seconds=wait)).isoformat(timespec="milliseconds")
             return True
         row, changed = self._change_delivery(delivery_id, put, project_id)
         if changed and row["status"] == "blocked":

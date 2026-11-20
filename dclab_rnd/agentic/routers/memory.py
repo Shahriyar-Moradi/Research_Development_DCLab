@@ -8,7 +8,7 @@ from fastapi import Depends, HTTPException, Request
 
 from ...memory import Refused, bases, latest, open_memory, readers, scope as mem_scope, summary as mem_summary, view, writing
 from ..api_models import (
-    BaseDraftConfirm, BaseFactCorrect, BaseFactRetire, BaseFactUpsert, BaseMutationResult, BaseView,
+    BaseDraftConfirm, BaseFactCorrect, BaseFactRetire, BaseFactUpsert, BaseMutationResult, BaseView, TeamWorkReconciled,
     MemoryCorrection, MemoryItemDoc, MemoryProposal, MemoryRetirement, MemoryReview, MemoryView,
     ProblemCreate, ProblemDoc, ProblemsView, ProblemSummaryView, Router,
 )
@@ -275,6 +275,80 @@ async def project_memory_base_correct(project_id: str, entry_id: str, body: Base
         raise HTTPException(422, str(exc)) from None
     _audit(s, request, "memory_base_correct",
            {"project_id": project_id, "problem_id": auth.problem_id, "entry_id": entry_id, "revision": res["revision"]},
+           str(body.reason or ""))
+    return res
+
+
+@router.post("/api/projects/{project_id}/memory/base/reconcile", response_model=TeamWorkReconciled)
+async def project_memory_base_reconcile(project_id: str, request: Request, problem_id: str | None = None,
+                                        s: Services = Depends(services)):
+    """W6 follow-up: finish the team work a correction left (a correction whose fix-up failed reports
+    ``team_work.error``; the fact itself stands). Marks every task, report and decision citing an old revision stale
+    and alerts the requesters' threads, once: every step is idempotent, so calling it again changes nothing more."""
+    auth = _resolve(s, project_id=project_id, problem_id=problem_id, require_write=True, require_problem=True)
+    from ...teamspace.store import mark_fact_dependents_stale
+
+    try:
+        res = mark_fact_dependents_stale(s.store.home, auth, log=s.experience)
+    except mem_scope.AccessDenied as exc:
+        raise HTTPException(403, str(exc)) from None
+    _audit(s, request, "memory_base_reconcile", {"project_id": project_id, "problem_id": auth.problem_id}, "team work reconciled")
+    return res
+
+
+def _team_target(team_id: str) -> str:
+    return f"{bases.TEAM_TARGET}{team_id}"
+
+
+@router.get("/api/workspace/teams/{team_id}/memory/base", response_model=BaseView)
+async def team_memory_base_view(team_id: str, s: Services = Depends(services)):
+    """W6 follow-up: a team's own memory base (its members, or the owner): active facts, drafts and retired history.
+    No other team reads it; shared reports never carry it."""
+    auth = _resolve(s)
+    try:
+        return bases.read_base(s.store.home, auth, target=_team_target(team_id))
+    except mem_scope.AccessDenied as exc:
+        raise HTTPException(403, str(exc)) from None
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from None
+
+
+@router.post("/api/workspace/teams/{team_id}/memory/base", response_model=BaseMutationResult)
+async def team_memory_base_upsert(team_id: str, body: BaseFactUpsert, request: Request, s: Services = Depends(services)):
+    """Add or update a fact in a team's memory base (a member whose role may write), with the revision check."""
+    auth = _resolve(s, require_write=True)
+    try:
+        res = bases.upsert_base_fact(
+            s.store.home, auth, target=_team_target(team_id), subject=str(body.subject or "team"), field=str(body.field or "fact"),
+            text=str(body.text or ""), source=str(body.source or "ui:team_base"), expected_revision=_expected(body),
+            reason=str(body.reason or ""), log=s.experience)
+    except bases.RevisionConflictError as exc:
+        raise HTTPException(409, exc.to_detail()) from None
+    except mem_scope.AccessDenied as exc:
+        raise HTTPException(403, str(exc)) from None
+    except (Refused, ValueError) as exc:
+        raise HTTPException(422, str(exc)) from None
+    _audit(s, request, "team_memory_base_upsert", {"team_id": team_id, "revision": res["revision"]}, str(body.field or ""))
+    return res
+
+
+@router.post("/api/workspace/teams/{team_id}/memory/base/{entry_id}/correct", response_model=BaseMutationResult)
+async def team_memory_base_correct(team_id: str, entry_id: str, body: BaseFactCorrect, request: Request,
+                                   s: Services = Depends(services)):
+    """Correct a fact in a team's memory base, keeping its history."""
+    auth = _resolve(s, require_write=True)
+    try:
+        res = bases.correct_base_fact(s.store.home, auth, entry_id, str(body.text or ""), target=_team_target(team_id),
+                                      expected_revision=_expected(body), reason=str(body.reason or ""), log=s.experience)
+    except KeyError:
+        raise HTTPException(404, "No such base entry") from None
+    except bases.RevisionConflictError as exc:
+        raise HTTPException(409, exc.to_detail()) from None
+    except mem_scope.AccessDenied as exc:
+        raise HTTPException(403, str(exc)) from None
+    except (Refused, ValueError) as exc:
+        raise HTTPException(422, str(exc)) from None
+    _audit(s, request, "team_memory_base_correct", {"team_id": team_id, "entry_id": entry_id, "revision": res["revision"]},
            str(body.reason or ""))
     return res
 

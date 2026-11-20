@@ -474,6 +474,13 @@ class BaseView(Doc):
     retired: list[Any] | None = None
 
 
+class TeamWorkReconciled(Doc):
+    """A problem's team work reconciled with its facts again (teamspace.store.mark_fact_dependents_stale): what was
+    marked stale and which threads were alerted; safe to call any time, every step is idempotent."""
+    stale: list[Any] | None = None
+    alerts: list[Any] | None = None
+
+
 class BaseMutationResult(Doc):
     entry: Any = None
     revision: Any = None

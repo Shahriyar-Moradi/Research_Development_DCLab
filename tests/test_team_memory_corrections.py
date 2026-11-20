@@ -392,10 +392,45 @@ class _Contract:
         self.assertEqual((body["team_work"]["error"], body["team_work"]["reconciled"]), ("RuntimeError", False))
         self.assertEqual({d["ref"] for d in ts.stale_marks(self.home, owner)}, {f"team_task:{self.pid}/T-capacity"})
         before = len(self.biz_messages())
-        again = ts.mark_fact_dependents_stale(self.home, owner)  # the retry finishes it: Business is told once
-        self.assertEqual(len(again["alerts"]), 1)
+        again = client.post(f"/api/projects/{self.pid}/memory/base/reconcile", params={"problem_id": self.prob})  # the retry route
+        self.assertEqual(again.status_code, 200, again.text)
+        self.assertEqual(len(again.json()["alerts"]), 1)  # it finishes the work: Business is told once
         self.assertEqual(len(self.biz_messages()), before + 1)
-        self.assertEqual(ts.mark_fact_dependents_stale(self.home, owner)["alerts"], [])
+        third = client.post(f"/api/projects/{self.pid}/memory/base/reconcile", params={"problem_id": self.prob})
+        self.assertEqual(third.json()["alerts"], [])  # idempotent: a second retry changes nothing
+
+    def test_a_teams_memory_base_through_its_routes(self):
+        """W6 follow-up: the team base is read and written through its own routes, and never reaches the problem base."""
+        from fastapi.testclient import TestClient
+
+        from dclab_rnd.agentic.server import create_app
+
+        from dclab_rnd.storage import open_teams
+
+        teams = open_teams(self.home)
+        sales = teams.create_team("Sales", "sales")["id"]
+        other = teams.create_team("Marketing", "marketing")["id"]
+        # without sign-in the person is the local owner (no account on PostgreSQL): they are placed in Sales only, the way
+        # the teams store answers for a member; a team's memory is its members' only
+        member = mock.patch("dclab_rnd.memory.scope.teams_of_person", side_effect=lambda t, who: (sales,) if who == "owner" else ())
+        member.start()
+        self.addCleanup(member.stop)
+        app = create_app(self.home)
+        client = TestClient(app, headers={"x-dclab-token": app.state.services.csrf})
+        made = client.post(f"/api/workspace/teams/{sales}/memory/base", json={"subject": "sales", "field": "capacity",
+                                                                            "text": "12 calls a day per rep", "expected_revision": 0})
+        self.assertEqual(made.status_code, 200, made.text)
+        entry = made.json()["entry"]
+        fixed = client.post(f"/api/workspace/teams/{sales}/memory/base/{entry['entry_id']}/correct",
+                            json={"text": "10 calls a day per rep", "expected_revision": made.json()["revision"]})
+        self.assertEqual(fixed.status_code, 200, fixed.text)
+        view = client.get(f"/api/workspace/teams/{sales}/memory/base").json()
+        self.assertEqual((view["scope"], view["team_id"]), ("team", sales))
+        self.assertEqual([e["text"] for e in view["active"]], ["10 calls a day per rep"])
+        self.assertEqual(len(view["retired"]), 1)  # the history is kept
+        problem = client.get(f"/api/projects/{self.pid}/memory/base", params={"problem_id": self.prob}).json()
+        self.assertNotIn("10 calls a day per rep", str(problem))  # a team's note never reaches the shared base
+        self.assertEqual(client.get(f"/api/workspace/teams/{other}/memory/base").status_code, 403)  # another team's memory: refused
 
 
 class OldItemsTests(unittest.TestCase):

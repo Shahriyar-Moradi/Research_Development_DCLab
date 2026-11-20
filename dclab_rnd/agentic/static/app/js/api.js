@@ -415,6 +415,10 @@
    *  @property {(Array<*>|null)=} messages
    *  @property {*=} access
    */
+  /** @typedef {Object} TeamWorkReconciled
+   *  @property {(Array<*>|null)=} stale
+   *  @property {(Array<*>|null)=} alerts
+   */
   /** @typedef {Object} ValidationError
    *  @property {Array<(string|number)>} loc
    *  @property {string} msg
@@ -600,6 +604,7 @@
     projectLineage: ["GET", "/projects/{project_id}/lineage", ["project_id"], ["path"]],
     projectMemoryBaseView: ["GET", "/projects/{project_id}/memory/base", ["project_id"], ["target", "problem_id"]],
     projectMemoryBaseUpsert: ["POST", "/projects/{project_id}/memory/base", ["project_id"], []],
+    projectMemoryBaseReconcile: ["POST", "/projects/{project_id}/memory/base/reconcile", ["project_id"], ["problem_id"]],
     projectMemoryBaseConfirm: ["POST", "/projects/{project_id}/memory/base/{entry_id}/confirm", ["project_id", "entry_id"], []],
     projectMemoryBaseCorrect: ["POST", "/projects/{project_id}/memory/base/{entry_id}/correct", ["project_id", "entry_id"], []],
     projectMemoryBaseRetire: ["POST", "/projects/{project_id}/memory/base/{entry_id}/retire", ["project_id", "entry_id"], []],
@@ -682,6 +687,9 @@
     createTeam: ["POST", "/workspace/teams", [], []],
     addTeamMember: ["POST", "/workspace/teams/{team_id}/members", ["team_id"], []],
     removeTeamMember: ["DELETE", "/workspace/teams/{team_id}/members/{user_id}", ["team_id", "user_id"], []],
+    teamMemoryBaseView: ["GET", "/workspace/teams/{team_id}/memory/base", ["team_id"], []],
+    teamMemoryBaseUpsert: ["POST", "/workspace/teams/{team_id}/memory/base", ["team_id"], []],
+    teamMemoryBaseCorrect: ["POST", "/workspace/teams/{team_id}/memory/base/{entry_id}/correct", ["team_id", "entry_id"], []],
   };
 
   function build(name, args) {
@@ -1719,6 +1727,12 @@
    *  @returns {Promise<BaseMutationResult>} */
   client.projectMemoryBaseUpsert = (...args) => call('projectMemoryBaseUpsert', args);
   client.path.projectMemoryBaseUpsert = (...args) => build('projectMemoryBaseUpsert', args).path;
+  /** POST /api/projects/{project_id}/memory/base/reconcile: Project Memory Base Reconcile
+   *  @param {string} project_id
+   *  @param {{query?: {problem_id?: *}, headers?: Object}} [opts]
+   *  @returns {Promise<TeamWorkReconciled>} */
+  client.projectMemoryBaseReconcile = (...args) => call('projectMemoryBaseReconcile', args);
+  client.path.projectMemoryBaseReconcile = (...args) => build('projectMemoryBaseReconcile', args).path;
   /** POST /api/projects/{project_id}/memory/base/{entry_id}/confirm: Project Memory Base Confirm
    *  @param {string} project_id
    *  @param {string} entry_id
@@ -2246,6 +2260,26 @@
    *  @returns {Promise<null>} */
   client.removeTeamMember = (...args) => call('removeTeamMember', args);
   client.path.removeTeamMember = (...args) => build('removeTeamMember', args).path;
+  /** GET /api/workspace/teams/{team_id}/memory/base: Team Memory Base View
+   *  @param {string} team_id
+   *  @param {{headers?: Object}} [opts]
+   *  @returns {Promise<BaseView>} */
+  client.teamMemoryBaseView = (...args) => call('teamMemoryBaseView', args);
+  client.path.teamMemoryBaseView = (...args) => build('teamMemoryBaseView', args).path;
+  client.href.teamMemoryBaseView = (...args) => '/api' + build('teamMemoryBaseView', args).path;
+  /** POST /api/workspace/teams/{team_id}/memory/base: Team Memory Base Upsert
+   *  @param {string} team_id
+   *  @param {{body: BaseFactUpsert, headers?: Object}} [opts]
+   *  @returns {Promise<BaseMutationResult>} */
+  client.teamMemoryBaseUpsert = (...args) => call('teamMemoryBaseUpsert', args);
+  client.path.teamMemoryBaseUpsert = (...args) => build('teamMemoryBaseUpsert', args).path;
+  /** POST /api/workspace/teams/{team_id}/memory/base/{entry_id}/correct: Team Memory Base Correct
+   *  @param {string} team_id
+   *  @param {string} entry_id
+   *  @param {{body: BaseFactCorrect, headers?: Object}} [opts]
+   *  @returns {Promise<BaseMutationResult>} */
+  client.teamMemoryBaseCorrect = (...args) => call('teamMemoryBaseCorrect', args);
+  client.path.teamMemoryBaseCorrect = (...args) => build('teamMemoryBaseCorrect', args).path;
 
   // A route this server does not have (the open edition leaves some out) answers like a 404, a rejected promise the
   // page's DC.states shows, never a TypeError thrown before the page can catch it.
