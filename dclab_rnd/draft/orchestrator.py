@@ -1554,6 +1554,22 @@ HOLD = re.compile(r"\b(?:but|instead|first|not now|later|wait|don'?t|do not|no|n
 OFFERING = ("improvement_ideas", "propose_data_change")  # each asks for a yes next
 
 
+ASK_TEAMS = re.compile(r"\b(?:ask|send (?:it |this )?to|hand (?:it |this )?(?:over )?to|give (?:it |this )?to|check with|pass (?:it |this )?to)\s+"
+                       r"(?:the |our |my )?(?:teams?|data science(?: team)?|workspace(?:'s)? teams?|lead)\b", re.I)
+
+
+def teams_track(text: str) -> str:
+    """The kind of help a request for the teams names (the Lead routes by it): a model, a report, preparation, else an analysis."""
+    said = text.lower()
+    if re.search(r"\b(?:predict\w*|forecast\w*|model|score|rank\w*|classif\w*)\b", said):
+        return "model"
+    if re.search(r"\b(?:clean\w*|prepar\w*|merg\w*|dedup\w*|join\w*)\b", said):
+        return "prepare"
+    if re.search(r"\b(?:report|dashboard|chart|plot)s?\b", said):
+        return "report"
+    return "analyze"
+
+
 def plan(text: str, offer: Optional[dict[str, Any]], columns: Any = (), version_waiting: bool = False) -> list[tuple[str, dict[str, Any]]]:
     """The rules' reading of one message, part by part when it asks for several things ("improve the model and plot each fold"):
     the tools to call, in order, at most MAX_TASKS. A write that needs the person's yes is never read from a part."""
@@ -1593,6 +1609,8 @@ def _plan_one(text: str, offer: Optional[dict[str, Any]], columns: Any = (), ver
         return [(offer["tool"], dict(offer.get("args") or {}))]
     if version_waiting and VERSION_BUILD.search(said) and not IMPROVE.search(said):  # "build it" with a confirmed version waiting: the planner plans it
         return [("plan_new_version", {})]
+    if ASK_TEAMS.search(said) and not NO.match(said):  # 2026-11-21: the person names the teams: the Lead takes it (code checks the rest)
+        return [("ask_teams", {"track": teams_track(said), "request": said[:600]})]
     changed = problem_change(said, columns)  # before a no: "no, the prediction is made at signup" corrects the problem
     if changed:
         return [("propose_problem_change", {**changed, "said": said[:600]})]

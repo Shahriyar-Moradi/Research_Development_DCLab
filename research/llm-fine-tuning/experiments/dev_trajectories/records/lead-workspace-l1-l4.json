@@ -188,6 +188,16 @@
       "cause": "the rules returned None for any team agent; a substring check",
       "fix": "team agents hand work only to teams and specialists; the built chat uses quote_ok (two whole words)",
       "test": "tests/test_lead_workspace.py test_r9_a_team_agent_never_opens_or_delegates_a_task_for_the_lead_or_home"
+    },
+    {
+      "id": "L1",
+      "source": "measurement",
+      "severity": "gap",
+      "defect": "In the product, Home could not hand anything to the teams",
+      "scenario": "the first live run: a built project's chat is answered by rules (its model has not passed the built chat's sealed journeys), the rules did not know ask_teams, and 'please ask the teams' became 'show data'",
+      "cause": "the tool was offered only to the model, which does not serve the built chat; the case agent does not take built drafts",
+      "fix": "the built chat's rules read a request that names the teams (ask the teams, check with Data Science, hand it to the Lead) as ask_teams, with the kind of help read from the words",
+      "test": "tests/test_lead_workspace.py test_the_built_chats_rules_hand_a_request_naming_the_teams_to_the_lead; live run rules1"
     }
   ],
   "measurements": [
@@ -204,13 +214,28 @@
       "fixed_before_run": true,
       "result": "test_lead_workspace 25 tests on files, PostgreSQL and signed in; the team, case agent, orchestrator, screens and web files pass",
       "verdict": "pass"
+    },
+    {
+      "name": "live run, built chat on rules (the product today)",
+      "gate": "handed over in the person's words, the question and the report in the chat, the answer recorded as the person's",
+      "fixed_before_run": true,
+      "result": "all yes in 31 s, EUR 0 (agent_runs/live_tests/2026-11-21-lead-teams/rules1)",
+      "verdict": "pass"
+    },
+    {
+      "name": "live run, built chat on qwen/qwen3.8-flash (measurement override)",
+      "gate": "the same",
+      "fixed_before_run": true,
+      "result": "the model chose ask_teams with the person's words; all yes in 40 s, EUR 0.0009; both exchanges kept their thinking; archived in snapshot 20261121T070440Z",
+      "verdict": "pass"
     }
   ],
   "outcome": "A person on Home can hand data work to the teams. The Lead asks Data Science, the team's question reaches the person in the Home chat, their answer goes back as theirs, and one joined report returns, with every step recorded and readable on the Workspace page.",
   "lessons": [
     "Never run a second PostgreSQL test runner while a gate runs: both use the same per-worker database names.",
     "A browser check finds what scripted tests miss: an invitation to answer that no code read.",
-    "A shared draft is not a private conversation: what a person's team work writes there needs its own reader check."
+    "A shared draft is not a private conversation: what a person's team work writes there needs its own reader check.",
+    "Run the live path the product really serves: the built chat is answered by rules today, so a tool offered only to the model never runs."
   ],
   "risks": [
     "The Lead decides by rules, so it proves the plumbing, not judgment.",

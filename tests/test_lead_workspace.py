@@ -305,6 +305,16 @@ class _Lead(_Contract):
         self.assertIsNone(tw.delegation_refusal(tw.DIRECTORY["data_science"], "model:eta"))
 
 
+    def test_the_built_chats_rules_hand_a_request_naming_the_teams_to_the_lead(self):
+        from dclab_rnd.draft import orchestrator as orch
+
+        said = "Please ask the teams: can our data rank the accounts by churn risk seven days before each renewal?"
+        self.assertEqual(orch.plan(said, None), [("ask_teams", {"track": "model", "request": said})])
+        self.assertEqual(orch.teams_track("Ask the teams to clean and merge the renewal tables"), "prepare")
+        self.assertEqual(orch.teams_track("check with the data science team why renewals dropped"), "analyze")
+        self.assertNotIn("ask_teams", [n for n, _ in orch.plan("show the models trained", None)])
+
+
 for _name in [n for n in dir(_Contract) if n.startswith("test")]:  # the W5 walkthroughs run in their own file, not again here
     setattr(_Lead, _name, None)
 
