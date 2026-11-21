@@ -894,10 +894,13 @@ DC.view('home', {
     // 28.8: the team's walk: its board and the pause it waits on, read without running; a step only when the person asks
     async function loadTeam() {
       const box = $('#home-team-board', el);
-      const built = !!(S.draft && S.draft.project_id);  // 2026-11-21: the walk ends at the build; a built project's chat has no walk to offer
-      $('#home-team', el).hidden = !S.draft || built;
-      if (!S.draft || built) return;
-      try { drawTeam(await DC.client.teamBoard(S.draft.id, { quiet: true })); }
+      if (!S.draft) return;
+      try {
+        const v = await DC.client.teamBoard(S.draft.id, { quiet: true });
+        // 2026-11-21: the walk ends at the build: a built project's chat that never had a walk has none to offer; a walk that built it keeps its result
+        $('#home-team', el).hidden = !!S.draft.project_id && !(v && (v.board || v.waiting));
+        drawTeam(v);
+      }
       catch (e) { DC.states.failed(box, e, { lead: 'Could not read the team: ', retry: loadTeam }); }
     }
     function drawTeam(v) {
