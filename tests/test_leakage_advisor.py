@@ -59,8 +59,8 @@ class _SpyModelClient:
 
 
 class LeakageAdvisorTests(unittest.TestCase):
-    def _build_project(self, home: Path):
-        store = ProjectStore(home / "projects")
+    def _build_project(self, home: Path, store=None):
+        store = store or ProjectStore(home / "projects")  # the app's own store when the test calls its routes (PostgreSQL too)
         df = _make_delivery_dataset(120)
         p = store.create("Delivery ETA", "logistics and delivery", "Predict actual_minutes at order creation")
         pid = p["id"]
@@ -136,7 +136,7 @@ class LeakageAdvisorTests(unittest.TestCase):
         app = create_app(home)
         client = TestClient(app)
         s = app.state.services
-        store, pid, _df = self._build_project(home)
+        store, pid, _df = self._build_project(home, s.projects)
 
         # Run stage_data then stage_leakage (deterministic, no live model).
         studio_engine.execute(store, pid, "data")
@@ -179,8 +179,7 @@ class LeakageAdvisorTests(unittest.TestCase):
         self.assertIn("courier_rating", [f["column"] for f in store.get(pid)["solution"]["forbidden"]])
         # the review: saved as a person saves a solution: logged as a graph move, stages it invalidates cleared, and every
         # later stage still runs (an extra key in forbidden once made them all fail)
-        self.assertIn("set_solution", (home / "projects" / pid / "transitions.jsonl").read_text() if (home / "projects" / pid / "transitions.jsonl").exists()
-                      else "".join(str(t) for t in store.records(pid)))
+        self.assertIn("set_solution", [t.get("move") for t in store.transitions(pid)])  # through the store: files or PostgreSQL
         self.assertFalse(store.has_stage(pid, "leakage"))
         studio_engine.execute(store, pid, "data")
         studio_engine.execute(store, pid, "leakage")

@@ -32,7 +32,6 @@ from dotenv import load_dotenv  # noqa: E402
 
 load_dotenv(ROOT / ".env", override=False)
 os.environ["DCLAB_CASE_CAP_EUR"] = args.cap
-os.environ["DCLAB_MONTHLY_CAP_EUR"] = os.environ.get("DCLAB_MONTHLY_CAP_EUR") or "85"
 os.environ.setdefault("DCLAB_DECISION_SHADOW", "0")
 os.environ["DCLAB_LOG_PROMPTS"] = "1"  # prompts, replies and thinking kept (the owner's rule for every live run)
 os.environ["DCLAB_TEAM_DELIVERY_BACKOFF_SECONDS"] = "0"

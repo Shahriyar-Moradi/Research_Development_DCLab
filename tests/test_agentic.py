@@ -378,7 +378,8 @@ def test_the_campaign_runs_on_the_products_claude_and_never_on_a_blocked_provide
     from dclab_rnd.agentic import campaign_model
 
     for name in ("DCLAB_LLM_PROVIDER", "ANTHROPIC_API_KEY", "ANTHROPIC_MODEL", "OPENAI_API_KEY", "OPENAI_BASE_URL", "OPENAI_MODEL",
-                 "DCLAB_BLOCK_PROVIDERS", "DCLAB_TIER_STANDARD_BASE_URL", "DCLAB_TIER_STANDARD_MODEL", "DCLAB_TIER_STANDARD_API_KEY"):
+                 "DCLAB_BLOCK_PROVIDERS", "DCLAB_TIER_STANDARD_BASE_URL", "DCLAB_TIER_STANDARD_MODEL", "DCLAB_TIER_STANDARD_API_KEY",
+                 "OPENROUTER_API_KEY", "OPENROUTER_MODEL"):  # the owner's OpenRouter key (2026-11-11) would otherwise serve
         monkeypatch.delenv(name, raising=False)
     assert campaign_model.choice() is None
     monkeypatch.setenv("OPENAI_API_KEY", "openai-placeholder")
