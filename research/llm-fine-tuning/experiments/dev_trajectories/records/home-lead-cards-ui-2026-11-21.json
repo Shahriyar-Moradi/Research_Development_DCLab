@@ -1,0 +1,66 @@
+{
+ "package": "HOME-LEAD-CARDS-UI",
+ "title": "Home chat: the Lead's report keeps its lines, and the understanding team's card leaves a built project's chat",
+ "date": "2026-11-21",
+ "request": "Fix the two Home page issues the UI live check found: the report shown as one paragraph, and 'The team / Walk with the team' under a built project's chat.",
+ "spec": "Two display fixes in dclab_rnd/agentic/web/src/views/home.html, the file another session also edits, committed alone.",
+ "plan": [
+  "Draw a Lead card's text with its line breaks.",
+  "Hide the understanding team's panel when the draft has a project.",
+  "Rebuild the web app, check both kinds of chat in the browser.",
+  "Commit only these lines, built from HEAD in a temporary worktree."
+ ],
+ "decisions": [
+  {
+   "decision": "Hide the team panel on a built draft rather than remove it",
+   "why": "the walk ends at the build; on a draft not yet built it still walks the person to the build"
+  },
+  {
+   "decision": "Commit through a temporary worktree at HEAD with only this patch, then move main to that commit",
+   "why": "home.html holds another session's uncommitted edits; never stash, never commit another session's work"
+  }
+ ],
+ "change": "dclab_rnd/agentic/web/src/views/home.html (loadTeam hides #home-team on a built draft; a Lead card's text keeps its lines); dclab_rnd/agentic/static/app/js/views/home.js (built).",
+ "findings": [
+  {
+   "id": "H1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The Lead's report showed its four lines as one paragraph",
+   "scenario": "UI live check: found, why, next and changed ran together",
+   "cause": "a text message is drawn as one <p> without white-space:pre-line",
+   "fix": "a Lead card keeps its lines",
+   "test": "the browser check (white-space pre-line, four lines)"
+  },
+  {
+   "id": "H2",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The understanding team's card stayed under a built project's chat",
+   "scenario": "UI live check: 'Walk with the team' under the Lead conversation",
+   "cause": "showDraftPanels shows the panel for every draft",
+   "fix": "loadTeam hides it when the draft has a project",
+   "test": "the browser check: hidden on the built chat, shown on a new unbuilt draft"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "browser check of both fixes",
+   "gate": "the report in four lines; the team card hidden on a built chat and shown on an unbuilt one",
+   "fixed_before_run": true,
+   "result": "all three seen as expected",
+   "verdict": "pass"
+  }
+ ],
+ "outcome": "The report reads as four lines and a built project's chat no longer offers a walk it cannot take.",
+ "lessons": [
+  "When a file holds another session's uncommitted edits, build and commit the change from a worktree at HEAD with only your patch."
+ ],
+ "risks": [
+  "A report saved before the id fix still shows its revision id; new reports do not.",
+  "No unit test covers the page: the browser check and make browser-test do."
+ ],
+ "commits": [
+  "5f49d890"
+ ]
+}
