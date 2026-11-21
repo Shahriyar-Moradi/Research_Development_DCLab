@@ -97,8 +97,39 @@ def project_inputs(env: Any, project_id: str) -> tuple[str, ...]:
         return ()
 
 
-NO_DATA_YET = ("the teams cannot read this project's data yet: in this release they read only the inputs a project declares for "
-               "them (team_inputs); reading a project's own tables comes with release R3. Say so to the person and keep helping here")
+NO_DATA_YET = ("The teams cannot read this project's data yet: in this release they read only the inputs a project declares for "
+               "them; reading its own tables comes with release R3.")  # said to the person as it is (the rules show it whole): no word for a model
+
+_NEW_REQUEST = re.compile(r"^\s*(?:please\s+)?(?:also\s+|now\s+|then\s+)?(?:ask|tell|send (?:it |this )?to|hand (?:it |this )?(?:over )?to|check with)\s+"
+                          r"(?:the |our |my )?(?:teams?|lead|workspace(?:'s)? teams?|data science(?: team)?)\b[\s:,.-]*", re.I)  # at the start only (review F2)
+
+
+def _request_words(text: str) -> str:
+    """A request's own words: a leading "please ask the teams:" left out, then without capitals or punctuation."""
+    return _plain(_NEW_REQUEST.sub("", str(text or ""), count=1))
+
+
+def _plain(text: str) -> str:
+    return re.sub(r"[^a-z0-9]+", " ", str(text or "").lower()).strip()
+
+
+def is_answer(text: str, task: Any) -> bool:
+    """Whether a message the person sends while the teams' question waits answers it (the live run of 2026-11-21: a new
+    question, and the same request sent again, were both recorded as the answer). Not an answer: the request itself again,
+    a new request for the teams, or a question of the person's own (it ends with a question mark). Everything else is,
+    as before: a person answering in a few words. A rule, not an understanding: a wrong "no" sends the message to Home's
+    chat and the question keeps waiting, which the chat says; a wrong "yes" is what happened before."""
+    said, asked = _request_words(text), _request_words(getattr(task, "question", ""))
+    if not _plain(text):
+        return False
+    if asked and said == asked:  # the request again (an answer may quote part of it: "seven days before each renewal")
+        return False
+    lead_in = _NEW_REQUEST.match(str(text))
+    if lead_in:  # "ask the teams to/whether/why …" is a new request; "tell the team: failure to renew" answers
+        rest = str(text)[lead_in.end():].strip()
+        if re.match(r"(?:to|whether|if|about|for|why|how|what|which|can|could|also)\b", rest, re.I) or len(rest.split()) > 8:
+            return False
+    return not str(text).strip().endswith("?")
 
 
 def task_id_for(draft_id: str, question: str, person: str = "owner", attempt: int = 1) -> str:
@@ -106,7 +137,7 @@ def task_id_for(draft_id: str, question: str, person: str = "owner", attempt: in
     has ended (a blocked request asked again after the table was attached is a new task, never the old one silently)."""
     from .tools import _digest, safe_id
 
-    base = safe_id(f"L-{draft_id}-{_digest(draft_id, person, question)}")
+    base = safe_id(f"L-{draft_id}-{_digest(draft_id, person, _request_words(question))}")  # live S5: "Can our data" and "can our data" are one request
     return base if attempt <= 1 else f"{base}-{attempt}"
 
 
@@ -129,6 +160,9 @@ def ask(env: Any, project_id: str, problem_id: str, *, question: str, track: str
         threads.record_event("thread.opened", thread, {"kind": "person", "team": "home"}, "open")
     work = _work(env)
     attempt, task_id = 1, task_id_for(draft_id, question, str(person))
+    same = _open_same_request(env, str(project_id), draft_id, str(person), question)
+    if same is not None:  # live S5: the model quoted the request once with "Please ask the teams:" and once without: one request
+        task_id = same.id
     held_task = work.task(str(project_id), task_id)
     while held_task is not None and (not tw.is_open(held_task) or held_task.status == "blocked"):  # ended, or stopped on a blocker
         attempt += 1
@@ -142,6 +176,20 @@ def ask(env: Any, project_id: str, problem_id: str, *, question: str, track: str
     out = agents.run_turn(turn, registry)
     return {"task_id": task_id, "thread_id": thread["id"], "draft_id": draft_id, "refused": out["refused"],
             "opened": not out["skipped"], "already_open": held_task is not None, "turn": out}
+
+
+def _open_same_request(env: Any, project_id: str, draft_id: str, person: str, question: str) -> Optional[tw.TeamTask]:
+    """An open Lead task from this draft and person with these words, compared without a leading "please ask the teams:",
+    capitals or punctuation, else None: the same request asked again with or without its lead-in."""
+    said = _request_words(question)
+    if not said:
+        return None
+    for t in lead_tasks(env, project_id):
+        if not tw.is_open(t) or t.status == "blocked" or t.requester.member != person or _draft_of_task(env, t) != draft_id:
+            continue
+        if _request_words(t.question) == said:  # equal words only: a narrower request is its own task (review F3)
+            return t
+    return None
 
 
 def answer(env: Any, project_id: str, task_id: str, *, person: str, text: str, initiator: Optional[Row] = None,
@@ -220,7 +268,10 @@ def card_text(row: Mapping[str, Any]) -> str:
     """The words the Home chat shows for a row from the Lead: a team's question, or the joined report as it travelled."""
     if row.get("kind") == "clarification":
         return f"The teams ask: {row['text']}\nAnswer here and the Lead carries it back to them."
-    return str(row["text"])
+    return _REVISION.sub("", str(row["text"]))  # the UI live check of 2026-11-21: "(L-b52d…@r1)" is for the task page, not the chat
+
+
+_REVISION = re.compile(r"\s*\([^()\s]*@r\d+\)")
 
 
 def to_home_chat(env: Any, row: Mapping[str, Any]) -> Optional[Row]:
@@ -242,23 +293,80 @@ def to_home_chat(env: Any, row: Mapping[str, Any]) -> Optional[Row]:
            "team": {"from": "lead", "kind": row["kind"], "task_id": row["task_id"], "item_id": row.get("item_id"),
                     "thread_id": task.requester.thread_id, "project_id": row["project_id"]}}
     added: list[bool] = []
+    hold = _turn_open(drafts, draft_id)
+
+    earlier: list[dict[str, Any]] = []
 
     def put(d: dict[str, Any]) -> None:
-        held = d.setdefault("messages", [])
-        if not any(m.get("id") == message_id for m in held):
-            held.append(msg)
-            added.append(True)
+        if any(m.get("id") == message_id for m in (d.get("messages") or []) + (d.get(HELD) or [])):
+            return
+        if not hold and d.get(HELD):  # a card held under a lock no turn's end flushed (review F4): posted first, in order
+            have = {m.get("id") for m in d.setdefault("messages", [])}
+            for m in d.pop(HELD):
+                if m.get("id") not in have:
+                    d["messages"].append(m)
+                    earlier.append(m)
+        d.setdefault(HELD if hold else "messages", []).append(msg)
+        added.append(True)
 
     try:
         drafts.update(draft_id, put)
     except KeyError:  # the draft was deleted: the row stays in the Home thread, where the owner reads it
         return None
-    if added and hasattr(drafts, "emit"):
+    if hold:  # Home is still answering the message that asked: the card waits for that answer (the chat reads in order)
+        if added and not _turn_open(drafts, draft_id):  # the turn ended meanwhile: its own flush may have run before this hold
+            flush_held(drafts, draft_id)
+        return msg if added else None
+    for m in earlier:
+        _emit(drafts, draft_id, m)
+    if added:
+        _emit(drafts, draft_id, msg)
+    return msg if added else None
+
+
+HELD = "team_held"  # the Lead's cards that arrived while a Home turn was still answering, posted when it ends
+
+
+def _turn_open(drafts: Any, draft_id: str) -> bool:
+    try:
+        from ..draft.api import turn_held
+
+        return bool(hasattr(drafts, "turn") and turn_held(drafts, draft_id))
+    except Exception:  # noqa: BLE001 — no lock to ask: post at once, as before
+        return False
+
+
+def _emit(drafts: Any, draft_id: str, msg: Mapping[str, Any]) -> None:
+    if hasattr(drafts, "emit"):
         try:
-            drafts.emit(draft_id, "chat", msg)
+            drafts.emit(draft_id, "chat", dict(msg))
         except Exception:  # noqa: BLE001 — the page reads the saved message on its next load
             pass
-    return msg if added else None
+
+
+def flush_held(drafts: Any, draft_id: str) -> int:
+    """2026-11-21: post the Lead's cards held during a Home turn, after that turn's own answer, oldest first. Called when a
+    turn ends (``draft.chat.turn``) and by a card held just as the turn ended; the move is one update, so a card is posted
+    once. The number posted."""
+    moved: list[dict[str, Any]] = []
+
+    def take(d: dict[str, Any]) -> None:
+        held = d.pop(HELD, None) or []
+        have = {m.get("id") for m in d.setdefault("messages", [])}
+        for m in held:
+            if m.get("id") not in have:
+                d["messages"].append(m)
+                moved.append(m)
+
+    try:
+        if not (drafts.get(draft_id).get(HELD)):
+            return 0
+        drafts.update(draft_id, take)
+    except KeyError:
+        return 0
+    for m in moved:
+        _emit(drafts, draft_id, m)
+    return len(moved)
 
 
 def lead_tasks(env: Any, project_id: Optional[str] = None) -> list[tw.TeamTask]:
@@ -273,5 +381,5 @@ def lead_tasks(env: Any, project_id: Optional[str] = None) -> list[tw.TeamTask]:
     return sorted(seen.values(), key=lambda t: t.created_at, reverse=True)
 
 
-__all__ = ["DONE", "EXPECTED", "NOT_THE_TEAMS", "NO_DATA_YET", "card_visible", "TeamsRefused", "person_of", "project_inputs", "answer", "ask", "card_text", "lead_tasks", "refusal", "task_id_for", "to_home_chat",
+__all__ = ["DONE", "EXPECTED", "HELD", "NOT_THE_TEAMS", "NO_DATA_YET", "flush_held", "is_answer", "card_visible", "TeamsRefused", "person_of", "project_inputs", "answer", "ask", "card_text", "lead_tasks", "refusal", "task_id_for", "to_home_chat",
            "waiting"]

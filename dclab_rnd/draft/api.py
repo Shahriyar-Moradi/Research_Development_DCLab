@@ -199,7 +199,14 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
     @router.get("/api/drafts/{draft_id}", response_model=Draft)
     async def read_draft(draft_id: str):
         draft = get(draft_id)
-        return {**draft, "messages": _cards_for_reader(draft.get("messages") or []), "trace": trace_of(draft_id)}
+        return {**_public(draft), "trace": trace_of(draft_id)}
+
+    def _public(draft: dict[str, Any]) -> dict[str, Any]:
+        """A draft as a route returns it: the Lead's cards held for a turn's end left out (not posted yet), and the Lead's
+        posted cards only for the reader who may see them (review F5, 2026-11-21: every route, not only the read)."""
+        out = {k: v for k, v in draft.items() if k != "team_held"}
+        out["messages"] = _cards_for_reader(draft.get("messages") or [])
+        return out
 
     def _cards_for_reader(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """2026-11-21: the Lead's cards in a Home chat are their person's (and the owner's), as their Home thread is: a reader
@@ -262,7 +269,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
 
                 experience.record("draft.edited", "person", {"field": "problem", "before": before, "after": problem[:2000]}, conversation=draft_id)
                 await asyncio.to_thread(HomeAgent(drafts, None).replan, draft_id)
-        return drafts.get(draft_id)
+        return _public(drafts.get(draft_id))
 
     @router.post("/api/drafts/{draft_id}/no-data-solution", response_model=Doc)
     async def draft_no_data_solution(draft_id: str, payload: AnyObject | None = Body(None)):
@@ -436,7 +443,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
             await asyncio.to_thread(capture.solution_saved, draft.get("proposal"), profile, value, actor, active.get("suggestion"),
                                     draft=draft_id, conversation=draft_id)
         HomeAgent(drafts, None).refresh_workflow(draft_id)
-        return drafts.get(draft_id)
+        return _public(drafts.get(draft_id))
 
     @router.put("/api/drafts/{draft_id}/settings", response_model=Draft)
     async def draft_settings(draft_id: str, payload: AnyObject):
@@ -459,7 +466,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         from ..experience import hooks  # 19.3: how it will run, as the person set it
 
         hooks.settings_changed({k: v for k, v in settings.items() if k != "budget" and before.get(k) != v}, conversation=draft_id)
-        return drafts.get(draft_id)
+        return _public(drafts.get(draft_id))
 
     def _teams_waiting(draft_id: str, project_id: Any) -> Any:
         """The Lead's task from this draft that waits for the person's answer, or None (no project, or nothing waits)."""
@@ -471,6 +478,20 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
             return lead.waiting(services, str(project_id), draft_id, person=lead.person_of(None)[0])
         except Exception:  # noqa: BLE001 — the team work cannot be read: the message goes to the agent as before
             return None
+
+    def _still_waiting(draft_id: str, task: Any) -> None:
+        """After Home answered a message that was not the answer, the chat says the teams' question still waits for it."""
+        from .store import now
+
+        said = {"id": "m" + secrets.token_hex(5), "role": "agent", "kind": "text", "at": now(),
+                "text": "The teams' question above still waits for your answer; reply to it here when you are ready.",
+                "team": {"from": "lead", "kind": "still_waiting", "task_id": task.id, "project_id": task.project_id,
+                         "thread_id": task.requester.thread_id}}
+        drafts.update(draft_id, lambda d: d["messages"].append(said))
+        drafts.emit(draft_id, "chat", said)
+        from ..teamspace.lead import flush_held
+
+        flush_held(drafts, draft_id)  # a card held under a lock no turn's end flushed follows (review F4)
 
     def _answer_teams(draft_id: str, text: str, project_id: str, task: Any) -> None:
         """The person's words join the chat, and go to the Lead as their answer (recorded as theirs, carried to the team)."""
@@ -489,6 +510,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
                          "thread_id": task.requester.thread_id}}
         drafts.update(draft_id, lambda d: d["messages"].append(told))
         drafts.emit(draft_id, "chat", told)
+        lead.flush_held(drafts, draft_id)  # this route holds no turn: a card held meanwhile follows the answer (review F4)
 
     @router.post("/api/drafts/{draft_id}/messages", status_code=202, response_model=Doc)
     async def message(draft_id: str, payload: AnyObject):
@@ -501,14 +523,21 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
             raise HTTPException(409, "The agent is still answering")
         built = get(draft_id).get("project_id")
         waiting = _teams_waiting(draft_id, built)
-        if waiting is not None:  # 2026-11-21: the teams asked this person a question through the Lead: this message answers it
+        from ..teamspace import lead as _lead
+
+        if waiting is not None and _lead.is_answer(text, waiting):  # 2026-11-21: the teams asked this person a question: this answers it
             background(draft_id + ":agent", lambda: _answer_teams(draft_id, text, built, waiting))
             return {"accepted": True}
         if built and projects is not None and services is not None:  # a built project's chat: the Home orchestrator and its team answer
             from .orchestrator import Orchestrator
 
             home = agent(draft_id)
-            background(draft_id + ":agent", lambda: home.reply_built(draft_id, text, Orchestrator(services, home), built))
+
+            def built_turn() -> None:
+                home.reply_built(draft_id, text, Orchestrator(services, home), built)
+                if waiting is not None:  # a question of their own, or the request again: the teams' question still waits, said once
+                    _still_waiting(draft_id, waiting)
+            background(draft_id + ":agent", built_turn)
             return {"accepted": True}
         background(draft_id + ":agent", lambda: (agent(draft_id).reply(draft_id, text), twin_after(draft_id, "reply", text)))
         return {"accepted": True}
@@ -546,7 +575,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         if "error" in result:
             raise HTTPException(422, result["error"])
         twin_after(draft_id, "edit", f"{field}: {value}")
-        return drafts.get(draft_id)
+        return _public(drafts.get(draft_id))
 
     @router.post("/api/drafts/{draft_id}/twin/pick", response_model=Doc)
     async def twin_pick(draft_id: str, payload: AnyObject):
@@ -623,7 +652,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         else:
             raise HTTPException(422, "Unknown pack")
         a.refresh_workflow(draft_id)
-        return drafts.get(draft_id)
+        return _public(drafts.get(draft_id))
 
     @router.post("/api/drafts/{draft_id}/intent", response_model=Draft)
     async def choose_intent(draft_id: str, payload: AnyObject):
@@ -632,11 +661,11 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         track = dump(payload).get("track")
         if track in (None, ""):
             await asyncio.to_thread(agent(draft_id).clear_intent, draft_id)
-            return drafts.get(draft_id)
+            return _public(drafts.get(draft_id))
         if track not in intents.TRACKS:
             raise HTTPException(422, "Unknown type of help: " + ", ".join(intents.TRACKS))
         await asyncio.to_thread(agent(draft_id).choose_intent, draft_id, track)
-        return drafts.get(draft_id)
+        return _public(drafts.get(draft_id))
 
     @router.post("/api/drafts/{draft_id}/brief", response_model=Draft)
     async def set_brief(draft_id: str, payload: AnyObject):
@@ -648,7 +677,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
                                     str(body.get("value") or ""))
         except ValueError as exc:
             raise HTTPException(422, str(exc)) from None
-        return drafts.get(draft_id)
+        return _public(drafts.get(draft_id))
 
     @router.post("/api/drafts/{draft_id}/answers/{n}/save", response_model=Draft)
     async def save_answer(draft_id: str, n: int, payload: AnyObject):
@@ -658,7 +687,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
             await asyncio.to_thread(agent(draft_id).save_answer, draft_id, n, bool(dump(payload).get("saved", True)))
         except ValueError as exc:
             raise HTTPException(422, str(exc)) from None
-        return drafts.get(draft_id)
+        return _public(drafts.get(draft_id))
 
     @router.post("/api/drafts/{draft_id}/answers/{n}/edit", response_model=Draft)
     async def edit_answer(draft_id: str, n: int, payload: AnyObject):
@@ -671,7 +700,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
             await asyncio.to_thread(agent(draft_id).edit_answer, draft_id, n, change)
         except ValueError as exc:
             raise HTTPException(422, str(exc)) from None
-        return drafts.get(draft_id)
+        return _public(drafts.get(draft_id))
 
     @router.get("/api/drafts/{draft_id}/answers/notebook", response_class=Response, responses=download("application/zip"))
     async def answers_notebook(draft_id: str):
@@ -696,7 +725,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         said = await asyncio.to_thread(agent(draft_id).build_dashboard, draft_id, True)
         if said is None:  # nothing ran (another kind of help now, a question open): never claimed as refreshed
             raise HTTPException(409, "Nothing was refreshed: the conversation is not on its dashboard now, or a question waits for your answer")
-        return drafts.get(draft_id)
+        return _public(drafts.get(draft_id))
 
     @router.get("/api/drafts/{draft_id}/prepared", response_class=Response, responses=download("application/octet-stream"))
     async def prepared_table(draft_id: str, format: str = "csv"):

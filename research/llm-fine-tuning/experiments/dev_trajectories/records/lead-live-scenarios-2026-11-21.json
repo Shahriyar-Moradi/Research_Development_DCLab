@@ -1,0 +1,135 @@
+{
+ "package": "LEAD-LIVE-2026-11-21",
+ "title": "Live scenarios for Home, the workspace Lead and the team agents: the chat's order and five bugs found and fixed",
+ "date": "2026-11-21",
+ "request": "Fix the Home chat's message order glitch; run several live tests of the new features (Home's AI agent, the Lead, the teams, the workspace and their agents), find bugs, at most one hour of tests and half an hour of fixes.",
+ "spec": "The Lead workspace (LEAD-L1-L4) under live models: seven scenarios S1-S7 in scripts/live_lead_scenarios.py, each on the real app, its worker and Qwen (qwen3.8-flash on OpenRouter), and the rules path for three of them.",
+ "plan": [
+  "Hold the Lead's cards that arrive during a Home turn and post them when the turn ends.",
+  "Write seven scenarios: the whole loop, data work without naming the teams, an order to approve and email customers, a project with nothing for the teams, the same request twice, another question while the teams' question waits, and before any project.",
+  "Run them on Qwen; read every chat and record, not only the checks.",
+  "Fix each defect with a test; rerun the failed scenarios on Qwen and on the rules."
+ ],
+ "decisions": [
+  {
+   "decision": "A card that comes during a Home turn waits in the draft's team_held list and is posted when the turn ends",
+   "why": "the chat reads in order; blocking or retrying the delivery could run out of attempts during a long turn"
+  },
+  {
+   "decision": "Whether a message answers the teams' question is a rule (not the request again, not a new request for the teams, not a question ending in '?')",
+   "why": "a wrong no sends the message to Home's chat and the question keeps waiting, which the chat then says; the old behaviour took every message"
+  },
+  {
+   "decision": "An open Lead task from the same draft and person whose words hold the new words, or are held by them, is the same request",
+   "why": "the model quotes the same request with and without its lead-in words"
+  }
+ ],
+ "change": "dclab_rnd/teamspace/lead.py (HELD, flush_held, is_answer, _open_same_request, NO_DATA_YET for the person, task_id_for on plain words); dclab_rnd/draft/chat.py (the turn decorator posts held cards); dclab_rnd/draft/api.py (only an answer answers; still-waiting note; team_held not read); dclab_rnd/draft/orchestrator.py (a refused tool the rules would run is not run again; ask_teams records its task and result for the rules' words; the no-improvement words for the person); tests/test_lead_workspace.py; scripts/live_lead_scenarios.py (new).",
+ "findings": [
+  {
+   "id": "G1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The teams' question appeared before Home's own reply",
+   "scenario": "live run of the morning: the worker delivered the Lead's and Data Science's turn while Home's model was still writing its answer",
+   "cause": "to_home_chat appended the card at once, during the turn",
+   "fix": "held during a turn, posted by the turn's end (and by a card held just as the turn ended)",
+   "test": "tests/test_lead_workspace.py test_a_teams_question_during_homes_turn_follows_homes_answer"
+  },
+  {
+   "id": "G2",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "Any message while the teams' question waited was recorded as the person's answer",
+   "scenario": "S6: 'Wait, before that: which model did the last run choose?' and S5: the same request again were sent to Data Science as the definition of churn",
+   "cause": "the message route took every message as the answer when a task waited",
+   "fix": "lead.is_answer; other messages go to Home's chat, which then says the question still waits",
+   "test": "tests/test_lead_workspace.py test_while_the_teams_question_waits_only_an_answer_is_taken_as_the_answer"
+  },
+  {
+   "id": "G3",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The chat showed a cut sentence written for the model: '... comes with release R3. Say so to the '",
+   "scenario": "S4: a project with nothing declared for the teams",
+   "cause": "the model ran ask_teams, it was refused, the turn was handed to the rules because the rules would run ask_teams too, and the rules showed the refusal cut at 200 characters",
+   "fix": "a tool the rules would run that the model already ran is not a reason to discard the model's words; NO_DATA_YET is a whole sentence for the person",
+   "test": "tests/test_lead_workspace.py test_the_no_data_words_are_for_the_person_and_whole"
+  },
+  {
+   "id": "G4",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The same request sent twice opened two tasks and asked the person the same question twice",
+   "scenario": "S5: the model quoted 'can our data ...' and then 'Can our data ...', and in the next run with and without 'Please ask the teams:'",
+   "cause": "the task id hashed the exact words",
+   "fix": "the id hashes the words without capitals or punctuation, and an open task from the same draft and person whose words hold the new words is reused",
+   "test": "tests/test_lead_workspace.py test_the_same_request_in_other_capitals_or_punctuation_is_one_task, test_the_request_asked_again_inside_other_words_is_the_open_task"
+  },
+  {
+   "id": "G5",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "On the rules path, the product's path today, Home answered a request for the teams with only 'Done.'",
+   "scenario": "S1, S5, S6 with --rules, and the morning's rules run (missed then)",
+   "cause": "ask_teams recorded no task and no result, so the rules' words had nothing to say",
+   "fix": "ask_teams records its task and result; the rules say what was handed over or that the Lead already has it",
+   "test": "tests/test_lead_workspace.py test_the_built_chats_rules_say_what_they_did_with_the_request"
+  },
+  {
+   "id": "G6",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "A tool name reached the chat: 'Offer to run one (improve_model).'",
+   "scenario": "S6 on rules and on Qwen: the person asked which model the last run chose",
+   "cause": "show_improvements' refusal was written for the model",
+   "fix": "the words are for the person; the offer is already set",
+   "test": "the live rerun (no unit test)"
+  },
+  {
+   "id": "G7",
+   "source": "self",
+   "severity": "flaky",
+   "defect": "The live harness read a chat before Home answered",
+   "scenario": "S4 and S7 showed no reply",
+   "cause": "settle() stopped after 8 quiet seconds with only the person's message",
+   "fix": "it waits for an agent message after the person's last",
+   "test": "the live rerun"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "live scenarios S1-S7 on qwen/qwen3.8-flash (first run)",
+   "gate": "each scenario's expectation, read from the chat and the records, fixed before the run",
+   "fixed_before_run": true,
+   "result": "4 of 7 scenarios pass (the whole loop, data work without naming the teams, the order to approve, before a project); 3 fail: nothing for the teams, the request twice, another question while the teams wait (G2, G3, G4)",
+   "verdict": "fail"
+  },
+  {
+   "name": "live reruns after the fixes, Qwen and rules (S1, S5, S6 on both; S4 on Qwen)",
+   "gate": "the same expectations, fixed before the first run",
+   "fixed_before_run": true,
+   "result": "all pass: one task per request, the answer recorded as the person's only when it is an answer, the question after Home's reply, a whole sentence for the person",
+   "verdict": "pass"
+  },
+  {
+   "name": "live cost and thinking",
+   "gate": "under EUR 0.5 a run, every model call keeps its thinking",
+   "fixed_before_run": true,
+   "result": "28 scenario runs, EUR 0.0217 in all, 66 of 66 model calls with thinking kept",
+   "verdict": "pass"
+  }
+ ],
+ "outcome": "The Home chat now reads in order, a message is taken as the teams' answer only when it is one, one request is one task, the rules path says what it did, and no word meant for the model reaches the person in these scenarios.",
+ "lessons": [
+  "Read every live chat, not only the checks: the rules' 'Done.' passed every check twice.",
+  "A live harness must wait for the agent's reply, not for quiet: a slow model looks like silence.",
+  "Text a tool returns may be shown to the person by the rules: write refusals for the person."
+ ],
+ "risks": [
+  "is_answer is a rule: a short answer ending in '?' ('failure to renew?') goes to Home's chat, which then says the question still waits.",
+  "The teams' report is still made from fixtures; these runs prove the routing, not the teams' judgment.",
+  "One run per scenario: the model's choices (S2 handed over without the teams being named) are observations, not rates."
+ ],
+ "commits": []
+}

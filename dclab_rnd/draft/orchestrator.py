@@ -380,7 +380,8 @@ def show_improvements(t: Turn, /, **_: Any) -> dict[str, Any]:
     rec = t.project().get("improvements") or {}
     if not rec.get("candidates"):
         t.agent_offer("improve_model")
-        return {"error": "No improvement run has finished in this project yet. Offer to run one (improve_model)."}
+        return {"error": "No improvement run has finished in this project yet. Say yes and the Experimenter tries ways to improve "
+                         "the model on the training folds."}  # said to the person as it is (live 2026-11-21: a tool name reached the chat)
     rows = [{"way": c["label"], "aspect": c["aspect"], "mean": _r(c["mean"]), "gain": _r(c.get("gain")), "folds_better": c.get("folds_better"),
              "verdict": "clears the margin" if c["clears"] else "within the noise", "adoptable": bool(c["clears"] and c["adoptable"]), "id": c["id"]}
             for c in rec["candidates"]]
@@ -1360,10 +1361,14 @@ def ask_teams(t: Turn, /, track: str = "", request: str = "", **_: Any) -> dict[
     if out["refused"]:
         return {"error": "the Lead could not take it: " + out["refused"][0]}
     if out["already_open"]:
-        return {"sent_to": "lead", "task_id": out["task_id"], "new": False,
+        done = {"sent_to": "lead", "task_id": out["task_id"], "new": False,
                 "next": "the teams already have this request and are working on it; their report will appear in this chat"}
-    return {"sent_to": "lead", "task_id": out["task_id"], "new": out["opened"],
-            "next": "the teams' questions and their report will appear in this chat"}
+    else:
+        done = {"sent_to": "lead", "task_id": out["task_id"], "new": out["opened"],
+                "next": "the teams' questions and their report will appear in this chat"}
+    t.results.append(done)  # the rules' reply says what was done (live 2026-11-21: it said only "Done.")
+    t.task("ask_teams", TEAM["lead"], "Handed to the Workspace Lead", "done")
+    return done
 
 
 WRITES = {"plan_new_version": ("plan_version", plan_new_version), "build_new_version": ("build_version", build_new_version),
@@ -1966,6 +1971,11 @@ class Orchestrator:
             elif task["tool"] == "show_problem" and t.change_unclear:
                 parts.append("The Problem analyst: above is the problem this project answers. Which part changes: the outcome (name its column), "
                              "the moment the prediction is made, or how far ahead it looks?")
+            elif task["tool"] == "ask_teams":  # live 2026-11-21: the rules said only "Done." after handing a request to the Lead
+                r = next((x for x in t.results if isinstance(x, dict) and x.get("sent_to") == "lead"), {})
+                parts.append("The Workspace Lead already has this request and the teams are working on it; their report will appear in this chat."
+                             if r.get("new") is False else
+                             "I handed your request, in your words, to the Workspace Lead, who asks the teams. Their questions and their report will appear in this chat.")
             elif task["tool"] == "improvement_ideas":
                 parts.append("These are the ways this project's own records point to. Say yes and the Experimenter tries them on the training folds now.")
             else:

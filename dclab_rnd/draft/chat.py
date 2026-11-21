@@ -222,8 +222,16 @@ def turn(method):
     for files, an advisory lock in a database), and it is re-entrant."""
     @functools.wraps(method)
     def locked(self, draft_id: str, *args: Any, **kwargs: Any):
-        with self.store.turn(draft_id):
-            return method(self, draft_id, *args, **kwargs)
+        try:
+            with self.store.turn(draft_id):
+                return method(self, draft_id, *args, **kwargs)
+        finally:  # 2026-11-21: the Lead's cards that came during this turn follow its answer (after the lock: see lead.to_home_chat)
+            try:
+                from ..teamspace.lead import flush_held
+
+                flush_held(self.store, draft_id)
+            except Exception:  # noqa: BLE001 — a card left held is posted by the next turn's end
+                pass
     return locked
 
 

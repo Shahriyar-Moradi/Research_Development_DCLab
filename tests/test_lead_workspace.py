@@ -82,6 +82,7 @@ class _Lead(_Contract):
         found, why, nxt, changed = cards[-1]["text"].split("\n")
         self.assertIn("Data Science:", found)
         self.assertTrue(why.startswith("Why: ") and nxt.startswith("Next: ") and changed.startswith("Changed: "))
+        self.assertNotIn("@r", changed)  # the report's revision id stays on the task page
         routed = {(r.subject.key.split(":", 1)[1], r.value_used, dict(r.state)["routed_by"])
                   for r in self.services.ledger.records(point="team.task_owner")}
         self.assertIn((task.id, "lead", "requester"), routed)
@@ -99,6 +100,41 @@ class _Lead(_Contract):
         self.assertEqual({a.responded_by.id for a in humans}, {"sara"})  # every recorded answer is the person's, never an agent's
         again = lead.answer(self.services, self.pid, out["task_id"], person="sara", text=ANSWER, initiator=self.sara)
         self.assertEqual(again["steps"], [])  # nothing waits for an answer now: nothing is recorded twice
+
+    def test_a_teams_question_during_homes_turn_follows_homes_answer(self):
+        """The live run of 2026-11-21: the worker delivered the team's question while Home was still writing its answer, so
+        the question came first. A card that comes during a turn waits; the turn's end posts it after the answer, once."""
+        import threading
+
+        from dclab_rnd.draft.chat import turn
+
+        drafts, draft = self.services.drafts, self.draft
+        holding, done = threading.Event(), threading.Event()
+
+        class Home:
+            store = drafts
+
+            @turn
+            def answer(self, draft_id):  # Home's turn: it holds the draft until its answer is saved
+                holding.set()
+                done.wait(30)
+                drafts.update(draft_id, lambda d: d["messages"].append({"id": "home-answer", "role": "agent", "text": "Handed to the Lead."}))
+
+        t = threading.Thread(target=Home().answer, args=(draft,))
+        t.start()
+        self.assertTrue(holding.wait(30))
+        self.ask()
+        self.pump()  # the Lead and Data Science run now, while Home's turn holds the draft
+        self.assertEqual(self.chat(), [], "the team's question waits for Home's answer")
+        done.set()
+        t.join(30)
+        ids = [m.get("id") for m in drafts.get(draft)["messages"]]
+        [card] = self.chat()
+        self.assertEqual(card["team"]["kind"], "clarification")
+        self.assertLess(ids.index("home-answer"), ids.index(card["id"]))
+        self.assertFalse(drafts.get(draft).get(lead.HELD))
+        self.assertEqual(lead.flush_held(drafts, draft), 0)  # posted once
+        self.assertIsNotNone(lead.waiting(self.services, self.pid, draft))  # and the person may answer it, as before
 
     # ------------------------------------------------------------------ 3
     def test_3_a_row_handed_over_again_adds_no_step_and_no_second_message(self):
@@ -313,6 +349,78 @@ class _Lead(_Contract):
         self.assertEqual(orch.teams_track("Ask the teams to clean and merge the renewal tables"), "prepare")
         self.assertEqual(orch.teams_track("check with the data science team why renewals dropped"), "analyze")
         self.assertNotIn("ask_teams", [n for n, _ in orch.plan("show the models trained", None)])
+
+
+    def test_while_the_teams_question_waits_only_an_answer_is_taken_as_the_answer(self):
+        """The live run of 2026-11-21 (S5, S6): the same request again and a question of the person's own were both recorded
+        as the answer to "does churn mean cancellation or failure to renew?"."""
+        out = self.ask()
+        self.pump()
+        task = lead.waiting(self.services, self.pid, self.draft)
+        self.assertEqual(task.id, out["task_id"])
+        self.assertTrue(lead.is_answer(ANSWER, task))
+        self.assertTrue(lead.is_answer("cancellation", task))
+        self.assertFalse(lead.is_answer(task.question, task))  # the request again
+        self.assertFalse(lead.is_answer("Please ask the teams: " + task.question, task))
+        self.assertFalse(lead.is_answer("Wait, before that: which model did the last run choose and what was its holdout score?", task))
+        self.assertFalse(lead.is_answer("Also ask the teams to look at the discount history", task))
+        self.assertFalse(lead.is_answer("   ", task))
+        # review F2: an answer may quote part of the request, or start with "tell the team"
+        self.assertTrue(lead.is_answer("seven days before each renewal", task))
+        self.assertTrue(lead.is_answer("Tell the team: failure to renew", task))
+
+    def test_a_card_held_under_a_lock_no_turn_flushes_is_posted_before_the_next_card(self):
+        """Review F4: a card held while a lock holder without the turn decorator held the draft was never posted, and the
+        report came in ahead of it. The next card posted directly posts the held ones first."""
+        drafts = self.services.drafts
+        early = {"id": "team-early", "role": "agent", "text": "held question", "team": {"from": "lead", "kind": "clarification"}}
+        drafts.update(self.draft, lambda d: d.setdefault(lead.HELD, []).append(early))
+        out = self.ask()
+        self.pump()
+        ids = [m.get("id") for m in drafts.get(self.draft)["messages"]]
+        self.assertIn("team-early", ids)
+        later = [m for m in drafts.get(self.draft)["messages"] if m.get("team") and m.get("id") != "team-early"]
+        self.assertTrue(later)
+        self.assertLess(ids.index("team-early"), ids.index(later[0]["id"]))
+        self.assertFalse(drafts.get(self.draft).get(lead.HELD))
+        self.assertTrue(out["task_id"])
+
+    def test_the_same_request_in_other_capitals_or_punctuation_is_one_task(self):
+        """Live S5: the model quoted the same request as "can our data …?" and then "Can our data …?": two tasks, two questions."""
+        self.assertEqual(lead.task_id_for("d1", "Can our data rank accounts?", "sara"), lead.task_id_for("d1", "can our data  rank accounts", "sara"))
+        self.assertNotEqual(lead.task_id_for("d1", "can our data rank accounts", "sara"), lead.task_id_for("d1", "can our data rank products", "sara"))
+
+    def test_the_built_chats_rules_say_what_they_did_with_the_request(self):
+        """Live 2026-11-21: on the rules path (the product today) the chat said only "Done." after handing a request to the Lead."""
+        from dclab_rnd.draft import orchestrator as orch
+
+        self.services.projects.update(self.pid, team_inputs=[SAMPLE], default_problem_id=self.prob)
+        said = "Please ask the teams: can our data rank the accounts by churn risk seven days before each renewal?"
+        self.services.drafts.update(self.draft, lambda d: d.update(project_id=self.pid, problem_id=self.prob))
+        self.services.drafts.update(self.draft, lambda d: d["messages"].append({"id": "u1", "role": "user", "kind": "text", "text": said}))
+        for again in (False, True):
+            turn = orch.Turn(self.services, self.pid, self.draft, agent=None, text=said)
+            orch.ask_teams(turn, track="model", request=said)
+            words = orch.Orchestrator._rules_words(orch.Orchestrator.__new__(orch.Orchestrator), turn)
+            self.assertNotEqual(words.strip(), "Done.")
+            self.assertIn("already has this request" if again else "Workspace Lead, who asks the teams", words)
+
+    def test_the_request_asked_again_inside_other_words_is_the_open_task(self):
+        """Live S5 (final run): "Please ask the teams: can our data …?" then "can our data …?" opened two tasks."""
+        first = self.ask(question="Please ask the teams: can our data rank the accounts by churn risk before renewal?")
+        again = self.ask(question="Can our data rank the accounts by churn risk before renewal")
+        self.assertEqual(again["task_id"], first["task_id"])
+        self.assertTrue(again["already_open"])
+        other = self.ask(question="Can our data explain why the renewal discounts were given?")
+        self.assertNotEqual(other["task_id"], first["task_id"])
+        narrower = self.ask(question="Can our data rank the accounts by churn risk before renewal for enterprise customers only?")
+        self.assertNotEqual(narrower["task_id"], first["task_id"])  # review F3: a narrower request is its own task
+
+    def test_the_no_data_words_are_for_the_person_and_whole(self):
+        """Live S4: the rules showed this text cut at 200 characters, ending in an order meant for the model ("Say so to the ")."""
+        self.assertLess(len(lead.NO_DATA_YET), 200)
+        self.assertNotIn("Say so", lead.NO_DATA_YET)
+        self.assertTrue(lead.NO_DATA_YET.endswith("."))
 
 
 for _name in [n for n in dir(_Contract) if n.startswith("test")]:  # the W5 walkthroughs run in their own file, not again here
