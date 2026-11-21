@@ -894,7 +894,9 @@ DC.view('home', {
     // 28.8: the team's walk: its board and the pause it waits on, read without running; a step only when the person asks
     async function loadTeam() {
       const box = $('#home-team-board', el);
-      if (!S.draft) return;
+      const built = !!(S.draft && S.draft.project_id);  // 2026-11-21: the walk ends at the build; a built project's chat has no walk to offer
+      $('#home-team', el).hidden = !S.draft || built;
+      if (!S.draft || built) return;
       try { drawTeam(await DC.client.teamBoard(S.draft.id, { quiet: true })); }
       catch (e) { DC.states.failed(box, e, { lead: 'Could not read the team: ', retry: loadTeam }); }
     }
@@ -1671,7 +1673,8 @@ DC.view('home', {
           + `<div class="row"><button type="button" class="btn primary sm" data-nodata-sim="1">Ask &amp; shape synthetic data</button><button type="button" class="btn sm" data-nodata-copy="1">Copy Data &amp; ML Spec (.md)</button></div>`
           + `</div>`;
       } else {
-        body = `${m.by === 'case_agent' ? mdLite(m.text) : `<p>${esc(m.text)}</p>`}${(m.actions || []).length ? `<div class="row">${m.actions.includes('upload') ? '<button type="button" class="btn sm" data-open-bring="upload">Upload a sample</button>' : ''}${m.actions.includes('connect') ? '<button type="button" class="btn sm" data-open-bring="kaggle">Connect a source</button>' : ''}${m.actions.includes('simulate') ? '<button type="button" class="btn sm" data-open-bring="synthetic">Simulate data</button>' : ''}${m.actions.includes('confirm_map') ? '<button type="button" class="btn primary sm" data-map-build="1">Confirm the map and build</button>' : ''}</div>${m.actions.includes('show_map') ? '<div class="stack tight" data-map-box="1"></div>' : ''}` : ''}`;
+        const lead = m.team && !Array.isArray(m.team) && m.team.from === 'lead';  // 2026-11-21: the Lead's report keeps its lines (found, why, next, changed)
+        body = `${m.by === 'case_agent' ? mdLite(m.text) : lead ? `<p data-style="white-space:pre-line">${esc(m.text)}</p>` : `<p>${esc(m.text)}</p>`}${(m.actions || []).length ? `<div class="row">${m.actions.includes('upload') ? '<button type="button" class="btn sm" data-open-bring="upload">Upload a sample</button>' : ''}${m.actions.includes('connect') ? '<button type="button" class="btn sm" data-open-bring="kaggle">Connect a source</button>' : ''}${m.actions.includes('simulate') ? '<button type="button" class="btn sm" data-open-bring="synthetic">Simulate data</button>' : ''}${m.actions.includes('confirm_map') ? '<button type="button" class="btn primary sm" data-map-build="1">Confirm the map and build</button>' : ''}</div>${m.actions.includes('show_map') ? '<div class="stack tight" data-map-box="1"></div>' : ''}` : ''}`;
       }
       // 19.9: was this answer helpful? It joins the session record, never changes the conversation
       const rate = m.id ? `<div class="row xs muted msg-rate"><button type="button" class="link-btn msg-rate-btn" data-rate="helpful" data-ref="${esc(m.id)}" aria-label="Helpful" title="Helpful"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10v12"/><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"/></svg></button><button type="button" class="link-btn msg-rate-btn" data-rate="unhelpful" data-ref="${esc(m.id)}" aria-label="Not helpful" title="Not helpful"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 14V2"/><path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z"/></svg></button><button type="button" class="link-btn msg-rate-btn" data-edit="${esc(m.id)}" aria-label="Write my own version of this reply" title="Edit reply"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button></div>` : '';
