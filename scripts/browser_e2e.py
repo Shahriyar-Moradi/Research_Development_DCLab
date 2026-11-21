@@ -579,12 +579,12 @@ def check_ds_mode(b: Browser) -> str:
     page.click("#side-more-btn")
     check(page.locator("#side-more-menu").is_hidden(), "More tools popover did not close")
 
-    # v6 (2026-11-20): Projects in the menu, and a project page carries the five project tabs with a page picker
+    # v6 (2026-11-20): Projects in the menu, and a project page carries its project tabs (five, and Teams since W8) with a page picker
     check(page.locator("#nav [data-nav='projects']").is_visible(), "Projects is missing from the menu")
     check(page.locator("#nav [data-nav='solution']").count() == 0, "a project page is in the main menu; it belongs in the project tabs")
     page.evaluate("() => { location.hash = '#solution'; }")
     page.wait_for_selector("#pbar:not([hidden]) .pbar-tab[aria-current='page'][data-pgroup='data']")
-    check(page.locator("#pbar .pbar-tab").count() == 5, "the project bar does not have its five tabs")
+    check(page.locator("#pbar .pbar-tab").count() == 6, "the project bar does not have its six tabs (W8 added Teams)")
     page.select_option("#pbar-pick", "audit")
     page.wait_for_selector("#view-audit:not([hidden])")
     page.evaluate("() => { location.hash = '#home'; }")
