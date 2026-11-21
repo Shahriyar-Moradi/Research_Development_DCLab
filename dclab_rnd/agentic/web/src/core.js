@@ -103,6 +103,7 @@
     reliability: { label: 'Reliability & holdout', crumbs: ['Project'] },
     brief: { label: 'Decision brief', crumbs: ['Project'] },
     team: { label: 'Team threads', crumbs: ['Project'] },
+    workspace: { label: 'Team workspace', crumbs: ['Workspace'] },
     intern: { label: 'Autonomous Agent', crumbs: ['Workspace'] },
     compute: { label: 'Compute & jobs', crumbs: ['Workspace'] },
     evidence: { label: 'Evidence library', crumbs: ['Knowledge'] },
@@ -125,7 +126,7 @@
       { id: 'home', label: 'Home', icon: 'chat' },
       { id: 'projects', label: 'Projects', icon: 'folder' },
       { id: 'intern', label: 'Agent', icon: 'intern', count: '' },
-      { id: 'team', label: 'Team inbox', icon: 'users', count: '' },  // W8: my team threads (the project's Teams tab)
+      { id: 'workspace', label: 'Team workspace', icon: 'users', count: '' },  // 2026-11-21: the teams across projects (a project's own: its Teams tab)
     ] },
     { group: 'Project tools', more: true, items: [
       { id: 'project', label: 'Workflow', icon: 'graph' },

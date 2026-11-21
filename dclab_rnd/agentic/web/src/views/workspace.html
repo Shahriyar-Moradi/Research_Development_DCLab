@@ -1,0 +1,116 @@
+<section class="view" id="view-workspace" hidden>
+  <header class="vh">
+    <div class="vh-text">
+      <div class="eyebrow">Workspace · teams</div>
+      <h1>Team workspace</h1>
+      <p class="lede">Every team and every handoff, across your projects. Ask on Home and the Lead hands the work to the teams; their questions and their report come back to your Home chat.</p>
+    </div>
+    <div class="vh-actions">
+      <label class="ws-filter"><span class="sr-only">Project</span><select id="ws-project" aria-label="Show one project"><option value="">All projects</option></select></label>
+    </div>
+  </header>
+  <div class="ws-grid">
+    <section class="panel" aria-labelledby="ws-lead-title">
+      <div class="panel-head"><div class="panel-title"><div class="eyebrow">Asked on Home</div><h2 id="ws-lead-title">Conversations with the Lead</h2></div></div>
+      <div class="panel-body"><ul class="ws-list" id="ws-lead"></ul></div>
+    </section>
+    <section class="panel" aria-labelledby="ws-open-title">
+      <div class="panel-head"><div class="panel-title"><div class="eyebrow">Who owes the next response</div><h2 id="ws-open-title">Open team tasks</h2></div></div>
+      <div class="panel-body" id="ws-open"></div>
+    </section>
+    <section class="panel" aria-labelledby="ws-teams-title">
+      <div class="panel-head"><div class="panel-title"><div class="eyebrow">Each team talks to its own agent</div><h2 id="ws-teams-title">Teams</h2></div></div>
+      <div class="panel-body"><ul class="ws-list" id="ws-teams"></ul></div>
+    </section>
+  </div>
+</section>
+
+<script>
+/* 2026-11-21: the team workspace as its own place, beside Home and Projects. It reads GET /api/workspace/overview (the
+   reader's conversations with the Lead, the open team tasks of the projects they may read, each with who owes the next
+   response) and the workspace's teams. A row opens what it names: a Lead conversation its Home chat, a task its page in the
+   project's Teams tab. Nothing here invents a status or a next owner: every word comes from the API. */
+DC.view('workspace', {
+  init(el) {
+    this.W = { gen: 0, data: null, teams: [], project: '' };
+    try { this.W.project = localStorage.getItem('dclab-ws-project') || ''; } catch (e) { /* storage blocked */ }
+    DC.$('#ws-project', el).addEventListener('change', e => {
+      this.W.project = e.target.value;
+      try { localStorage.setItem('dclab-ws-project', this.W.project); } catch (err) { /* storage blocked */ }
+      this.paint(el);
+    });
+    el.addEventListener('click', e => {
+      const task = e.target.closest('[data-ws-task]');
+      if (task) { e.preventDefault(); this.openTask(task.dataset.wsProject, task.dataset.wsTask); return; }
+      const chat = e.target.closest('[data-ws-draft]');
+      if (chat) { e.preventDefault(); DC.state.resumeDraft = chat.dataset.wsDraft; location.hash = '#home'; }
+    });
+  },
+
+  TASK: { open: ['info', 'Open'], accepted: ['info', 'Accepted'], waiting_for_person: ['warn', 'Waiting for you'], waiting_for_team: ['warn', 'Waiting for a team'],
+    partial: ['warn', 'Partial'], complete: ['ok', 'Complete'], blocked: ['warn', 'Blocked'], failed: ['bad', 'Failed'], cancelled: ['outline', 'Cancelled'], superseded: ['outline', 'Superseded'] },
+  pill(status, mine) {
+    const [cls, said] = this.TASK[status] || ['outline', String(status || '').replace(/_/g, ' ')];
+    const words = status === 'waiting_for_person' && !mine ? 'Waiting for a person' : said;  // "you" only on the reader's own conversations
+    return `<span class="pill ${cls}" data-status="${DC.esc(status || '')}">${DC.esc(words)}</span>`; },
+  owes(next) { return next && next.label ? `<span class="xs muted">Next: ${DC.esc(next.label)}</span>` : ''; },
+
+  async enter(el) {
+    const W = this.W, gen = ++W.gen;
+    DC.markSample(false);
+    ['#ws-lead', '#ws-open', '#ws-teams'].forEach(id => DC.states.loading(DC.$(id, el)));
+    try {
+      const [data, teams] = await Promise.all([DC.client.workspaceOverview(), DC.client.listTeams({ quiet: true }).catch(() => [])]);
+      if (gen !== W.gen) return;
+      W.data = data || {}; W.teams = teams || [];
+    } catch (error) {
+      if (gen !== W.gen) return;
+      ['#ws-lead', '#ws-open', '#ws-teams'].forEach(id => DC.states.failed(DC.$(id, el), error, { retry: () => this.enter(el) }));
+      return;
+    }
+    const pick = DC.$('#ws-project', el);
+    const projects = W.data.projects || [];
+    pick.innerHTML = '<option value="">All projects</option>' + projects.map(([id, name]) => `<option value="${DC.esc(id)}">${DC.esc(name)}</option>`).join('');
+    if (!projects.some(([id]) => id === W.project)) W.project = '';
+    pick.value = W.project;
+    this.paint(el);
+  },
+
+  paint(el) {
+    const { esc, $ } = DC;
+    const W = this.W, only = W.project;
+    const keep = x => !only || x.project_id === only;
+    const lead = (W.data.conversations || []).filter(keep);
+    const box = $('#ws-lead', el);
+    if (!lead.length) DC.states.empty(box, 'No conversation with the Lead yet. On Home, ask for data work on a built project and the Lead hands it to the teams.', { href: '#home', action: 'Go to Home' });
+    else box.innerHTML = lead.map(c => `<li class="ws-row">
+        <a href="#home" data-ws-draft="${esc(c.draft_id || '')}" class="ws-main"><b>${esc(c.question)}</b>
+          <span class="xs muted">${esc(c.project)}${(c.teams || []).length ? ' · ' + c.teams.map(t => esc(t.team)).join(', ') : ''}</span></a>
+        <span class="ws-side">${this.pill(c.status, true)}${this.owes(c.next_owner)}
+          <a href="#team" class="link-btn xs" data-ws-task="${esc(c.task_id)}" data-ws-project="${esc(c.project_id)}">Task page</a></span></li>`).join('');
+    const open = (W.data.open_tasks || []).filter(keep);
+    const obox = $('#ws-open', el);
+    if (!open.length) DC.states.empty(obox, 'No team task is open.');
+    else {
+      const byTeam = {};
+      open.forEach(t => { (byTeam[t.owner_label] = byTeam[t.owner_label] || []).push(t); });
+      obox.innerHTML = Object.entries(byTeam).map(([team, rows]) => `<h3 class="ws-team">${esc(team)} <span class="xs muted">${rows.length}</span></h3>
+        <ul class="ws-list">${rows.map(t => `<li class="ws-row"><a href="#team" class="ws-main" data-ws-task="${esc(t.task_id)}" data-ws-project="${esc(t.project_id)}">
+          <b>${esc(t.question)}</b><span class="xs muted">${esc(t.project)}</span></a><span class="ws-side">${this.pill(t.status)}${this.owes(t.next_owner)}</span></li>`).join('')}</ul>`).join('');
+    }
+    const tbox = $('#ws-teams', el);
+    if (!W.teams.length) DC.states.empty(tbox, 'No teams are set up yet. The owner adds them in Admin; until then the agents work for the owner alone.', { href: '#admin', action: 'Open Admin' });
+    else tbox.innerHTML = W.teams.map(t => `<li class="ws-row"><span class="ws-main"><b>${esc(t.name)}</b><span class="xs muted">${esc(String(t.kind || '').replace(/_/g, ' '))}</span></span>
+        <span class="ws-side"><span class="xs muted">${esc(String((t.members || []).length || t.member_count || 0))} members</span></span></li>`).join('');
+  },
+
+  openTask(projectId, taskId) {
+    if ((DC.projectSwitch.list || []).some(p => p.id === projectId)) DC.projectSwitch.select(projectId);
+    else {
+      DC.state.project = 'p:' + projectId; DC.state.projectId = null; DC.currentProject.clear();
+      try { localStorage.setItem('dclab-project', projectId); } catch (e) { /* storage blocked */ }
+    }
+    location.hash = '#team/task:' + encodeURIComponent(taskId);
+  },
+});
+</script>

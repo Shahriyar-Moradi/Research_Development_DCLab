@@ -1658,6 +1658,32 @@
     </div>
   </div>
 </section>
+<section class="view" id="view-workspace" hidden>
+  <header class="vh">
+    <div class="vh-text">
+      <div class="eyebrow">Workspace · teams</div>
+      <h1>Team workspace</h1>
+      <p class="lede">Every team and every handoff, across your projects. Ask on Home and the Lead hands the work to the teams; their questions and their report come back to your Home chat.</p>
+    </div>
+    <div class="vh-actions">
+      <label class="ws-filter"><span class="sr-only">Project</span><select id="ws-project" aria-label="Show one project"><option value="">All projects</option></select></label>
+    </div>
+  </header>
+  <div class="ws-grid">
+    <section class="panel" aria-labelledby="ws-lead-title">
+      <div class="panel-head"><div class="panel-title"><div class="eyebrow">Asked on Home</div><h2 id="ws-lead-title">Conversations with the Lead</h2></div></div>
+      <div class="panel-body"><ul class="ws-list" id="ws-lead"></ul></div>
+    </section>
+    <section class="panel" aria-labelledby="ws-open-title">
+      <div class="panel-head"><div class="panel-title"><div class="eyebrow">Who owes the next response</div><h2 id="ws-open-title">Open team tasks</h2></div></div>
+      <div class="panel-body" id="ws-open"></div>
+    </section>
+    <section class="panel" aria-labelledby="ws-teams-title">
+      <div class="panel-head"><div class="panel-title"><div class="eyebrow">Each team talks to its own agent</div><h2 id="ws-teams-title">Teams</h2></div></div>
+      <div class="panel-body"><ul class="ws-list" id="ws-teams"></ul></div>
+    </section>
+  </div>
+</section>
 <section class="view" id="view-intern" hidden>
   <header class="vh">
     <div class="vh-text">
@@ -2957,6 +2983,7 @@ df["job_rate"] = df.groupby("job")["target"].transform("mean")</pre>
 <script src="/static/app/js/views/reliability.js"></script>
 <script src="/static/app/js/views/brief.js"></script>
 <script src="/static/app/js/views/team.js"></script>
+<script src="/static/app/js/views/workspace.js"></script>
 <script src="/static/app/js/views/intern.js"></script>
 <script src="/static/app/js/views/compute.js"></script>
 <script src="/static/app/js/views/evidence.js"></script>

@@ -31,10 +31,11 @@ ENV = {"DCLAB_LLM_PROVIDER": "", "ANTHROPIC_API_KEY": "", "OPENAI_API_KEY": KEY,
 @unittest.skipIf(MISSING, MISSING)
 class TunedServingTest(unittest.TestCase):
     def setUp(self):
-        env = mock.patch.dict(os.environ, {**CLEAN, **ENV})
+        self.home = Path(tempfile.mkdtemp())
+        # an empty store of its own (2026-11-21: the real store now holds frozen exams, which this test is not about)
+        env = mock.patch.dict(os.environ, {**CLEAN, **ENV, "DCLAB_STORE": str(self.home / "store")})
         env.start()
         self.addCleanup(env.stop)
-        self.home = Path(tempfile.mkdtemp())
         self.audit = audit.open_audit(self.home)
 
     def suite(self, passed):

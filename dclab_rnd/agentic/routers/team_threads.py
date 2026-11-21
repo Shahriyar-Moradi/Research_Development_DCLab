@@ -36,7 +36,7 @@ from fastapi.responses import StreamingResponse
 from ...memory import scope as mem_scope
 from ...teamspace import stream, threads as th
 from ..api_models import (HandoffHistoryDoc, Router, TeamAgentJobDoc, TeamMessageDoc, TeamMessagePost, TeamTaskView, TeamThreadDoc,
-                          TeamThreadOpen, TeamThreadView)
+                          TeamThreadOpen, TeamThreadView, WorkspaceOverview)
 from ..services import Services, services
 
 router = Router()
@@ -132,6 +132,7 @@ async def my_team_threads(project_id: Optional[str] = None, s: Services = Depend
         else:
             mine = [t["id"] for t in teams.teams_of(str(who.user_id))] if who.user_id else []
             found = store.threads(project_id=project_id, teams=mine)
+            found += [t for t in store.threads(project_id=project_id) if th.is_home(t)]  # 2026-11-21: their Home conversations with the Lead
         allowed: dict[str, bool] = {}
         out = []
         for thread in found:
@@ -286,6 +287,24 @@ def _chain_teams(work: Any, project_id: str, task: Any) -> list[str]:
     return names
 
 
+def _asked_from_my_home(work: Any, project_id: str, task: Any, who: Any, teams: Any, auth_on: bool, s: Services) -> bool:
+    """Whether a task on the chain was asked from a Home conversation this person may read (2026-11-21: the person who asked
+    the Lead on Home reads the Lead's task and the teams' tasks below it, as a team reads its own chain)."""
+    store, seen, current = _threads(s), set(), task
+    for _ in range(CHAIN_MAX):
+        if current.requester.team == th.HOME:
+            thread = store.thread(current.requester.thread_id)
+            return thread is not None and th.access(thread, who, teams, auth_on=auth_on) is not None
+        parent = current.parent_task_id
+        if not parent or parent in seen:
+            return False
+        seen.add(parent)
+        current = work.task(project_id, parent)
+        if current is None:
+            return False
+    return False
+
+
 def _who_label(name: Any, task: Any) -> Optional[dict[str, Any]]:
     """Who owes the next response, for people: a team by its name, or the person who asked."""
     from ...teamspace import team_label
@@ -336,7 +355,8 @@ async def read_team_task(project_id: str, task_id: str, s: Services = Depends(se
             raise HTTPException(403, TASK_REFUSED) from None
         teams, who, auth_on = _teams(s), _who(), _auth_on()
         keys = [th.team_key(teams, name)[0] for name in _chain_teams(work, project_id, task)]
-        if not any(th.access({"team": key}, who, teams, auth_on=auth_on) is not None for key in keys):
+        if not any(th.access({"team": key}, who, teams, auth_on=auth_on) is not None for key in keys) \
+                and not _asked_from_my_home(work, project_id, task, who, teams, auth_on, s):
             raise HTTPException(403, TASK_REFUSED)
         view = work.task_view(project_id, task_id)
         if view is None:
@@ -350,6 +370,81 @@ async def read_team_task(project_id: str, task_id: str, s: Services = Depends(se
                 "join": join.model_dump(mode="json") if join is not None else None,
                 "next_owner": _who_label(view["next_owner"], view["task"]), "deliveries": deliveries}
     return await asyncio.to_thread(run)
+
+
+@router.get("/api/workspace/overview", response_model=WorkspaceOverview)
+async def workspace_overview(project_id: Optional[str] = None, s: Services = Depends(services)):
+    """2026-11-21: the team workspace as its own place, across projects: the conversations with the Lead this person may read
+    (theirs; every one for the owner), and the open team tasks of the projects they may read, each with who owes the next
+    response. Words are first lines only (the handoff history shows the same); a task's page holds the rest."""
+    def run() -> dict[str, Any]:
+        from ...teamspace import lead, team_label
+        from ...teamspace.store import open_team_work
+
+        who, auth_on, teams, store = _who(), _auth_on(), _teams(s), _threads(s)
+        work = open_team_work(s.store.home, projects=s.projects)
+        readable: dict[str, bool] = {}
+
+        def may_read(pid: str) -> bool:
+            if pid not in readable:
+                try:
+                    _scope(s, pid)
+                    readable[pid] = True
+                except HTTPException:
+                    readable[pid] = False
+            return readable[pid]
+
+        names: dict[str, str] = {}
+
+        def project_name(pid: str) -> str:
+            if pid not in names:
+                try:
+                    names[pid] = str((s.projects.get(pid) or {}).get("name") or pid)
+                except KeyError:
+                    names[pid] = pid
+            return names[pid]
+
+        conversations = []
+        for task in lead.lead_tasks(s, project_id):
+            if not may_read(task.project_id):
+                continue
+            thread = store.thread(task.requester.thread_id)
+            if thread is None or th.access(thread, who, teams, auth_on=auth_on) is None:
+                continue
+            view = work.task_view(task.project_id, task.id) or {}
+            children = [{"id": c.id, "team": team_label(c.owner_team), "status": c.status} for c in view.get("children") or []]
+            conversations.append({"task_id": task.id, "project_id": task.project_id, "project": project_name(task.project_id),
+                                  "problem_id": task.problem_id, "question": _first_line(task.question), "status": task.status,
+                                  "next_owner": _who_label(view.get("next_owner"), task), "teams": children,
+                                  "thread_id": thread["id"], "draft_id": th.draft_of(thread), "created_at": task.created_at})
+        open_tasks = []
+        seen: set[str] = set()
+        for row in work.deliveries(project_id=project_id):
+            if row["kind"] != "task" or row["task_id"] in seen or not may_read(row["project_id"]):
+                continue
+            seen.add(row["task_id"])
+            task = work.task(row["project_id"], row["task_id"])
+            if task is None or not tw_open(task) or task.owner_team == "lead":
+                continue
+            view = work.task_view(task.project_id, task.id) or {}
+            open_tasks.append({"task_id": task.id, "project_id": task.project_id, "project": project_name(task.project_id),
+                               "owner": task.owner_team, "owner_label": team_label(task.owner_team), "status": task.status,
+                               "question": _first_line(task.question), "next_owner": _who_label(view.get("next_owner"), task),
+                               "created_at": task.created_at})
+        return {"conversations": conversations, "open_tasks": open_tasks,
+                "projects": sorted({(c["project_id"], c["project"]) for c in conversations + open_tasks}, key=lambda x: x[1])}
+    return await asyncio.to_thread(run)
+
+
+def tw_open(task: Any) -> bool:
+    from dclab_core import team_work as tw
+
+    return tw.is_open(task)
+
+
+def _first_line(text: Any, limit: int = 200) -> str:
+    line = str(text or "").strip().split("\n", 1)[0]
+    return line if len(line) <= limit else line[: limit - 1].rstrip() + "…"
 
 
 @router.get("/api/team-agents/{name}", response_model=TeamAgentJobDoc)

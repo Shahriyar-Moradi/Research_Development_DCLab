@@ -52,7 +52,7 @@ def prompt_name() -> str:
 PURPOSE = "case_agent"
 SWITCH = "DCLAB_CASE_AGENT"
 TOOLS = ("read_table", "query", "answer", "dashboard", "check_leakage", "preview_step", "note", "add_unknown", "resolve", "confirm_assumption", "ask", "propose",
-         "start", "request_build", "consult", "design_solution_without_data")  # 37.6: the guard layer's tools; 37.7: consult sends a specialist
+         "start", "request_build", "consult", "design_solution_without_data", "ask_teams")  # 37.6: the guard layer's tools; 37.7: consult sends a specialist
 BUILDS = ("ml_project", "segmentation_project")  # what a build request starts: a project
 ENDS_TURN = ("ask",)  # a question ends the turn; after options or a start the agent writes its message (CEX-005: both came bare)
 NO_DATA_WORK = ("advice",)  # an answer with no data work starts without a ready case: nothing is built
@@ -599,6 +599,44 @@ def _request_build(state: CaseState, quote: Optional[str] = None, outcome: Optio
                                             "requirements now; give no result or number before it has run"}
 
 
+def _ask_teams(state: CaseState, track: str, quote: Optional[str] = None) -> dict[str, Any]:
+    """2026-11-21: hand the person's request to the workspace's Lead, which asks the team agents and joins their reports
+    (``teamspace.lead``). Code checks it (``lead.refusal``): a project's problem is bound, the request is the person's own words
+    (their quote, or their latest message), the Lead takes this kind of help, and nothing asks the teams to approve or to
+    contact customers (only a person does either). The teams' question and their report come back into this chat."""
+    from types import SimpleNamespace
+
+    from dclab_core import team_work as tw
+
+    from .. import context as ctx
+    from ..teamspace import lead
+
+    words = [w for w in state.case.words if str(w).strip()]
+    latest = words[-1] if words else ""
+    question = quote if quote and C.quote_ok(quote, quote, words) else latest
+    why = lead.refusal(project_id=state.project_id, problem_id=state.problem_id, question=question, track=track)
+    if why:
+        return {"error": why}
+    person, initiator = lead.person_of(state.authorized_scope)
+    env = ctx.services() or SimpleNamespace(home=state.workspace_home)
+    inputs = lead.project_inputs(env, str(state.project_id))
+    if not inputs:
+        return {"error": lead.NO_DATA_YET}
+    try:
+        out = lead.ask(env, str(state.project_id), str(state.problem_id), question=question, track=track, person=person,
+                       draft_id=str(state.draft_id or "draft"), initiator=initiator, inputs=inputs)
+    except (ValueError, KeyError, LookupError) as error:
+        return {"error": str(error)}
+    if out["refused"]:
+        return {"error": "the Lead could not take it: " + out["refused"][0]}
+    if out["already_open"]:
+        return {"sent_to": "lead", "task_id": out["task_id"], "new": False,
+                "next": "the teams already have this request and are working on it: tell the person their report will come here"}
+    return {"sent_to": "lead", "task_id": out["task_id"], "teams": list(tw.lead_route(track)), "new": out["opened"],
+            "next": "tell the person in one sentence that the teams have the request and that their questions and report will "
+                    "appear in this chat; give no result before the report arrives"}
+
+
 def _consult(state: CaseState, specialist: str, question: str) -> dict[str, Any]:
     """37.7: send a specialist with the case; its findings go into the case file for the lead agent, never to the person."""
     from . import context as ctx_
@@ -1109,7 +1147,8 @@ def _said_number(value: Any, words: str, share: bool = False) -> bool:
 
 
 MOVES = {"consult": "case.consult", "request_build": "case.build", "note": "case.note", "add_unknown": "case.unknown", "resolve": "case.resolve", "confirm_assumption": "case.confirm",
-         "ask": "case.ask", "propose": "case.propose", "start": "case.start", "design_solution_without_data": "case.no_data_solution"}
+         "ask": "case.ask", "propose": "case.propose", "start": "case.start", "design_solution_without_data": "case.no_data_solution",
+         "ask_teams": "case.ask_teams"}
 
 
 class CaseGuard:
@@ -1197,6 +1236,12 @@ def register(registry: Registry) -> None:
          [],
          _design_solution_without_data,
          "write"),
+        ("ask_teams", "Hand the person's request to the workspace's teams through the Lead, once a project is built or linked: data "
+                      "work the teams should do (a model, an analysis, a report, data preparation), in the person's own words "
+                      "(quote). The teams' questions and their joined report come back into this chat. Never for advice, a "
+                      "decision only the person makes, an approval, or contacting customers.",
+         {"track": {"type": "string", "enum": sorted(__import__("dclab_core.team_work", fromlist=["LEAD_ROUTES"]).LEAD_ROUTES)},
+          "quote": S}, ["track"], _ask_teams, "write"),
     ]
     for name, description, props, required, handler, effect in defs:
         registry.register(Tool(name=f"case_{name}", description=description, parameters={"type": "object", "properties": props, "required": required},

@@ -39,7 +39,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 sys.path.insert(1, str(ROOT))  # the team check writes a replica's files (dclab_core)
 TELCO = ROOT / "data/project/telco/WA_Fn-UseC_-Telco-Customer-Churn.csv"
-VIEWS = ["home", "projects", "dashboard", "new", "project", "solution", "notebook", "audit", "features", "models", "evaluation", "decision", "reliability", "brief", "team", "intern", "compute",
+VIEWS = ["home", "projects", "dashboard", "new", "project", "solution", "notebook", "audit", "features", "models", "evaluation", "decision", "reliability", "brief", "team", "workspace", "intern", "compute",
          "evidence", "lab", "benchmark", "policy", "packs", "integrations", "admin", "blueprint"]
 STAGES = ("data", "leakage", "features", "models", "final")
 # every page reports what goes wrong: uncaught errors, CSP violations (an event, not always a console line)

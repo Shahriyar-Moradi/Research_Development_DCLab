@@ -24,8 +24,9 @@ it as a row. Names, references and short words only: never a table's value.
 
 from __future__ import annotations
 
+import json
 from datetime import datetime, timezone
-from typing import Iterable, Literal, Optional, Sequence, Union
+from typing import Any, ClassVar, Iterable, Literal, Optional, Sequence, Union
 
 from pydantic import Field, field_validator, model_validator
 
@@ -44,7 +45,7 @@ TaskStatus = Literal["open", "accepted", "waiting_for_person", "waiting_for_team
 ActionStatus = Literal["planned", "running", "denied", "timed_out", "succeeded", "failed", "skipped", "simulated"]
 ReportStatus = Literal["complete", "partial", "blocked", "failed", "superseded"]
 ActorKind = Literal["agent", "team", "person"]
-AgentKind = Literal["team_agent", "specialist"]
+AgentKind = Literal["team_agent", "specialist", "coordinator", "entry"]  # 0.167.0: the Lead coordinates; Home is the way in
 MemoryScope = Literal["person", "team", "workspace", "project", "problem", "model_version"]
 
 TERMINAL_ACTIONS = frozenset({"denied", "timed_out", "succeeded", "failed", "skipped", "simulated"})
@@ -384,7 +385,8 @@ class DirectoryAction(Contract):
 class AgentConfig(Versioned):
     """An agent's job description: who it represents, what it owns, what it may do, report, read, and never do."""
 
-    schema_version: Literal["dclab_core.agent_config.v1"] = _version("agent_config")
+    schema_version: Literal["dclab_core.agent_config.v2"] = _version("agent_config", 2)
+    READS: ClassVar[frozenset[str]] = frozenset({"dclab_core.agent_config.v1"})  # v2 adds the coordinator and entry kinds
     name: str = Field(pattern=r"^[a-z][a-z0-9_]*$")
     kind: AgentKind
     identity: str = Field(min_length=1, max_length=SHORT, description="The team (or role) it represents.")
@@ -404,6 +406,13 @@ class AgentConfig(Versioned):
         if set(names) & set(self.forbidden):
             raise ValueError("an action in the directory cannot also be forbidden")
         return self
+
+    @classmethod
+    def read(cls, document: Any):
+        data = json.loads(document) if isinstance(document, (str, bytes)) else dict(document)
+        if data.get("schema_version") in cls.READS:  # a v1 configuration: the same fields, a narrower set of kinds
+            data = {**data, "schema_version": cls.model_fields["schema_version"].default}
+        return super().read(data)
 
     def binding(self, action: str) -> Optional[str]:
         return next((a.bound_to for a in self.action_directory if a.action == action), None)
@@ -519,15 +528,18 @@ DIRECTORY: dict[str, AgentConfig] = {c.name: c for c in (
           ("report_unsupported_inputs", "tool:model_contract", "Name inputs the version cannot take.")],
          ["versioned_estimate_or_refusal", "snapshot", "evidence", "limitations", "caller"],
          ["problem", "model_version"], _NEVER),
-    _cfg("home", "specialist", "The person's own conversation", "Start or resume a case in a team conversation",
-         [("open_case", "tool:open_case", "Open a scoped case."),
-          ("resume_case", "tool:open_case", "Resume a saved case.")],
+    _cfg("home", "entry", "The person's own conversation on Home",
+         "Hand the person's request to the Lead and bring the Lead's questions and report back to them",
+         [("open_case", "tool:delegate", "Hand the person's request, in their words, to the Lead."),
+          ("confirm_with_person", "human:requester", "Ask the person a team's question and record their answer."),
+          ("present_report", "tool:present_options", "Show the person the Lead's joined report.")],
          ["case_link", "attribution"], ["person", "project", "problem"], _NEVER),
-    _cfg("lead", "specialist", "The coordinating role", "Coordinate the work within one problem",
+    _cfg("lead", "coordinator", "The coordinating role", "Coordinate the teams' work within one problem",
          [("check_prerequisites", "tool:check_prerequisites", "Check what a task needs before it starts."),
-          ("delegate", "tool:delegate", "Open a child task for a team or specialist."),
-          ("join_replies", "tool:join_replies", "Join the children's replies into one answer.")],
-         ["coordinated_reply", "attribution"], ["person", "project", "problem"], _NEVER),
+          ("delegate", "tool:delegate", "Open a child task for a team agent."),
+          ("confirm_with_requester", "human:requester", "Pass a team's question to the person who asked and carry their answer back."),
+          ("review_evidence", "tool:review_evidence", "Check each team's reply against its question.")],
+         ["coordinated_reply", "contributing_teams", "next_owner", "attribution"], ["person", "project", "problem"], _NEVER),
     _cfg("advisor", "specialist", "The reviewing role", "Review evidence and suggest a next step",
          [("review_evidence", "tool:review_evidence", "Read the evidence behind an answer."),
           ("propose_revision", "tool:propose_revision", "Suggest a revision, never apply it.")],
@@ -536,6 +548,55 @@ DIRECTORY: dict[str, AgentConfig] = {c.name: c for c in (
 
 
 # ------------------------------------------------------------------------------------------------------ rules
+
+
+# 0.167.0 (2026-11-21): the kinds of help the Lead hands to teams, and to which team agents, in order. Only teams whose agent
+# owns tasks in this release are named; business decisions and advice stay with the person and the Lead does not take them.
+LEAD_ROUTES: dict[str, tuple[str, ...]] = {
+    "model": ("data_science",),
+    "analyze": ("data_science",),
+    "report": ("data_science",),
+    "prepare": ("data_science",),
+}
+
+
+def lead_route(track: str) -> tuple[str, ...]:
+    """The team agents the Lead asks for one kind of help (``LEAD_ROUTES``); empty when the Lead does not take it."""
+    return LEAD_ROUTES.get(str(track or ""), ())
+
+
+def opening_refusal(config: AgentConfig, owner_team: str) -> Optional[str]:
+    """Why ``config``'s agent may not open a new top-level task for ``owner_team``, or None.
+
+    Why: a top-level task is a new case, so only a way in opens one. A team agent opens it for another team (the Business
+    thread asking Data Science); Home (the entry) opens it only for a coordinator, so a request from Home always passes
+    through the Lead; a coordinator or a specialist never opens a case of its own."""
+    owner = DIRECTORY.get(str(owner_team).split(":")[0])
+    if config.kind == "team_agent":
+        if owner is None or owner.kind != "team_agent":
+            return f"a team opens a case for another team, not for {owner_team}"
+        return None
+    if config.kind == "entry":
+        if owner is None or owner.kind != "coordinator":
+            return f"{config.name} hands a request only to a coordinator (the Lead), not to {owner_team}"
+        return None
+    return f"only a team agent or the way in opens a new top-level task; {config.name} is a {config.kind}"
+
+
+def delegation_refusal(config: AgentConfig, owner_team: str) -> Optional[str]:
+    """Why ``config``'s agent may not open a child task for ``owner_team``, or None.
+
+    Why: the Lead coordinates teams; it hands work to team agents only, never to another coordinator, the way in or a
+    specialist (a team agent asks its own specialists). The way in never delegates: it hands one case to the Lead."""
+    owner = DIRECTORY.get(str(owner_team).split(":")[0])
+    if config.kind == "coordinator" and (owner is None or owner.kind != "team_agent"):
+        return f"the Lead hands work only to team agents, not to {owner_team}"
+    if config.kind == "entry":
+        return f"{config.name} opens a case for the Lead; it does not delegate inside one"
+    if owner is not None and owner.kind in ("entry", "coordinator"):
+        return f"work is handed to a team or a specialist, not to {owner_team}"
+    return None
+
 
 
 class Verdict(Contract):

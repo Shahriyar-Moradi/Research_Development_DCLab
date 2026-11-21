@@ -242,6 +242,10 @@ class _Contract:
         self.assertTrue(row["last_error"].startswith("TargetTimeout"))
 
     def test_a_tasks_rows_are_delivered_oldest_first(self):
+        # a wait of a second (not 0.2 s): on a loaded machine r1 must still be waiting when r2's job runs (the gate of 2026-11-21)
+        patcher = mock.patch.dict(os.environ, {"DCLAB_TEAM_DELIVERY_BACKOFF_SECONDS": "1"})
+        patcher.start()
+        self.addCleanup(patcher.stop)
         written = self.finished_task()
         self.deliver(written)  # the task itself
         r1 = self.work.store_report(self.pid, "T-ds", current_brief_revision=1, answer="Eligible accounts: 1,240.", next_task=CLOSED)
@@ -252,7 +256,7 @@ class _Contract:
         self.deliver(r2)  # r2's job runs now, and stops behind r1
         self.assertEqual(self.work.delivery(r2.delivery["id"])["status"], "pending")
         self.assertEqual([kind for _, kind, _, _ in self.recipient.got], ["task"])
-        time.sleep(0.25)
+        time.sleep(1.1)
         self.relay()
         replies = [rid for rid, kind, _, _ in self.recipient.got if kind == "reply"]
         self.assertEqual(replies, [r1.delivery["id"], r2.delivery["id"]])  # the thread ends on r2, the correction

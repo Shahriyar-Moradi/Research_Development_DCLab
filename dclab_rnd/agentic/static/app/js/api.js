@@ -439,6 +439,11 @@
    *  @property {*=} needs
    *  @property {*=} stats
    */
+  /** @typedef {Object} WorkspaceOverview
+   *  @property {(Array<*>|null)=} conversations
+   *  @property {(Array<*>|null)=} open_tasks
+   *  @property {(Array<*>|null)=} projects
+   */
 
   const ROUTES = {
     adminBench: ["GET", "/admin/bench", [], []],
@@ -686,6 +691,7 @@
     addMember: ["POST", "/workspace/members", [], []],
     removeMember: ["DELETE", "/workspace/members/{user_id}", ["user_id"], []],
     changeMember: ["PATCH", "/workspace/members/{user_id}", ["user_id"], []],
+    workspaceOverview: ["GET", "/workspace/overview", [], ["project_id"]],
     listTeams: ["GET", "/workspace/teams", [], ["user_id"]],
     createTeam: ["POST", "/workspace/teams", [], []],
     deleteTeam: ["DELETE", "/workspace/teams/{team_id}", ["team_id"], []],
@@ -2241,6 +2247,12 @@
    *  @returns {Promise<Doc>} */
   client.changeMember = (...args) => call('changeMember', args);
   client.path.changeMember = (...args) => build('changeMember', args).path;
+  /** GET /api/workspace/overview: Workspace Overview
+   *  @param {{query?: {project_id?: *}, headers?: Object}} [opts]
+   *  @returns {Promise<WorkspaceOverview>} */
+  client.workspaceOverview = (...args) => call('workspaceOverview', args);
+  client.path.workspaceOverview = (...args) => build('workspaceOverview', args).path;
+  client.href.workspaceOverview = (...args) => '/api' + build('workspaceOverview', args).path;
   /** GET /api/workspace/teams: List Teams
    *  @param {{query?: {user_id?: *}, headers?: Object}} [opts]
    *  @returns {Promise<Array<TeamDoc>>} */

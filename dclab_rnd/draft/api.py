@@ -32,6 +32,7 @@ from __future__ import annotations
 import asyncio
 import json
 import re
+import secrets
 import shutil
 from pathlib import Path
 from typing import Any, Callable
@@ -197,7 +198,20 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
 
     @router.get("/api/drafts/{draft_id}", response_model=Draft)
     async def read_draft(draft_id: str):
-        return {**get(draft_id), "trace": trace_of(draft_id)}
+        draft = get(draft_id)
+        return {**draft, "messages": _cards_for_reader(draft.get("messages") or []), "trace": trace_of(draft_id)}
+
+    def _cards_for_reader(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """2026-11-21: the Lead's cards in a Home chat are their person's (and the owner's), as their Home thread is: a reader
+        of the shared draft who may not read that thread does not see them."""
+        if services is None or not any(isinstance(m, dict) and m.get("team") for m in messages):
+            return messages
+        from ..accounts.principal import LOCAL_OWNER, current
+        from ..memory.scope import auth_enabled
+        from ..teamspace import lead
+
+        who, on = current() or LOCAL_OWNER, auth_enabled()
+        return [m for m in messages if lead.card_visible(services, m, who, auth_on=on)]
 
     @router.delete("/api/drafts/{draft_id}", status_code=204, response_class=Response)
     async def delete_draft(draft_id: str):
@@ -447,6 +461,35 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         hooks.settings_changed({k: v for k, v in settings.items() if k != "budget" and before.get(k) != v}, conversation=draft_id)
         return drafts.get(draft_id)
 
+    def _teams_waiting(draft_id: str, project_id: Any) -> Any:
+        """The Lead's task from this draft that waits for the person's answer, or None (no project, or nothing waits)."""
+        if not project_id or services is None:
+            return None
+        from ..teamspace import lead
+
+        try:  # only the person the question was asked of answers it; anyone else's message goes to the agent as before
+            return lead.waiting(services, str(project_id), draft_id, person=lead.person_of(None)[0])
+        except Exception:  # noqa: BLE001 — the team work cannot be read: the message goes to the agent as before
+            return None
+
+    def _answer_teams(draft_id: str, text: str, project_id: str, task: Any) -> None:
+        """The person's words join the chat, and go to the Lead as their answer (recorded as theirs, carried to the team)."""
+        from ..teamspace import lead
+        from .store import now
+
+        said = {"id": "u" + secrets.token_hex(5), "role": "user", "kind": "text", "text": text[:2000], "at": now()}
+        drafts.update(draft_id, lambda d: d["messages"].append(said))
+        drafts.emit(draft_id, "chat", said)
+        person, initiator = lead.person_of(None)
+        out = lead.answer(services, project_id, task.id, person=person, text=text, initiator=initiator)
+        words = ("The Lead has given your answer to the teams; their report will appear here." if not out["refused"]
+                 else "Your answer could not be passed to the teams: " + out["refused"][0])
+        told = {"id": "m" + secrets.token_hex(5), "role": "agent", "kind": "text", "text": words, "at": now(),
+                "team": {"from": "lead", "kind": "answered", "task_id": task.id, "project_id": project_id,
+                         "thread_id": task.requester.thread_id}}
+        drafts.update(draft_id, lambda d: d["messages"].append(told))
+        drafts.emit(draft_id, "chat", told)
+
     @router.post("/api/drafts/{draft_id}/messages", status_code=202, response_model=Doc)
     async def message(draft_id: str, payload: AnyObject):
         get(draft_id)
@@ -457,6 +500,10 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         if busy or ((draft_id + ":agent") in jobs and not jobs[draft_id + ":agent"].done()):
             raise HTTPException(409, "The agent is still answering")
         built = get(draft_id).get("project_id")
+        waiting = _teams_waiting(draft_id, built)
+        if waiting is not None:  # 2026-11-21: the teams asked this person a question through the Lead: this message answers it
+            background(draft_id + ":agent", lambda: _answer_teams(draft_id, text, built, waiting))
+            return {"accepted": True}
         if built and projects is not None and services is not None:  # a built project's chat: the Home orchestrator and its team answer
             from .orchestrator import Orchestrator
 
@@ -923,6 +970,9 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
                     new = await asyncio.to_thread(drafts.events, draft_id, seq)
                     for event in new:
                         seq = event["seq"]
+                        if event["kind"] == "chat" and isinstance(event.get("data"), dict) and event["data"].get("team") \
+                                and not _cards_for_reader([event["data"]]):
+                            continue  # another person's card from the Lead (see _cards_for_reader)
                         yield f"id: {seq}\nevent: {event['kind']}\ndata: {json.dumps(event['data'], ensure_ascii=False, default=str)}\n\n"
                     if new:
                         quiet = loop.time()

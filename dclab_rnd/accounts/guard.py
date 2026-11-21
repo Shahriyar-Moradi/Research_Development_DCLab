@@ -71,6 +71,7 @@ SPECIAL = {
     # W3: team threads. Reading needs a member of the thread's team (or the owner), posting one whose role may write: the
     # routes check the team themselves (teamspace/threads.access); the handoff history is every reader's of the project
     ("GET", "/api/team-threads"): "read",
+    ("GET", "/api/workspace/overview"): "read",  # 2026-11-21: what each reader sees is filtered by the route
     ("POST", "/api/projects/{project_id}/problems/{problem_id}/team-threads"): "write",
     ("GET", "/api/projects/{project_id}/team-threads/{thread_id}"): "read",
     ("POST", "/api/projects/{project_id}/team-threads/{thread_id}/messages"): "write",

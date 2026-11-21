@@ -381,6 +381,14 @@ class HandoffHistoryDoc(Doc):
     lines: list[Any] | None = None
 
 
+class WorkspaceOverview(Doc):
+    """2026-11-21: the team workspace across projects: the reader's conversations with the Lead (the owner: every one) and the
+    open team tasks of the projects they may read, each with who owes the next response; ``projects`` for a filter."""
+    conversations: list[Any] | None = None
+    open_tasks: list[Any] | None = None
+    projects: list[Any] | None = None
+
+
 class TeamTaskView(Doc):
     """W8: one team task as its page shows it: the task (requested output, done criteria, its status), its child tasks,
     every action with its status (succeeded, simulated, denied, failed, skipped…), its reports at every revision (each with

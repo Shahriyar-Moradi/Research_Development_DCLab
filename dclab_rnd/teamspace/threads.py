@@ -452,6 +452,26 @@ def team_key(teams: Any, name: str) -> tuple[str, str]:
     return name, team_label(name)
 
 
+HOME = "home"  # the way in (team_work.DIRECTORY["home"]): one thread per draft, ``home.<draft id>``
+
+
+def home_team(draft_id: str, person: str = "owner") -> str:
+    """The thread team of one person's Home conversation (a draft) with the Lead: drafts are shared in a workspace, so each
+    person who asks from a draft has their own thread (``home.<draft>.<person digest>``)."""
+    from .tools import _digest, safe_id
+
+    return f"{HOME}.{safe_id(draft_id).replace('.', '-')}.{_digest(person)[:10]}"
+
+
+def is_home(thread: Mapping[str, Any]) -> bool:
+    return str(thread.get("team") or "").startswith(HOME + ".")
+
+
+def draft_of(thread: Mapping[str, Any]) -> Optional[str]:
+    """The draft a Home thread belongs to, or None for any other thread."""
+    return str(thread["team"]).split(".")[1] if is_home(thread) else None
+
+
 def access(thread: Mapping[str, Any], principal: Any, teams: Any, *, auth_on: bool) -> Optional[str]:
     """What this person may do on this thread: ``"write"`` (read and post), ``"read"``, or None (refused).
 
@@ -464,6 +484,11 @@ def access(thread: Mapping[str, Any], principal: Any, teams: Any, *, auth_on: bo
     uid, role = getattr(principal, "user_id", None), getattr(principal, "role", None)
     if not uid or not role:
         return None
+    if is_home(thread):  # a person's own Home conversation with the Lead: theirs, and the owner reads it
+        mine = str((thread.get("created_by") or {}).get("id") or "") == str(uid)
+        if mine:
+            return "write" if allows(role, "write") else "read"
+        return "read" if role == "owner" else None
     try:
         member = bool(teams.is_member(str(thread["team"]), str(uid)))
     except Exception:  # noqa: BLE001 — the teams cannot be read: no one is a member
@@ -507,6 +532,8 @@ def _recipients(teams: Any, team: str, key: str, row: Mapping[str, Any]) -> bool
     to_team = str(row["to_team"])
     if team == key:
         return True
+    if to_team == HOME:  # Home's rows go back to the one conversation the task names (its requester's thread), never another
+        return team.startswith(HOME + ".")
     if team == to_team:  # a thread named after the agent (only the owner reads it): only while no real team of that kind is
         return key == to_team  # there; once one is, the reply goes to that team's thread, where its members read it
     try:
@@ -566,4 +593,4 @@ def deliver(env: Any, row: Mapping[str, Any]) -> Row:
 
 
 __all__ = ["AUTHOR_KINDS", "FileThreads", "import_project", "NOTIFY_PREFIX", "PgThreads", "ThreadError", "VISIBILITY", "access", "deliver", "record_event",
-           "open_threads", "post_delivery", "team_key", "threads_for"]
+           "open_threads", "post_delivery", "team_key", "threads_for", "HOME", "home_team", "is_home", "draft_of"]

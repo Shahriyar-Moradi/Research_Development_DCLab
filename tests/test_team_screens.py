@@ -318,7 +318,7 @@ class TeamPageTests(unittest.TestCase):
         self.assertIn("team", build.VIEWS)
         self.assertRegex(self.core, r"const PROJECT_VIEWS = \[[^\]]*'team'\]")
         self.assertIn("{ id: 'teams', label: 'Teams', views: [['team', 'Team threads']] }", self.core)
-        self.assertIn("{ id: 'team', label: 'Team inbox', icon: 'users'", self.core)
+        self.assertIn("{ id: 'workspace', label: 'Team workspace', icon: 'users'", self.core)  # 2026-11-21: the teams' own place
 
     def test_every_read_goes_through_the_client_and_live_updates_through_the_stream(self):
         for call in ("myTeamThreads(", "readTeamThread(", "postTeamMessage(", "problemHandoffs(", "openTeamThread(", "readTeamTask(",

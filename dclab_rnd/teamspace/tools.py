@@ -44,7 +44,7 @@ Row = dict[str, Any]
 
 # The bound tools this release provides (the rest of the directory is bound to tools of later releases: R2, R3).
 ACTS = ("inspect_schema", "leakage_check", "define_baseline", "explain_uncertainty", "review_evidence", "join_replies",
-        "present_options")
+        "present_options", "check_prerequisites")
 MODEL_TOOLS = ("model_score", "model_contract", "model_evaluation")
 ACTION_MOVES = ("delegate", "clarify", "record_human_response", "act", "model_call")
 MOVES = ("accept", "block", "answer", "return_report") + ACTION_MOVES  # every write of the team scope, as its guard reads it
@@ -197,6 +197,9 @@ def holds_role(ctx: TeamTurn, task: tw.TeamTask, binding: str, person: str) -> O
             return f"{person} is not this case's {role.replace('_', ' ')}: only {member} answers it"
     else:
         team = ctx.agent.split(":")[0]
+    held = tw.DIRECTORY.get(team.split(":")[0])
+    if held is not None and held.kind in ("entry", "coordinator"):
+        return None  # asked through Home and the Lead: the case's own member answers, whatever team they are in
     kinds = _team_kinds(ctx, person)
     if kinds is None:
         return None if role in ("requester", "decision_owner") else f"no team is set up to answer as {role.replace('_', ' ')}"
@@ -297,7 +300,12 @@ class TeamGuard:
             if not _binding_fits(move, binding):
                 return f"Refused: {action} is bound to {binding}, not to {tool.name}."
         if move == "delegate" and not args.get("task_id"):
-            return None if config.kind == "team_agent" else "Only a team agent opens a new top-level task."
+            why = tw.opening_refusal(config, str(args.get("owner_team") or ""))
+            return f"Refused: {why}." if why else None
+        if move == "delegate":
+            why = tw.delegation_refusal(config, str(args.get("owner_team") or ""))
+            if why:
+                return f"Refused: {why}."
         try:
             task = _task(ctx, args.get("task_id"))
         except KeyError as exc:
@@ -345,7 +353,17 @@ def record(ctx: TeamTurn, task: tw.TeamTask, action: str, *, input_revision: str
                              retry_key=tw.retry_key(task.id, action, input_revision))
         if not tw.may_take(config, held):
             raise ValueError(f"{action} by {ctx.agent} through {source} is not an action of its directory")
-        ctx.work.record_action(ctx.project_id, held)
+        try:
+            ctx.work.record_action(ctx.project_id, held)
+        except ValueError:
+            # another turn of the same agent (a second deliverer: the relay and a worker) wrote this attempt first: it is the
+            # same attempt (its id is the retry key's), so this turn goes on from the stored record and adds nothing
+            again = next((a for a in _actions(ctx, task.id) if a.action_id == aid), None)
+            if again is None:
+                raise
+            held = again
+            if tw.can_claim(held):
+                return held, True
     if status is None:
         return held, False
     person = tw.Actor(kind="person", id=responded_by) if responded_by else None
@@ -487,6 +505,13 @@ def _act(ctx: TeamTurn, task_id: str, action: str, subject: Optional[str] = None
         ref = "baseline:rank by days since last login (the simple rule a model must beat)"
     elif tool == "explain_uncertainty":
         ref = "uncertainty:feasibility from the sample's columns only; no account was scored"
+    elif tool == "check_prerequisites":
+        # what a coordinated task needs before teams are asked: its question and at least one permitted input to read
+        readable = [i for i in task.allowed_inputs if not i.startswith("help:")]  # help:<track> is the Lead's own, not data
+        if not readable:
+            status, ref = "failed", "no permitted input: the project declares nothing the teams may read"
+        else:
+            ref = f"prerequisites:{len(readable)} permitted inputs; question of {len(task.question)} characters"
     elif tool in ("review_evidence", "join_replies", "present_options"):
         if not subject:
             raise ValueError(f"{action} names the report it reads (subject)")

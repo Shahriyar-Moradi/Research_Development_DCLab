@@ -4,6 +4,18 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.167.0 (2026-11-21)
+
+- `team_work`: the workspace's Lead and Home's way in. `AgentKind` adds `coordinator` (the Lead: it owns a case, hands
+  it to team agents and joins their reports) and `entry` (Home: it opens a case for the Lead, for the person who asked).
+  `AgentConfig` v2 (reads v1 unchanged) carries the two kinds. `DIRECTORY["lead"]` is a coordinator (`check_prerequisites`, `delegate`, `confirm_with_requester`, `review_evidence`);
+  `DIRECTORY["home"]` is an entry (`open_case`, `confirm_with_person`, `present_report`); both forbid `approve` and
+  `contact_customers`. New rules: `opening_refusal` (a team agent opens a case for a team; the entry only for a
+  coordinator; nothing else opens one), `delegation_refusal` (a coordinator hands work to team agents only; the entry never
+  delegates), and `LEAD_ROUTES` / `lead_route` (the team agents the Lead asks for each kind of help: data work to Data
+  Science in this release; business decisions and advice are not the Lead's). A configuration of the two older kinds reads
+  unchanged.
+
 ## 0.166.0 (2026-11-21)
 
 - `experience` (W7 of the collaborative workspace): `ExperienceEvent` v18 adds the kinds of the work between team agents

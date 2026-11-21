@@ -1016,6 +1016,22 @@ html:not([data-mode="ds"]) .ds-only { display: none !important; }
 .tm-links { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 6px; }
 .tm-older { margin-top: 14px; }
 @media (max-width: 1080px) { .tm-grid { grid-template-columns: minmax(0, 1fr); } }
+
+/* 2026-11-21: the team workspace as its own place (#workspace): the Lead's conversations, the open tasks by team, the teams.
+   Kit tokens only, the Teams tab's rows. */
+.ws-grid { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.ws-grid > .panel:first-child { grid-column: 1 / -1; }
+.ws-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; }
+.ws-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px; border-radius: 12px; min-width: 0; }
+.ws-row:hover { background: var(--ts-surface-hover); }
+.ws-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; color: inherit; text-decoration: none; }
+.ws-main b { font-weight: 500; overflow-wrap: anywhere; }
+.ws-side { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; flex-shrink: 0; }
+.ws-team { font-size: 14px; font-weight: 500; margin: 12px 0 4px; }
+.ws-team:first-child { margin-top: 0; }
+.ws-filter select { min-width: 160px; }
+@media (max-width: 1080px) { .ws-grid { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 560px) { .ws-row { flex-direction: column; align-items: flex-start; } .ws-side { justify-content: flex-start; } }
 @media (max-width: 560px) {
   .tm-facts { grid-template-columns: minmax(0, 1fr); }
   .tm-four div { grid-template-columns: minmax(0, 1fr); gap: 0; }

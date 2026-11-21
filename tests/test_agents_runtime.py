@@ -144,7 +144,8 @@ class DclabRegistryTests(unittest.TestCase):
                                                        "case_query", "case_check_leakage", "case_preview_step", "case_request_build",  # 37.6: guards as tools
                                                        "case_consult",  # 37.7: the specialists
                                                        "case_answer", "case_dashboard",  # 2026-11-02: what the person asked for is shown, not promised
-                                                       "case_design_solution_without_data"})  # 22ad1bf8: the no-data blueprint, only for a prediction with no table
+                                                       "case_design_solution_without_data",  # 22ad1bf8: the no-data blueprint, only for a prediction with no table
+                                                       "case_ask_teams"})  # 2026-11-21: hand data work to the workspace's Lead
         # A7: DCLab's own agents as tools for an external chat at /mcp
         self.assertTrue({"home_start", "home_message", "home_add_data", "home_status", "home_build", "home_list"} <= set(registry.names("chat")))
         # the research campaign's experiment tool is a closed part, absent from the open edition

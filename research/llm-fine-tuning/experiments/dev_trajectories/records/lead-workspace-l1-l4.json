@@ -1,0 +1,221 @@
+{
+  "package": "LEAD-L1-L4",
+  "title": "The team workspace as its own place: Home's lead agent hands work to a workspace Lead, which coordinates the team agents and returns one report to the Home chat",
+  "date": "2026-11-21",
+  "request": "Make the workspace a separate place, and let the lead agent and the team agents work on tasks together in both directions. The owner chose both leads connected, and the workspace as its own top-level area.",
+  "spec": "The approved plan magical-waddling-honey.md, packages L1 to L5",
+  "plan": [
+    "L1 dclab-core 0.167.0: coordinator and entry kinds, AgentConfig v2, the Lead's and Home's directory rows, opening_refusal, delegation_refusal, LEAD_ROUTES.",
+    "L2 the Lead's and Home's deterministic rules on the team agents' tools, guard and outbox; one Home thread per draft.",
+    "L3 the lead agent's tool case_ask_teams and the built chat's ask_teams; a reply on Home goes to the waiting team question; the prompts say when to ask the teams.",
+    "L4 GET /api/workspace/overview and the Workspace page in the sidebar.",
+    "L5 tests on files, PostgreSQL and signed in; the free suites; review; records."
+  ],
+  "decisions": [
+    {
+      "decision": "Home opens a case only for the Lead, and the Lead hands work only to team agents",
+      "why": "a request from Home always passes a coordinator that joins the replies, and the Lead never opens a case of its own"
+    },
+    {
+      "decision": "The Lead and Home are scripted rules in this release",
+      "why": "the owner's rule for team agents: AI agents only behind a switch, after a live paired test"
+    },
+    {
+      "decision": "The Lead sends data work to Data Science only",
+      "why": "Data Science is the only team agent that owns tasks in this release; ML Engineering, Sales and Marketing have no task-owning agent yet"
+    },
+    {
+      "decision": "The kind of help travels as one help:<track> input that only the Lead reads",
+      "why": "the task contract has no field for it, and the Lead strips it before any team sees the inputs"
+    },
+    {
+      "decision": "One Home thread per draft, readable by the person who asked and by the owner",
+      "why": "a person's own conversation with the Lead is theirs; roles are workspace-wide, so the project alone cannot say who may read it"
+    },
+    {
+      "decision": "The Lead's report reaches Home as a chat message, without changing the Home page",
+      "why": "another session keeps uncommitted work in home.html; a saved message is drawn by the page as it is"
+    }
+  ],
+  "change": "dclab_core team_work.py, CHANGELOG, schemas (agent_config v2); dclab_rnd teamspace/lead.py (new), agents.py, tools.py, threads.py; agents/case_agent.py; draft/orchestrator.py and api.py; agentic/routers/team_threads.py, api_models.py; accounts/guard.py; prompts case_agent.md, case_agent_think_first.md, home_orchestrator.md; web views/workspace.html (new), core.js, ds.css, build.py; scripts/browser_e2e.py; tests/test_lead_workspace.py (new), test_core_team_work.py, test_team_screens.py; CORE_INTEGRATION.md",
+  "findings": [
+    {
+      "id": "S1",
+      "source": "test",
+      "severity": "behaviour",
+      "defect": "A request with no table was not blocked by the Lead",
+      "scenario": "Home asked with no readable input; the Lead delegated anyway",
+      "cause": "check_prerequisites counted the help:<track> marker as a readable input",
+      "fix": "the marker is left out of the count",
+      "test": "tests/test_lead_workspace.py test_a_request_with_nothing_to_read_is_blocked_by_the_lead_before_any_team_is_asked"
+    },
+    {
+      "id": "S2",
+      "source": "test",
+      "severity": "behaviour",
+      "defect": "The contract's shape changed under the same version",
+      "scenario": "AgentKind gained two kinds while AgentConfig stayed v1",
+      "cause": "a widened enum is a new shape",
+      "fix": "AgentConfig v2, which reads v1 unchanged",
+      "test": "tests/test_core_team_work.py test_a_v1_configuration_reads_as_v2"
+    },
+    {
+      "id": "S3",
+      "source": "test",
+      "severity": "behaviour",
+      "defect": "A Lead step was refused when two deliverers handled one row",
+      "scenario": "signed in on PostgreSQL, the app's worker and a second deliverer took the same row; the second recorded the same action and got 'already recorded'",
+      "cause": "record() read, found nothing, and wrote, with no answer for a write made in between",
+      "fix": "a concurrent insert of the same attempt is read back and treated as that attempt",
+      "test": "tests/test_lead_workspace.py SignedInLeadRouteTests"
+    },
+    {
+      "id": "S4",
+      "source": "self",
+      "severity": "behaviour",
+      "defect": "An answer written in the Home thread on the Teams tab went nowhere",
+      "scenario": "the thread said the next message is the answer, but only Business threads were read for answers",
+      "cause": "from_thread handled Business threads only",
+      "fix": "a Home thread's message answers the Lead's open question from that person",
+      "test": "tests/test_lead_workspace.py test_a_message_in_the_home_thread_answers_the_leads_open_question"
+    },
+    {
+      "id": "S5",
+      "source": "self",
+      "severity": "behaviour",
+      "defect": "The Workspace page said 'Waiting for you' on another team's task",
+      "scenario": "the open-tasks list drew a team task waiting for a person",
+      "cause": "one label for every waiting_for_person",
+      "fix": "'Waiting for you' only on the reader's own conversations",
+      "test": "seen in the browser at 1280 and 375 px"
+    },
+    {
+      "id": "S6",
+      "source": "self",
+      "severity": "latent",
+      "defect": "The local person was named 'local' by the Lead and 'owner' by the thread routes",
+      "scenario": "without sign-in, an answer posted in the Home thread did not match the case's person",
+      "cause": "two defaults for the same person",
+      "fix": "both name the local owner 'owner'",
+      "test": "tests/test_lead_workspace.py test_a_message_in_the_home_thread_answers_the_leads_open_question"
+    },
+    {
+      "id": "S7",
+      "source": "self",
+      "severity": "flaky",
+      "defect": "Test runs on PostgreSQL failed at random while the final gate ran",
+      "scenario": "my --pg runs and the gate's both used dclab_test_p<N>",
+      "cause": "two parallel runners share the per-worker database names",
+      "fix": "the gate was stopped and is rerun alone on the finished commit",
+      "test": "the same files pass when run alone"
+    },
+    {
+      "id": "R1",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "A second message right after an answer replaced the person's real answer",
+      "scenario": "Sara answered, then wrote again before the worker delivered; the team got the second text under the first answer's record",
+      "cause": "waiting() still found the task, Home sent a second answer with no record of its own, and the Lead passed down the last answer's words",
+      "fix": "waiting() skips an answered question, Home sends one answer per recorded response, and the Lead passes down the words of the answer it recorded",
+      "test": "tests/test_lead_workspace.py test_r1_a_second_message_before_the_worker_ran_is_not_a_second_answer"
+    },
+    {
+      "id": "R2",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "While a team question waited, every message in the draft was taken as the answer",
+      "scenario": "Omar wrote in Sara's shared draft; his message was refused as an answer, both user ids showed in the chat, and the chat stayed taken over",
+      "cause": "the message route checked only that a question waited",
+      "fix": "only the person the question was asked of answers it; anyone else's message goes to the agent",
+      "test": "tests/test_lead_workspace.py SignedInLeadRouteTests and test_r2_only_the_person_asked_answers_and_another_persons_draft_message_is_not_taken"
+    },
+    {
+      "id": "R3",
+      "source": "reviewer",
+      "severity": "privacy",
+      "defect": "The Lead's report in the Home chat was readable by every workspace reader",
+      "scenario": "any member reading the shared draft saw Sara's teams' question and joined report",
+      "cause": "the card was saved in the draft, which has no per-person check, while its Home thread is the person's",
+      "fix": "the draft read and its event stream drop a Lead card for a reader who may not read its Home thread",
+      "test": "tests/test_lead_workspace.py SignedInLeadRouteTests (Omar sees no Lead card; Sara does)"
+    },
+    {
+      "id": "R4",
+      "source": "reviewer",
+      "severity": "privacy",
+      "defect": "Two people asking from one draft shared one Home thread",
+      "scenario": "Omar's task landed in Sara's thread: she read his request, and his own task page was refused",
+      "cause": "the Home thread was keyed by the draft only",
+      "fix": "one Home thread per draft and person",
+      "test": "tests/test_lead_workspace.py test_r4_two_people_asking_from_one_draft_each_have_their_own_thread"
+    },
+    {
+      "id": "R5",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "A request asked again after a block did nothing, while the agent said the teams had it",
+      "scenario": "the same words after the blocker was fixed returned the blocked task with opened false",
+      "cause": "the task id came from the draft and the words only",
+      "fix": "an ended or blocked task is asked anew under a new attempt; an open one says the teams already have it",
+      "test": "tests/test_lead_workspace.py test_r5_a_blocked_request_asked_again_is_a_new_task_and_an_open_one_is_not_asked_twice"
+    },
+    {
+      "id": "R6",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "On a real project the Lead always blocked, with advice that did not help",
+      "scenario": "no product code sets team_inputs, so every real project was blocked: attach a table",
+      "cause": "the teams read only declared fixture inputs until R3",
+      "fix": "the tools say plainly that the teams cannot read the project's data yet (R3), and the blocker names the real step",
+      "test": "tests/test_lead_workspace.py test_r6_the_tools_say_plainly_when_the_teams_cannot_read_the_projects_data"
+    },
+    {
+      "id": "R7",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "The approve and contact filter refused ordinary ML requests",
+      "scenario": "'Predict which credit card applications are approved' was refused",
+      "cause": "any word starting with approv matched",
+      "fix": "only orders to approve or to contact customers are refused",
+      "test": "tests/test_lead_workspace.py test_r7_only_orders_to_approve_or_contact_customers_are_refused"
+    },
+    {
+      "id": "R9",
+      "source": "reviewer",
+      "severity": "latent",
+      "defect": "A team agent could open or delegate a task owned by the Lead or Home; the built chat took one letter as the person's words",
+      "scenario": "Business opening a case for home was not refused; request 'a' passed as a quote",
+      "cause": "the rules returned None for any team agent; a substring check",
+      "fix": "team agents hand work only to teams and specialists; the built chat uses quote_ok (two whole words)",
+      "test": "tests/test_lead_workspace.py test_r9_a_team_agent_never_opens_or_delegates_a_task_for_the_lead_or_home"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "make harness-eval",
+      "gate": "every step and part right",
+      "fixed_before_run": true,
+      "result": "17 of 17 (HRN-140)",
+      "verdict": "pass"
+    },
+    {
+      "name": "tests",
+      "gate": "every test passes",
+      "fixed_before_run": true,
+      "result": "test_lead_workspace 25 tests on files, PostgreSQL and signed in; the team, case agent, orchestrator, screens and web files pass",
+      "verdict": "pass"
+    }
+  ],
+  "outcome": "A person on Home can hand data work to the teams. The Lead asks Data Science, the team's question reaches the person in the Home chat, their answer goes back as theirs, and one joined report returns, with every step recorded and readable on the Workspace page.",
+  "lessons": [
+    "Never run a second PostgreSQL test runner while a gate runs: both use the same per-worker database names.",
+    "A browser check finds what scripted tests miss: an invitation to answer that no code read.",
+    "A shared draft is not a private conversation: what a person's team work writes there needs its own reader check."
+  ],
+  "risks": [
+    "The Lead decides by rules, so it proves the plumbing, not judgment.",
+    "The Home chat draws the report's four lines as one paragraph, because the Home page is another session's file this change did not touch.",
+    "Only one team question per Lead task is passed on (the reviewer's R8): harmless while every route names one team that asks once; a second team needs the relay keyed by the question."
+  ],
+  "commits": []
+}

@@ -460,5 +460,36 @@ class ContractTest(unittest.TestCase):
             task(created_at="2026-11-20T18:00:00")
 
 
+class LeadRulesTest(unittest.TestCase):
+    """0.167.0: the Lead (a coordinator) and Home (the way in), and AgentConfig v2 reading v1."""
+
+    def test_a_v1_configuration_reads_as_v2(self):
+        v1 = {**tw.DIRECTORY["business"].model_dump(mode="json"), "schema_version": "dclab_core.agent_config.v1"}
+        read = tw.AgentConfig.read(v1)
+        self.assertEqual(read.schema_version, "dclab_core.agent_config.v2")
+        self.assertEqual(read.name, "business")
+
+    def test_who_opens_a_case_and_who_delegates(self):
+        home, lead, biz = tw.DIRECTORY["home"], tw.DIRECTORY["lead"], tw.DIRECTORY["business"]
+        self.assertIsNone(tw.opening_refusal(biz, "data_science"))
+        self.assertIsNone(tw.opening_refusal(home, "lead"))
+        self.assertIsNotNone(tw.opening_refusal(home, "data_science"))
+        self.assertIsNotNone(tw.opening_refusal(lead, "data_science"))
+        self.assertIsNotNone(tw.opening_refusal(tw.DIRECTORY["model"], "data_science"))
+        self.assertIsNone(tw.delegation_refusal(lead, "data_science"))
+        for owner in ("lead", "home", "model:eta", "nobody"):
+            self.assertIsNotNone(tw.delegation_refusal(lead, owner), owner)
+        self.assertIsNotNone(tw.delegation_refusal(home, "data_science"))
+        self.assertIsNone(tw.delegation_refusal(tw.DIRECTORY["data_science"], "model:eta"))
+
+    def test_the_lead_routes_data_work_only_to_team_agents(self):
+        for track, teams in tw.LEAD_ROUTES.items():
+            self.assertTrue(teams, track)
+            for team in teams:
+                self.assertEqual(tw.DIRECTORY[team].kind, "team_agent", (track, team))
+        self.assertEqual(tw.lead_route("advice"), ())
+        self.assertEqual(tw.lead_route(""), ())
+
+
 if __name__ == "__main__":
     unittest.main()

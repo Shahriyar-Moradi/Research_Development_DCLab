@@ -30,7 +30,7 @@
       "type": "object"
     }
   },
-  "$id": "https://dclab.dev/schemas/dclab_core.agent_config.v1.json",
+  "$id": "https://dclab.dev/schemas/dclab_core.agent_config.v2.json",
   "additionalProperties": false,
   "description": "An agent's job description: who it represents, what it owns, what it may do, report, read, and never do.",
   "properties": {
@@ -62,7 +62,9 @@
     "kind": {
       "enum": [
         "team_agent",
-        "specialist"
+        "specialist",
+        "coordinator",
+        "entry"
       ],
       "title": "Kind",
       "type": "string"
@@ -106,8 +108,8 @@
       "type": "string"
     },
     "schema_version": {
-      "const": "dclab_core.agent_config.v1",
-      "default": "dclab_core.agent_config.v1",
+      "const": "dclab_core.agent_config.v2",
+      "default": "dclab_core.agent_config.v2",
       "title": "Schema Version",
       "type": "string"
     }

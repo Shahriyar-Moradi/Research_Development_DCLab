@@ -39,7 +39,7 @@ PURPOSE = "home_orchestrator"
 AGENT = "home.project"
 RULES_AGENT = "home.project.rules"
 TEAM = {"analyst": "Problem analyst", "planner": "Solution planner", "reader": "Records reader", "evaluator": "Evaluator", "experimenter": "Experimenter", "coder": "Notebook coder",
-        "reporter": "Reporter", "data": "Data engineer"}
+        "reporter": "Reporter", "data": "Data engineer", "lead": "Workspace Lead"}
 CAP_EUR = 0.25  # one turn's model spend, at most
 TAIL = 12  # messages of the conversation the model reads
 SHOWN_SENTENCES = 4  # a reply beside a table: at most this many sentences (the owner: "bring the table instead of the texts")
@@ -1330,18 +1330,55 @@ def confirm_data_change(t: Turn, /, **_: Any) -> dict[str, Any]:
 
 READS = {"show_problem": show_problem, "show_memory": show_memory, "write_report": write_report, "data_gaps": data_gaps, "list_projects": list_projects, "show_notebook": show_notebook, "show_activity": show_activity, "show_models": show_models, "show_features": show_features, "show_data": show_data, "show_leakage": show_leakage, "show_stages": show_stages,
          "show_result": show_result, "show_evaluation": show_evaluation, "improvement_ideas": improvement_ideas, "show_improvements": show_improvements}
+def ask_teams(t: Turn, /, track: str = "", request: str = "", **_: Any) -> dict[str, Any]:
+    """[data work for the workspace's teams: a model, an analysis, a report, data preparation] Hand the person's request, in their
+    own words, to the workspace's Lead, which asks the team agents and joins their reports; the teams' questions and the report
+    come back into this chat. Never for advice, a decision only the person makes, an approval, or contacting customers."""
+    from ..teamspace import lead
+
+    words = [str(m.get("text") or "") for m in (t.services.drafts.get(t.draft_id).get("messages") or []) if m.get("role") == "user"]
+    latest = (t.text or (words[-1] if words else "")).strip()
+    from dclab_core import case as C
+
+    asked = str(request or "").strip()
+    question = asked if asked and C.quote_ok(asked, asked, words + [latest]) else latest  # two whole words of theirs, at least
+    project = t.project()
+    draft = t.services.drafts.get(t.draft_id)
+    problem = draft.get("problem_id") or project.get("default_problem_id")
+    why = lead.refusal(project_id=t.project_id, problem_id=problem, question=question, track=track)
+    if why:
+        return {"error": why}
+    person, initiator = lead.person_of(None)
+    inputs = lead.project_inputs(t.services, t.project_id)
+    if not inputs:
+        return {"error": lead.NO_DATA_YET}
+    try:
+        out = lead.ask(t.services, t.project_id, str(problem), question=question, track=track, person=person, draft_id=t.draft_id,
+                       initiator=initiator, inputs=inputs)
+    except (ValueError, KeyError, LookupError) as error:
+        return {"error": str(error)}
+    if out["refused"]:
+        return {"error": "the Lead could not take it: " + out["refused"][0]}
+    if out["already_open"]:
+        return {"sent_to": "lead", "task_id": out["task_id"], "new": False,
+                "next": "the teams already have this request and are working on it; their report will appear in this chat"}
+    return {"sent_to": "lead", "task_id": out["task_id"], "new": out["opened"],
+            "next": "the teams' questions and their report will appear in this chat"}
+
+
 WRITES = {"plan_new_version": ("plan_version", plan_new_version), "build_new_version": ("build_version", build_new_version),
           "propose_problem_change": ("propose_problem_change", propose_problem_change),
           "confirm_problem_change": ("confirm_problem_change", confirm_problem_change), "improve_model": ("improve", improve_model), "adopt_improvement": ("adopt_improvement", adopt_improvement),
           "write_notebook_cell": ("notebook_cell", write_notebook_cell), "remember": ("remember", remember),
-          "propose_data_change": ("propose_data_change", propose_data_change), "confirm_data_change": ("confirm_data_change", confirm_data_change)}
+          "propose_data_change": ("propose_data_change", propose_data_change), "confirm_data_change": ("confirm_data_change", confirm_data_change),
+          "ask_teams": ("ask_teams", ask_teams)}
 WHO = {"data_gaps": "data", "propose_data_change": "data", "confirm_data_change": "data", "write_report": "reporter", "remember": "reader", "show_memory": "reader", "plan_new_version": "planner", "build_new_version": "planner", "show_problem": "analyst", "propose_problem_change": "analyst", "confirm_problem_change": "analyst", "list_projects": "reader", "show_notebook": "coder", "show_activity": "reader", "show_models": "reader", "show_features": "reader", "show_data": "reader", "show_leakage": "reader", "show_stages": "reader",
        "show_result": "evaluator", "show_evaluation": "evaluator", "improvement_ideas": "experimenter", "show_improvements": "experimenter",
-       "improve_model": "experimenter", "adopt_improvement": "experimenter", "write_notebook_cell": "coder"}
+       "improve_model": "experimenter", "adopt_improvement": "experimenter", "write_notebook_cell": "coder", "ask_teams": "lead"}
 
 
 HOME_MOVES = ("plan_version", "build_version", "propose_problem_change", "confirm_problem_change", "improve", "adopt_improvement",
-              "notebook_cell", "remember", "propose_data_change", "confirm_data_change")  # every write the built chat's team may make (its guard checks each; the tests check each tool declares one)
+              "notebook_cell", "remember", "propose_data_change", "confirm_data_change", "ask_teams")  # every write the built chat's team may make (its guard checks each; the tests check each tool declares one)
 ALONGSIDE_IMPROVE = ("notebook_cell",)  # an improvement run re-reads the project just before each save, so a cell written meanwhile stays
 PROJECT_MOVES = ("improve", "adopt_improvement", "notebook_cell")  # the writes that change the project (the analyst's change the chat only)
 
@@ -1407,6 +1444,9 @@ def register(registry: Registry) -> None:
                                               "table": {**S, "description": "join: the other table's name"}, "on": {**S, "description": "join: the key column"}},
              "required": ["change"]} if name == "propose_data_change" else \
             {"type": "object", "properties": {"version": S}} if name in ("plan_new_version", "build_new_version") else \
+            {"type": "object", "properties": {"track": {"type": "string", "enum": sorted(__import__("dclab_core.team_work", fromlist=["x"]).LEAD_ROUTES)},
+                                              "request": {**S, "description": "the person's own words for the teams"}},
+             "required": ["track"]} if name == "ask_teams" else \
             {"type": "object", "properties": {"outcome": {**S, "description": "the new outcome column, exactly as named in the table"},
                                               "prediction_moment": {**S, "description": "when each prediction is made, and what is known then"},
                                               "horizon": {**S, "description": "how far ahead, e.g. 60 days"}, "unit": {**S, "description": "what one prediction is for"},

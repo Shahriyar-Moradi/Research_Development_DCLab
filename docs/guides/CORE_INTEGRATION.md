@@ -1554,3 +1554,39 @@ owner's new `PATCH` and `DELETE /api/workspace/teams/{team_id}`) and `tests/test
 acceptance checks, end to end, with these records). In the main product the same events belong where its agents hand
 work to each other, once it has a team workspace: until then `adapters/main_product_experience.KINDS_MISSING` lists
 every new kind and `conformance.POINTS_NOT_MAPPED` the new point, each with its reason.
+
+## The Lead and Home's way in to the teams (2026-11-21, dclab-core 0.167.0)
+
+`dclab_core.team_work` gains two kinds of agent beside `team_agent` and `specialist`. `AgentConfig` v2 carries them and
+reads every v1 configuration unchanged.
+
+- **`coordinator`** (`DIRECTORY["lead"]`, the workspace's Lead) owns a case, hands it to team agents, passes a team's
+  question to the person who asked, and joins the teams' reports into one report that says which team answered what. Its
+  actions are `check_prerequisites`, `delegate`, `confirm_with_requester` and `review_evidence`.
+- **`entry`** (`DIRECTORY["home"]`, the person's Home conversation) opens a case for a coordinator only, relays the Lead's
+  question to its person (`confirm_with_person`), and presents the Lead's report (`present_report`).
+
+Three new rules decide who may hand work to whom:
+
+| Rule | What it says |
+|---|---|
+| `opening_refusal(config, owner)` | A team agent opens a top-level task for a team; the entry only for a coordinator; nothing else opens one. |
+| `delegation_refusal(config, owner)` | A coordinator hands work to team agents only; the entry never delegates. |
+| `LEAD_ROUTES` / `lead_route(track)` | The team agents the Lead asks for each kind of help. Today: model, analyze, report and prepare go to Data Science. Advice and business decisions are not the Lead's. |
+
+Both new agents forbid `approve` and `contact_customers`, like every agent.
+
+The R&D host is the reference:
+
+- `dclab_rnd/teamspace/lead.py`: `ask` (Home hands the person's words to the Lead, with the kind of help as the task's one
+  `help:<track>` input), `answer` (the person's reply on Home goes down to the team that asked), `to_home_chat` (the Lead's
+  question or report as one message in the Home chat) and `refusal` (no project, no words, a kind of help the Lead does not
+  take, or a request to approve or contact customers).
+- `teamspace/agents.py`: the Lead's and Home's rules (`_lead`, `_requester`).
+- `agents/case_agent.py` `case_ask_teams` and `draft/orchestrator.py` `ask_teams`: the lead agent's tool, before and after
+  the build.
+- `agentic/routers/team_threads.py` `GET /api/workspace/overview`, drawn by the Workspace page (`views/workspace.html`).
+- `tests/test_lead_workspace.py`: the round trip, on files and PostgreSQL, and signed in.
+
+In the main product the same split applies once it has a team workspace: its assistant is the entry and its planner the
+coordinator, so a person's request never reaches a team without passing a coordinator that joins the replies.

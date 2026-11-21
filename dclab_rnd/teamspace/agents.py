@@ -195,40 +195,53 @@ _CHILD_QUESTIONS = {
 }
 
 
-# ---------------------------------------------------------------------------------------------------------- Business
-def _business(turn: TeamTurn) -> Optional[Call]:
-    mode = turn.extra.get("mode")
-    if mode == "open":
-        if turn.work.task(turn.project_id, turn.task_id) is not None:
+# ---------------------------------------------------------------------------------------------------------- Business and Home
+def _requester(open_action: str, confirm_action: str, present_action: str) -> Callable[[TeamTurn], Optional[Call]]:
+    """The rules of an agent that asks for its person: open the case's task, relay a clarification to its person and carry
+    the person's answer back, present the report it receives. Business (in its team thread) and Home (the person's Home
+    conversation, which asks the Lead) are the same rules under their own directory actions."""
+
+    def brain(turn: TeamTurn) -> Optional[Call]:
+        mode = turn.extra.get("mode")
+        if mode == "open":
+            if turn.work.task(turn.project_id, turn.task_id) is not None:
+                return None
+            x = turn.extra
+            return ("team_delegate", {"action": open_action, "new_task_id": turn.task_id, "owner_team": x["owner"],
+                                      "question": x["question"], "expected_output": x["expected_output"],
+                                      "done_criteria": list(x["done_criteria"]), "problem_id": x["problem_id"],
+                                      "thread_id": x["thread_id"], "allowed_inputs": list(x.get("inputs") or [])})
+        view = _view(turn)
+        if view is None:
             return None
-        x = turn.extra
-        return ("team_delegate", {"action": "delegate_analysis", "new_task_id": turn.task_id, "owner_team": x["owner"],
-                                  "question": x["question"], "expected_output": x["expected_output"],
-                                  "done_criteria": list(x["done_criteria"]), "problem_id": x["problem_id"],
-                                  "thread_id": x["thread_id"], "allowed_inputs": list(x.get("inputs") or [])})
-    view = _view(turn)
-    if view is None:
+        task = view["task"]
+        if mode == "answer":
+            asked = _mine(turn, view, confirm_action)
+            if asked is None or not tw.can_claim(asked):
+                return ("team_record_human_response", {"task_id": task.id, "action": confirm_action,
+                                                       "response_id": turn.extra["response_id"], "responded_by": turn.person})
+            if asked.output_ref != f"response:{turn.extra['response_id']}":
+                return None  # the question was already answered: a later message is not a second answer (the review of the Lead)
+            key = f"answer:{task.id}:r-{safe_id(turn.extra['response_id'])}"
+            if not any(d["key"] == key for d in view["deliveries"]):
+                return ("team_answer", {"task_id": task.id, "response_id": turn.extra["response_id"], "text": turn.text or ""})
+            return None
+        row = turn.row or {}
+        if row.get("kind") == "clarification":
+            if _mine(turn, view, confirm_action) is None:
+                return ("team_clarify", {"task_id": task.id, "action": confirm_action, "question": row.get("text") or ""})
+            return None
+        if row.get("kind") == "reply":
+            report = row.get("item_id")
+            if _mine(turn, view, present_action, report) is None and any(r.id == report for r in view["reports"]):
+                return ("team_act", {"task_id": task.id, "action": present_action, "subject": report})
         return None
-    task = view["task"]
-    if mode == "answer":
-        asked = _mine(turn, view, "confirm_terms")
-        if asked is None or not tw.can_claim(asked):
-            return ("team_record_human_response", {"task_id": task.id, "action": "confirm_terms",
-                                                   "response_id": turn.extra["response_id"], "responded_by": turn.person})
-        key = f"answer:{task.id}:r-{safe_id(turn.extra['response_id'])}"
-        if not any(d["key"] == key for d in view["deliveries"]):
-            return ("team_answer", {"task_id": task.id, "response_id": turn.extra["response_id"], "text": turn.text or ""})
-        return None
-    row = turn.row or {}
-    if row.get("kind") == "clarification":
-        if _mine(turn, view, "confirm_terms") is None:
-            return ("team_clarify", {"task_id": task.id, "action": "confirm_terms", "question": row.get("text") or ""})
-        return None
-    if row.get("kind") == "reply":
-        report = row.get("item_id")
-        if _mine(turn, view, "present_options", report) is None and any(r.id == report for r in view["reports"]):
-            return ("team_act", {"task_id": task.id, "action": "present_options", "subject": report})
-    return None
+
+    return brain
+
+
+_business = _requester("delegate_analysis", "confirm_terms", "present_options")
+_home = _requester("open_case", "confirm_with_person", "present_report")
 
 
 # ---------------------------------------------------------------------------------------------------------- Data Science
@@ -331,7 +344,7 @@ def _blocker_report(turn: TeamTurn, view: Row) -> Call:
                                    "next_owner": supplier, "unblocks": f"attach {check.get('missing')} to {sample}"})
 
 
-def _join(turn: TeamTurn, view: Row) -> Optional[Call]:
+def _join(turn: TeamTurn, view: Row, *, attribute: bool = False) -> Optional[Call]:
     """Review each child's reply as it returns; when every child has returned, report once with each result joined once
     (a blocked or failed child keeps the report partial and names who acts next); a corrected child reply supersedes it."""
     task, join = view["task"], view["join"]
@@ -346,7 +359,12 @@ def _join(turn: TeamTurn, view: Row) -> Optional[Call]:
     joined = {r.id: r for r in view["child_reports"]}
     order = [c.id for c in view["children"]]
     returned = sorted((joined[rid] for rid in join.reports), key=lambda r: order.index(r.task_id))
-    answer = " ".join(r.answer for r in returned)
+    if attribute:  # the Lead says which team answered what
+        from .store import team_label
+
+        answer = " ".join(f"{team_label(r.owner)}: {r.answer}" for r in returned)
+    else:
+        answer = " ".join(r.answer for r in returned)
     evidence = [e.model_dump() for r in returned for e in r.evidence]
     limits = []
     if any(r.simulated for r in returned):
@@ -428,7 +446,95 @@ def _estimate_report(task: tw.TeamTask, kind: str, snapshot: str, score: tw.Team
                                    "evidence": evidence, "limits": ["Simulated: a fixture result that illustrates the handoff."]})
 
 
-BRAINS: dict[str, Callable[[TeamTurn], Optional[Call]]] = {"business": _business, "data_science": _data_science, "model": _model}
+# ---------------------------------------------------------------------------------------------------------- the Lead
+HELP = "help:"  # the kind of help the person picked, as the one input of a Lead task the Lead reads (never a team's input)
+
+
+def help_of(task: tw.TeamTask) -> Optional[str]:
+    return next((i[len(HELP):] for i in task.allowed_inputs if i.startswith(HELP)), None)
+
+
+def _lead(turn: TeamTurn) -> Optional[Call]:
+    """The Lead (``team_work.DIRECTORY["lead"]``, a coordinator): accept the person's request from Home, check it has what
+    the teams need, hand it to the team agents its kind of help needs (``team_work.lead_route``), pass a team's question to
+    the person and carry their answer back down, review each team's reply and return one joined report that says which team
+    answered what. Its rules read the tasks as stored, like every agent's."""
+    view = _view(turn)
+    if view is None:
+        return None
+    task, status = view["task"], view["task"].status
+    if status == "open":
+        return ("team_accept", {"task_id": task.id})
+    row = turn.row or {}
+    if row.get("kind") == "clarification" and row.get("task_id") != task.id and status not in tw.CLOSED_TASKS \
+            and _mine(turn, view, "confirm_with_requester") is None:
+        return ("team_clarify", {"task_id": task.id, "action": "confirm_with_requester", "question": row.get("text") or ""})
+    if status == "waiting_for_person":
+        return _carry_down(turn, view)
+    if status in ("accepted", "waiting_for_team"):
+        pre = _mine(turn, view, "check_prerequisites", _brief(task))
+        if pre is None:
+            return ("team_act", {"task_id": task.id, "action": "check_prerequisites"})
+        if pre.status in tw.FAILED_ACTIONS:
+            return ("team_block", {"task_id": task.id, "reason": pre.failure_ref or "a prerequisite is missing"})
+        inputs = [i for i in task.allowed_inputs if not i.startswith(HELP)]
+        for team in tw.lead_route(help_of(task) or ""):
+            child = f"{task.id}.{team}"
+            # missing, or its delegation not recorded (a crash between the two writes resumes here)
+            if turn.work.task(turn.project_id, child) is None or _mine(turn, view, "delegate", child) is None:
+                return ("team_delegate", {"action": "delegate", "task_id": task.id, "new_task_id": child, "owner_team": team,
+                                          "question": task.question, "expected_output": "a feasibility answer or a precise blocker",
+                                          "done_criteria": ["says whether the data can answer the question, or what blocks it"],
+                                          "allowed_inputs": inputs})
+    if status == "blocked":
+        if _current_report(view) is not None:
+            return None
+        pre = _mine(turn, view, "check_prerequisites", _brief(task))
+        why = (pre.failure_ref if pre else None) or "a prerequisite is missing"
+        return ("team_return_report", {"task_id": task.id, "outcome": "blocked", "revision": 1, "next_owner": task.requester.team,
+                                       "unblocks": "declare what the teams may read for this project (its team inputs)",
+                                       "answer": f"Blocked before any team was asked: {why}."})
+    if view["children"] and status in ("accepted", "waiting_for_team", "partial", "complete"):
+        return _join(turn, view, attribute=True)
+    return None
+
+
+def _missing_child(turn: TeamTurn, task: tw.TeamTask) -> bool:
+    return any(turn.work.task(turn.project_id, f"{task.id}.{team}") is None for team in tw.lead_route(help_of(task) or ""))
+
+
+def _carry_down(turn: TeamTurn, view: Row) -> Optional[Call]:
+    """The person answered the Lead's question (carried up from a team): record it as theirs (as Home recorded it), give it
+    to each team that asked, then take the task up again."""
+    task = view["task"]
+    said = _confirmed_by(turn, view)
+    mine = _mine(turn, view, "confirm_with_requester")
+    if said is None or mine is None:
+        return None
+    response = (said.output_ref or "response:x").split(":", 1)[1]
+    key = f"answer:{task.id}:r-{safe_id(response)}"
+    text = next((d["text"] for d in view["deliveries"] if d["kind"] == "answer" and d["key"] == key), None)  # the recorded answer's words
+    if not text:
+        return None
+    if not tw.can_claim(mine):
+        return ("team_record_human_response", {"task_id": task.id, "action": "confirm_with_requester", "response_id": response,
+                                               "responded_by": said.responded_by.id})
+    for child in view["children"]:
+        if child.status != "waiting_for_person":
+            continue
+        cview = turn.work.task_view(turn.project_id, child.id)
+        relayed = _mine(turn, cview, "confirm_with_requester")
+        if relayed is None or not tw.can_claim(relayed):
+            return ("team_record_human_response", {"task_id": child.id, "action": "confirm_with_requester", "response_id": response,
+                                                   "responded_by": said.responded_by.id})
+        key = f"answer:{child.id}:r-{safe_id(response)}"
+        if not any(d["key"] == key for d in cview["deliveries"]):
+            return ("team_answer", {"task_id": child.id, "response_id": response, "text": text})
+    return ("team_accept", {"task_id": task.id})
+
+
+BRAINS: dict[str, Callable[[TeamTurn], Optional[Call]]] = {"business": _business, "data_science": _data_science, "model": _model,
+                                                           "lead": _lead, "home": _home}
 
 
 # ---------------------------------------------------------------------------------------------------------- the loop
@@ -567,6 +673,17 @@ def from_thread(env: Any, thread: Mapping[str, Any], *, person: str, text: str, 
     for its teams (``team_inputs``; R3 reads the project's own tables). Without it, a message that answers an open
     clarification asked of this person in this thread is their answer (``person_replies``). Anything else is a message in
     the thread and nothing more. Returns the agent's turn, or None."""
+    from .threads import is_home
+
+    if is_home(thread):  # a person's Home conversation with the Lead: a message there answers the Lead's open question, if any
+        from . import lead
+
+        work = _work(env)
+        waiting = [t for t in lead.lead_tasks(env, str(thread["project_id"])) if t.requester.thread_id == thread["id"]
+                   and t.status == "waiting_for_person" and t.requester.member == person]
+        if not waiting:
+            return None
+        return lead.answer(env, str(thread["project_id"]), waiting[0].id, person=person, text=text, initiator=initiator, registry=registry)
     if (team_kind or thread.get("team")) != "business":
         return None
     work = _work(env)
@@ -623,7 +740,7 @@ def _focus(work: Any, row: Row) -> Optional[str]:
     task = work.task(row["project_id"], row["task_id"])
     if task is None:
         return None
-    if row.get("kind") == "reply" and task.parent_task_id:
+    if row.get("kind") in ("reply", "clarification") and task.parent_task_id:
         parent = work.task(row["project_id"], task.parent_task_id)
         if parent is not None and parent.owner_team == row["to_team"]:
             return parent.id
@@ -651,6 +768,10 @@ def deliver(env: Any, row: Row) -> Row:
     out = run_turn(turn)
     if out["refused"]:
         raise PermanentFailure(f"{row['to_team']} refused a step: {out['refused'][0]}")
+    if row["to_team"] == "home":
+        from .lead import to_home_chat
+
+        to_home_chat(env, row)  # the Lead's question or report, in the person's Home conversation (once per row)
     return {**receipt, "agent": row["to_team"], "task_id": focus, "skipped": out["skipped"], "steps": [s["tool"] for s in out["steps"]]}
 
 
