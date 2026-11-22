@@ -636,7 +636,9 @@ def _ask_teams(state: CaseState, track: str, quote: Optional[str] = None) -> dic
                 "next": "the teams already have this request and are working on it: tell the person their report will come here"}
     return {"sent_to": "lead", "task_id": out["task_id"], "teams": list(tw.lead_route(track, question)), "new": out["opened"],
             "next": "tell the person in one sentence that the teams have the request and that their questions and report will "
-                    "appear in this chat; give no result before the report arrives"}
+                    "appear in this chat; give no result before the report arrives, and promise nothing the report may not hold: "
+                    "the teams report what the data can answer and its limits, never a ranked list, a trained model or a score",
+            "report_holds": "what each team found, what limits it, and who acts next; nothing is trained without the owner's approval"}
 
 
 def _consult(state: CaseState, specialist: str, question: str) -> dict[str, Any]:

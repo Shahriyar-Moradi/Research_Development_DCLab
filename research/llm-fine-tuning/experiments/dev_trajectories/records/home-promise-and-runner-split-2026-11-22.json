@@ -1,0 +1,80 @@
+{
+  "package": "home-promise-and-runner-split-2026-11-22",
+  "title": "Home promises only what the teams' report holds, and the test runner stops skipping inherited tests",
+  "date": "2026-11-22",
+  "request": "The owner: fix Home's 'ranked list' promise and run the full gate.",
+  "spec": "Home's hand-over to the Lead says what the report will hold (what the data can answer, its limits, who acts next), never a ranked list, a trained model or a score; measured live on Qwen. The test runner splits a slow file into units without losing any test.",
+  "plan": [
+    "state the report's contents in the ask_teams tool result and in both Home prompts",
+    "make agent-eval and make harness-eval on the changed prompts",
+    "live S1, S8, S10, S11 on Qwen",
+    "fix the runner when its split broke test_lead_workspace",
+    "run the 30 files whose split changed, on files and PostgreSQL",
+    "make check-all"
+  ],
+  "decisions": [
+    {
+      "decision": "Say what the report holds in the tool result as well as the prompt",
+      "why": "the model wrote the promise right after the tool answered; the tool's next step is the nearest instruction"
+    },
+    {
+      "decision": "A unit is a real test case only: a class whose bases reach a TestCase in the file or by name; tests inherited from a mixin count",
+      "why": "a mixin with a base (_Lead(_Contract)) was split into units that cannot run, and a case whose tests all come from a mixin was skipped"
+    }
+  ],
+  "change": "dclab_rnd/agents/case_agent.py (ask_teams next and report_holds), prompts case_agent.md and case_agent_think_first.md, tests/run_parallel.py units_of.",
+  "findings": [
+    {
+      "id": "P1",
+      "source": "measurement",
+      "severity": "behaviour",
+      "defect": "Home's model promised 'the ranked list will come back'",
+      "scenario": "live S8 on Qwen, 2026-11-22 round 1",
+      "cause": "nothing told the model what the teams' report holds",
+      "fix": "the tool result and the prompts say it: what the data can answer and its limits, never a list, a model or a score",
+      "test": "live S1, S8, S10, S11 on Qwen: no promise in any hand-over; agent eval and harness eval HRN-142 pass"
+    },
+    {
+      "id": "P2",
+      "source": "test",
+      "severity": "latent",
+      "defect": "the parallel runner skipped whole test classes when it split a slow file",
+      "scenario": "test_lead_workspace became slow and was split: 40 units of the mixin _Lead failed to load, and LeadWorkspaceTests and PgLeadWorkspaceTests (all tests inherited) were never run; 30 files split differently once fixed, e.g. FileStoreContract, PostgresTaskAdmissionTests, FileDeliveryTests had been skipped in split runs",
+      "cause": "units_of took any class with a base as a case and read only a class's own methods",
+      "fix": "a class is a unit only when it reaches a TestCase; its tests include those inherited from classes in the file",
+      "test": "the 30 changed files (837 tests) pass on files and PostgreSQL with the new split"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "live hand-over wording on Qwen (S1, S8, S10, S11)",
+      "gate": "no hand-over promises a ranked list, a trained model or a score",
+      "fixed_before_run": true,
+      "result": "4 of 4 without a promise; 8 of 8 calls with thinking; EUR 0.0024",
+      "verdict": "pass"
+    },
+    {
+      "name": "make harness-eval",
+      "gate": "every step and part right",
+      "fixed_before_run": true,
+      "result": "17 of 17 (HRN-142)",
+      "verdict": "pass"
+    },
+    {
+      "name": "the 30 re-split files",
+      "gate": "all pass on files and PostgreSQL",
+      "fixed_before_run": true,
+      "result": "837 tests OK on both",
+      "verdict": "pass"
+    }
+  ],
+  "outcome": "The promise is gone live, and every split file now runs all its tests.",
+  "lessons": [
+    "A green gate only says the tests it ran passed: check that a split runs the same tests as the whole file.",
+    "Tell the model what a result will hold at the moment it speaks about it, in the tool's answer."
+  ],
+  "risks": [
+    "S8 still restates the request ('asked the teams to rank accounts'), which a reader could take as a promise; one run each."
+  ],
+  "commits": []
+}

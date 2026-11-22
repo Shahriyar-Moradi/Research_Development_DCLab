@@ -245,11 +245,32 @@ def units_of(name: str) -> list[str]:
     tree = ast.parse((HERE / name).read_text(encoding="utf-8"))
     if any(isinstance(n, ast.FunctionDef) and n.name in ("setUpModule", "tearDownModule") for n in tree.body):
         return [name]
+    classes = {n.name: n for n in tree.body if isinstance(n, ast.ClassDef)}
+
+    def base_names(node) -> list[str]:
+        return [b.attr if isinstance(b, ast.Attribute) else getattr(b, "id", "") for b in node.bases]
+
+    def is_case(cname: str, seen: frozenset = frozenset()) -> bool:  # a unittest case, directly or through a class here
+        node = classes.get(cname)
+        if node is None or cname in seen:
+            return False
+        return any(b.endswith("TestCase") or is_case(b, seen | {cname}) for b in base_names(node))
+
+    def methods_of(cname: str, seen: frozenset = frozenset()) -> list[str]:  # its own and those it inherits from classes here
+        node = classes.get(cname)
+        if node is None or cname in seen:
+            return []
+        own = [n.name for n in node.body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))]
+        inherited = [m for b in base_names(node) for m in methods_of(b, seen | {cname})]
+        return list(dict.fromkeys(own + inherited))
+
     out = []
     for node in tree.body:
-        if not isinstance(node, ast.ClassDef) or not node.bases:  # a class with no base is a mixin: its tests run in the classes that inherit it
+        # only a real test case is a unit: a mixin (no base, or a base that is not a case, like ``_Lead(_Contract)``)
+        # runs in the cases that inherit it, and a case whose tests all come from a mixin is still split into them
+        if not isinstance(node, ast.ClassDef) or not is_case(node.name):
             continue
-        methods = [n.name for n in node.body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))]
+        methods = methods_of(node.name)
         tests = [m for m in methods if m.startswith("test")]
         if not tests:
             continue
