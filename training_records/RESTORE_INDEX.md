@@ -8,12 +8,17 @@ Every item was copied, checked file by file against the Mac copy, indexed on bot
 was removed. A restore test on 2026-11-20 (snapshot `20261112T162722Z`) brought back 136 of 136 files with matching
 SHA-256.
 
-## 1. Training snapshots (`make archive`), 43 of them
+## 1. Training snapshots (`make archive`), 50 of them
 
 - Detailed list, one row per snapshot with its file and its check: `training_records/snapshots/SNAPSHOT_LOCATIONS.md`
   (Mac) and `/Volumes/ADATA PRO/dclab_training_records/SNAPSHOT_LOCATIONS.md` (drive).
-- On the Mac still: the newest, `20261119T180610Z` (code reads it), and `20261119T115941Z` (an incomplete snapshot from
-  an archive stopped when the disk was full; its content is in the next snapshots).
+- On the Mac still: the newest, `20261122T100106Z` (the next snapshot links its unchanged files to it; it also has a
+  verified tar on the drive), and `20261119T115941Z` (an incomplete snapshot from an archive stopped when the disk was
+  full; its content is in the next snapshots).
+- 2026-11-22: 8 more moved with `scripts/offload_snapshots.py --keep-hours 0 --remove` (`20261119T180610Z`,
+  `20261121T070440Z`, `20261121T132438Z`, `20261121T135516Z`, `20261121T165647Z`, `20261122T004727Z`,
+  `20261122T055222Z`, and `20261122T100106Z` copied only): every file checked, 0 missing, 0 different; 7 removed from the
+  Mac (free space 2.6 GB to 10 GB).
 - Bring one back (the tar named in its row; a snapshot of a day with several has its time in the name):
 
       tar -xf "/Volumes/ADATA PRO/dclab_training_records/training_snapshot_<YYYYMMDD or YYYYMMDDTHHMMSSZ>.tar" -C training_records/snapshots
