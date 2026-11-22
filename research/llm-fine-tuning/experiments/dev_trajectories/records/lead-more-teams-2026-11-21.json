@@ -1,0 +1,157 @@
+{
+ "package": "LEAD-MORE-TEAMS",
+ "title": "The workspace Lead hands work to more teams: ML Engineering after Data Science for a model, Sales for outreach",
+ "date": "2026-11-21",
+ "request": "Make the Lead send work to more teams (it sent everything to Data Science).",
+ "spec": "dclab-core 0.168.0 lead_route(track, question); deterministic ML Engineering and Sales agents in teamspace; one joined report naming every team.",
+ "plan": [
+  "Route a model to Data Science and ML Engineering; add Sales when a model or an analysis is about contacting people.",
+  "Give ML Engineering a check-only action (validate_contract) and Sales check_exclusions, both on fixtures, labelled simulated.",
+  "Join every team's answer, one line a team, in the route's order.",
+  "Tests on files and PostgreSQL, a review, live runs on Qwen and the rules, a UI check."
+ ],
+ "decisions": [
+  {
+   "decision": "Sales blocks on its capacity instead of reporting partial",
+   "why": "a child's partial report is not a result in team_work.join_status: the Lead would wait for ever; blocked names the Sales team as next owner"
+  },
+  {
+   "decision": "ML Engineering is asked only after Data Science answered, with Data Science's finding and the outcome the person confirmed",
+   "why": "the review found it stated renewed_by_date as the outcome before the person said what churn means; the workspace plan puts it after Data Science"
+  },
+  {
+   "decision": "One team question per Lead task stays a known limit",
+   "why": "only Data Science asks the person anything in this release; keyed relays would be untested plumbing"
+  },
+  {
+   "decision": "Marketing is not routed yet",
+   "why": "its checks need offer terms no record holds"
+  }
+ ],
+ "change": "dclab_core/team_work.py (LEAD_ROUTES model, OUTREACH, lead_route(track, question)), __init__/pyproject 0.168.0, CHANGELOG, CORE_INTEGRATION.md; dclab_rnd/teamspace/agents.py (_worker, ML Engineering and Sales agents, the Lead's order and its ML Engineering gate, _claimed), tools.py (validate_contract, check_exclusions), fixtures.py (do-not-contact count), lead.py (_ended), agents/case_agent.py; tests/test_lead_workspace.py, test_core_team_work.py; scripts/live_lead_scenarios.py (S8); docs/DATA_CATALOG.md and data_catalog.json.",
+ "findings": [
+  {
+   "id": "M1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "The Lead waited for ever for Sales",
+   "scenario": "Sales reported partial; the join counted it outstanding",
+   "cause": "a partial child report is not a result in join_status",
+   "fix": "Sales blocks on its capacity and reports blocked with next owner sales",
+   "test": "tests/test_lead_workspace.py test_a_model_about_calls_goes_to_three_teams_and_sales_blocks_on_its_capacity"
+  },
+  {
+   "id": "M2",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "Three teams' answers read as one block in the Home chat",
+   "scenario": "live S8 and the UI check",
+   "cause": "the Lead joined the answers with a space",
+   "fix": "one team a line, in the route's order",
+   "test": "tests/test_lead_workspace.py (answer lines Data Science, ML Engineering, Sales)"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A crash between ML Engineering's two writes left the Lead waiting for ever",
+   "scenario": "finish_action fails once for the ML child; every later delivery refused its complete report",
+   "cause": "_worker ran its action only when none was recorded; a running record counted as done",
+   "fix": "a running action is run again (_claimed), also in Data Science's checks and the Lead's delegation",
+   "test": "tests/test_lead_workspace.py test_a_crash_between_ml_engineerings_two_writes_resumes_and_the_lead_finishes"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Ordinary questions went to Sales and real outreach was missed",
+   "scenario": "'Which customers with phone service will churn?', 'Forecast call volume' routed to Sales; 'Which accounts should be contacted?' did not",
+   "cause": "OUTREACH matched bare words",
+   "fix": "a contact verb aimed at people, or who/which … should … call; bare 'outreach'",
+   "test": "tests/test_core_team_work.py test_a_model_goes_to_ml_engineering_and_a_request_about_calls_to_sales"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Asking again after a partial report said 'the teams are working on it'",
+   "scenario": "the brief run to its end, then asked again",
+   "cause": "a partial Lead task counted as open",
+   "fix": "_ended: closed, blocked or partial is a new attempt",
+   "test": "tests/test_lead_workspace.py test_asking_again_after_a_partial_report_is_a_new_request"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "ML Engineering stated the outcome before the person answered",
+   "scenario": "the person said churn means a cancellation; ML Engineering still named renewed_by_date",
+   "cause": "delegated at the same time as Data Science",
+   "fix": "asked after Data Science answered, with its finding and the confirmed outcome in the question",
+   "test": "tests/test_lead_workspace.py test_ml_engineering_reads_the_outcome_the_person_confirmed_to_data_science"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Sales's failure gave Data Science's reason",
+   "scenario": "a sample without dates or a do-not-contact list",
+   "cause": "the worker used the sample's feasibility for every failure",
+   "fix": "only ML Engineering's contract check uses it; otherwise the action's own failure",
+   "test": "tests/test_lead_workspace.py test_ml_engineering_is_not_asked_while_data_science_is_blocked_and_sales_blocks_on_its_own_reason"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Words said ML Engineering never trains, while its directory has run_training and train is not forbidden",
+   "scenario": "a host that binds run_stage",
+   "cause": "the wording overstated the contract",
+   "fix": "the words say this release binds no training tool and a host keeps the Lead's tasks check-only",
+   "test": "CHANGELOG and team_work comments"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "live S1 and S8 on qwen3.8-flash and on the rules, after the review fixes",
+   "gate": "S8 reaches Data Science, ML Engineering and Sales; one answer recorded as the person's; nothing approved or contacted; every call keeps its thinking",
+   "fixed_before_run": true,
+   "result": "all pass on both paths; Qwen routed S1 as an analysis (Data Science only), the rules as a model",
+   "verdict": "pass"
+  },
+  {
+   "name": "UI check of the three-team report and the workspace page",
+   "gate": "one line a team; Next names Sales; the workspace page shows the partial conversation and the blocked Sales task",
+   "fixed_before_run": true,
+   "result": "as expected",
+   "verdict": "pass"
+  },
+  {
+   "name": "make core-wheel-check",
+   "gate": "the wheel installs and runs in a clean Python 3.12",
+   "fixed_before_run": true,
+   "result": "passed, dclab-core 0.168.0",
+   "verdict": "pass"
+  },
+  {
+   "name": "live records archived",
+   "gate": "every live run kept whole and archived with its SHA-256 manifest",
+   "fixed_before_run": true,
+   "result": "snapshot training_records/snapshots/20261121T165647Z, manifest training_records/snapshots/20261121T165647Z/MANIFEST.json",
+   "verdict": "pass"
+  }
+ ],
+ "outcome": "A request from Home now reaches the teams it needs: Data Science, then ML Engineering for a model, and Sales when people are to be contacted; the Lead returns one report naming each team.",
+ "lessons": [
+  "A contract rule (a partial child is not a result) decides an agent's behaviour: read the join before choosing an outcome.",
+  "Word rules need negatives from our own data (Telco's PhoneService)."
+ ],
+ "risks": [
+  "Sales joins only when the words match; the report always names the teams that answered.",
+  "The AI picks the kind of help: Qwen sent a model request as an analysis once, so ML Engineering was not asked.",
+  "Data Science asks what churn means again in each new request.",
+  "A blocked Sales task stays open, so the Sales team cannot be removed while it is there.",
+  "Still one team question per Lead request; Marketing is not routed."
+ ],
+ "commits": []
+}

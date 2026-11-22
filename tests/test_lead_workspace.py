@@ -47,8 +47,8 @@ class _Lead(_Contract):
     def chat(self):
         return [m for m in self.services.drafts.get(self.draft)["messages"] if m.get("team")]
 
-    def to_the_end(self):
-        out = self.ask()
+    def to_the_end(self, **ask):
+        out = self.ask(**ask)
         self.pump()
         [question] = self.chat()
         self.assertEqual(question["team"]["kind"], "clarification")
@@ -64,11 +64,13 @@ class _Lead(_Contract):
         out = self.to_the_end()
         task = self.work.task(self.pid, out["task_id"])
         self.assertEqual((task.owner_team, task.requester.team, task.requester.member), ("lead", "home", "sara"))
-        self.assertEqual(task.status, "complete")
+        self.assertEqual(task.status, "partial")  # the brief asks who Sales should call: Sales waits for its capacity (0.168.0)
         view = self.view(task.id)
-        self.assertEqual([c.owner_team for c in view["children"]], ["data_science"])
+        self.assertEqual([c.owner_team for c in view["children"]], ["data_science", "sales"])
         [report] = view["reports"]
         self.assertTrue(report.answer.startswith("Data Science: "), report.answer)
+        self.assertIn("\nSales: The calls can be planned", report.answer)
+        self.assertEqual(report.next_task.owner, "sales")
         stored = {a.action_id: a for a in view["actions"]}
         for line in report.actions.completed + report.actions.failed + report.actions.skipped:
             self.assertTrue(tw.can_claim(stored[line.action_id]), line)
@@ -79,14 +81,124 @@ class _Lead(_Contract):
             self.assertIn(e.source, child.allowed_inputs)
         cards = self.chat()
         self.assertEqual([c["team"]["kind"] for c in cards], ["clarification", "reply"])
-        found, why, nxt, changed = cards[-1]["text"].split("\n")
-        self.assertIn("Data Science:", found)
+        *found, why, nxt, changed = cards[-1]["text"].split("\n")  # one line a team, then why, next and what changed
+        self.assertEqual([line.split(":")[0].split(" ")[-1] if line.startswith("Simulated") else line.split(":")[0] for line in found][1:], ["Sales"])
+        self.assertIn("Data Science:", found[0])
+        self.assertIn("Sales", nxt)  # who acts next: the Sales team, with its capacity
         self.assertTrue(why.startswith("Why: ") and nxt.startswith("Next: ") and changed.startswith("Changed: "))
         self.assertNotIn("@r", changed)  # the report's revision id stays on the task page
         routed = {(r.subject.key.split(":", 1)[1], r.value_used, dict(r.state)["routed_by"])
                   for r in self.services.ledger.records(point="team.task_owner")}
         self.assertIn((task.id, "lead", "requester"), routed)
         self.assertIn((child.id, "data_science", "parent_owner"), routed)
+
+    # ------------------------------------------------------------------ more teams (0.168.0)
+    RANK = "Can our data rank the accounts by churn risk seven days before each renewal?"
+
+    def _never_forbidden(self, view):
+        for child in view["children"]:
+            acts = {a.action for a in self.view(child.id)["actions"]}
+            self.assertFalse(acts & {"approve", "train", "deploy", "contact_customers", "run_training", "register_version"}, (child.owner_team, acts))
+
+    def test_a_model_goes_to_data_science_and_ml_engineering_and_one_report_names_both(self):
+        out = self.to_the_end(question=self.RANK, track="model")
+        view = self.view(out["task_id"])
+        self.assertEqual([c.owner_team for c in view["children"]], ["data_science", "ml_engineering"])
+        self.assertEqual(view["task"].status, "complete")
+        [report] = view["reports"]
+        self.assertTrue(report.answer.startswith("Data Science: "), report.answer)
+        self.assertIn("\nML Engineering: The experiment can be set up: score each account seven days before each renewal", report.answer)
+        self.assertIn("Nothing was trained", report.answer)
+        ml = self.view(f"{out['task_id']}.ml_engineering")
+        self.assertEqual([(a.action, a.status) for a in ml["actions"]], [("validate_contract", "simulated")])
+        self.assertTrue(ml["reports"][0].simulated)
+        self.assertIn("renewed_by_date", ml["actions"][0].output_ref)  # the outcome named as excluded, from the sample's columns
+        self._never_forbidden(view)
+        self.assertEqual([c["team"]["kind"] for c in self.chat()], ["clarification", "reply"])  # one question, one report
+
+    def test_a_model_about_calls_goes_to_three_teams_and_sales_blocks_on_its_capacity(self):
+        out = self.to_the_end(track="model")  # the brief: who should Sales call before renewal
+        view = self.view(out["task_id"])
+        self.assertEqual([c.owner_team for c in view["children"]], ["data_science", "sales", "ml_engineering"])  # ML Engineering after Data Science answered
+        self.assertEqual(view["task"].status, "partial")
+        sales = self.view(f"{out['task_id']}.sales")
+        self.assertEqual(sales["task"].status, "blocked")
+        [said] = sales["reports"]
+        self.assertIn("do-not-contact", said.answer)
+        self.assertIn("nobody is contacted", said.answer)
+        self.assertEqual((said.next_task.owner, said.next_task.unblocks), ("sales", agents.CAPACITY))
+        [report] = view["reports"]
+        self.assertEqual(sorted(r.split("@")[0] for r in report.child_reports), sorted(f"{out['task_id']}.{t}" for t in ("data_science", "ml_engineering", "sales")))
+        self.assertEqual([line.split(":")[0] for line in report.answer.split("\n")], ["Data Science", "ML Engineering", "Sales"])
+        self.assertLess(report.answer.index("Data Science: "), report.answer.index("ML Engineering: "))
+        self.assertLess(report.answer.index("ML Engineering: "), report.answer.index("Sales: "))  # in the route's order
+        self.assertEqual(report.next_task.owner, "sales")
+        self._never_forbidden(view)
+
+    def test_ml_engineering_is_not_asked_while_data_science_is_blocked_and_sales_blocks_on_its_own_reason(self):
+        """Review F4: ML Engineering comes after Data Science has answered; review F5: Sales's blocker is its own."""
+        out = self.ask(track="model", inputs=("sample:renewal_no_dates",))  # the brief (who should Sales call), no renewal dates
+        self.pump()
+        lead.answer(self.services, self.pid, out["task_id"], person="sara", text=ANSWER, initiator=self.sara)
+        self.pump()
+        view = self.view(out["task_id"])
+        self.assertEqual(sorted(c.owner_team for c in view["children"]), ["data_science", "sales"])  # no ML Engineering
+        self.assertEqual(view["task"].status, "partial")
+        [said] = self.view(f"{out['task_id']}.sales")["reports"]
+        self.assertIn("no do-not-contact list", said.answer)
+        self.assertNotIn("renewal date", said.answer)
+
+    def test_ml_engineering_reads_the_outcome_the_person_confirmed_to_data_science(self):
+        """Review F4: it stated renewed_by_date as the outcome even when the person said churn meant a cancellation."""
+        out = self.ask(question=self.RANK, track="model")
+        self.pump()
+        lead.answer(self.services, self.pid, out["task_id"], person="sara", text="Cancellation of the subscription.", initiator=self.sara)
+        self.pump()
+        ml = self.view(f"{out['task_id']}.ml_engineering")
+        self.assertIn("Data Science found:", ml["task"].question)
+        [said] = ml["reports"]
+        self.assertIn('the outcome is "Cancellation of the subscription", as confirmed with Data Science', said.answer)
+
+    def test_a_crash_between_ml_engineerings_two_writes_resumes_and_the_lead_finishes(self):
+        """Review F1: the action written running, the process gone before it finished: the redelivery runs it again."""
+        work = self.services.teamwork
+        real, failed = work.finish_action, []
+
+        def once(project_id, task_id, action_id, status, **kw):
+            if task_id.endswith(".ml_engineering") and not failed:
+                failed.append(action_id)
+                raise RuntimeError("the process stopped here")
+            return real(project_id, task_id, action_id, status, **kw)
+
+        work.finish_action = once
+        try:
+            out = self.ask(question=self.RANK, track="model")
+            self.pump()
+            lead.answer(self.services, self.pid, out["task_id"], person="sara", text=ANSWER, initiator=self.sara)
+            try:
+                self.pump()
+            except AssertionError:
+                pass  # the delivery that crashed is retried
+        finally:
+            work.finish_action = real
+        self.assertTrue(failed)
+        self.pump()
+        ml = self.view(f"{out['task_id']}.ml_engineering")
+        self.assertEqual([(a.action, a.status) for a in ml["actions"]], [("validate_contract", "simulated")])
+        self.assertEqual(self.work.task(self.pid, out["task_id"]).status, "complete")
+
+    def test_asking_again_after_a_partial_report_is_a_new_request(self):
+        """Review F3: Sales blocks on its capacity, so the request ends partial; asking again said "the teams are working"."""
+        first = self.to_the_end()
+        self.assertEqual(self.work.task(self.pid, first["task_id"]).status, "partial")
+        again = self.ask()
+        self.assertNotEqual(again["task_id"], first["task_id"])
+        self.assertFalse(again["already_open"])
+
+    def test_the_lead_never_sends_a_report_or_preparation_to_sales(self):
+        self.assertEqual(tw.lead_route("report", "who should Sales call"), ("data_science",))
+        self.assertEqual(tw.lead_route("analyze", "who should Sales call before renewal?"), ("data_science", "sales"))
+        self.assertEqual(tw.lead_route("model", self.RANK), ("data_science", "ml_engineering"))
 
     # ------------------------------------------------------------------ 2
     def test_2_a_teams_question_reaches_the_person_in_home_and_their_answer_goes_back_once(self):
@@ -271,7 +383,7 @@ class _Lead(_Contract):
         said = agents.from_thread(self.services, thread, person="sara", text=ANSWER, initiator=self.sara)
         self.assertEqual(said["refused"], [])
         self.pump()
-        self.assertEqual(self.work.task(self.pid, out["task_id"]).status, "complete")
+        self.assertEqual(self.work.task(self.pid, out["task_id"]).status, "partial")  # Data Science answered; Sales waits for its capacity
 
 
     # ------------------------------------------------------------------ the review of 2026-11-21
@@ -416,11 +528,203 @@ class _Lead(_Contract):
         narrower = self.ask(question="Can our data rank the accounts by churn risk before renewal for enterprise customers only?")
         self.assertNotEqual(narrower["task_id"], first["task_id"])  # review F3: a narrower request is its own task
 
+    # ------------------------------------------------------------------ the review of 2026-11-22
+    def test_r22_3_the_built_chats_model_never_reads_another_persons_lead_card(self):
+        """A shared draft with sign-in on: Omar's model read Sara's card from the Lead in the conversation's history."""
+        import os
+        from unittest import mock
+
+        from dclab_rnd.accounts.principal import Principal, acting
+        from dclab_rnd.draft import orchestrator as orch
+
+        self.services.drafts.update(self.draft, lambda d: d["messages"].append({"id": "u-first", "role": "user", "kind": "text", "text": BRIEF}))
+        self.ask()
+        self.pump()
+        [card] = self.chat()
+        self.services.drafts.update(self.draft, lambda d: d["messages"].extend(
+            [{"id": "u-next", "role": "user", "kind": "text", "text": "What does this project predict?"},
+             {"id": "u-last", "role": "user", "kind": "text", "text": "and its score?"}]))
+        home = orch.Orchestrator(self.services, SimpleNamespace(store=self.services.drafts))
+        said = lambda: "\n".join(m["content"] for m in home.history(self.draft))  # noqa: E731
+        ws = self.services.workspace_id
+        with mock.patch.dict(os.environ, {"DCLAB_AUTH": "password"}):
+            with acting(Principal(role="data_scientist", workspace_id=ws, user_id="omar", via="session")):
+                self.assertNotIn(card["text"][:40], said())
+            with acting(Principal(role="data_scientist", workspace_id=ws, user_id="sara", via="session")):
+                self.assertIn(card["text"][:40], said())
+        self.assertIn(card["text"][:40], said())  # no sign-in: the local owner reads it
+
+    def test_r22_4_an_answer_home_skipped_is_not_said_to_have_reached_the_teams(self):
+        out = self.ask()
+        self.pump()
+        first = lead.answer(self.services, self.pid, out["task_id"], person="sara", text=ANSWER, initiator=self.sara)
+        self.assertIn("has given your answer to the teams", lead.answered_words(first))
+        again = lead.answer(self.services, self.pid, out["task_id"], person="sara", text="Cancellation", initiator=self.sara)
+        self.assertEqual((again["refused"], again["steps"]), ([], []))  # Home's rules skipped it: already answered
+        words = lead.answered_words(again)
+        self.assertNotIn("has given your answer", words)
+        self.assertIn("already answered", words)
+        self.assertIn("could not be passed", lead.answered_words({"refused": ["no"], "steps": []}))
+
+    def test_r22_7_ml_engineering_takes_the_outcome_data_science_confirmed_not_the_persons_first_words(self):
+        """The person's own words come first in the question: "The outcome is: …" there is not what Data Science confirmed."""
+        out = self.ask(question=self.RANK + "\nThe outcome is: a late payment.", track="model")
+        self.pump()
+        lead.answer(self.services, self.pid, out["task_id"], person="sara", text="Cancellation of the subscription.", initiator=self.sara)
+        self.pump()
+        [said] = self.view(f"{out['task_id']}.ml_engineering")["reports"]
+        self.assertIn('the outcome is "Cancellation of the subscription", as confirmed with Data Science', said.answer)
+        self.assertNotIn("late payment", said.answer)
+
+    def test_r22_the_teams_question_still_waits_is_said_once(self):
+        out = self.ask()
+        self.pump()
+        [card] = self.chat()
+        task = self.work.task(self.pid, out["task_id"])
+        messages = self.services.drafts.get(self.draft)["messages"]
+        self.assertTrue(lead.still_waiting_due(messages, task))
+        said = {"id": "m-wait", "role": "agent", "text": "still waits", "team": {"from": "lead", "kind": "still_waiting", "task_id": task.id}}
+        self.assertFalse(lead.still_waiting_due(messages + [said], task))
+        again = {"id": "m-q2", "role": "agent", "text": "another question", "team": {"from": "lead", "kind": "clarification", "task_id": task.id}}
+        self.assertTrue(lead.still_waiting_due(messages + [said, again], task))  # a new question: said again, once
+        self.assertEqual(card["team"]["kind"], "clarification")
+
+    def test_r22_the_lead_agents_tool_is_refused_without_a_home_conversation(self):
+        from dclab_rnd.agents import case_agent as A
+
+        self.services.projects.update(self.pid, team_inputs=[SAMPLE])
+        state = self.case([BRIEF])
+        state.draft_id = None
+        self.assertIn("Home conversation", A._ask_teams(state, "analyze")["error"])
+        self.assertEqual(self.work.deliveries(project_id=self.pid), [])
+
+    def test_r22_a_quote_of_the_request_is_a_real_span_not_two_words_or_a_negation(self):
+        from dclab_rnd.agents import case_agent as A
+
+        self.services.projects.update(self.pid, team_inputs=[SAMPLE])
+        words = ["Do not rank the accounts yet. First explain why renewals dropped last quarter in the north region."]
+        out = A._ask_teams(self.case(words), "analyze", quote="rank the accounts")
+        self.assertEqual(self.work.task(self.pid, out["task_id"]).question, words[0])  # a negated span: their whole message instead
+        self.assertFalse(lead.quote_is_request("the accounts", words))  # two words
+        self.assertFalse(lead.quote_is_request("rank the accounts yet", words))  # inside "do not"
+        self.assertTrue(lead.quote_is_request("explain why renewals dropped last quarter", words))
+        self.assertTrue(lead.quote_is_request("Rank accounts by churn", ["Rank accounts by churn"]))  # the whole short request
+
     def test_the_no_data_words_are_for_the_person_and_whole(self):
         """Live S4: the rules showed this text cut at 200 characters, ending in an order meant for the model ("Say so to the ")."""
         self.assertLess(len(lead.NO_DATA_YET), 200)
         self.assertNotIn("Say so", lead.NO_DATA_YET)
         self.assertTrue(lead.NO_DATA_YET.endswith("."))
+
+
+class LeadRulesReviewTests(unittest.TestCase):
+    """The review of 2026-11-22: words, not an understanding; each case a sentence the review ran."""
+
+    def names(self, said):
+        from dclab_rnd.draft import orchestrator as orch
+
+        return [n for n, _ in orch.plan(said, None)]
+
+    def test_r22_1_an_order_to_ask_the_teams_only_when_it_is_one(self):
+        for said in ("Please don't ask the team, just show me the data", "I will ask my team about the horizon tomorrow",
+                     "Do not ask the teams yet; show the models", "Never hand it to the lead", "We'll check with the team later",
+                     "I'm going to ask the teams tomorrow", "Show the models, but don't ask the teams",
+                     # reviewer round 2
+                     "Please don't ask the team", "Never send this to the teams", "Can you not ask the teams yet",
+                     "I will ask my team later", "No need to ask the team", "Ask the team? No, show me the data."):
+            self.assertNotIn("ask_teams", self.names(said), said)
+        self.assertIn("show_data", self.names("Ask the team? No, show me the data."))
+        self.assertIn("show_data", self.names("Please don't ask the team, just show me the data"))
+        for said in ("Please ask the teams: can our data rank the accounts by churn risk seven days before each renewal?",
+                     "Ask the teams to clean and merge the renewal tables", "check with the data science team why renewals dropped",
+                     "Customers are leaving. Please ask the teams to rank the accounts by churn risk.",
+                     "Can you ask the teams whether the renewal dates are complete?",
+                     # reviewer round 2: a comma starts an order too (handed over before the first fix)
+                     "Yes, ask the teams", "OK, ask the teams", "Please, ask the teams",
+                     "Good idea, ask the teams to check the tables"):
+            self.assertIn("ask_teams", self.names(said), said)
+        self.assertEqual(self.names("Sure, ask Data Science"), ["ask_teams"])
+
+    def test_r22_1_show_the_data_and_then_ask_the_teams_does_both(self):
+        from dclab_rnd.draft import orchestrator as orch
+
+        said = "Show the data and then ask the teams whether it works"
+        planned = orch.plan(said, None)
+        self.assertEqual([n for n, _ in planned], ["show_data", "ask_teams"])
+        self.assertEqual(planned[-1][1]["request"], said)  # the teams get the person's whole words
+        self.assertEqual(self.names("Customers are leaving. Please ask the teams: can our data rank accounts?"), ["ask_teams"])
+
+    def test_r22_8_the_live_scripts_refuse_any_claude_model_however_it_is_configured(self):
+        import os
+        from unittest import mock
+
+        sys.path.insert(0, str(ROOT / "scripts"))
+        from no_claude import claude_settings
+
+        blank = {k: "" for k in os.environ if k.startswith(("DCLAB_TIER_", "DCLAB_LLM_", "OPENROUTER_", "OPENAI_", "ANTHROPIC_"))}
+        blank.update(DCLAB_INTERN_MODEL="")
+        cases = {"provider": {"DCLAB_LLM_PROVIDER": "anthropic"},
+                 "openrouter": {"DCLAB_LLM_PROVIDER": "openrouter", "OPENROUTER_API_KEY": "x", "OPENROUTER_MODEL": "anthropic/claude-sonnet-4.5"},
+                 "tier": {"DCLAB_TIER_STRONG_MODEL": "claude-opus-4"},
+                 "endpoint": {"DCLAB_TIER_CHEAP_BASE_URL": "https://api.anthropic.com/v1", "DCLAB_TIER_CHEAP_MODEL": "x"},
+                 "intern": {"DCLAB_INTERN_MODEL": "Claude-3-haiku"}}
+        for name, env in cases.items():
+            with mock.patch.dict(os.environ, {**blank, **env}):
+                found = claude_settings()
+                self.assertTrue(found, name)
+                self.assertFalse(any("x" == f.split("=")[-1] for f in found), "a key's value is never named")
+        with mock.patch.dict(os.environ, {**blank, "DCLAB_LLM_PROVIDER": "openrouter", "OPENROUTER_API_KEY": "x",
+                                          "OPENROUTER_MODEL": "qwen/qwen3.8-flash", "ANTHROPIC_MODEL": "claude-sonnet-5.5"}):
+            self.assertEqual(claude_settings(), [])  # Claude's name kept for another provider, unused here: the run may go on
+        # reviewer round 2: blocking Anthropic is no Claude model, and a blocked tier serves nothing
+        with mock.patch.dict(os.environ, {**blank, "DCLAB_LLM_PROVIDER": "openrouter", "OPENROUTER_API_KEY": "x",
+                                          "OPENROUTER_MODEL": "qwen/qwen3.8-flash", "DCLAB_BLOCK_PROVIDERS": "openai,anthropic",
+                                          "DCLAB_TIER_CHEAP_BASE_URL": "https://api.anthropic.com", "DCLAB_TIER_CHEAP_API_KEY": "x"}):
+            self.assertEqual(claude_settings(), [])
+        for script in ("live_lead_scenarios.py", "live_lead_teams.py"):
+            text = (ROOT / "scripts" / script).read_text(encoding="utf-8")
+            self.assertIn("refuse_claude(", text, script)
+            self.assertIn("mark_invented_tables", text, script)
+            self.assertIn("thinking_record(", text, script)
+            self.assertLess(text.index("load_dotenv(ROOT"), text.index("refuse_claude("), script)  # after .env is read
+
+    def test_r22_8_a_run_without_a_model_is_not_refused_and_reaches_none(self):
+        """Reviewer round 2: --rules and --report call no model; a Claude setting then turns live models off, never refuses."""
+        import os
+        from unittest import mock
+
+        sys.path.insert(0, str(ROOT / "scripts"))
+        from no_claude import refuse_claude
+
+        with mock.patch.dict(os.environ, {"DCLAB_INTERN_MODEL": "claude-3-haiku", "DCLAB_NO_LIVE_MODELS": ""}):
+            with self.assertRaises(SystemExit):
+                refuse_claude()
+            refuse_claude(model_used=False)
+            self.assertEqual(os.environ["DCLAB_NO_LIVE_MODELS"], "1")
+
+    def test_r22_8_only_calls_that_answered_must_keep_their_thinking(self):
+        """Reviewer round 2: a timeout or a 429 was counted as a call without its thinking and failed the run (rule 9: the
+        non-error exchanges)."""
+        import json
+        import tempfile
+
+        sys.path.insert(0, str(ROOT / "scripts"))
+        from no_claude import thinking_record
+
+        home = Path(tempfile.mkdtemp())
+        (home / "model_exchanges" / "p").mkdir(parents=True)
+        rows = [{"outcome": "ok", "purpose": "home", "thinking": "summary"}, {"outcome": "error: TimeoutError", "purpose": "home"},
+                {"outcome": "error: RateLimit", "purpose": "home"}]
+        (home / "model_exchanges" / "p" / "a.jsonl").write_text("\n".join(json.dumps(r) for r in rows), encoding="utf-8")
+        out = thinking_record(home)
+        self.assertEqual((out["model_calls"], out["answered_calls"], out["errored_calls"], out["calls_with_thinking"]), (3, 1, 2, 1))
+        self.assertTrue(out["thinking_kept"])
+        self.assertNotIn("failed", out)
+        with open(home / "model_exchanges" / "p" / "a.jsonl", "a", encoding="utf-8") as f:
+            f.write("\n" + json.dumps({"outcome": "ok", "purpose": "home"}))
+        out = thinking_record(home)
+        self.assertFalse(out["thinking_kept"])
+        self.assertIn("1 answered model call(s) without their thinking", out["failed"])
 
 
 for _name in [n for n in dir(_Contract) if n.startswith("test")]:  # the W5 walkthroughs run in their own file, not again here
@@ -547,7 +851,7 @@ class SignedInLeadRouteTests(unittest.TestCase):
         self.assertIn("given your answer", told[0]["text"])
         self.pump(work)
         task = work.task(pid, out["task_id"])
-        self.assertEqual(task.status, "complete")
+        self.assertEqual(task.status, "partial")  # Data Science answered; Sales waits for its capacity
         child = work.task_view(pid, f"{out['task_id']}.data_science")
         humans = [a for a in child["actions"] if a.source.startswith("human:") and a.status in tw.DONE_ACTIONS]
         self.assertEqual({a.responded_by.id for a in humans}, {self.sara["id"]})

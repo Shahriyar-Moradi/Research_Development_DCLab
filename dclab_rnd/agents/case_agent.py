@@ -613,7 +613,9 @@ def _ask_teams(state: CaseState, track: str, quote: Optional[str] = None) -> dic
 
     words = [w for w in state.case.words if str(w).strip()]
     latest = words[-1] if words else ""
-    question = quote if quote and C.quote_ok(quote, quote, words) else latest
+    question = quote if quote and lead.quote_is_request(quote, words) else latest  # a real span of theirs (review 2026-11-22)
+    if not state.draft_id:  # the teams' questions and report come back into a Home conversation: none, nothing to hand over
+        return {"error": "the teams answer in a Home conversation, and this session has none: ask from Home's chat"}
     why = lead.refusal(project_id=state.project_id, problem_id=state.problem_id, question=question, track=track)
     if why:
         return {"error": why}
@@ -624,7 +626,7 @@ def _ask_teams(state: CaseState, track: str, quote: Optional[str] = None) -> dic
         return {"error": lead.NO_DATA_YET}
     try:
         out = lead.ask(env, str(state.project_id), str(state.problem_id), question=question, track=track, person=person,
-                       draft_id=str(state.draft_id or "draft"), initiator=initiator, inputs=inputs)
+                       draft_id=str(state.draft_id), initiator=initiator, inputs=inputs)
     except (ValueError, KeyError, LookupError) as error:
         return {"error": str(error)}
     if out["refused"]:
@@ -632,7 +634,7 @@ def _ask_teams(state: CaseState, track: str, quote: Optional[str] = None) -> dic
     if out["already_open"]:
         return {"sent_to": "lead", "task_id": out["task_id"], "new": False,
                 "next": "the teams already have this request and are working on it: tell the person their report will come here"}
-    return {"sent_to": "lead", "task_id": out["task_id"], "teams": list(tw.lead_route(track)), "new": out["opened"],
+    return {"sent_to": "lead", "task_id": out["task_id"], "teams": list(tw.lead_route(track, question)), "new": out["opened"],
             "next": "tell the person in one sentence that the teams have the request and that their questions and report will "
                     "appear in this chat; give no result before the report arrives"}
 

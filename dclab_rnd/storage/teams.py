@@ -182,7 +182,7 @@ class FileTeams:
 
     def delete_team(self, team_id: str) -> int:
         """W7: the team removed with its memberships; how many members it had. Its threads and its memory stay in the
-        workspace's records (the store keeps what was written), read by the owner only."""
+        workspace's records (the store keeps what was written); the team memory routes answer 404 for it from now on."""
         with self._held():
             doc = self._load()
             if not any(t["id"] == team_id for t in doc["teams"]):

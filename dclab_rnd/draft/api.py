@@ -480,17 +480,20 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
             return None
 
     def _still_waiting(draft_id: str, task: Any) -> None:
-        """After Home answered a message that was not the answer, the chat says the teams' question still waits for it."""
+        """After Home answered a message that was not the answer, the chat says the teams' question still waits for it: once
+        a question (the review of 2026-11-22: it was said after every message)."""
+        from ..teamspace.lead import flush_held, still_waiting_due
         from .store import now
 
+        if not still_waiting_due(drafts.get(draft_id).get("messages") or [], task):
+            flush_held(drafts, draft_id)
+            return
         said = {"id": "m" + secrets.token_hex(5), "role": "agent", "kind": "text", "at": now(),
                 "text": "The teams' question above still waits for your answer; reply to it here when you are ready.",
                 "team": {"from": "lead", "kind": "still_waiting", "task_id": task.id, "project_id": task.project_id,
                          "thread_id": task.requester.thread_id}}
         drafts.update(draft_id, lambda d: d["messages"].append(said))
         drafts.emit(draft_id, "chat", said)
-        from ..teamspace.lead import flush_held
-
         flush_held(drafts, draft_id)  # a card held under a lock no turn's end flushed follows (review F4)
 
     def _answer_teams(draft_id: str, text: str, project_id: str, task: Any) -> None:
@@ -503,8 +506,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         drafts.emit(draft_id, "chat", said)
         person, initiator = lead.person_of(None)
         out = lead.answer(services, project_id, task.id, person=person, text=text, initiator=initiator)
-        words = ("The Lead has given your answer to the teams; their report will appear here." if not out["refused"]
-                 else "Your answer could not be passed to the teams: " + out["refused"][0])
+        words = lead.answered_words(out)  # "given to the teams" only when a step recorded it (the review of 2026-11-22)
         told = {"id": "m" + secrets.token_hex(5), "role": "agent", "kind": "text", "text": words, "at": now(),
                 "team": {"from": "lead", "kind": "answered", "task_id": task.id, "project_id": project_id,
                          "thread_id": task.requester.thread_id}}

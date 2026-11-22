@@ -4,10 +4,11 @@ Two places that behave the same, as problem memory's bases (``storage/memory_bas
 
 - Files (``FileTeamWork``): one document per project, ``teamspace/<project>/work.json`` in the workspace folder, read
   and replaced whole under that project's folder lock (``filelock.held``: a thread lock and ``flock``). A change is one
-  atomic write, so a task and its pending delivery are saved together or not at all. One host only.
+  atomic write, so a task and its pending delivery are saved together or not at all. One host only. Every change also
+  holds ``teamspace/.workspace.lock`` shared, and a team's removal holds it exclusively (``remove_team_if_idle``).
 - PostgreSQL (``PgTeamWork``, migration 0026): ``team_task``, ``team_action``, ``team_report`` and ``team_delivery``.
-  A change is one transaction holding an advisory lock on the project; a task's or a delivery's update also checks its
-  ``version``. Ids are unique within a project on both.
+  A change is one transaction holding an advisory lock on the project (and the workspace's, shared, against a team's
+  removal); a task's or a delivery's update also checks its ``version``. Ids are unique within a project on both.
 
 What every change keeps (the rules are dclab_core.team_work's; this module only feeds them what is stored):
 
@@ -42,6 +43,7 @@ import os
 import re
 import secrets
 import tempfile
+import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -62,6 +64,18 @@ _CREDENTIAL = re.compile(r"(?i)\b(password|passwd|pwd|secret|token|api[_-]?key|a
 
 class Conflict(RuntimeError):
     """A row changed between its read and its write (another host wrote it): nothing was written."""
+
+
+class TeamBusy(RuntimeError):
+    """A team is not removed: open tasks it owns or asked for, or rows still on their way to or from it."""
+
+    def __init__(self, tasks: Sequence[tw.TeamTask], deliveries: Sequence[Row]):
+        self.tasks, self.deliveries = list(tasks), list(deliveries)
+        shown = [t.id for t in self.tasks] + [f"{d['kind']} {d['task_id']}" for d in self.deliveries]
+        super().__init__(", ".join(shown[:5]))
+
+
+REMOVAL_WAIT = 10.0  # how long a team's removal waits for the team work under way to finish its change
 
 
 @dataclass
@@ -147,6 +161,7 @@ class _TeamWork:
     def _tx(self, project_id: str) -> contextlib.AbstractContextManager: ...                   # a change: locked, all or nothing
     def _read(self, project_id: Optional[str] = None) -> contextlib.AbstractContextManager: ...  # a read; None reads every project
     def location(self) -> str: ...
+    def _removal(self, wait: float) -> contextlib.AbstractContextManager: ...  # every change held back (remove_team_if_idle)
 
     @property
     def projects(self) -> Any:
@@ -675,6 +690,24 @@ class _TeamWork:
         with self._read(None) as tx:
             rows = tx.tasks()
         return [r["task"] for r in rows if tw.is_open(r["task"]) and (r["task"].owner_team in wanted or r["task"].requester.team in wanted)]
+
+    def pending_deliveries_of(self, names: Sequence[str]) -> list[Row]:
+        """Every pending row, in any project, to or from one of ``names``: a reply queued with its completed task (the
+        receiver in backoff) still has to reach the requester's thread."""
+        wanted = set(names)
+        return [d for d in self.deliveries(status="pending") if d["to_team"] in wanted or d["from_team"] in wanted]
+
+    def remove_team_if_idle(self, names: Sequence[str], remove, *, wait: float = REMOVAL_WAIT) -> Any:
+        """W7 and the review of 2026-11-22: ``remove()`` (the team's removal from the teams store) runs only when no open
+        task and no pending row names the team, and the check and the removal hold the workspace's team work lock
+        exclusively, while every change here holds it shared (:meth:`_tx`): no task or delivery is made between them.
+        Raises :class:`TeamBusy` with what holds the team, or ``TimeoutError`` when changes under way did not finish within
+        ``wait`` seconds (nothing removed: try again). Returns what ``remove()`` returned."""
+        with self._removal(wait):
+            tasks, rows = self.open_work_of(names), self.pending_deliveries_of(names)
+            if tasks or rows:
+                raise TeamBusy(tasks, rows)
+            return remove()
 
     def handoff_history(self, project_id: str, problem_id: str) -> list[Row]:
         """Who asked whom and what came back, in order: ``{n, from_team, to_team, text, state}`` per thing that travelled
@@ -1244,11 +1277,40 @@ class FileTeamWork(_TeamWork):
         os.replace(temporary, folder / FILE)
 
     @contextlib.contextmanager
+    def _workspace_lock(self, exclusive: bool, wait: float = REMOVAL_WAIT) -> Iterator[None]:
+        """``flock`` on ``teamspace/.workspace.lock``: shared by every change, exclusive for a team's removal. Each holder
+        opens the file itself, so threads of one process exclude each other too. The exclusive side never queues (it
+        tries until ``wait``), so a change is never held behind a removal that is itself waiting."""
+        self.folder.mkdir(parents=True, exist_ok=True)
+        with open(self.folder / ".workspace.lock", "a+b") as handle:
+            try:
+                import fcntl
+            except ImportError:  # pragma: no cover - Windows: no lock between processes
+                yield
+                return
+            if not exclusive:
+                fcntl.flock(handle, fcntl.LOCK_SH)
+            else:
+                deadline = time.monotonic() + wait
+                while True:
+                    try:
+                        fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                        break
+                    except BlockingIOError:
+                        if time.monotonic() >= deadline:
+                            raise TimeoutError("the team work under way did not finish in time: nothing was removed") from None
+                        time.sleep(0.02)
+            yield
+
+    def _removal(self, wait: float) -> contextlib.AbstractContextManager:
+        return self._workspace_lock(True, wait)
+
+    @contextlib.contextmanager
     def _tx(self, project_id: str) -> Iterator[_FileTx]:
         from ..filelock import held
 
         folder = self.project_dir(project_id)
-        with held(folder):
+        with self._workspace_lock(False), held(folder):
             tx = _FileTx(self._load(folder / FILE))
             tx.data["project_id"] = project_id
             yield tx  # an exception here leaves the file as it was: the change is all or nothing
@@ -1456,8 +1518,27 @@ class PgTeamWork(_TeamWork):
 
         digest = hashlib.sha256(f"team_work:{self.workspace}:{project_id}".encode("utf-8")).digest()
         with self.engine.begin() as c:  # an exception rolls back and releases the lock: nothing is written
+            c.execute(sa.text("select pg_advisory_xact_lock_shared(:key)"), {"key": self._workspace_key()})  # see _removal
             c.execute(sa.text("select pg_advisory_xact_lock(:key)"), {"key": int.from_bytes(digest[:8], "big", signed=True)})
             yield _PgTx(c, self.workspace, project_id)
+
+    def _workspace_key(self) -> int:
+        digest = hashlib.sha256(f"team_work_workspace:{self.workspace}".encode("utf-8")).digest()
+        return int.from_bytes(digest[:8], "big", signed=True)
+
+    @contextlib.contextmanager
+    def _removal(self, wait: float) -> Iterator[None]:
+        """The workspace's team work lock held exclusively for one transaction (every change holds it shared). Tried, never
+        queued: a waiting exclusive request in PostgreSQL would hold back every new change behind it."""
+        import sqlalchemy as sa
+
+        with self.engine.begin() as c:
+            deadline = time.monotonic() + wait
+            while not c.execute(sa.text("select pg_try_advisory_xact_lock(:key)"), {"key": self._workspace_key()}).scalar():
+                if time.monotonic() >= deadline:
+                    raise TimeoutError("the team work under way did not finish in time: nothing was removed")
+                time.sleep(0.02)
+            yield
 
     @contextlib.contextmanager
     def _read(self, project_id: Optional[str] = None) -> Iterator[_PgTx]:
@@ -1532,5 +1613,5 @@ def open_team_work(home: Path, url: Optional[str] = None, projects: Any = None) 
 
 __all__ = ["decision_ref", "decisions", "fact_citation", "fact_evidence", "mark_fact_dependents_stale", "record_decision",
            "report_citations", "report_ref", "stale_marks", "task_citations", "task_ref",
-           "Conflict", "import_project", "reply_text", "simulated_sources", "DELIVERY_KINDS", "DELIVERY_STATES", "FileTeamWork", "PgTeamWork", "Written", "history_lines", "initiator_of",
+           "Conflict", "TeamBusy", "import_project", "reply_text", "simulated_sources", "DELIVERY_KINDS", "DELIVERY_STATES", "FileTeamWork", "PgTeamWork", "Written", "history_lines", "initiator_of",
            "is_due", "open_team_work", "scrub", "team_label"]

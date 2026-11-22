@@ -123,5 +123,26 @@ class StatesTests(unittest.TestCase):
             self.assertNotRegex(text, r'class="empty"[^<]*\$\{esc\(e(rr)?\.message\)\}', f"{name}: use DC.states.failed")
 
 
+
+class HomeSendTests(unittest.TestCase):
+    """The review of 2026-11-22: Home's send() and the page's "still answering" state (read from the source, as above)."""
+
+    def setUp(self):
+        text = sources()["home.html"]
+        start = text.index("async function send(text)")
+        self.body = text[start:text.index("\n    }\n", start)]
+
+    def test_the_still_answering_guard_comes_after_the_claude_only_lane(self):
+        guard = self.body.index("toast(STILL); return;")
+        self.assertLess(self.body.index("if (to === 'claude'"), guard, "the Claude-only lane holds no draft lock")
+
+    def test_thinking_is_set_before_the_message_is_sent_and_cleared_if_it_fails(self):
+        sent = self.body.index("await DC.client.message(")
+        self.assertLess(self.body.index("setThinking(true)"), sent, "the turn's last event may come before the await returns")
+        self.assertNotIn("if (!S.thinking) setThinking(true)", self.body)
+        failed = self.body[sent:]
+        self.assertIn("setThinking(false)", failed[failed.index("catch (err)"):])
+
+
 if __name__ == "__main__":
     unittest.main()

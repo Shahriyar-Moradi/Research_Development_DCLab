@@ -23,6 +23,8 @@ SAMPLES: dict[str, dict[str, Any]] = {
         "outcome": "renewed_by_date",
         "outcomes_mature": True,  # every renewal date in the sample is past, so every outcome is known
         "known_after_renewal": ("renewed_by_date",),
+        "accounts": 1200,
+        "do_not_contact": 3,  # accounts on the CRM's do-not-contact list (Sales removes them before any plan)
     },
     "sample:renewal_no_dates": {
         "columns": ("account_id", "plan", "tenure_months", "seats", "last_login_at", "support_tickets_90d", "cancelled"),

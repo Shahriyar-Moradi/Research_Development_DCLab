@@ -490,6 +490,30 @@ class LeadRulesTest(unittest.TestCase):
         self.assertEqual(tw.lead_route("advice"), ())
         self.assertEqual(tw.lead_route(""), ())
 
+    def test_a_model_goes_to_ml_engineering_and_a_request_about_calls_to_sales(self):
+        """0.168.0: ML Engineering checks how a model would be trained and held out; Sales plans calls, never contacts."""
+        self.assertEqual(tw.lead_route("model", "rank accounts by churn risk"), ("data_science", "ml_engineering"))
+        self.assertEqual(tw.lead_route("model", "who should Sales call before renewal?"), ("data_science", "ml_engineering", "sales"))
+        self.assertEqual(tw.lead_route("analyze", "which accounts should we contact first"), ("data_science", "sales"))
+        self.assertEqual(tw.lead_route("prepare", "clean the call log"), ("data_science",))  # outreach words only for a model or an analysis
+        self.assertEqual(tw.lead_route("advice", "who should we call"), ())
+        self.assertEqual(tw.lead_route("analyze", "recall the renewal rate"), ("data_science",))  # a word, not a part of one
+        # review F2: contact aimed at people, never a bare word
+        for q in ("Which customers with phone service will churn next month?", "Forecast call volume at the support centre next week",
+                  "Predict which patients miss their follow-up visit", "Predict the contact rate of the campaign",
+                  "Who calls the support line most often?",
+                  # review of 2026-11-22: ordinary questions about calls or phones are not outreach
+                  "Do phone service customers churn more?", "Which users will call support next month?",
+                  "Forecast how many calls customers make next month"):
+            self.assertNotIn("sales", tw.lead_route("model", q), q)
+        for q in ("Which accounts should be contacted before renewal?", "Who should we email before renewal?",
+                  "rank them and call the at-risk customers first", "Who should Sales call before renewal?",
+                  "plan the outreach for renewals"):
+            self.assertIn("sales", tw.lead_route("model", q), q)
+        for team in ("ml_engineering", "sales"):
+            self.assertIn("contact_customers", tw.DIRECTORY[team].forbidden)
+            self.assertEqual(tw.delegation_refusal(tw.DIRECTORY["lead"], team), None)
+
 
 if __name__ == "__main__":
     unittest.main()

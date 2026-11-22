@@ -27,6 +27,33 @@ from dclab_rnd.storage.teams import FileTeams, NoSuchTeam, PgTeams, TeamError  #
 PASSWORD = "a long enough password"
 
 
+def answered_task(services, initiator, task_id="T-done"):
+    """Business asked Data Science, Data Science reported and the task is complete: the reply's delivery is still pending
+    (as when the receiver is in backoff). Returns the team work store and the pending rows."""
+    from dclab_core import team_work as tw
+    from dclab_rnd.memory.scope import create_problem
+    from dclab_rnd.storage import open_team_work
+
+    pid = services.projects.create("Renewal", goal="Who should Sales call")["id"]
+    prob = create_problem(services.projects, pid, "Renewal", workspace_id=services.workspace_id or "local")["problem_id"]
+    work = open_team_work(services.store.home, projects=services.projects)
+    ds = tw.Actor(kind="agent", id="data_science", team="data_science")
+    work.create_task(tw.TeamTask(id=task_id, workspace_id=work.workspace, project_id=pid, problem_id=prob, brief_revision=1,
+                                 requester=tw.Requester(team="business", member=initiator["user_id"], thread_id="th-biz"),
+                                 owner_team="data_science", question="Can we rank accounts?", expected_output="a yes or no",
+                                 done_criteria=["says why"], created_at="2026-11-21T09:00:00Z"), initiator=initiator)
+    work.move(pid, task_id, "accepted", ds)
+    action = tw.TeamAction(task_id=task_id, action_id="A1", actor=ds, action="inspect_schema", source="tool:inspect_schema",
+                           input_revision="brief-1", status="running", started_at="2026-11-21T09:01:00Z",
+                           retry_key=tw.retry_key(task_id, "inspect_schema", "brief-1"))
+    work.record_action(pid, action)
+    work.finish_action(pid, task_id, "A1", "succeeded", ended_at="2026-11-21T09:02:00Z", output_ref="schema:v3")
+    work.move(pid, task_id, "complete", ds)
+    work.store_report(pid, task_id, current_brief_revision=1, answer="Yes: the data can rank accounts.",
+                      next_task=tw.NextStep(owner="business", unblocks="Business reads the finding"))
+    return work, [d for d in work.deliveries(status="pending") if d["task_id"] == task_id]
+
+
 class PermissionTests(unittest.TestCase):
     def test_the_new_permissions_and_who_has_them(self):
         from dclab_rnd.accounts.roles import ROLES, allows
@@ -192,6 +219,47 @@ class FileTeamsTests(_Contract, unittest.TestCase):
                            client.post(f"/api/workspace/teams/{made.json()['id']}/members", json={"user_id": "owner"})):
                 self.assertEqual(answer.status_code, 503, answer.text)
                 self.assertNotIn(str(self.home), answer.text)
+
+
+    def test_a_team_whose_reply_is_on_its_way_is_not_removed(self):
+        """Review of 2026-11-22: the task is complete, but its reply is still pending (the receiver in backoff). Removing
+        either team would send the reply to a removed team's thread: 409 until every row of theirs is delivered."""
+        try:
+            from fastapi.testclient import TestClient
+
+            from dclab_rnd.agentic.server import create_app
+        except ImportError as error:
+            raise unittest.SkipTest(f"Studio dependencies not installed: {error}")
+        with TestClient(create_app(self.home)) as client:
+            client.headers["X-DCLab-Token"] = client.get("/api/config").json()["csrf"]
+            business = client.post("/api/workspace/teams", json={"name": "Business", "kind": "business"}).json()["id"]
+            science = client.post("/api/workspace/teams", json={"name": "Data Science", "kind": "data_science"}).json()["id"]
+            work, pending = answered_task(client.app.state.services, {"user_id": "owner", "role": "owner", "workspace_id": "local"})
+            self.assertIn("reply", [d["kind"] for d in pending])
+            self.assertEqual(work.open_work_of(["business", business]), [])  # no open task: only the reply holds it
+            for team in (business, science):  # the receiver and the sender of the reply
+                busy = client.delete(f"/api/workspace/teams/{team}")
+                self.assertEqual(busy.status_code, 409, busy.text)
+                self.assertIn("reply", busy.json()["detail"])
+            for row in pending:  # the relay delivers them
+                work.delivery_done(row["id"], {"seen": row["id"]})
+            self.assertEqual(client.delete(f"/api/workspace/teams/{business}").status_code, 204)
+            self.assertEqual([t["id"] for t in client.get("/api/workspace/teams").json()], [science])
+
+    def test_the_kind_of_a_new_team_is_audited_only_when_known(self):
+        """Review of 2026-11-22: the event keeps a kind the plan names; another word the owner typed is "other"."""
+        try:
+            from fastapi.testclient import TestClient
+
+            from dclab_rnd.agentic.server import create_app
+        except ImportError as error:
+            raise unittest.SkipTest(f"Studio dependencies not installed: {error}")
+        with TestClient(create_app(self.home)) as client:
+            client.headers["X-DCLab-Token"] = client.get("/api/config").json()["csrf"]
+            for name, kind in (("Sales", "sales"), ("Acme partner desk", "acme_partner_desk")):
+                self.assertEqual(client.post("/api/workspace/teams", json={"name": name, "kind": kind}).status_code, 201)
+            events = client.app.state.services.experience.read(kinds=("team.created",))
+            self.assertEqual(sorted(e.payload.get("kind") for e in events), ["other", "sales"])
 
 
 class PgTeamsTests(_Contract, unittest.TestCase):
@@ -365,7 +433,12 @@ class TeamRoutesTests(unittest.TestCase):
         busy = owner.delete(f"/api/workspace/teams/{b}")
         self.assertEqual(busy.status_code, 409, busy.text)
         self.assertIn("T-open", busy.json()["detail"])
-        work.move(pid, "T-open", "cancelled", tw.Actor(kind="person", id=ds1, team="business"))  # closed: the team may go
+        work.move(pid, "T-open", "cancelled", tw.Actor(kind="person", id=ds1, team="business"))  # closed, but its row is pending
+        waiting = owner.delete(f"/api/workspace/teams/{b}")
+        self.assertEqual(waiting.status_code, 409, waiting.text)  # review of 2026-11-22: a row on its way holds the team too
+        self.assertIn("task T-open", waiting.json()["detail"])
+        for row in work.deliveries(status="pending"):
+            work.delivery_done(row["id"], {"seen": row["id"]})  # the relay delivered it: the team may go
         self.assertEqual(viewer.delete(f"/api/workspace/teams/{b}").status_code, 403)
         self.assertEqual(owner.delete(f"/api/workspace/teams/{b}").status_code, 204)
         self.assertEqual(owner.delete(f"/api/workspace/teams/{b}").status_code, 404)

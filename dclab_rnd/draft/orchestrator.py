@@ -1339,10 +1339,8 @@ def ask_teams(t: Turn, /, track: str = "", request: str = "", **_: Any) -> dict[
 
     words = [str(m.get("text") or "") for m in (t.services.drafts.get(t.draft_id).get("messages") or []) if m.get("role") == "user"]
     latest = (t.text or (words[-1] if words else "")).strip()
-    from dclab_core import case as C
-
     asked = str(request or "").strip()
-    question = asked if asked and C.quote_ok(asked, asked, words + [latest]) else latest  # two whole words of theirs, at least
+    question = asked if asked and lead.quote_is_request(asked, words + [latest]) else latest  # a real span of theirs (review 2026-11-22)
     project = t.project()
     draft = t.services.drafts.get(t.draft_id)
     problem = draft.get("problem_id") or project.get("default_problem_id")
@@ -1559,8 +1557,33 @@ HOLD = re.compile(r"\b(?:but|instead|first|not now|later|wait|don'?t|do not|no|n
 OFFERING = ("improvement_ideas", "propose_data_change")  # each asks for a yes next
 
 
-ASK_TEAMS = re.compile(r"\b(?:ask|send (?:it |this )?to|hand (?:it |this )?(?:over )?to|give (?:it |this )?to|check with|pass (?:it |this )?to)\s+"
+# An order to hand a request to the teams (the review of 2026-11-22: "don't ask the team" and "I will ask my team" were orders
+# too): at a sentence's or a clause's start (after a comma: "Yes, ask the teams"), or after please / and / then / "can you",
+# as lead._NEW_REQUEST and lead._ORDER read orders;
+# never after a negation or a first-person "I will" in the same sentence (``asks_the_teams``).
+ASK_TEAMS = re.compile(r"(?P<lead>^\s*|[.!?;:,]\s+|\bplease\s+|\band\s+(?:then\s+)?|\bthen\s+|\b(?:can|could|would|will) you\s+(?:please\s+)?)"
+                       r"(?:also\s+|now\s+|just\s+)?"
+                       r"(?:ask|send (?:it |this )?to|hand (?:it |this )?(?:over )?to|give (?:it |this )?to|check with|pass (?:it |this )?to)\s+"
                        r"(?:the |our |my )?(?:teams?|data science(?: team)?|workspace(?:'s)? teams?|lead)\b", re.I)
+_NEGATED = re.compile(r"\b(?:don'?t|do not|does not|not|never|no need to|without)\b", re.I)
+_MY_OWN = re.compile(r"\b(?:i|we)\s*(?:'ll|will|shall|'m going to|am going to|are going to|plan to)\b", re.I)
+
+
+def asks_the_teams(said: str) -> Optional[re.Match[str]]:
+    """The order in ``said`` to hand a request to the teams, or None: the first match with no negation before it in its own
+    clause and no "I will" before it in its own sentence (words, not an understanding: a missed order stays in this chat,
+    which the person sees; "customers are not renewing, so please ask the teams" is still an order)."""
+    for m in ASK_TEAMS.finditer(said):
+        end = m.end("lead")
+        sentence = max(said.rfind(x, 0, m.start("lead") + 1) for x in ".!?;")
+        clause = max(sentence, said.rfind(",", 0, m.start("lead") + 1))
+        if not _NEGATED.search(said[clause + 1:end]) and not _MY_OWN.search(said[sentence + 1:end]) \
+                and not _TAKEN_BACK.search(said[m.end():]):
+            return m
+    return None
+
+
+_TAKEN_BACK = re.compile(r"^[^.!?]*[.!?]\s*(?:no|nope|actually,? no|don'?t|do not|never mind|forget it)\b", re.I)  # "Ask the team? No, …"
 
 
 def teams_track(text: str) -> str:
@@ -1614,8 +1637,14 @@ def _plan_one(text: str, offer: Optional[dict[str, Any]], columns: Any = (), ver
         return [(offer["tool"], dict(offer.get("args") or {}))]
     if version_waiting and VERSION_BUILD.search(said) and not IMPROVE.search(said):  # "build it" with a confirmed version waiting: the planner plans it
         return [("plan_new_version", {})]
-    if ASK_TEAMS.search(said) and not NO.match(said):  # 2026-11-21: the person names the teams: the Lead takes it (code checks the rest)
-        return [("ask_teams", {"track": teams_track(said), "request": said[:600]})]
+    order = asks_the_teams(said)
+    if order is not None and not NO.match(said):  # 2026-11-21: the person names the teams: the Lead takes it (code checks the rest)
+        handed = [("ask_teams", {"track": teams_track(said), "request": said[:600]})]
+        before = said[:order.start()].strip(" ,")
+        if re.match(r"\s*(?:and|then)\b", order.group("lead"), re.I) and len(before.split()) >= 2:  # "show the data and then ask
+            first = [(n, a) for n, a in _plan_one(before, None, columns) if n in READS or n in SPLITTABLE]  # the teams": both
+            return first[:MAX_TASKS - 1] + handed
+        return handed
     changed = problem_change(said, columns)  # before a no: "no, the prediction is made at signup" corrects the problem
     if changed:
         return [("propose_problem_change", {**changed, "said": said[:600]})]
@@ -1770,12 +1799,24 @@ class Orchestrator:
                                 "progress": (job or {}).get("progress") or None})
         return out
 
+    def _readable(self, messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """The messages this turn's person may read (the review of 2026-11-22): a card from the Lead is its person's (and the
+        owner's), as on every route that shows the draft, so another person's model never reads it either."""
+        if not any(isinstance(m, dict) and m.get("team") for m in messages):
+            return messages
+        from ..accounts.principal import LOCAL_OWNER, current
+        from ..memory.scope import auth_enabled
+        from ..teamspace import lead
+
+        who, on = current() or LOCAL_OWNER, auth_enabled()
+        return [m for m in messages if lead.card_visible(self.services, m, who, auth_on=on)]
+
     def history(self, draft_id: str) -> list[dict[str, Any]]:
         """The conversation's last messages as the model reads them: the person's words (redacted) and what DCLab said or showed."""
         from dclab_core import redact
 
         out = []
-        for m in (self.agent.store.get(draft_id).get("messages") or [])[-TAIL - 1:-1]:
+        for m in self._readable((self.agent.store.get(draft_id).get("messages") or [])[-TAIL - 1:-1]):
             if m.get("role") == "user":
                 out.append({"role": "user", "content": redact.redact_text(str(m.get("text") or ""))[0]})
                 continue

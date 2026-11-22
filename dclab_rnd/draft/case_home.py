@@ -240,6 +240,16 @@ class CaseHome(HomeAgent):
             self.say(draft_id, f"I could not draw that here: {str(error)[:200]}", kind="text")
 
     def _run(self, draft_id: str, words: str, pick: Optional[str] = None) -> None:
+        """One turn, said to the page as thinking from its start to its end (2026-11-20: a turn of one to two minutes that never
+        said so left the page's send and the team walk open, and the server refused both with 409). The end is said whatever
+        happens: a reply, a silent turn, or an error."""
+        self.store.emit(draft_id, "status", {"thinking": True})
+        try:
+            self._turn(draft_id, words, pick)
+        finally:
+            self.store.emit(draft_id, "status", {"thinking": False})
+
+    def _turn(self, draft_id: str, words: str, pick: Optional[str] = None) -> None:
         client = self._client(draft_id)
         draft = self.store.get(draft_id)
         state = self._state(draft)

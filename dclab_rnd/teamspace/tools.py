@@ -44,7 +44,7 @@ Row = dict[str, Any]
 
 # The bound tools this release provides (the rest of the directory is bound to tools of later releases: R2, R3).
 ACTS = ("inspect_schema", "leakage_check", "define_baseline", "explain_uncertainty", "review_evidence", "join_replies",
-        "present_options", "check_prerequisites")
+        "present_options", "check_prerequisites", "validate_contract", "check_exclusions")
 MODEL_TOOLS = ("model_score", "model_contract", "model_evaluation")
 ACTION_MOVES = ("delegate", "clarify", "record_human_response", "act", "model_call")
 MOVES = ("accept", "block", "answer", "return_report") + ACTION_MOVES  # every write of the team scope, as its guard reads it
@@ -512,6 +512,19 @@ def _act(ctx: TeamTurn, task_id: str, action: str, subject: Optional[str] = None
             status, ref = "failed", "no permitted input: the project declares nothing the teams may read"
         else:
             ref = f"prerequisites:{len(readable)} permitted inputs; question of {len(task.question)} characters"
+    elif tool == "validate_contract":  # ML Engineering (0.168.0): the experiment's contract from the sample's columns, never a run
+        check = fixtures.feasibility(sample_ref or "")
+        if not check["ok"]:
+            status, ref = "failed", f"contract incomplete: {check['why']}"
+        else:
+            ref = (f"contract:{sample_ref}: cutoff from {check['renewal_date']}; outcome {check['outcome']}; time-ordered holdout; "
+                   f"excluded {','.join(check['excluded']) or 'none'}")
+    elif tool == "check_exclusions":  # Sales (0.168.0): the do-not-contact list, removed before any plan
+        found = fixtures.sample(sample_ref) if sample_ref else None
+        if found is None or found.get("do_not_contact") is None:
+            status, ref = "failed", f"no do-not-contact list for {sample_ref or task.id}"
+        else:
+            ref = f"exclusions:{sample_ref}: {found['do_not_contact']} of {found.get('accounts', '?')} accounts on the do-not-contact list"
     elif tool in ("review_evidence", "join_replies", "present_options"):
         if not subject:
             raise ValueError(f"{action} names the report it reads (subject)")
@@ -524,7 +537,8 @@ def _act(ctx: TeamTurn, task_id: str, action: str, subject: Optional[str] = None
         revision, ref = subject, f"{'reviewed' if tool == 'review_evidence' else 'presented'}:{subject}"
     else:
         raise ValueError(f"{tool} is not a tool this release provides")
-    if status == "succeeded" and tool in ("inspect_schema", "leakage_check", "define_baseline", "explain_uncertainty") \
+    if status == "succeeded" and tool in ("inspect_schema", "leakage_check", "define_baseline", "explain_uncertainty", "validate_contract",
+                                          "check_exclusions") \
             and sample_ref in fixtures.SAMPLES:
         status = "simulated"  # a check on an invented sample is labelled as such, so the report says it is simulated
     ended, duplicate = record(ctx, task, action, input_revision=revision, status=status,

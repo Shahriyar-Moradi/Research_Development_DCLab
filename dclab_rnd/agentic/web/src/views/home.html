@@ -1309,6 +1309,7 @@ DC.view('home', {
     async function teamStep(body) {
       const box = $('#home-team-board', el);
       if (!S.draft) return;
+      if (S.thinking) { toast('DCLab is still answering. The team can start when the answer appears.'); return; }
       DC.states.loading(box, { text: 'The team is working…' });
       try {
         const out = await DC.client.teamWalk(S.draft.id, { body }); drawTeam(out.view);
@@ -2503,6 +2504,7 @@ DC.view('home', {
     document.addEventListener('dclab:mode', () => { if (S.sessionId) pollSession(); else paintSession(); });
 
     /* ---------- talking ---------- */
+    const STILL = 'DCLab is still answering. Your message stays in the box: send it when the answer appears.';
     async function send(text) {
       text = (text || '').trim(); if (!text || S.sending) return;
       S.sending = true;
@@ -2510,16 +2512,18 @@ DC.view('home', {
       if (sendBtn) sendBtn.disabled = true;
       try {
         try { await ensureDraft(); } catch (e) { return; }
-        if (S.synthDescribe) { await describeSynthetic(text); return; }
         const to = $('#home-to', el).hidden ? 'both' : $('#home-to', el).value;
         const clearReply = () => { const r = $('#home-reply', el); r.value = ''; if (r.parentElement) r.parentElement.dataset.replicatedValue = ''; };
-        if (to === 'claude') {
+        if (to === 'claude' && !S.synthDescribe) {  // Claude's own lane takes no draft lock: it is never "still answering"
           try { await DC.client.twinMessage(S.draft.id, { body: { text } }); clearReply(); toast('Sent to Claude only: DCLab does not see it.'); }
           catch (err) { toast(err.message, { ok: false }); }
           return;
         }
+        if (S.thinking) { toast(STILL); return; }  // the server refuses a second turn (409): nothing is sent, the words stay
+        if (S.synthDescribe) { await describeSynthetic(text); return; }
+        setThinking(true);  // before the await: the turn's last event may arrive first, and it is what clears this
         try { await DC.client.message(S.draft.id, { body: { text } }); clearReply(); }
-        catch (err) { toast(err.status === 409 ? 'DCLab is still answering; send again in a moment.' : err.message, { ok: false }); }
+        catch (err) { if (err.status === 409) toast(STILL); else { setThinking(false); toast(err.message, { ok: false }); } }  // 409: a turn runs, as the page shows
       } finally {
         S.sending = false;
         if (sendBtn) sendBtn.disabled = false;

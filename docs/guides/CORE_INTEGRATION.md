@@ -1572,7 +1572,7 @@ Three new rules decide who may hand work to whom:
 |---|---|
 | `opening_refusal(config, owner)` | A team agent opens a top-level task for a team; the entry only for a coordinator; nothing else opens one. |
 | `delegation_refusal(config, owner)` | A coordinator hands work to team agents only; the entry never delegates. |
-| `LEAD_ROUTES` / `lead_route(track)` | The team agents the Lead asks for each kind of help. Today: model, analyze, report and prepare go to Data Science. Advice and business decisions are not the Lead's. |
+| `LEAD_ROUTES` / `lead_route(track, question)` | The team agents the Lead asks for each kind of help, in order. Since 0.168.0: a model goes to Data Science and ML Engineering; analyze, report and prepare to Data Science; a model or an analysis about calling or contacting accounts (`OUTREACH`) also to Sales, which plans calls and never contacts anyone. Advice and business decisions are not the Lead's. In the main product, pass the request's words so outreach reaches Sales. |
 
 Both new agents forbid `approve` and `contact_customers`, like every agent.
 

@@ -25,6 +25,7 @@ it as a row. Names, references and short words only: never a table's value.
 from __future__ import annotations
 
 import json
+import re
 from datetime import datetime, timezone
 from typing import Any, ClassVar, Iterable, Literal, Optional, Sequence, Union
 
@@ -552,17 +553,39 @@ DIRECTORY: dict[str, AgentConfig] = {c.name: c for c in (
 
 # 0.167.0 (2026-11-21): the kinds of help the Lead hands to teams, and to which team agents, in order. Only teams whose agent
 # owns tasks in this release are named; business decisions and advice stay with the person and the Lead does not take them.
+# 0.168.0: a model also goes to ML Engineering, after Data Science has answered, to check how it would be trained and held
+# out. This release binds no training tool (``run_stage``), so the check is all it does; a host that binds one keeps the
+# Lead's tasks check-only.
 LEAD_ROUTES: dict[str, tuple[str, ...]] = {
-    "model": ("data_science",),
+    "model": ("data_science", "ml_engineering"),
     "analyze": ("data_science",),
     "report": ("data_science",),
     "prepare": ("data_science",),
 }
 
+# 0.168.0: a request about calling or contacting accounts also goes to Sales, which plans the calls within its capacity
+# and never contacts anyone (``contact_customers`` stays forbidden to every agent). Words, not an understanding: a request
+# that names outreach another way goes without Sales, and the Lead's report says which teams answered.
+_PEOPLE = r"(?:accounts?|customers?|clients?|leads?|users?|members?|subscribers?|them)"
+OUTREACH = re.compile(  # review F2: a verb aimed at people, or "who/which … should … call", never a bare word ("phone service")
+    # the review of 2026-11-22: "phone" and "calls" are nouns too ("phone service customers", "how many calls customers make"),
+    # so neither is a verb here; between the verb and the people only the/our/these/those (and one word after them: "the
+    # at-risk customers"); "who/which … call" needs should/shall/must ("which users will call support" is a forecast)
+    r"\b(?:call|calling|ring|contact|contacting|e-?mail|reach out to|follow[- ]?up with)\s+(?:(?:the|our|these|those)\s+(?:[\w-]+\s+)?)?"
+    + _PEOPLE + r"\b"
+    r"|\b(?:who|which\s+(?:[\w-]+\s+)?" + _PEOPLE + r")\s+(?:should|shall|must)\b[^.?!]{0,60}?"
+    r"\b(?:call|contact|e-?mail|reach out)\w*"
+    r"|\boutreach\b", re.I)
+OUTREACH_TRACKS = ("model", "analyze")
 
-def lead_route(track: str) -> tuple[str, ...]:
-    """The team agents the Lead asks for one kind of help (``LEAD_ROUTES``); empty when the Lead does not take it."""
-    return LEAD_ROUTES.get(str(track or ""), ())
+
+def lead_route(track: str, question: str = "") -> tuple[str, ...]:
+    """The team agents the Lead asks for one kind of help (``LEAD_ROUTES``), in order, and Sales after them when the
+    request is about calling or contacting accounts (``OUTREACH``); empty when the Lead does not take the kind of help."""
+    teams = LEAD_ROUTES.get(str(track or ""), ())
+    if teams and str(track) in OUTREACH_TRACKS and OUTREACH.search(str(question or "")):
+        teams = teams + ("sales",)
+    return teams
 
 
 def opening_refusal(config: AgentConfig, owner_team: str) -> Optional[str]:

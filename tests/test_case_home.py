@@ -118,6 +118,29 @@ class CaseHomeTests(unittest.TestCase):
             self.store.update(new["id"], lambda d: d["messages"].append({"role": "agent", "kind": "text", "text": "Who leaves?"}))
             self.assertIsInstance(DraftWork(self.store, Models(Script())).agent(new["id"]), CaseHome)
 
+    def test_a_turn_says_it_is_thinking_and_always_says_when_it_ends(self):
+        """2026-11-20, live: the lead agent's turns took 1 to 2 minutes and never said they had started, so the page let the
+        person send again and start the team walk, and the server refused both (409). A turn says thinking at its start and
+        not thinking at its end: after a reply, a silent end, or an error."""
+        def thinking(draft_id):
+            return [e["data"]["thinking"] for e in self.store.events(draft_id) if e["kind"] == "status" and "thinking" in (e.get("data") or {})]
+
+        home = CaseHome(self.store, Models(Script()))
+        cases = (("replies", lambda state, client, words: {"text": "Male customers churn at 25.6%, female at 25.3%."}),
+                 ("silent", lambda state, client, words: {}),
+                 ("fails", mock.Mock(side_effect=ValueError("the model sent nothing usable"))))
+        for name, turn in cases:
+            with self.subTest(name):
+                d = self.store.create("which gender churns more?")
+                with mock.patch.object(A, "turn", turn):
+                    try:
+                        home.reply(d["id"], "which gender churns more?")
+                    except ValueError:
+                        pass
+                said = thinking(d["id"])
+                self.assertTrue(said and said[0] is True, said)
+                self.assertIs(said[-1], False, said)
+
     def _home_with_builds(self, *results):
         calls = []
 

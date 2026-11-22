@@ -31,6 +31,9 @@ args = ap.parse_args()
 from dotenv import load_dotenv  # noqa: E402
 
 load_dotenv(ROOT / ".env", override=False)
+from no_claude import refuse_claude, thinking_record  # noqa: E402
+
+refuse_claude(model_used=not (args.rules or args.report))  # the owner: never a Claude model in a test, by any provider (the review of 2026-11-22)
 os.environ["DCLAB_CASE_CAP_EUR"] = args.cap
 os.environ.setdefault("DCLAB_DECISION_SHADOW", "0")
 os.environ["DCLAB_LOG_PROMPTS"] = "1"  # prompts, replies and thinking kept (the owner's rule for every live run)
@@ -83,6 +86,10 @@ def main() -> None:
     with TestClient(app) as c:
         c.headers.update({"X-DCLab-Token": c.get("/api/config").json()["csrf"]})  # the local UI's request token
         s = app.state.services
+        from dclab_rnd.models.gateway import mark_invented_tables
+
+        if getattr(s, "gateway", None) is not None:  # the inputs are fixtures (sample:renewal_v1): records kept whole (rule 9)
+            mark_invented_tables(s.gateway, "sample:renewal_v1 fixtures and an invented project")
         if args.report:
             return report(c, s, s.projects.list()[0]["id"], s.drafts.list()[0]["id"], 0.0, False)
         pid = s.projects.create("Renewal retention", goal="Who should Sales call before renewal")["id"]
@@ -140,6 +147,7 @@ def report(c, s, pid, did, started, answered):
                      for m in messages],
             "spent_eur": spent,
         }
+        result.update(thinking_record(HOME))  # a model call without its thinking fails the run (as the scenarios script)
         (HOME.parent / f"{HOME.name}.result.json").write_text(json.dumps(result, indent=2, default=str), encoding="utf-8")
         print(json.dumps({k: v for k, v in result.items() if k != "chat"}, indent=2, default=str))
 

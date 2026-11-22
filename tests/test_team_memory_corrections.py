@@ -41,6 +41,7 @@ SALES_AGENT = tw.Actor(kind="agent", id="sales", team="sales")
 MKT_AGENT = tw.Actor(kind="agent", id="marketing", team="marketing")
 NOTE = "Territory North is excluded from outreach this quarter."
 FIFTY, THIRTY = "Sales can call 50 accounts this week.", "Sales can call 30 accounts this week."
+PASSWORD = "a long enough password"
 
 
 class _Teams:
@@ -400,7 +401,10 @@ class _Contract:
         self.assertEqual(third.json()["alerts"], [])  # idempotent: a second retry changes nothing
 
     def test_a_teams_memory_base_through_its_routes(self):
-        """W6 follow-up: the team base is read and written through its own routes, and never reaches the problem base."""
+        """W6 follow-up: the team base is read and written through its own routes, and never reaches the problem base.
+        Without sign-in the local owner is the only person and cannot be placed in a team (members need accounts), so the
+        routes treat them as every team's owner (review of 2026-11-22: they answered 403 to everyone; no mock of the
+        person's teams here). A team that does not exist is a 404."""
         from fastapi.testclient import TestClient
 
         from dclab_rnd.agentic.server import create_app
@@ -410,11 +414,6 @@ class _Contract:
         teams = open_teams(self.home)
         sales = teams.create_team("Sales", "sales")["id"]
         other = teams.create_team("Marketing", "marketing")["id"]
-        # without sign-in the person is the local owner (no account on PostgreSQL): they are placed in Sales only, the way
-        # the teams store answers for a member; a team's memory is its members' only
-        member = mock.patch("dclab_rnd.memory.scope.teams_of_person", side_effect=lambda t, who: (sales,) if who == "owner" else ())
-        member.start()
-        self.addCleanup(member.stop)
         app = create_app(self.home)
         client = TestClient(app, headers={"x-dclab-token": app.state.services.csrf})
         made = client.post(f"/api/workspace/teams/{sales}/memory/base", json={"subject": "sales", "field": "capacity",
@@ -430,7 +429,17 @@ class _Contract:
         self.assertEqual(len(view["retired"]), 1)  # the history is kept
         problem = client.get(f"/api/projects/{self.pid}/memory/base", params={"problem_id": self.prob}).json()
         self.assertNotIn("10 calls a day per rep", str(problem))  # a team's note never reaches the shared base
-        self.assertEqual(client.get(f"/api/workspace/teams/{other}/memory/base").status_code, 403)  # another team's memory: refused
+        theirs = client.get(f"/api/workspace/teams/{other}/memory/base")
+        self.assertEqual(theirs.status_code, 200, theirs.text)  # the owner reads every team's memory
+        self.assertEqual((theirs.json()["team_id"], theirs.json()["active"]), (other, []))  # and Sales' note is not Marketing's
+        for answer in (client.get("/api/workspace/teams/team_nosuch/memory/base"),
+                       client.post("/api/workspace/teams/team_nosuch/memory/base",
+                                   json={"subject": "s", "field": "f", "text": "t", "expected_revision": 0}),
+                       client.post(f"/api/workspace/teams/team_nosuch/memory/base/{entry['entry_id']}/correct",
+                                   json={"text": "t", "expected_revision": 1})):
+            self.assertEqual(answer.status_code, 404, answer.text)
+        teams.delete_team(sales)  # a removed team: its memory stays in the records, its routes answer 404
+        self.assertEqual(client.get(f"/api/workspace/teams/{sales}/memory/base").status_code, 404)
 
 
 class OldItemsTests(unittest.TestCase):
@@ -507,6 +516,75 @@ class PgTeamMemoryTests(_Contract, unittest.TestCase):
         self.assertEqual([e["entry_id"] for e in base["active"]], [note["entry_id"]])
         self.assertIn(note["item_id"], [i.id for i in view(open_memory(self.home), moved.team_chain(SALES))])
         self.assertIn(NOTE, summary.read_team_summary(self.home, moved, SALES)["text"])
+
+
+class SignedInTeamMemoryRoutesTests(unittest.TestCase):
+    """With password sign-in on PostgreSQL (review of 2026-11-22, no mock of the person's teams): the owner who is not in
+    a team reads and writes its memory (the owner's role writes), a member reads and writes it, and a member of the
+    workspace who is not in the team is refused (403), as a viewer member is when writing."""
+
+    @classmethod
+    def setUpClass(cls):
+        try:
+            from fastapi.testclient import TestClient
+
+            from dclab_rnd.agentic.server import create_app
+        except ImportError as error:
+            raise unittest.SkipTest(f"Studio dependencies not installed: {error}")
+        url = pgtest.require()
+        pgtest.empty(url)
+        cls.env = mock.patch.dict(os.environ, {"DCLAB_DATABASE_URL": url, "DCLAB_AUTH": "password", "OPENAI_API_KEY": ""})
+        cls.env.start()
+        from dclab_rnd.accounts.store import Accounts
+
+        cls.TestClient = TestClient
+        cls.app = create_app(Path(tempfile.mkdtemp()))
+        cls.main = TestClient(cls.app)
+        cls.main.__enter__()
+        accounts = Accounts()
+        w1 = cls.app.state.services.workspace_id
+        cls.users = {}
+        for name, role in (("owner1", "owner"), ("ds_in", "data_scientist"), ("ds_out", "data_scientist"), ("view_in", "viewer")):
+            user = accounts.create_user(f"{name}-{os.getpid()}@example.com", name.title(), password=PASSWORD)
+            accounts.set_member(w1, user["id"], role)
+            cls.users[name] = user
+        cls.clients = {name: cls.sign_in(name) for name in cls.users}
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.main.__exit__(None, None, None)
+        cls.env.stop()
+
+    @classmethod
+    def sign_in(cls, name):
+        client = cls.TestClient(cls.app)
+        anonymous = client.get("/api/config").json()["csrf"]
+        r = client.post("/api/auth/password", json={"email": cls.users[name]["email"], "password": PASSWORD},
+                        headers={"X-DCLab-Token": anonymous})
+        assert r.status_code == 200, r.text
+        client.headers["X-DCLab-Token"] = r.json()["csrf"]
+        return client
+
+    def test_the_owner_reads_every_team_and_a_non_member_is_refused(self):
+        owner, ds_in, ds_out, view_in = (self.clients[n] for n in ("owner1", "ds_in", "ds_out", "view_in"))
+        sales = owner.post("/api/workspace/teams", json={"name": "Sales", "kind": "sales"}).json()["id"]
+        for name in ("ds_in", "view_in"):
+            placed = owner.post(f"/api/workspace/teams/{sales}/members", json={"user_id": self.users[name]["id"]})
+            self.assertEqual(placed.status_code, 201, placed.text)
+        fact = {"subject": "sales", "field": "capacity", "text": "12 calls a day per rep", "expected_revision": 0}
+        made = ds_in.post(f"/api/workspace/teams/{sales}/memory/base", json=fact)
+        self.assertEqual(made.status_code, 200, made.text)  # a member whose role writes
+        read = owner.get(f"/api/workspace/teams/{sales}/memory/base")
+        self.assertEqual(read.status_code, 200, read.text)  # the owner, not a member, reads it
+        self.assertEqual([e["text"] for e in read.json()["active"]], ["12 calls a day per rep"])
+        fixed = owner.post(f"/api/workspace/teams/{sales}/memory/base/{made.json()['entry']['entry_id']}/correct",
+                           json={"text": "10 calls a day per rep", "expected_revision": made.json()["revision"]})
+        self.assertEqual(fixed.status_code, 200, fixed.text)  # and writes where the owner's role may write
+        self.assertEqual(view_in.get(f"/api/workspace/teams/{sales}/memory/base").status_code, 200)  # a viewer member reads
+        self.assertEqual(view_in.post(f"/api/workspace/teams/{sales}/memory/base", json={**fact, "field": "x"}).status_code, 403)
+        self.assertEqual(ds_out.get(f"/api/workspace/teams/{sales}/memory/base").status_code, 403)  # not in the team
+        self.assertEqual(ds_out.post(f"/api/workspace/teams/{sales}/memory/base", json={**fact, "field": "y"}).status_code, 403)
+        self.assertEqual(owner.get("/api/workspace/teams/team_nosuch/memory/base").status_code, 404)
 
 
 if __name__ == "__main__":

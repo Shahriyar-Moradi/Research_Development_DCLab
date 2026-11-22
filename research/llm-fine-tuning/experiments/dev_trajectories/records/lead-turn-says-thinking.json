@@ -1,0 +1,34 @@
+{
+  "package": "lead-turn-says-thinking",
+  "title": "The Lead agent's turn says it is thinking from start to end, so the page holds the person's next message instead of a refused send",
+  "date": "2026-11-20",
+  "request": "The owner pasted the server's log: POST /api/drafts/{id}/messages answered 409 Conflict twice and POST /api/drafts/{id}/team once, and called them bugs and conflicts.",
+  "spec": "While an agent turn holds a draft, the page shows it is working, keeps the person's words in the box instead of posting them, and keeps the team walk from starting; the server's refusal, when it still happens, is said calmly. Every Lead agent turn reports thinking at its start and not thinking at its end, after a reply, a silent end or an error.",
+  "plan": [
+    "Read which routes answer 409 and why: the draft's turn lock, held while an agent answers.",
+    "Read the draft's record in the development database: the person's question at 19:39:58 was answered at 19:41:24, after six model calls, and the 409s came in between.",
+    "Find why the page allowed sending: the Lead agent's turns never emitted a thinking status, so the page never knew a turn was running.",
+    "Write a failing test, fix the turn at its entry, and harden the page: hold sends and the team walk while thinking, set thinking as soon as a message is accepted, and say a 409 calmly."
+  ],
+  "decisions": [
+    {"decision": "Fix the status at the Lead agent turn's single entry with try/finally.", "why": "Every path through the turn (a reply, a dashboard, a refused build, a silent turn, an exception) passes through _run; one place cannot forget a path."},
+    {"decision": "Keep the server's 409 as it is.", "why": "The turn lock is right: two turns on one draft would interleave the conversation. The defect was the page not knowing a turn was running."}
+  ],
+  "change": "dclab_rnd/draft/case_home.py (_run says thinking, runs _turn, and always says it ended); dclab_rnd/agentic/web/src/views/home.html (send holds the words while thinking, sets thinking once a message is accepted, a 409 is said calmly; the team step waits while thinking); tests/test_case_home.py (a reply, a silent turn and an error each start and end the thinking status).",
+  "findings": [
+    {"id": "F1", "source": "owner", "severity": "behaviour", "verdict": "confirmed", "defect": "Messages and the team walk were refused with 409 while the Lead agent answered.", "scenario": "Ask 'which gender churn more?' on a Telco table; the turn runs about 90 seconds; send another message or press Walk with the team meanwhile: both are refused and the page shows an error.", "cause": "The Lead agent's turn (case_home) emitted no thinking status at its start and only on a RuntimeError at its end, so the page's busy state stayed off.", "fix": "The turn says thinking at its start and not thinking in a finally block; the page also sets thinking when a message is accepted and holds sends and the team walk while thinking.", "test": "test_a_turn_says_it_is_thinking_and_always_says_when_it_ends fails before the fix and passes after."}
+  ],
+  "measurements": [
+    {"name": "the Lead agent's tests", "gate": "all pass with the new test", "fixed_before_run": true, "result": "test_case_home, test_case_agent, test_lead_bounded_choice and test_no_data_solution pass, 200 tests.", "verdict": "pass", "cost_eur": 0.0, "next": "", "limits": ["Scripted models; how long a live turn takes is not changed by this fix."]}
+  ],
+  "outcome": "While the Lead agent answers, the page shows it, holds the next message in the box and keeps the team walk waiting; the server no longer has to refuse them.",
+  "lessons": [
+    "A lock on the server needs its state on the page: an agent path that does not report it makes the lock look like a bug.",
+    "Put the start and end of a long operation at its single entry, in try/finally, so no path forgets the end.",
+    "Read the record before guessing: the turn was slow, not stuck, and the timestamps said so."
+  ],
+  "risks": [
+    "The Lead agent's turns are still slow on a simple question (six model calls); that is a separate change."
+  ],
+  "commits": []
+}

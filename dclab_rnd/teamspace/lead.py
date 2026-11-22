@@ -132,6 +132,54 @@ def is_answer(text: str, task: Any) -> bool:
     return not str(text).strip().endswith("?")
 
 
+_NEGATED = re.compile(r"\b(?:don t|do not|does not|doesn t|not|never|no need to|without)\s+(?:\w+\s+){0,2}$")
+QUOTE_WORDS, QUOTE_SHARE = 4, 0.6
+
+
+def quote_is_request(quote: Any, words: Any) -> bool:
+    """Whether a model's quote of the person's request is theirs (the review of 2026-11-22: any two of their words passed):
+    one run of their words in one message, at least four words or 60% of that message, and not inside a negation ("do not
+    rank the accounts" is no request to rank them). Else the caller hands over their whole latest message."""
+    q = _plain(quote)
+    if len(q.split()) < 2:
+        return False
+    for message in words or ():
+        said = _plain(message)
+        at = re.search(r"(?<!\S)" + re.escape(q) + r"(?!\S)", said)
+        if at is None:
+            continue
+        if len(q.split()) >= QUOTE_WORDS or len(q.split()) >= QUOTE_SHARE * len(said.split()):
+            if not _NEGATED.search(said[:at.start()]):
+                return True
+    return False
+
+
+def answered_words(out: Mapping[str, Any]) -> str:
+    """What Home's chat says after the person's answer went to the Lead (the review of 2026-11-22: it said "given to the
+    teams" also when Home's rules skipped it, the question being answered already). Claimed only when a step recorded it."""
+    if out.get("refused"):
+        return "Your answer could not be passed to the teams: " + str(out["refused"][0])
+    tools = {s.get("tool") for s in out.get("steps") or () if s.get("ok", True)}
+    if tools & {"team_record_human_response", "team_answer"}:
+        return "The Lead has given your answer to the teams; their report will appear here."
+    return "The teams' question was already answered, so this message was not passed to them; their report will appear here."
+
+
+def still_waiting_due(messages: Any, task: Any) -> bool:
+    """Whether Home's chat should say the teams' question still waits (said once a question: the review of 2026-11-22 saw
+    it after every message): no "still waits" card for this task since its latest question."""
+    tid = getattr(task, "id", None)
+    for m in reversed(list(messages or ())):
+        team = m.get("team") if isinstance(m, Mapping) else None
+        if not isinstance(team, Mapping) or team.get("from") != "lead" or team.get("task_id") != tid:
+            continue
+        if team.get("kind") == "still_waiting":
+            return False
+        if team.get("kind") == "clarification":
+            return True
+    return True
+
+
 def task_id_for(draft_id: str, question: str, person: str = "owner", attempt: int = 1) -> str:
     """The Lead's task for these words from this person's draft; ``attempt`` > 1 when an earlier one with the same words
     has ended (a blocked request asked again after the table was attached is a new task, never the old one silently)."""
@@ -164,7 +212,7 @@ def ask(env: Any, project_id: str, problem_id: str, *, question: str, track: str
     if same is not None:  # live S5: the model quoted the request once with "Please ask the teams:" and once without: one request
         task_id = same.id
     held_task = work.task(str(project_id), task_id)
-    while held_task is not None and (not tw.is_open(held_task) or held_task.status == "blocked"):  # ended, or stopped on a blocker
+    while held_task is not None and _ended(held_task):  # ended, or stopped on a blocker, or reported partial (review F3)
         attempt += 1
         task_id = task_id_for(draft_id, question, str(person), attempt)
         held_task = work.task(str(project_id), task_id)
@@ -178,6 +226,12 @@ def ask(env: Any, project_id: str, problem_id: str, *, question: str, track: str
             "opened": not out["skipped"], "already_open": held_task is not None, "turn": out}
 
 
+def _ended(task: tw.TeamTask) -> bool:
+    """A Lead task that asks nobody any more: closed, blocked, or partial (its report came back with a team blocked, and
+    the Lead joins only once every team has returned): the same request asked again is a new attempt."""
+    return not tw.is_open(task) or task.status in ("blocked", "partial")
+
+
 def _open_same_request(env: Any, project_id: str, draft_id: str, person: str, question: str) -> Optional[tw.TeamTask]:
     """An open Lead task from this draft and person with these words, compared without a leading "please ask the teams:",
     capitals or punctuation, else None: the same request asked again with or without its lead-in."""
@@ -185,7 +239,7 @@ def _open_same_request(env: Any, project_id: str, draft_id: str, person: str, qu
     if not said:
         return None
     for t in lead_tasks(env, project_id):
-        if not tw.is_open(t) or t.status == "blocked" or t.requester.member != person or _draft_of_task(env, t) != draft_id:
+        if _ended(t) or t.requester.member != person or _draft_of_task(env, t) != draft_id:
             continue
         if _request_words(t.question) == said:  # equal words only: a narrower request is its own task (review F3)
             return t
@@ -381,5 +435,5 @@ def lead_tasks(env: Any, project_id: Optional[str] = None) -> list[tw.TeamTask]:
     return sorted(seen.values(), key=lambda t: t.created_at, reverse=True)
 
 
-__all__ = ["DONE", "EXPECTED", "HELD", "NOT_THE_TEAMS", "NO_DATA_YET", "flush_held", "is_answer", "card_visible", "TeamsRefused", "person_of", "project_inputs", "answer", "ask", "card_text", "lead_tasks", "refusal", "task_id_for", "to_home_chat",
+__all__ = ["DONE", "EXPECTED", "HELD", "answered_words", "quote_is_request", "still_waiting_due", "NOT_THE_TEAMS", "NO_DATA_YET", "flush_held", "is_answer", "card_visible", "TeamsRefused", "person_of", "project_inputs", "answer", "ask", "card_text", "lead_tasks", "refusal", "task_id_for", "to_home_chat",
            "waiting"]

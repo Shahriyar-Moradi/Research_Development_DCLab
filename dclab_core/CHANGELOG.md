@@ -4,6 +4,19 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.168.0 (2026-11-21)
+
+- `team_work`: the Lead hands work to more teams. `LEAD_ROUTES["model"]` is Data Science then ML Engineering (asked
+  after Data Science has answered, to check how the model would be trained and held out; this release binds no training
+  tool, so a host that binds `run_stage` keeps the Lead's tasks check-only); `lead_route(track, question="")` adds Sales
+  after them when a model or an analysis is about calling or contacting people (`OUTREACH`: a contact verb aimed at
+  accounts, customers or leads, or "who/which … should … call"; `OUTREACH_TRACKS`: words, not an understanding). Sales plans the calls and never contacts anyone (`contact_customers` stays forbidden to every
+  agent). `lead_route(track)` alone answers as before for every kind of help but a model. No contract's shape changed.
+  The review of 2026-11-22: `OUTREACH` reads "phone" and "calls" as nouns, never as contact verbs ("Do phone service
+  customers churn more?", "Forecast how many calls customers make"); between a contact verb and the people only
+  the/our/these/those (and one word after them: "call the at-risk customers"); "who/which … call" needs should, shall
+  or must ("Which users will call support next month?" is a forecast, not outreach).
+
 ## 0.167.0 (2026-11-21)
 
 - `team_work`: the workspace's Lead and Home's way in. `AgentKind` adds `coordinator` (the Lead: it owns a case, hands

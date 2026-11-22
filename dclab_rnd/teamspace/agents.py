@@ -157,6 +157,11 @@ def _mine(turn: TeamTurn, view: Row, action: str, revision: Optional[str] = None
     return found[-1] if found else None
 
 
+def _claimed(action: Optional[tw.TeamAction]) -> bool:
+    """Whether an action has a terminal record: a running one (a crash between its two writes) is done again."""
+    return action is not None and tw.can_claim(action)
+
+
 def _current_report(view: Row) -> Optional[tw.WorkReport]:
     current = [r for r in view["reports"] if r.status != "superseded"]
     return max(current, key=lambda r: r.revision) if current else None
@@ -309,14 +314,14 @@ def _sample(task: tw.TeamTask) -> Optional[str]:
 def _feasibility(turn: TeamTurn, view: Row) -> Optional[Call]:
     """Inspect the sample; block on what is missing, or check leakage, name the baseline and the uncertainty, and report."""
     task = view["task"]
-    if _mine(turn, view, "inspect_schema", _brief(task)) is None:
+    if not _claimed(_mine(turn, view, "inspect_schema", _brief(task))):  # review F1: running after a crash is run again
         return ("team_act", {"task_id": task.id, "action": "inspect_schema"})
     sample = _sample(task) or ""
     check = fixtures.feasibility(sample)
     if not check["ok"]:
         return ("team_block", {"task_id": task.id, "reason": check["why"]})
     for action in ("check_leakage", "define_baseline", "explain_uncertainty"):
-        if _mine(turn, view, action, _brief(task)) is None:
+        if not _claimed(_mine(turn, view, action, _brief(task))):
             return ("team_act", {"task_id": task.id, "action": action})
     if _current_report(view) is not None:
         return None
@@ -344,7 +349,7 @@ def _blocker_report(turn: TeamTurn, view: Row) -> Call:
                                    "next_owner": supplier, "unblocks": f"attach {check.get('missing')} to {sample}"})
 
 
-def _join(turn: TeamTurn, view: Row, *, attribute: bool = False) -> Optional[Call]:
+def _join(turn: TeamTurn, view: Row, *, attribute: bool = False, order: Optional[list[str]] = None) -> Optional[Call]:
     """Review each child's reply as it returns; when every child has returned, report once with each result joined once
     (a blocked or failed child keeps the report partial and names who acts next); a corrected child reply supersedes it."""
     task, join = view["task"], view["join"]
@@ -357,12 +362,12 @@ def _join(turn: TeamTurn, view: Row, *, attribute: bool = False) -> Optional[Cal
     if current is not None and sorted(current.child_reports) == sorted(join.reports):
         return None
     joined = {r.id: r for r in view["child_reports"]}
-    order = [c.id for c in view["children"]]
+    order = [o for o in (order or []) if any(c.id == o for c in view["children"])] + [c.id for c in view["children"] if c.id not in (order or [])]
     returned = sorted((joined[rid] for rid in join.reports), key=lambda r: order.index(r.task_id))
     if attribute:  # the Lead says which team answered what
         from .store import team_label
 
-        answer = " ".join(f"{team_label(r.owner)}: {r.answer}" for r in returned)
+        answer = "\n".join(f"{team_label(r.owner)}: {r.answer}" for r in returned)  # one team a line (three teams read as one block otherwise)
     else:
         answer = " ".join(r.answer for r in returned)
     evidence = [e.model_dump() for r in returned for e in r.evidence]
@@ -446,6 +451,99 @@ def _estimate_report(task: tw.TeamTask, kind: str, snapshot: str, score: tw.Team
                                    "evidence": evidence, "limits": ["Simulated: a fixture result that illustrates the handoff."]})
 
 
+# ---------------------------------------------------------------------------------------------------------- ML Engineering and Sales
+FOUND = "\nData Science found: "  # what the Lead adds to ML Engineering's question, after the person's own words
+_CONFIRMED = re.compile(r"The outcome is: (.+?)(?: \(confirmed by [^)]*\))?\.?(?:\n|$)")
+_WHEN = re.compile(r"\b((?:\d+|one|two|three|four|five|six|seven|eight|nine|ten|fourteen|thirty)\s+days?\s+before\s+(?:each\s+|the\s+)?renewal)\b", re.I)
+
+
+def _worker(first: str, report: Callable[[TeamTurn, Row, tw.TeamAction], Call],
+            blocked: Optional[Callable[[TeamTurn, Row, tw.TeamAction], Call]] = None) -> Callable[[TeamTurn], Optional[Call]]:
+    """A team agent that takes a Lead's task, runs one checking action on what it may read, and reports (0.168.0): accept,
+    act, then a report built from the action (which may block the task first: ``blocked`` then reports the blocker), or a
+    blocker report naming who supplies what is missing."""
+
+    def brain(turn: TeamTurn) -> Optional[Call]:
+        view = _view(turn)
+        if view is None:
+            return None
+        task, status = view["task"], view["task"].status
+        if status == "open":
+            return ("team_accept", {"task_id": task.id})
+        done = _mine(turn, view, first, _brief(task))
+        if status == "accepted":
+            if done is None or not tw.can_claim(done):  # review F1: a crash between its two writes leaves it running: run it again
+                return ("team_act", {"task_id": task.id, "action": first})
+            if done.status in tw.FAILED_ACTIONS:
+                return ("team_block", {"task_id": task.id, "reason": done.failure_ref or f"{first} failed"})
+            return None if _current_report(view) else report(turn, view, done)
+        if status == "blocked" and _current_report(view) is None:
+            if blocked is not None and done is not None and done.status in tw.DONE_ACTIONS:
+                return blocked(turn, view, done)  # its own check passed: it blocked on what its team must give
+            if first == "validate_contract" and not fixtures.feasibility(_sample(task) or "")["ok"]:  # review F5: its own reason
+                return _blocker_report(turn, view)  # the sample itself lacks what is needed: name who supplies it
+            why = (done.failure_ref if done else None) or f"{first} could not run"
+            return ("team_return_report", {"task_id": task.id, "outcome": "blocked", "revision": 1, "answer": f"Blocked: {why}.",
+                                           "next_owner": task.requester.team, "unblocks": f"give the {first.replace('_', ' ')} what it reads"})
+        if status in ("complete", "partial") and _current_report(view) is None and done is not None and done.status in tw.DONE_ACTIONS:
+            return report(turn, view, done)  # moved without its report (an older crash): report again
+        return None
+
+    return brain
+
+
+def _contract_report(turn: TeamTurn, view: Row, done: tw.TeamAction) -> Call:
+    """ML Engineering: the experiment the request needs, from the contract it checked; nothing is trained (this release binds
+    no training tool, and a run needs the owner's approval and a budget)."""
+    task = view["task"]
+    sample = _sample(task) or ""
+    check = fixtures.feasibility(sample)
+    when = _WHEN.search(task.question)
+    moment = when.group(1) if when else "at the prediction moment Data Science confirms"
+    # review F4: the outcome as the person confirmed it to Data Science, not assumed; the review of 2026-11-22: read only what
+    # the Lead added after the person's words ("Data Science found: …"), never a "The outcome is:" the person wrote first
+    found = task.question.rpartition(FOUND)[2] if FOUND in task.question else ""
+    confirmed = _CONFIRMED.search(found)
+    column = ", ".join(check.get("excluded") or ()) or "the outcome column"
+    outcome = (f"the outcome is \"{confirmed.group(1).strip().rstrip('.')}\", as confirmed with Data Science (in the sample: {column}, never an input)"
+               if confirmed else f"the outcome is the one Data Science confirms (in the sample: {column}, never an input)")
+    answer = (f"The experiment can be set up: score each account {moment}, train on earlier renewals and hold out the latest "
+              f"renewals by time; {outcome}. Nothing was trained: a training run needs the owner's approval and a budget.")
+    evidence = [{"source": sample, "ref": done.output_ref or f"contract:{sample}", "input_revision": _brief(task),
+                 "uncertainty": "the sample's columns only; no run, no score", "assumptions": [f"the prediction moment: {moment}"]}]
+    return ("team_return_report", {"task_id": task.id, "outcome": "complete", "revision": 1, "answer": answer, "evidence": evidence,
+                                   "limits": ["Checked against the sample's columns only: no model was trained, evaluated or registered."]})
+
+
+CAPACITY = "the Sales team confirms how many calls it can make in the week before a renewal"
+
+
+def _outreach_block(turn: TeamTurn, view: Row, done: tw.TeamAction) -> Call:
+    """Sales checked the do-not-contact list; the list itself waits for the Sales team's capacity, which no record holds."""
+    return ("team_block", {"task_id": view["task"].id, "reason": "the call capacity is not on record: " + CAPACITY})
+
+
+def _outreach_report(turn: TeamTurn, view: Row, done: tw.TeamAction) -> Call:
+    """Sales: the calls planned from the ranking Data Science makes, the do-not-contact list removed first; blocked on the
+    capacity, which is the Sales team's own number (a child's partial report is not a result: the Lead would wait for
+    ever). Nobody is contacted."""
+    task = view["task"]
+    sample = _sample(task) or ""
+    found = fixtures.sample(sample) or {}
+    answer = (f"The calls can be planned from Data Science's ranking: the {found.get('do_not_contact', 'listed')} accounts on the "
+              "do-not-contact list are removed first, and nobody is contacted before the owner approves the list. The list "
+              "waits for the call capacity, which is not on record yet.")
+    evidence = [{"source": sample, "ref": done.output_ref or f"exclusions:{sample}", "input_revision": _brief(task),
+                 "uncertainty": "the fixture's do-not-contact count; no list was drafted"}]
+    return ("team_return_report", {"task_id": task.id, "outcome": "blocked", "revision": 1, "answer": answer, "evidence": evidence,
+                                   "next_owner": "sales", "unblocks": CAPACITY,
+                                   "limits": ["No contact list was drafted: it needs Data Science's ranking and the Sales team's capacity."]})
+
+
+_ml_engineering = _worker("validate_contract", _contract_report)
+_sales = _worker("check_exclusions", _outreach_block, _outreach_report)
+
+
 # ---------------------------------------------------------------------------------------------------------- the Lead
 HELP = "help:"  # the kind of help the person picked, as the one input of a Lead task the Lead reads (never a team's input)
 
@@ -478,12 +576,19 @@ def _lead(turn: TeamTurn) -> Optional[Call]:
         if pre.status in tw.FAILED_ACTIONS:
             return ("team_block", {"task_id": task.id, "reason": pre.failure_ref or "a prerequisite is missing"})
         inputs = [i for i in task.allowed_inputs if not i.startswith(HELP)]
-        for team in tw.lead_route(help_of(task) or ""):
+        for team in tw.lead_route(help_of(task) or "", task.question):
             child = f"{task.id}.{team}"
-            # missing, or its delegation not recorded (a crash between the two writes resumes here)
-            if turn.work.task(turn.project_id, child) is None or _mine(turn, view, "delegate", child) is None:
+            question = task.question
+            if team == "ml_engineering":  # review F4: after Data Science has answered, with what it found and what the person confirmed
+                found = _data_science_answer(turn, view)
+                if found is None:
+                    continue  # not yet, or Data Science is blocked: the modelling is not agreed, so it is not asked
+                question = f"{task.question}{FOUND}{found}"
+            delegated = _mine(turn, view, "delegate", child)
+            # missing, or its delegation not recorded or not finished (a crash between the two writes resumes here, review F1)
+            if turn.work.task(turn.project_id, child) is None or delegated is None or not tw.can_claim(delegated):
                 return ("team_delegate", {"action": "delegate", "task_id": task.id, "new_task_id": child, "owner_team": team,
-                                          "question": task.question, "expected_output": "a feasibility answer or a precise blocker",
+                                          "question": question, "expected_output": "a feasibility answer or a precise blocker",
                                           "done_criteria": ["says whether the data can answer the question, or what blocks it"],
                                           "allowed_inputs": inputs})
     if status == "blocked":
@@ -495,12 +600,20 @@ def _lead(turn: TeamTurn) -> Optional[Call]:
                                        "unblocks": "declare what the teams may read for this project (its team inputs)",
                                        "answer": f"Blocked before any team was asked: {why}."})
     if view["children"] and status in ("accepted", "waiting_for_team", "partial", "complete"):
-        return _join(turn, view, attribute=True)
+        return _join(turn, view, attribute=True, order=[f"{task.id}.{t}" for t in tw.lead_route(help_of(task) or "", task.question)])  # the route's order
     return None
 
 
-def _missing_child(turn: TeamTurn, task: tw.TeamTask) -> bool:
-    return any(turn.work.task(turn.project_id, f"{task.id}.{team}") is None for team in tw.lead_route(help_of(task) or ""))
+def _data_science_answer(turn: TeamTurn, view: Row) -> Optional[str]:
+    """Data Science's completed answer on this Lead task, with the outcome the person confirmed to it, or None while it is
+    out or when it returned blocked."""
+    child = f"{view['task'].id}.data_science"
+    done = [r for r in view["child_reports"] if r.task_id == child and r.status == "complete"]
+    if not done:
+        return None
+    r = max(done, key=lambda x: x.revision)
+    said = [a for e in r.evidence for a in e.assumptions if a.startswith("The outcome is: ")]
+    return r.answer + ("\n" + said[0] if said else "")
 
 
 def _carry_down(turn: TeamTurn, view: Row) -> Optional[Call]:
@@ -534,7 +647,8 @@ def _carry_down(turn: TeamTurn, view: Row) -> Optional[Call]:
 
 
 BRAINS: dict[str, Callable[[TeamTurn], Optional[Call]]] = {"business": _business, "data_science": _data_science, "model": _model,
-                                                           "lead": _lead, "home": _home}
+                                                           "lead": _lead, "home": _home, "ml_engineering": _ml_engineering,
+                                                           "sales": _sales}
 
 
 # ---------------------------------------------------------------------------------------------------------- the loop

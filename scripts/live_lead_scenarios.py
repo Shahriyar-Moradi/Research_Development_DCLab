@@ -39,8 +39,9 @@ os.environ["DCLAB_LOG_PROMPTS"] = "1"  # prompts, replies and thinking kept (the
 os.environ["DCLAB_TEAM_DELIVERY_BACKOFF_SECONDS"] = "0"
 os.environ["DCLAB_BUILT_CHAT_SERVE"] = "rules" if args.rules else "model"  # the measurement's own override (see live_lead_teams.py)
 os.environ["DCLAB_DATABASE_URL"] = ""
-if (os.environ.get("DCLAB_LLM_PROVIDER") or "").strip().lower() == "anthropic":  # the owner: never a Claude model in a test
-    sys.exit("refused: DCLAB_LLM_PROVIDER=anthropic; these scenarios run on the configured open model only")
+from no_claude import refuse_claude, thinking_record  # noqa: E402
+
+refuse_claude(model_used=not args.rules)  # the owner: never a Claude model in a test, by any provider (the review of 2026-11-22: OpenRouter's too)
 BASE = Path(args.home).resolve()
 BASE.mkdir(parents=True, exist_ok=True)
 
@@ -74,6 +75,18 @@ SCENARIOS = {
            ["Please ask the teams: can our data rank the accounts by churn risk seven days before each renewal?",
             "Wait, before that: which model did the last run choose and what was its holdout score?"],
            {"other_question_not_answer": True}),
+    "S8": ("a model about calls: Data Science, ML Engineering and Sales, one joined report naming Sales next (0.168.0)",
+           True, ["sample:renewal_v1"],
+           ["Who should Sales call before renewal? Please ask the teams to rank the accounts by churn risk seven days before each renewal.", ANSWER],
+           {"handed": True, "teams": ["data_science", "ml_engineering", "sales"]}),
+    "S9": ("a refusal that names the teams (review 2026-11-22): nothing handed over, the data shown",
+           True, ["sample:renewal_v1"],
+           ["Please don't ask the team, just show me the data."],
+           {"handed": False}),
+    "S10": ("a phone-service churn question for the teams (review 2026-11-22): no Sales branch",
+            True, ["sample:renewal_v1"],
+            ["Please ask the teams: do phone service customers churn more before renewal?", ANSWER],
+            {"handed": True, "teams_exclude": ["sales"]}),
     "S7": ("before any project: the lead agent asked for the teams says what it needs first",
            False, [],
            ["Customers are leaving and I want the data science team to look at it. Please ask the teams to start."],
@@ -144,7 +157,7 @@ def run(name: str) -> dict:
             s.drafts.update(did, lambda d: d.update(project_id=pid, problem_id=prob))
         codes, n = [], 0
         for i, text in enumerate(said):
-            if i and name in ("S1", "S2"):  # an answer: only once the team's question waits
+            if i and name in ("S1", "S2", "S8", "S10"):  # an answer: only once the team's question waits
                 for _ in range(60):
                     if lead.waiting(s, pid, did) is not None:
                         break
@@ -195,14 +208,7 @@ def run(name: str) -> dict:
             "spent_eur": round(open_usage(s.store.home).spent("2000-01-01T00:00:00+00:00"), 4),
             "expect": expect,
         }
-    exchanges = list((home / "model_exchanges").rglob("*.jsonl")) if (home / "model_exchanges").exists() else []
-    kept = [json.loads(line) for f in exchanges for line in f.read_text(encoding="utf-8").splitlines() if line.strip()]
-    result["model_calls"] = len(kept)
-    result["calls_with_thinking"] = sum(1 for k in kept if k.get("thinking") or k.get("reasoning") or k.get("reasoning_details"))
-    result["purposes"] = sorted({k.get("purpose", "") for k in kept})
-    result["thinking_kept"] = result["calls_with_thinking"] == result["model_calls"]  # a call without its thinking fails the run
-    if not result["thinking_kept"]:
-        result["failed"] = f"{result['model_calls'] - result['calls_with_thinking']} model call(s) without their thinking"
+    result.update(thinking_record(home))  # an answered call without its thinking fails the run; errored calls counted apart
     (BASE / f"{name}.result.json").write_text(json.dumps(result, indent=2, default=str), encoding="utf-8")
     return result
 

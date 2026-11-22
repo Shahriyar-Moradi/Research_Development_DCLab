@@ -6,11 +6,17 @@
 
 The event log is the source of the live stream: the server tails it from a sequence number, so a page
 that reconnects (or opens later) replays what happened. Writes are atomic (temp file, then replace).
+
+The worker (a team delivery posting to the Home chat) and the API process both write a draft, so a change holds the
+draft's thread lock and ``flock`` on ``<draft_id>/.lock`` (``.events.lock`` for the event log): a read-modify-write in
+one process never overwrites another's (review of 2026-11-22). Without ``fcntl`` only the thread lock holds.
 """
 
 from __future__ import annotations
 
+import contextlib
 import json
+import os
 import secrets
 import threading
 from datetime import datetime, timezone
@@ -35,6 +41,20 @@ def new_draft(draft_id: str, problem: str = "", pack: str | None = None) -> dict
         "cleaning_log": [], "structure": None, "analysis": None, "workflow": None,
         "understanding": {}, "agent": {"mode": None, "turns": 0},
     }
+
+
+@contextlib.contextmanager
+def _flocked(path: Path):
+    """``flock`` on ``path`` for one change, across processes. Its folder must exist (FileNotFoundError otherwise): a
+    deleted draft's folder is never made again by a late writer."""
+    with open(path, "a+b") as handle:
+        try:
+            import fcntl
+
+            fcntl.flock(handle, fcntl.LOCK_EX)
+        except ImportError:  # pragma: no cover - Windows: the thread lock alone
+            pass
+        yield
 
 
 class DraftStore:
@@ -87,17 +107,26 @@ class DraftStore:
     def save(self, draft: dict[str, Any]) -> dict[str, Any]:
         draft["updated"] = now()
         path = self.directory(draft["id"]) / "draft.json"
-        temp = path.with_suffix(".json.tmp")
+        temp = path.with_name(f".draft.{os.getpid()}.{secrets.token_hex(4)}.tmp")  # one per writer: processes never share it
         temp.write_text(json.dumps(draft, indent=2, ensure_ascii=False, default=str), encoding="utf-8")
         temp.replace(path)
         return draft
 
     def update(self, draft_id: str, fn) -> dict[str, Any]:
-        """Read, change with fn(draft) and save under the draft's lock (the pipeline and the chat both write)."""
+        """Read, change with fn(draft) and save under the draft's lock (the pipeline and the chat both write, and the
+        worker from another process: the lock is the thread's and ``flock``'s)."""
+        folder = self.directory(draft_id)
         with self.lock(draft_id):
-            draft = self.get(draft_id)
-            fn(draft)
-            return self.save(draft)
+            if not folder.is_dir():
+                raise KeyError(draft_id)
+            with contextlib.ExitStack() as held:
+                try:
+                    held.enter_context(_flocked(folder / ".lock"))
+                except FileNotFoundError:  # deleted by another process after the check (reviewer round 2, 2026-11-22)
+                    raise KeyError(draft_id) from None
+                draft = self.get(draft_id)
+                fn(draft)
+                return self.save(draft)
 
     def list(self, limit: int = 50) -> list[dict[str, Any]]:
         drafts = []
@@ -118,14 +147,19 @@ class DraftStore:
             hooks.keep_before(self.home.parent, "draft", draft_id)  # 32.4: the store keeps it first
 
         # under the draft's locks: an update already reading it (its agent starting) cannot write it back after this
+        folder = self.directory(draft_id)
         with self.lock(draft_id), self.lock(draft_id + ":events"):
-            shutil.rmtree(self.directory(draft_id), ignore_errors=True)
+            with contextlib.ExitStack() as held:
+                if folder.is_dir():  # and the other processes' writers, through the same files
+                    held.enter_context(_flocked(folder / ".lock"))
+                    held.enter_context(_flocked(folder / ".events.lock"))
+                shutil.rmtree(folder, ignore_errors=True)
 
     # ------------------------------------------------------------------ events
     def emit(self, draft_id: str, kind: str, data: dict[str, Any] | None = None) -> dict[str, Any]:
         """Append one event; returns it with its sequence number."""
         path = self.directory(draft_id) / "events.jsonl"
-        with self.lock(draft_id + ":events"):
+        with self.lock(draft_id + ":events"), _flocked(path.parent / ".events.lock"):
             seq = 0
             if path.exists():
                 with path.open("rb") as handle:

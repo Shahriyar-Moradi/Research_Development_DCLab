@@ -1,0 +1,34 @@
+{
+  "package": "ui-v6-tooltip-and-type-step",
+  "title": "The New chat tooltip readable again, white text on the dark green, and every font one step larger",
+  "date": "2026-11-20",
+  "request": "The owner sent a screenshot of the sidebar and asked what the black box at the top was, then asked: make fonts bigger, just one size.",
+  "spec": "The tooltip and every element that draws text on the dark green are readable in both themes; all text, including the sizes that were fixed in pixels, is one step (about 7%) larger.",
+  "plan": [
+    "Find the tooltip's colour rule and every other use of the same text colour.",
+    "Fix the colour at the token, not element by element.",
+    "Make the fixed pixel sizes follow the font scale, then raise the scale one step.",
+    "Check computed colours and sizes in the running app, and that nothing scrolls sideways."
+  ],
+  "decisions": [
+    {"decision": "Set --ts-on-brand back to white and keep --ts-on-accent dark.", "why": "v6 made --ts-on-brand dark for the bright green buttons, but the tooltip, the avatar, the current step's badge, a pressed decision and the notebook's finding buttons draw it on near-black or the dark green; the bright green buttons already use --ts-on-accent."},
+    {"decision": "Raise --font-scale from 1 to 1.07 and route the 26 fixed sizes in ds.css through it.", "why": "Almost every size already multiplies the scale; one number moves all text by one step, and the fixed ones would otherwise stay behind."}
+  ],
+  "change": "dclab_rnd/agentic/web/src/ds.css (--ts-on-brand #FFFFFF; .dc-tip text from --ts-surface; --font-scale 1.07; font-size Npx written as calc(Npx * var(--font-scale, 1))); static/app rebuilt.",
+  "findings": [
+    {"id": "F1", "source": "owner", "severity": "behaviour", "verdict": "confirmed", "defect": "The New chat tooltip showed as a black box with unreadable text.", "scenario": "Point at New chat in the sidebar; the hint 'Start a fresh chat or ML project' is dark text on near-black.", "cause": "The tooltip's text used --ts-on-brand, which v6 had made dark green.", "fix": "The tooltip uses the surface colour for its text, and --ts-on-brand is white again.", "test": "In the running app the tooltip and the avatar compute to white text on a dark background."},
+    {"id": "F2", "source": "self", "severity": "behaviour", "verdict": "confirmed", "defect": "Five more elements drew dark text on the dark green.", "scenario": "The avatar, the current workflow step's badge, a pressed decision, the notebook's finding buttons.", "cause": "The same token.", "fix": "Fixed by the same token.", "test": "Contrast of white on #237A2D is about 5.3:1."}
+  ],
+  "measurements": [
+    {"name": "computed font sizes after the step", "gate": "every text larger, nothing wider than the page", "fixed_before_run": true, "result": "Body 14.4 px (was 13.5), titles 30 px, menu items 15.5 px, project tabs 16 px; the page is as wide as the window.", "verdict": "pass", "cost_eur": 0.0, "next": "", "limits": ["Checked on the Dashboard at desktop width; the browser suite checks every page at desktop and phone widths."]}
+  ],
+  "outcome": "The tooltip and the dark-green elements are readable, and all text is one step larger.",
+  "lessons": [
+    "When a colour token changes meaning, search every rule that uses it: a button's text colour was also a tooltip's.",
+    "A type scale works only if every size goes through it; fixed pixel sizes stay behind when it moves."
+  ],
+  "risks": [
+    "Larger text makes some long labels wrap sooner on narrow screens."
+  ],
+  "commits": []
+}

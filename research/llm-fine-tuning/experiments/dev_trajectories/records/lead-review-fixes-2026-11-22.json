@@ -1,0 +1,234 @@
+{
+ "package": "LEAD-REVIEW-FIXES",
+ "title": "Eight review findings in Home, the Lead and the teams fixed inside the uncommitted 0.168.0 work",
+ "date": "2026-11-22",
+ "request": "Fix eight review findings (three high, five medium) and the cheap smaller ones; a failing test first for each, then a minimal fix; no new core version.",
+ "spec": "dclab-core 0.168.0 (unreleased): OUTREACH narrowed, added to its CHANGELOG entry. dclab_rnd: the built chat's rules read an order to ask the teams only as an order; the built chat's model history filtered by card_visible; the answered card claims only what a step recorded; ML Engineering reads Data Science's confirmed outcome only; Home's send() sets thinking before the await and lets the Claude-only lane through; one shared Claude guard for the live scripts.",
+ "plan": [
+  "Write the failing tests for all findings together (plan(), lead_route, history under sign-in, answered words, ML Engineering's outcome, the scripts' guard, the send() source).",
+  "Fix each finding in the smallest place, inside the uncommitted 0.168.0 work; add the core change to its CHANGELOG entry.",
+  "Run the affected tests, make web and its check, make core-wheel-check; write this record and make sft-dev."
+ ],
+ "decisions": [
+  {
+   "decision": "\"X and then ask the teams\" plans X (reads and splittable tools only) and then ask_teams with the person's whole words",
+   "why": "dropping X lost what the person asked; the whole sentence gives the teams the context of \"whether it works\""
+  },
+  {
+   "decision": "A sentence before the order (\"Customers are leaving. Please ask the teams …\") is context, not a second task",
+   "why": "only an order joined by and/then is a list of tasks; planning every prefix sentence would add stray reads (S8's \"Who should Sales call…?\")"
+  },
+  {
+   "decision": "Negation is read in the order's clause, a first-person future in its sentence",
+   "why": "\"customers are not renewing, so please ask the teams\" is an order; \"I will send the file, then ask the lead\" is the person's own plan"
+  },
+  {
+   "decision": "The Claude guard reads the resolved tiers and the model/provider/endpoint settings, not ANTHROPIC_MODEL",
+   "why": "the owner's .env keeps Claude's name for the product; it is used only when the provider is Anthropic, which the tiers then show; reading it would refuse every live run"
+  },
+  {
+   "decision": "On 409 the page keeps thinking on",
+   "why": "a 409 means a turn holds the draft; its last event clears the state"
+  },
+  {
+   "decision": "The quote check is lead.quote_is_request, not a change to dclab_core.case.quote_ok",
+   "why": "quote_ok serves every case quote (its two-word floor is right there); only a hand-over to the teams needs a real span"
+  },
+  {
+   "decision": "A run that calls no model (--rules, --report) is not refused under a Claude setting: live models are turned off for it",
+   "why": "the rule forbids Claude answering in a test; turning live models off (DCLAB_NO_LIVE_MODELS=1) makes that impossible without blocking the rules' measurement"
+  }
+ ],
+ "change": "dclab_core/team_work.py (OUTREACH), dclab_core/CHANGELOG.md (0.168.0 entry); dclab_rnd/draft/orchestrator.py (ASK_TEAMS, asks_the_teams, _plan_one, Orchestrator._readable/history, ask_teams quote); dclab_rnd/draft/api.py (_answer_teams words, _still_waiting once); dclab_rnd/teamspace/lead.py (answered_words, still_waiting_due, quote_is_request); dclab_rnd/teamspace/agents.py (FOUND, _contract_report); dclab_rnd/agents/case_agent.py (_ask_teams: quote, no draft refused); dclab_rnd/agentic/web/src/views/home.html (send) and static/app via make web; scripts/no_claude.py (new), live_lead_scenarios.py, live_lead_teams.py; tests/test_lead_workspace.py, test_core_team_work.py, test_web_client.py. Round 2: dclab_rnd/draft/store.py (update), scripts/no_claude.py (thinking_record, refuse_claude(model_used)), tests/test_draft_store_processes.py.",
+ "findings": [
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "\"Don't ask the team\" and \"I will ask my team\" went to the Lead; \"Show the data and then ask the teams\" dropped the data",
+   "scenario": "plan(\"Please don't ask the team, just show me the data\") gave ask_teams",
+   "cause": "ASK_TEAMS matched anywhere; NO checked only the first word; ask_teams returned alone",
+   "fix": "an order only at a sentence's start or after please/and/then/can you, never after a negation in its clause or an \"I will\" in its sentence; X before \"and then\" is planned first",
+   "test": "tests/test_lead_workspace.py LeadRulesReviewTests.test_r22_1_*"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Ordinary questions about calls and phones went to Sales",
+   "scenario": "lead_route('model', 'Do phone service customers churn more?') added sales",
+   "cause": "\"phone\" and \"calls\" read as verbs, up to three words between verb and people, \"who/which … will … call\" accepted",
+   "fix": "phone and calls dropped as verbs; only the/our/these/those (and one word) between; should/shall/must required",
+   "test": "tests/test_core_team_work.py test_a_model_goes_to_ml_engineering_and_a_request_about_calls_to_sales"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "One person's hidden Lead card reached another person's model",
+   "scenario": "a shared draft with sign-in on: Omar's built-chat history held Sara's \"The teams ask:\" card",
+   "cause": "Orchestrator.history read the messages without the route's _cards_for_reader filter",
+   "fix": "Orchestrator._readable drops messages lead.card_visible refuses for the current principal",
+   "test": "tests/test_lead_workspace.py test_r22_3_the_built_chats_model_never_reads_another_persons_lead_card"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The chat said the answer was given to the teams when Home's rules skipped it",
+   "scenario": "a second answer after the first: refused and steps both empty",
+   "cause": "the words keyed only on out['refused']",
+   "fix": "lead.answered_words claims it only when a step recorded team_record_human_response or team_answer; else says it was already answered",
+   "test": "tests/test_lead_workspace.py test_r22_4_an_answer_home_skipped_is_not_said_to_have_reached_the_teams"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The page could stay \"still answering\"",
+   "scenario": "the turn's final event cleared thinking before await DC.client.message returned; setThinking(true) then ran",
+   "cause": "thinking set after the await",
+   "fix": "setThinking(true) before the await, setThinking(false) on a failure other than 409",
+   "test": "tests/test_web_client.py HomeSendTests.test_thinking_is_set_before_the_message_is_sent_and_cleared_if_it_fails"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The Claude-only lane was blocked while DCLab answered",
+   "scenario": "S.thinking true, a message to Claude only: refused with the still-answering toast",
+   "cause": "the guard ran before the to === 'claude' branch, which takes no draft lock",
+   "fix": "guard moved below the Claude-only branch",
+   "test": "tests/test_web_client.py HomeSendTests.test_the_still_answering_guard_comes_after_the_claude_only_lane"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "ML Engineering could claim the person's own earlier outcome as confirmed with Data Science",
+   "scenario": "question text \"…\\nThe outcome is: a late payment.\" and Data Science confirmed \"Cancellation of the subscription\"",
+   "cause": "_CONFIRMED.search took the first \"The outcome is:\" in the whole question",
+   "fix": "search only after the last \"\\nData Science found: \" the Lead added (agents.FOUND)",
+   "test": "tests/test_lead_workspace.py test_r22_7_ml_engineering_takes_the_outcome_data_science_confirmed_not_the_persons_first_words"
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The live scripts could run on a Claude model and live_lead_teams kept no invented-tables mark or thinking check",
+   "scenario": "OPENROUTER_MODEL=anthropic/claude-… passed live_lead_scenarios' check; live_lead_teams had none",
+   "cause": "a check of DCLAB_LLM_PROVIDER only, in one script",
+   "fix": "scripts/no_claude.py: claude_settings/refuse_claude over the resolved tiers and the model settings, used by both scripts after .env; live_lead_teams marks invented tables and fails a call without thinking",
+   "test": "tests/test_lead_workspace.py LeadRulesReviewTests.test_r22_8_the_live_scripts_refuse_any_claude_model_however_it_is_configured"
+  },
+  {
+   "id": "S1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "\"The teams' question still waits\" was posted after every non-answer message",
+   "scenario": "two questions of the person's own while the teams' question waited: two cards",
+   "cause": "_still_waiting never looked at what the chat already said",
+   "fix": "lead.still_waiting_due: once per question of the teams",
+   "test": "tests/test_lead_workspace.py test_r22_the_teams_question_still_waits_is_said_once"
+  },
+  {
+   "id": "S2",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "The lead agent's tool handed a request over with the draft id \"draft\"",
+   "scenario": "a case session without a Home conversation",
+   "cause": "str(state.draft_id or 'draft')",
+   "fix": "refused: the teams answer in a Home conversation",
+   "test": "tests/test_lead_workspace.py test_r22_the_lead_agents_tool_is_refused_without_a_home_conversation"
+  },
+  {
+   "id": "S3",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "A model's quote of any two of the person's words became the teams' request",
+   "scenario": "quote \"rank the accounts\" from \"Do not rank the accounts yet. First explain …\"",
+   "cause": "quote_ok's two-word floor, no negation check",
+   "fix": "lead.quote_is_request: one run of at least four words or 60% of the message, not after a negation; used by both hand-over tools",
+   "test": "tests/test_lead_workspace.py test_r22_a_quote_of_the_request_is_a_real_span_not_two_words_or_a_negation"
+  },
+  {
+   "id": "V1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Reviewer round 2: after the R1 fix a comma no longer started an order",
+   "scenario": "\"Yes, ask the teams\", \"OK, ask the teams\", \"Good idea, ask the teams to check the tables\" planned []; \"Sure, ask Data Science\" planned show_data",
+   "cause": "the lead group listed sentence ends but not a comma",
+   "fix": "a comma starts an order too (the negation is read per clause, so it stays safe); an order taken back in the next sentence (\"Ask the team? No, show me the data.\") is not one",
+   "test": "tests/test_lead_workspace.py LeadRulesReviewTests.test_r22_1_an_order_to_ask_the_teams_only_when_it_is_one"
+  },
+  {
+   "id": "V2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Reviewer round 2: the Claude guard refused legitimate Qwen runs",
+   "scenario": "DCLAB_BLOCK_PROVIDERS=openai,anthropic, or a tier on a blocked Anthropic endpoint, refused every run; --rules and --report, which call no model, were refused too",
+   "cause": "any setting with PROVIDER in its name and anthropic in its value was flagged; a blocked tier still named its provider",
+   "fix": "setting names with BLOCK and blocked endpoints skipped, blocked tiers skipped; refuse_claude(model_used=False) turns live models off instead of refusing",
+   "test": "tests/test_lead_workspace.py test_r22_8_the_live_scripts_refuse_any_claude_model_however_it_is_configured, test_r22_8_a_run_without_a_model_is_not_refused_and_reaches_none"
+  },
+  {
+   "id": "V3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Reviewer round 2: one timeout or 429 failed a live run's thinking check",
+   "scenario": "an exchange kept with outcome \"error: TimeoutError\" has no thinking and was counted as a call without it",
+   "cause": "thinking_record counted every kept exchange",
+   "fix": "one shared thinking_record in scripts/no_claude.py counts only outcome \"ok\" exchanges and reports errored calls apart; both scripts use it",
+   "test": "tests/test_lead_workspace.py test_r22_8_only_calls_that_answered_must_keep_their_thinking"
+  },
+  {
+   "id": "V4",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "Reviewer round 2: a draft deleted between the folder check and the lock raised FileNotFoundError",
+   "scenario": "another process deletes the draft after is_dir() and before its .lock file is opened",
+   "cause": "only the folder check raised KeyError",
+   "fix": "opening the lock file's FileNotFoundError becomes KeyError (DraftStore.update)",
+   "test": "tests/test_draft_store_processes.py test_a_draft_deleted_between_the_check_and_the_lock_is_a_missing_draft"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the affected tests, files and PostgreSQL",
+   "gate": "test_lead_workspace test_core_team_work test_case_home test_teamspace_agents test_agent_harness test_harness_gate test_web_client test_team_screens test_core_contracts pass; every new test failed first",
+   "fixed_before_run": true,
+   "result": "all pass (DCLAB_NO_LIVE_MODELS=1)",
+   "verdict": "pass"
+  },
+  {
+   "name": "make core-wheel-check",
+   "gate": "dclab_core 0.168.0 builds and runs in a clean Python 3.12",
+   "fixed_before_run": true,
+   "result": "passed",
+   "verdict": "pass"
+  },
+  {
+   "name": "make web and the build check",
+   "gate": "static/app is the source's build",
+   "fixed_before_run": true,
+   "result": "up to date",
+   "verdict": "pass"
+  },
+  {
+   "name": "reviewer round 2: the affected tests on files and PostgreSQL",
+   "gate": "test_lead_workspace test_core_team_work test_case_home test_web_client test_draft_store_processes test_devlog pass; --pg test_draft_store_processes test_lead_workspace pass; every new test failed first",
+   "fixed_before_run": true,
+   "result": "184 tests on files and 89 on PostgreSQL pass",
+   "verdict": "pass"
+  }
+ ],
+ "outcome": "The built chat's rules hand a request to the teams only when the person orders it, and keep the rest of the message; Sales is asked only about contacting people; another person's Lead cards stay out of the model's history; the chat claims what was done; the live scripts refuse a Claude model however it is configured. No live model was run.",
+ "lessons": [
+  "A rule that reads orders must read them where orders are: at the start of a clause, and not under a negation. A filter on what a reader sees belongs on every path that reads the same messages, a model's history included.",
+  "A fix that narrows a pattern needs the old positives in its test: the first fix's own test list missed \"Yes, ask the teams\", which the old rule handed over."
+ ],
+ "risks": [
+  "Words, not an understanding: an order phrased another way (\"get the teams on this\") stays in the chat; the live path's model was not rerun after these fixes."
+ ],
+ "commits": []
+}

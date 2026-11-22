@@ -174,6 +174,10 @@ class _Contract:
             self.assertEqual(whats.count(what), 1, what)
 
     def test_a_failure_is_counted_with_its_next_time_and_the_relay_retries_it_when_due(self):
+        # a wait of 2 s (review of 2026-11-22): "not due yet" is checked every time, never skipped on a slow machine
+        patcher = mock.patch.dict(os.environ, {"DCLAB_TEAM_DELIVERY_BACKOFF_SECONDS": "2"})
+        patcher.start()
+        self.addCleanup(patcher.stop)
         self.recipient.fail = 2
         written = self.work.create_task(self.task(), initiator=self.sara)
         first = delivery.send(self.services, written)
@@ -182,22 +186,23 @@ class _Contract:
         self.assertEqual(self.run_job(first)["status"], "done")
         self.assertLess(time.monotonic() - began, 5)  # the job ends at the failure: nothing waits in the worker
         row = self.work.delivery(written.delivery["id"])
-        wait = (datetime.fromisoformat(row["next_attempt_at"]) - datetime.fromisoformat(row["failed_at"])).total_seconds()
         self.assertEqual((row["status"], row["attempts"]), ("pending", 1))
-        self.assertAlmostEqual(wait, 0.2, delta=0.002)  # the first wait: the backoff, from the recorded failure (a busy machine cannot shrink it)
-        if (datetime.now(timezone.utc) - datetime.fromisoformat(row["failed_at"])).total_seconds() < 0.15:  # a busy machine may be past it
-            self.assertEqual(delivery.requeue_undelivered(self.services), [])  # not due yet: the relay leaves it
+        due = datetime.fromisoformat(row["next_attempt_at"])
+        self.assertAlmostEqual((due - datetime.fromisoformat(row["failed_at"])).total_seconds(), 2.0, delta=0.002)  # the backoff
+        self.assertGreater(due, datetime.now(timezone.utc))  # read against the clock: it is still ahead
+        self.assertEqual(delivery.requeue_undelivered(self.services), [])  # not due yet: the relay leaves it
+        self.assertEqual(self.recipient.calls, 1)
 
         restarted = self.make_env(self.home)  # attempts and the next time survive a restart
         held = restarted.teamwork.delivery(written.delivery["id"])
         self.assertEqual((held["attempts"], held["next_attempt_at"]), (1, row["next_attempt_at"]))
-        time.sleep(0.25)
+        time.sleep(max(0.0, (due - datetime.now(timezone.utc)).total_seconds()) + 0.1)
         self.relay(restarted)
         row = self.work.delivery(written.delivery["id"])
-        wait = (datetime.fromisoformat(row["next_attempt_at"]) - datetime.fromisoformat(row["failed_at"])).total_seconds()
-        self.assertEqual((row["status"], row["attempts"]), ("pending", 2))
-        self.assertAlmostEqual(wait, 0.4, delta=0.002)  # doubled
-        time.sleep(0.45)
+        due = datetime.fromisoformat(row["next_attempt_at"])
+        self.assertEqual((row["status"], row["attempts"], self.recipient.calls), ("pending", 2, 2))  # retried once it was due
+        self.assertAlmostEqual((due - datetime.fromisoformat(row["failed_at"])).total_seconds(), 4.0, delta=0.002)  # doubled
+        time.sleep(max(0.0, (due - datetime.now(timezone.utc)).total_seconds()) + 0.1)
         self.relay(restarted)
         row = self.work.delivery(written.delivery["id"])
         self.assertEqual((row["status"], row["attempts"], len(self.recipient.got)), ("delivered", 2, 1))  # two failures, one delivery
@@ -232,12 +237,13 @@ class _Contract:
                          ("blocked", 0, "Not delivered: Data Science cannot take it (PermanentFailure)."))
 
     def test_a_hung_recipient_is_cut_off(self):
-        self.recipient.sleep = 3.0  # far beyond the 0.1 s limit, so a slow machine still shows the cut-off
+        self.recipient.sleep = 12.0  # far beyond the 0.1 s limit (the thread is a daemon: it is left behind, never joined)
         with mock.patch.dict(os.environ, {"DCLAB_TEAM_DELIVERY_TIMEOUT_SECONDS": "0.1"}):
             written = self.work.create_task(self.task(), initiator=self.sara)
             began = time.monotonic()
             row = self.deliver(written)
-        self.assertLess(time.monotonic() - began, 2.0)  # cut off near 0.1 s, never the recipient's 3 s: a busy machine gets the margin between
+        # cut off near 0.1 s; a loaded machine gets ~6 s of margin, and waiting for the recipient's 12 s still fails
+        self.assertLess(time.monotonic() - began, 6.0)
         self.assertEqual((row["status"], row["attempts"]), ("pending", 1))
         self.assertTrue(row["last_error"].startswith("TargetTimeout"))
 
@@ -347,6 +353,51 @@ class _Contract:
         row = self.work.delivery(late.delivery["id"])
         self.assertEqual(row["status"], "refused", ended.get("error"))
         self.assertEqual(self.recipient.calls, 1)
+
+    def test_a_team_with_a_reply_on_its_way_is_not_removed_and_removal_holds_new_work_back(self):
+        """Review of 2026-11-22: the task is complete but its reply is pending (the receiver in backoff): neither the
+        receiving nor the sending team is removed until it is delivered. The check and the removal hold the workspace's
+        team work lock, so a task made meanwhile waits until the removal is over."""
+        import threading
+
+        from dclab_rnd.teamspace.store import TeamBusy
+
+        self.deliver(self.work.create_task(self.task(), initiator=self.sara))  # the task row: delivered
+        self.work.move(self.pid, "T-ds", "accepted", DS)
+        a = tw.TeamAction(task_id="T-ds", action_id="A1", actor=DS, action="inspect_schema", source="tool:inspect_schema",
+                          input_revision="brief-1", status="running", started_at=T0, retry_key=tw.retry_key("T-ds", "inspect_schema", "brief-1"))
+        self.work.record_action(self.pid, a)
+        self.work.finish_action(self.pid, "T-ds", "A1", "succeeded", ended_at=T1, output_ref="schema:v3")
+        self.work.move(self.pid, "T-ds", "complete", DS)
+        reply = self.work.store_report(self.pid, "T-ds", current_brief_revision=1, answer="Yes: it can.", next_task=CLOSED)
+        self.assertEqual(self.work.open_work_of(["business"]), [])  # no open task: only the reply holds the team
+        removed = []
+        for names in (["business"], ["team_x", "data_science"]):  # the receiver, and the sender
+            with self.assertRaises(TeamBusy) as caught:
+                self.work.remove_team_if_idle(names, lambda: removed.append(names))
+            self.assertEqual(([t.id for t in caught.exception.tasks], [d["kind"] for d in caught.exception.deliveries]), ([], ["reply"]))
+        self.assertEqual(removed, [])
+        self.recipient.fail = 0
+        self.assertEqual(self.deliver(reply)["status"], "delivered")
+        self.assertEqual(self.work.remove_team_if_idle(["business"], lambda: "gone"), "gone")
+
+        inside, order = threading.Event(), []
+
+        def remove():
+            inside.set()
+            time.sleep(0.5)
+            order.append("removed")
+
+        def create():
+            inside.wait(10)
+            self.work.create_task(self.task(id="T-late"), initiator=self.sara)
+            order.append("created")
+
+        maker = threading.Thread(target=create)
+        maker.start()
+        self.work.remove_team_if_idle(["sales"], remove)
+        maker.join(20)
+        self.assertEqual(order, ["removed", "created"])  # the task waited for the removal, never slipped between check and delete
 
     def test_another_workspace_queues_and_reads_nothing(self):
         self.work.create_task(self.task(), initiator=self.sara)

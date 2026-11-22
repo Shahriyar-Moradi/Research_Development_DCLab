@@ -1,0 +1,137 @@
+{
+  "package": "team-review-fixes-2026-11-22",
+  "title": "Review fixes for the team workspace: team memory routes reachable by the owner, a team with a reply on its way kept, steady delivery timing tests, drafts locked across processes, and only known kinds in the team.created event",
+  "date": "2026-11-22",
+  "request": "Fix five review findings (A to E) in the team workspace, each with a failing test first and then a minimal fix, on files and PostgreSQL; another fixer works on team_work, lead, agents, tools, the orchestrator and the frontend at the same time.",
+  "spec": "The review of 2026-11-22 (findings A high, B high, C medium, D medium, E low)",
+  "plan": [
+    "A: team memory routes check that the team exists (404) and add the team to the scope for the local owner (sign-in off) and for the owner role (sign-in on); route tests without a mock of the person's teams, sign-in off on files and PostgreSQL, sign-in on with an owner who is not a member and a member of the workspace who is not in the team.",
+    "B: a team is not removed while a pending delivery is to or from it; the check and the removal run under one workspace lock that every team work change holds shared.",
+    "C: the backoff test uses a 2 s wait and always asserts not due; the hung-recipient test sleeps 12 s against a 6 s bound.",
+    "D: the file draft store holds flock on the draft's folder for update, delete and emit, and each writer has its own temp file; a two-process test.",
+    "E: the team.created event keeps the kind only when it is one of storage.teams.KINDS, else other."
+  ],
+  "decisions": [
+    {
+      "decision": "Without sign-in the local owner is every team's owner for the team memory routes.",
+      "why": "Members are accounts, so the local owner can never be placed in a team: the routes answered 403 to everyone. threads.access already treats the local owner as a writer of every thread."
+    },
+    {
+      "decision": "With sign-in, the owner who is not a member reads and writes a team's memory; writing is checked by the role as on every route.",
+      "why": "The guard and the docstring say members or the owner; the owner's role is a write role. A member of the workspace who is not in the team stays refused."
+    },
+    {
+      "decision": "A removed team's memory routes answer 404; the docstrings say the memory stays in the records instead of read by the owner.",
+      "why": "The routes now check that the team exists, so the old claim would be false."
+    },
+    {
+      "decision": "The removal lock is the team work's workspace lock: shared for every change (_tx), exclusive and tried (never queued) for a removal, with a 10 s limit and a 409 on time-out.",
+      "why": "A create_task must not run between the check and the delete. A queued exclusive request in PostgreSQL would hold every new shared request behind it; trying avoids a stall."
+    },
+    {
+      "decision": "Any pending row to or from the team holds it, not only a reply.",
+      "why": "A pending task or answer row of a cancelled task also names the team's thread; the relay delivers it soon after."
+    },
+    {
+      "decision": "The event log of a draft is locked across processes too (.events.lock).",
+      "why": "The sequence number is counted, then appended: two processes could take the same number. Same file, same bug kind."
+    },
+    {
+      "decision": "Known kinds are storage.teams.KINDS (the five team kinds, each a team agent in team_work.DIRECTORY).",
+      "why": "DIRECTORY also holds lead, home, advisor and other agents that are not team kinds."
+    }
+  ],
+  "change": "dclab_rnd/agentic/routers/memory.py (_team_scope), dclab_rnd/agentic/routers/teams.py (delete_team through remove_team_if_idle, _audit kind), dclab_rnd/teamspace/store.py (TeamBusy, pending_deliveries_of, remove_team_if_idle, the workspace lock on files and PostgreSQL), dclab_rnd/storage/teams.py (docstring), dclab_rnd/draft/store.py (flock, unique temp file); tests/test_team_memory_corrections.py, tests/test_teams.py, tests/test_teamspace_delivery.py, tests/test_draft_store_processes.py (new).",
+  "findings": [
+    {
+      "id": "A",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "The team memory routes answered 403 to everyone without sign-in, and to the owner who is not a member with it",
+      "scenario": "the local studio (DCLAB_AUTH unset): GET /api/workspace/teams/{id}/memory/base answers 403, because add_team_member refuses members without sign-in (409) and scope.team_key needs membership; with sign-in the owner who is not in Sales is refused too, though the guard says members or the owner",
+      "cause": "the routes used the person's memberships only; the existing test hid it by patching memory.scope.teams_of_person",
+      "fix": "_team_scope: the team must exist (404); for the local owner or the owner role the team is added to the scope's team_ids (dataclasses.replace); writing stays checked by the role",
+      "test": "tests/test_team_memory_corrections.py test_a_teams_memory_base_through_its_routes (files and PostgreSQL, no mock) and SignedInTeamMemoryRoutesTests.test_the_owner_reads_every_team_and_a_non_member_is_refused"
+    },
+    {
+      "id": "B",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "Deleting a team stranded a reply on its way, and a task could be made between the check and the delete",
+      "scenario": "Business asks Data Science, Data Science reports and the task is complete, the reply delivery is pending (receiver in backoff), the owner deletes Business: 204, and the reply goes to a removed team's thread",
+      "cause": "open_work_of checked open tasks only, while _keep_report queues the reply in the same transaction that completes the task; the check and the delete shared no lock",
+      "fix": "remove_team_if_idle refuses (TeamBusy, 409) while an open task or a pending row is to or from the team, and runs the check and the removal under the workspace's team work lock held exclusively (flock on files, a tried advisory lock on PostgreSQL); every change holds it shared",
+      "test": "tests/test_teamspace_delivery.py test_a_team_with_a_reply_on_its_way_is_not_removed_and_removal_holds_new_work_back (files and PostgreSQL); tests/test_teams.py test_a_team_whose_reply_is_on_its_way_is_not_removed and test_the_owner_manages_teams_and_others_are_refused"
+    },
+    {
+      "id": "C",
+      "source": "reviewer",
+      "severity": "flaky",
+      "defect": "The not-due check of the backoff test ran only on a fast machine",
+      "scenario": "a loaded machine: more than 0.15 s passed after the failure, so the assertion was skipped silently; the wait check compared two times written by the same put()",
+      "cause": "a 0.2 s backoff with an if around the assertion",
+      "fix": "a 2 s backoff, the next attempt checked against the clock and not due asserted every time, the retries waited for from the recorded time; the hung recipient sleeps 12 s against a 6 s bound (a 0.1 s limit)",
+      "test": "tests/test_teamspace_delivery.py test_a_failure_is_counted_with_its_next_time_and_the_relay_retries_it_when_due and test_a_hung_recipient_is_cut_off"
+    },
+    {
+      "id": "D",
+      "source": "reviewer",
+      "severity": "latent",
+      "defect": "On file storage a worker and the API could overwrite each other's draft change",
+      "scenario": "the worker handles a team delivery (lead.to_home_chat, drafts.update) while a Home turn in the API process updates the same draft",
+      "cause": "the draft lock was a thread lock, in one process only; both writers also used the same draft.json.tmp, so one process's replace could fail (FileNotFoundError, seen in the new test)",
+      "fix": "update, delete and emit hold flock on <draft>/.lock or .events.lock beside the thread lock; save writes a temp file per writer; a deleted draft is a KeyError, never made again",
+      "test": "tests/test_draft_store_processes.py test_two_processes_updating_one_draft_lose_no_update (two processes, 150 updates and events each) and test_a_deleted_draft_is_not_made_again_by_a_late_update"
+    },
+    {
+      "id": "E",
+      "source": "reviewer",
+      "severity": "privacy",
+      "defect": "The team.created event kept free text the owner typed as its kind",
+      "scenario": "a team made with the kind acme_partner_desk: the event, which may leave for training, carries the owner's words",
+      "cause": "_audit copied args['kind'] into the event",
+      "fix": "the event keeps a kind from storage.teams.KINDS, else other; the audit keeps the typed kind",
+      "test": "tests/test_teams.py test_the_kind_of_a_new_team_is_audited_only_when_known"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "failing tests first",
+      "gate": "every new or changed test fails before its fix",
+      "fixed_before_run": true,
+      "result": "9 tests failed in 4 files before the fixes (A on files, PostgreSQL and signed in; B in the store and the routes; D; E)",
+      "verdict": "pass",
+      "cost_eur": 0.0
+    },
+    {
+      "name": "affected tests on files",
+      "gate": "every affected test file passes on files",
+      "fixed_before_run": true,
+      "result": "323 tests OK in 11 files (team memory, teams, delivery, team work store, acceptance, memory bases, the four draft files, the new two-process draft test)",
+      "verdict": "pass",
+      "cost_eur": 0.0
+    },
+    {
+      "name": "affected tests on PostgreSQL",
+      "gate": "the same files and the team routes and threads pass with --pg",
+      "fixed_before_run": true,
+      "result": "367 tests OK in 13 files; an earlier run had one timing failure in test_draft_flow under load, which passed alone three times and in the next full run",
+      "verdict": "pass",
+      "cost_eur": 0.0,
+      "limits": [
+        "make check-quick and check-all were not run: only the affected files"
+      ]
+    }
+  ],
+  "outcome": "The owner reads every team's memory with sign-in off or on and a non-member is refused; a team is removed only when nothing is on its way to or from it, with no task slipping between the check and the delete; the delivery timing test always checks not due; two processes writing one draft lose nothing.",
+  "lessons": [
+    "A test that patches the membership lookup can hide that nobody can ever be a member: test the route as the real person arrives.",
+    "A check before a delete needs the same lock as the writes it guards, and the exclusive side should try, not queue, when the shared side is taken by every change.",
+    "A temp file with a fixed name is shared by every process that writes the file."
+  ],
+  "risks": [
+    "The team work store does not check that a task's team exists: after a team is removed, a new task to its kind (the agent in team_work.DIRECTORY) is not refused here. The lock orders the check and the removal; it does not forbid later work for that kind.",
+    "A removal waits at most 10 s for changes under way, then answers 409 (try again)."
+  ],
+  "commits": []
+}

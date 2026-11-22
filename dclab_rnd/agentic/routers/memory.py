@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import Any
 
 from fastapi import Depends, HTTPException, Request
@@ -300,11 +301,31 @@ def _team_target(team_id: str) -> str:
     return f"{bases.TEAM_TARGET}{team_id}"
 
 
+def _team_scope(s: Services, team_id: str, *, require_write: bool = False) -> mem_scope.AuthorizedScope:
+    """The scope of a team memory route: the team must exist in this workspace (404), and the person must be one of its
+    members or the owner (``guard.SPECIAL``). Without sign-in the local owner is the only person and can never be placed in
+    a team (members are accounts), so they are every team's owner; with it, the owner who is not a member reads every
+    team's memory, and writes it as the owner's role may (``require_write`` is checked by the role, as on every route)."""
+    from ...storage.teams import BrokenTeamsFile
+
+    store = mem_scope.teams_store(s)
+    try:
+        found = store is not None and store.team(team_id) is not None
+    except BrokenTeamsFile as exc:
+        raise HTTPException(503, str(exc)) from None
+    if not found:
+        raise HTTPException(404, "No such team")
+    auth = _resolve(s, require_write=require_write)
+    if not auth.is_member(team_id) and (auth.auth_mode == "local" or auth.role == "owner"):
+        auth = replace(auth, team_ids=tuple(sorted({*auth.team_ids, team_id})))
+    return auth
+
+
 @router.get("/api/workspace/teams/{team_id}/memory/base", response_model=BaseView)
 async def team_memory_base_view(team_id: str, s: Services = Depends(services)):
     """W6 follow-up: a team's own memory base (its members, or the owner): active facts, drafts and retired history.
     No other team reads it; shared reports never carry it."""
-    auth = _resolve(s)
+    auth = _team_scope(s, team_id)
     try:
         return bases.read_base(s.store.home, auth, target=_team_target(team_id))
     except mem_scope.AccessDenied as exc:
@@ -316,7 +337,7 @@ async def team_memory_base_view(team_id: str, s: Services = Depends(services)):
 @router.post("/api/workspace/teams/{team_id}/memory/base", response_model=BaseMutationResult)
 async def team_memory_base_upsert(team_id: str, body: BaseFactUpsert, request: Request, s: Services = Depends(services)):
     """Add or update a fact in a team's memory base (a member whose role may write), with the revision check."""
-    auth = _resolve(s, require_write=True)
+    auth = _team_scope(s, team_id, require_write=True)
     try:
         res = bases.upsert_base_fact(
             s.store.home, auth, target=_team_target(team_id), subject=str(body.subject or "team"), field=str(body.field or "fact"),
@@ -336,7 +357,7 @@ async def team_memory_base_upsert(team_id: str, body: BaseFactUpsert, request: R
 async def team_memory_base_correct(team_id: str, entry_id: str, body: BaseFactCorrect, request: Request,
                                    s: Services = Depends(services)):
     """Correct a fact in a team's memory base, keeping its history."""
-    auth = _resolve(s, require_write=True)
+    auth = _team_scope(s, team_id, require_write=True)
     try:
         res = bases.correct_base_fact(s.store.home, auth, entry_id, str(body.text or ""), target=_team_target(team_id),
                                       expected_revision=_expected(body), reason=str(body.reason or ""), log=s.experience)
