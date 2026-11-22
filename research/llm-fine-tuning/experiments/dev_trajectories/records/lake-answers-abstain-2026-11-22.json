@@ -1,0 +1,57 @@
+{
+  "package": "lake-answers-abstain-2026-11-22",
+  "title": "One input GLiNER cannot answer no longer stops the whole capture",
+  "date": "2026-11-22",
+  "request": "The owner: store all training data with reasoning.",
+  "spec": "make capture runs to the end: a decision model's failure on one input is kept as an abstention with its error, its neighbours' answers kept.",
+  "plan": [
+    "read the traceback of make capture's GLiNER step",
+    "ask a failing chunk one by one and keep the failing input as an abstention",
+    "test with a scripted model that fails on one input",
+    "resume the capture from the GLiNER step"
+  ],
+  "decisions": [
+    {
+      "decision": "Keep the failed input as a record with value None and its error in output",
+      "why": "never truncate before saving: the record is whole, and a later run with the same input is not asked again for nothing"
+    }
+  ],
+  "change": "dclab_rnd/lake/answers.py _classify; tests/test_lake_answers.py.",
+  "findings": [
+    {
+      "id": "C1",
+      "source": "measurement",
+      "severity": "behaviour",
+      "defect": "make capture stopped at GLiNER's answers and never reached the snapshot",
+      "scenario": "2026-11-22 capture: GLiNER2's batch_classify_text raised IndexError (argmax of an empty tensor) on one input",
+      "cause": "one batch call per chunk with no handling: one sample's failure ended the process",
+      "fix": "a failing chunk is asked one by one; an input that still fails is kept as an abstention with its error",
+      "test": "tests/test_lake_answers.py test_one_input_the_model_cannot_answer_is_kept_as_an_abstention_and_stops_nothing"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "store run inside make capture",
+      "gate": "no step failed",
+      "fixed_before_run": true,
+      "result": "every step ran with 0 errors, 0 refused; the first complete store run since 11-18 (nightly runs were stopped by the swap and disk guards)",
+      "verdict": "pass"
+    },
+    {
+      "name": "thinking kept in the store's model exchanges since 11-03",
+      "gate": "every non-error call outside a sealed exam keeps its thinking",
+      "fixed_before_run": true,
+      "result": "6,459 of 6,472 (99.8%); the 13 without are Claude calls of 11-04 and 11-06; sealed exam calls are kept as shape only by policy",
+      "verdict": "pass"
+    }
+  ],
+  "outcome": "The capture's GLiNER step survives a bad input; the capture is resumed to the snapshot.",
+  "lessons": [
+    "A batch call to a model needs a per-item fallback, or one input stops everything after it.",
+    "Count thinking under every field it is kept in (thinking_redacted too) before calling it missing."
+  ],
+  "risks": [
+    "The nightly store run still does not fit in memory on some nights (swap over 6 GB at the decision sets)."
+  ],
+  "commits": []
+}

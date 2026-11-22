@@ -62,6 +62,32 @@ class CaptureTests(unittest.TestCase):
         self.assertIn("col_1", rec["input_text"])
         self.assertNotIn("label", rec)  # the labels stay in gold
 
+    def test_one_input_the_model_cannot_answer_is_kept_as_an_abstention_and_stops_nothing(self):
+        # 2026-11-22: GLiNER2 raised (argmax of an empty tensor) on one input and the whole capture stopped
+        from dclab_rnd.lake import answers
+
+        class FailsOnOne(Scripted):
+            def batch_classify_text(self, texts, schema, include_confidence=False):
+                if any("col_1" in t for t in texts):
+                    if len(texts) > 1:
+                        raise IndexError("argmax(): Expected reduction dim to be specified for input.numel() == 0.")
+                    raise IndexError("argmax(): empty")
+                return super().batch_classify_text(texts, schema, include_confidence)
+
+        rows = [sample(1), sample(5)]  # same point and split, asked in one batch
+        lake = Path(tempfile.mkdtemp())
+        write_gold(lake, rows)
+        with mock.patch.object(answers, "MANIFEST", lake / "MANIFEST.json"):
+            answers.capture("gliner2.5-decide", ("lake",), lake=lake, model=FailsOnOne(), log=lambda *_: None,
+                            identity={"revision": "abc123", "library": "gliner2 2.1.0", "machine": "test"})
+        recs = {r["sample_id"]: r for r in answers.stored("gliner2.5-decide", "lake", "column.is_identifier", "dev", lake)}
+        self.assertEqual(len(recs), 2)  # both kept: the failing one does not lose its neighbour
+        bad = next(r for r in recs.values() if "col_1" in r["input_text"])
+        good = next(r for r in recs.values() if "col_1" not in r["input_text"])
+        self.assertIsNone(bad["value"])
+        self.assertIn("IndexError", bad["output"]["error"])
+        self.assertEqual((good["value"], good["confidence"]), (True, 0.75))
+
     def test_a_second_run_asks_nothing_and_a_changed_decision_is_asked_again(self):
         first = Scripted()
         self.capture(first)

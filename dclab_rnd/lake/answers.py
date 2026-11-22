@@ -492,7 +492,7 @@ def capture(answerer: str = "gliner2.5-decide", sources: tuple[str, ...] = SOURC
                 for i in range(0, len(items_), batch):
                     chunk = items_[i:i + batch]
                     started = time.perf_counter()
-                    outs = model.batch_classify_text([d["text"] for d in chunk], schema, include_confidence=True)
+                    outs = _classify(model, chunk, schema)
                     seconds = (time.perf_counter() - started) / max(len(chunk), 1)
                     at = datetime.now(timezone.utc).isoformat(timespec="seconds")
                     lines = []
@@ -520,6 +520,23 @@ def capture(answerer: str = "gliner2.5-decide", sources: tuple[str, ...] = SOURC
             if n:
                 log(f"{answerer} {source}/{point}/{split}: {n} asked")
     return {"answerer": answerer, "asked": asked}
+
+
+def _classify(model: Any, chunk: list[dict[str, Any]], schema: Any) -> list[Any]:
+    """The model's answers for a chunk. A sample the model cannot answer (GLiNER2 raised on one with no class scores,
+    2026-11-22) costs only itself: the chunk is asked one by one and that sample is kept as an abstention, its error in
+    ``output``, so one bad input never stops a capture or loses its neighbours' answers."""
+    texts = [d["text"] for d in chunk]
+    try:
+        return model.batch_classify_text(texts, schema, include_confidence=True)
+    except Exception:  # noqa: BLE001 - one sample's failure, asked again alone below
+        outs: list[Any] = []
+        for text in texts:
+            try:
+                outs.extend(model.batch_classify_text([text], schema, include_confidence=True))
+            except Exception as exc:  # noqa: BLE001 - kept as an abstention with its reason
+                outs.append({"answer": None, "error": f"{type(exc).__name__}: {exc}"})
+        return outs
 
 
 def _same(value: Any, label: Any, accepted: Any = None) -> bool:
