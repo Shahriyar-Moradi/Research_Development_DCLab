@@ -1,0 +1,111 @@
+{
+  "package": "lead-live-rounds-2026-11-22",
+  "title": "The Lead and the teams live after the review fixes: three rounds until nothing new",
+  "date": "2026-11-22",
+  "request": "The owner: fix the review bugs, run the live test after the fixes, and if more bugs appear fix them and run it again, continuously.",
+  "spec": "Live scenarios S1-S11 on the configured open model (Qwen on OpenRouter, never Claude) and on the rules, each in its own workspace under agent_runs/live_tests/2026-11-22-lead-*; graded from the draft's messages and the team records, never the model's words about itself.",
+  "plan": [
+    "round 1 on the fixed code with two new scenarios (S9 refusal, S10 phone-service question)",
+    "independent review of the fixes in parallel",
+    "fix the review's findings, gate, commit",
+    "round 2 on the committed code, plus live_lead_teams.py",
+    "round 3 for the one fix not yet seen live (S11 comma order)",
+    "archive"
+  ],
+  "decisions": [
+    {
+      "decision": "Write each review trigger as a live scenario (S9 refusal, S10 phone-service question, S11 comma order)",
+      "why": "a fix is believed only once the real model and the real app show it, not only a unit test"
+    },
+    {
+      "decision": "Grade each scenario by hand against its expectation, fixed before the run, from the chat and the team records",
+      "why": "the script records observations; the model's words about itself are never the measure"
+    }
+  ],
+  "change": "scripts/live_lead_scenarios.py: S9, S10, S11; the own-words measure compares without letter case.",
+  "findings": [
+    {
+      "id": "L1",
+      "source": "measurement",
+      "severity": "gap",
+      "defect": "own_words was false whenever the model passed the request without its 'Please ask the teams:' prefix",
+      "scenario": "round 2 S5, S6 and round 3 S11 on Qwen: the task's question was the person's request with a capital first letter",
+      "cause": "the check compared with letter case",
+      "fix": "compare case-insensitively; 7 of 7 handed requests carry the person's words",
+      "test": "rerun of the measure on the kept round 2 and 3 results"
+    },
+    {
+      "id": "L2",
+      "source": "measurement",
+      "severity": "behaviour",
+      "defect": "Home's model promised 'the ranked list will come back' though the teams report feasibility, not a ranking",
+      "scenario": "round 1 S8 on Qwen",
+      "cause": "model wording in its hand-over message (prompt territory)",
+      "fix": "not fixed: a prompt change needs make agent-eval and the harness eval; left for the owner",
+      "test": "none yet"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "round1_model",
+      "gate": "each scenario's expectation, fixed before the run",
+      "fixed_before_run": true,
+      "result": "10/10 as expected, 26/26 calls with thinking, EUR 0.0088",
+      "verdict": "pass"
+    },
+    {
+      "name": "round1_rules",
+      "gate": "each scenario's expectation, fixed before the run",
+      "fixed_before_run": true,
+      "result": "10/10 as expected",
+      "verdict": "pass"
+    },
+    {
+      "name": "round2_model",
+      "gate": "each scenario's expectation, fixed before the run",
+      "fixed_before_run": true,
+      "result": "10/10 as expected, 25/25 calls with thinking, EUR 0.0092",
+      "verdict": "pass"
+    },
+    {
+      "name": "round2_rules",
+      "gate": "each scenario's expectation, fixed before the run",
+      "fixed_before_run": true,
+      "result": "10/10 as expected",
+      "verdict": "pass"
+    },
+    {
+      "name": "round2_teams_script",
+      "gate": "each scenario's expectation, fixed before the run",
+      "fixed_before_run": true,
+      "result": "handed, thinking kept",
+      "verdict": "pass"
+    },
+    {
+      "name": "round3",
+      "gate": "each scenario's expectation, fixed before the run",
+      "fixed_before_run": true,
+      "result": "S11 handed on Qwen and on the rules",
+      "verdict": "pass"
+    },
+    {
+      "name": "review_round2",
+      "gate": "each scenario's expectation, fixed before the run",
+      "fixed_before_run": true,
+      "result": "3 findings (comma order, guard refusing Qwen runs, errored calls failing the thinking check) fixed in e7e118dc",
+      "verdict": "pass"
+    }
+  ],
+  "outcome": "No new product bug in rounds 2 and 3; one measurement bug fixed, one wording issue left for a prompt change.",
+  "lessons": [
+    "Write the review's trigger as a live scenario, so the fix is seen with the real model and not only in a unit test.",
+    "A measure that compares text exactly will call a faithful paraphrase a failure; check the failing rows before calling it a product bug."
+  ],
+  "risks": [
+    "The scenarios were written by the agent that built and fixed the code, and each ran once; the multi-team join is seen live only in S8.",
+    "The Lead and the teams are rules with fixture specialists: the live part is Home's model deciding to hand over."
+  ],
+  "commits": [
+    "e7e118dc"
+  ]
+}

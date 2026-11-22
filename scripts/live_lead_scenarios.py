@@ -87,6 +87,10 @@ SCENARIOS = {
             True, ["sample:renewal_v1"],
             ["Please ask the teams: do phone service customers churn more before renewal?", ANSWER],
             {"handed": True, "teams_exclude": ["sales"]}),
+    "S11": ("an order after a comma (review round 2, 2026-11-22): 'Good idea, ask the teams' is handed over",
+            True, ["sample:renewal_v1"],
+            ["Good idea, ask the teams to check whether our tables can rank accounts by churn risk before renewal.", ANSWER],
+            {"handed": True}),
     "S7": ("before any project: the lead agent asked for the teams says what it needs first",
            False, [],
            ["Customers are leaving and I want the data science team to look at it. Please ask the teams to start."],
@@ -157,7 +161,7 @@ def run(name: str) -> dict:
             s.drafts.update(did, lambda d: d.update(project_id=pid, problem_id=prob))
         codes, n = [], 0
         for i, text in enumerate(said):
-            if i and name in ("S1", "S2", "S8", "S10"):  # an answer: only once the team's question waits
+            if i and name in ("S1", "S2", "S8", "S10", "S11"):  # an answer: only once the team's question waits
                 for _ in range(60):
                     if lead.waiting(s, pid, did) is not None:
                         break
@@ -192,7 +196,7 @@ def run(name: str) -> dict:
             "scenario": name, "what": what, "codes": codes, "seconds": round(time.time() - started, 1),
             "handed_to_lead": bool(tasks), "tasks": len(tasks),
             "questions_sent": [t.question for t in tasks],
-            "own_words": bool(tasks) and all(t.question.strip() in " ".join(said) for t in tasks),
+            "own_words": bool(tasks) and all(t.question.strip().lower() in " ".join(said).lower() for t in tasks),  # the person's words, whatever their first letter
             "teams": [ch.owner_team for ch in children], "statuses": [t.status for t in tasks],
             "team_question_in_chat": bool(q),
             "question_after_homes_answer": (not q or not agent_first or min(agent_first) < q[0]) if q else None,
