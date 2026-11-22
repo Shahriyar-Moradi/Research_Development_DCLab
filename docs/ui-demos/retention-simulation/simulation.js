@@ -1,23 +1,23 @@
 'use strict';
 const {train,validation,cohort,fit}=createRetentionCohort();
 const {score,baseScore,model,allowed}=fit();
-const roles=['بیزینس','دیتا ساینس','یادگیری ماشین','فروش','مارکتینگ'];
-const $=id=>document.getElementById(id),fa=n=>Number(n).toLocaleString('fa-IR');
-const pct=n=>fa(Math.round(n*100))+'٪';
-const storage='dclab-retention-sim-v1';
+const roles=['Business','Data Science','Machine Learning','Sales','Marketing'];
+const $=id=>document.getElementById(id),fmt=n=>Number(n).toLocaleString('en-US');
+const pct=n=>fmt(Math.round(n*100))+'%';
+const storage='dclab-retention-sim-en-v1';
 const fresh=()=>({stage:0,capacity:18,budget:120,version:1,closed:false,trail:[]});
 let s=fresh(),focus=0,timer=null;
 try{const value=JSON.parse(localStorage.getItem(storage));if(value && Number.isInteger(value.stage)&&value.stage>=0&&value.stage<=7&&Number.isInteger(value.capacity)&&value.capacity>=0&&value.capacity<=30&&Number.isInteger(value.budget)&&value.budget>=0&&value.budget<=300&&Array.isArray(value.trail))s=value}catch{}
 const teams=[
-  {from:0,to:1,title:'بیزینس مسئله را تعریف کرد',text:()=> 'بیزینس یک فهرست قابل‌اجرا برای این هفته می‌خواهد. ریزش یعنی تمدید نشدن تا تاریخ قرارداد. برای تشخیص ریسک فقط اطلاعات هفت روز پیش از تمدید را استفاده کنید.'},
-  {from:1,to:2,title:'دیتا ساینس قرارداد پیش‌بینی را تحویل داد',text:()=> 'از ۱۲۰۰ قرارداد سررسیدشده، ۹۰۰ مورد قدیمی‌تر برای آموزش و ۳۰۰ مورد بعدی برای ارزیابی کنار گذاشته شد. برچسب تمدید فقط برای ارزیابی نتیجه استفاده می‌شود.'},
-  {from:2,to:1,title:'مدل با یک خط مبنا مقایسه شد',text:()=> 'خطای بریر روی ۳۰۰ مشتری بعدی برای مدل '+fa(score.toFixed(3))+' و برای پیش‌بینی ثابت '+fa(baseScore.toFixed(3))+' است؛ کمتر بهتر است. '+(score<=baseScore?'مدل لجستیک':'خط مبنای ثابت')+' برای رتبه‌بندی انتخاب شد.'},
-  {from:1,to:0,title:'بیزینس رتبه‌بندی را دریافت کرد',text:()=> 'برای ۱۲۰ مشتری هفتهٔ جدید نمرهٔ ریسک داریم. این نمره به‌تنهایی اثر تماس را نشان نمی‌دهد. بیزینس از فروش ظرفیت تماس و از مارکتینگ شرایط پیشنهاد را می‌گیرد.'},
-  {from:3,to:0,title:'فروش ظرفیت و مجوز تماس را بررسی کرد',text:()=> 'فروش این هفته ظرفیت '+fa(s.capacity)+' تماس دارد. از ۱۲۰ مشتری، '+fa(cohort.filter(a=>a.consent).length)+' نفر مجوز تماس دارند.'},
-  {from:4,to:0,title:'مارکتینگ پیشنهاد تمدید را تأیید کرد',text:()=> 'اعتبار هر پیشنهاد ۱۰ یورو و بودجه '+fa(s.budget)+' یورو است. '+fa(allowed.length)+' مشتری هم واجد شرایط پیشنهادند و هم مجوز تماس دارند.'},
-  {from:0,to:0,title:'پیشنهاد مشترک برای تأیید آماده است',text:()=> 'مشتریان واجد شرایط به ترتیب ریسک جفت شدند. در هر جفت، قرعهٔ ثابت شبیه‌سازی تعیین کرد چه کسی پیشنهاد دریافت کند و چه کسی در گروه مقایسه باشد.'}
+  {from:0,to:1,title:'Business defined the campaign',text:()=> 'Give Sales a call list for this week. Predict which customers will miss renewal by the due date using only information available seven days beforehand.'},
+  {from:1,to:2,title:'Data Science handed off the prediction task',text:()=> 'Use the earliest 900 completed contracts for training and the next 300 for validation. Renewal status supplies the outcome label.'},
+  {from:2,to:1,title:'ML compared the model with a baseline',text:()=> 'On the next 300 contracts, the model’s Brier score was '+fmt(score.toFixed(3))+' and the constant baseline scored '+fmt(baseScore.toFixed(3))+'. Lower is better. '+(score<=baseScore?'Logistic regression':'The constant baseline')+' was selected for ranking.'},
+  {from:1,to:0,title:'Business received the ranking',text:()=> 'All 120 customers due this week have a risk score. To plan outreach, Business still needs call capacity from Sales and offer terms from Marketing.'},
+  {from:3,to:0,title:'Sales checked capacity and consent',text:()=> 'Sales can make '+fmt(s.capacity)+' calls this week. Of 120 customers, '+fmt(cohort.filter(a=>a.consent).length)+' have agreed to calls.'},
+  {from:4,to:0,title:'Marketing confirmed the renewal offer',text:()=> 'Each offer reserves €10 from a budget of €'+fmt(s.budget)+'. '+fmt(allowed.length)+' customers qualify for the offer and have agreed to calls.'},
+  {from:0,to:0,title:'The joint proposal is ready for approval',text:()=> 'Eligible customers were paired by risk. A reproducible random draw assigned one customer in each pair to the offer group and the other to the comparison group.'}
 ];
-const duties=['تعریف ریزش، جمع‌بندی پیشنهاد و ثبت نتیجه.','تعیین زمان پیش‌بینی، بررسی شواهد و تحویل رتبه‌بندی.','آموزش یک مدل و ارزیابی آن روی دورهٔ بعدی.','بررسی رضایت مشتری و ظرفیت واقعی تماس.','کنترل شرایط پیشنهاد و بودجهٔ اعتبار تمدید.'];
+const duties=['Define churn, assemble the proposal, and record the outcome.','Set the prediction date, review evidence, and deliver the ranking.','Train a model and validate it on later contracts.','Check consent and confirm call capacity.','Set offer terms and approve renewal credit.'];
 function plan(){
   const max=Math.min(s.capacity,Math.floor(s.budget/10),Math.floor(allowed.length/2));
   const result=[];
@@ -39,48 +39,48 @@ function revise(input){
   const old=s[property];s[property]=Number(input.value);
   if(s.stage>= (property==='capacity'?5:6)){
     s.version++;const team=property==='capacity'?3:4;
-    const line=roles[team]+' '+(team===3?'ظرفیت تماس':'بودجهٔ پیشنهاد')+' را از '+fa(old)+' به '+fa(s[property])+' تغییر داد.';
-    s.trail.push({actor:team,line,body:'نسخهٔ '+fa(s.version)+' با قید جدید محاسبه شد. رتبه‌بندی مدل همان رتبه‌بندی قبلی است.'});focus=team;
+    const line=roles[team]+' '+(team===3?'changed call capacity':'changed the budget')+' from '+fmt(old)+' to '+fmt(s[property])+'.';
+    s.trail.push({actor:team,line,body:'Proposal v'+fmt(s.version)+' uses the revised limit and the existing risk ranking.'});focus=team;
   }
   save();render();
 }
 function addRow(parent,tag,text){const el=document.createElement(tag);el.textContent=text;parent.append(el)}
 function outcome(list){
   const hit=list.filter(r=>r.offer&&r.renew).length,control=list.filter(r=>!r.offer&&r.renew).length;
-  return 'در هر گروه '+fa(list.length/2)+' مشتری بود. '+fa(hit)+' نفر از گروه پیشنهاد و '+fa(control)+' نفر از گروه مقایسه تمدید کردند. اختلاف مشاهده‌شده در این اجرای کوچک برای اثبات اثر پیشنهاد کافی نیست.';
+  return 'Each group had '+fmt(list.length/2)+' customers. Renewals in the offer group: '+fmt(hit)+'. Renewals in the comparison group: '+fmt(control)+'. The small simulated sample gives limited evidence about the effect of the offer.';
 }
 function render(){
   const ready=s.stage===teams.length,list=ready?plan():[],count=list.length/2,latest=teams[s.stage-1];
-  $('play').textContent=timer?'Ⅱ مکث':s.stage?'▶ ادامه':'▶ اجرای شبیه‌سازی';$('play').disabled=$('step').disabled=ready;
-  $('counter').textContent='قدم '+fa(s.stage)+' از '+fa(teams.length);
+  $('play').textContent=timer?'Pause':s.stage?'Resume':'Run simulation';$('play').disabled=$('step').disabled=ready;
+  $('counter').textContent='Step '+fmt(s.stage)+' of '+fmt(teams.length);
   $('capacity').value=s.capacity;$('budget').value=s.budget;
   $('capacity').disabled=$('budget').disabled=s.closed;
-  $('capLabel').textContent=fa(s.capacity)+' تماس';$('budgetLabel').textContent=fa(s.budget)+' یورو';
+  $('capLabel').textContent=fmt(s.capacity)+' calls';$('budgetLabel').textContent=fmt(s.budget)+' euros';
   $('nodes').replaceChildren();roles.forEach((r,i)=>{
     const b=document.createElement('button');b.className='node'+(focus===i?' selected':'')+(latest&&(latest.to===i||latest.from===i)?' active':'');
-    b.setAttribute('aria-pressed',String(i===focus));addRow(b,'b',r);addRow(b,'span',s.trail.some(e=>e.actor===i)?'گزارش دارد':'در انتظار');
+    b.setAttribute('aria-pressed',String(i===focus));addRow(b,'b',r);addRow(b,'span',s.trail.some(e=>e.actor===i)?'Report available':'Waiting');
     b.onclick=()=>{halt();focus=i;$('agent').open=true;render()};$('nodes').append(b);
   });
-  $('agentName').textContent=roles[focus];const report=$('agentReport');report.replaceChildren();addRow(report,'p','مسئولیت: '+duties[focus]);
+  $('agentName').textContent=roles[focus];const report=$('agentReport');report.replaceChildren();addRow(report,'p','Responsibility: '+duties[focus]);
   const own=s.trail.filter(e=>e.actor===focus);
-  if(own.length)own.slice(-3).forEach(e=>addRow(report,'p',e.line+' — '+e.body));else addRow(report,'p','هنوز اقدامی ثبت نشده است.');
-  $('route').textContent=s.closed?'بیزینس · نتیجهٔ ثبت‌شده':latest?(latest.from===latest.to?'بیزینس · پروندهٔ مشترک':roles[latest.from]+' ← '+roles[latest.to]):'بیزینس · سؤال آغازین';
-  $('subject').textContent=s.closed?'نتیجهٔ تمدید ثبت شد':latest?.title||'کدام مشتری‌ها ممکن است تمدید نکنند؟';
-  $('detail').textContent=s.closed?outcome(list):latest?latest.text():'از ۱۲۰ مشتری که به تاریخ تمدید نزدیک‌اند، یک فهرست برای فروش می‌خواهیم. اجرای شبیه‌سازی را بزنید تا ببینید هر تیم روی این تصمیم چه اثری دارد.';
-  $('revision').textContent=s.version>1?'نسخهٔ پیشنهاد: '+fa(s.version)+' · با قیود اصلاح‌شده':'';
-  $('state').textContent=s.closed?'نتیجه ثبت شد':ready?(count?'در انتظار تأیید شما':'منتظر اصلاح شرایط'):'در حال آماده‌سازی';
-  $('num').textContent=$('compare').textContent=ready?fa(count):'—';$('spend').textContent=ready?fa(count*10)+' €':'—';
-  $('reason').textContent=ready?'از '+fa(allowed.length)+' مشتری واجد شرایط، ظرفیت فروش '+fa(s.capacity)+' و بودجه برای '+fa(Math.floor(s.budget/10))+' پیشنهاد است. '+(count?'کوچک‌ترین محدودیت اندازهٔ فهرست را تعیین کرد.':'برای ادامه ظرفیت و بودجهٔ حداقل یک تماس لازم است.'):'بعد از تحویل مدل و تأیید ظرفیت و بودجه، فهرست قابل بررسی می‌شود.';
+  if(own.length)own.slice(-3).forEach(e=>addRow(report,'p',e.line+' — '+e.body));else addRow(report,'p','This team has yet to record an action.');
+  $('route').textContent=s.closed?'Business · recorded outcome':latest?(latest.from===latest.to?'Business · shared case':roles[latest.from]+' → '+roles[latest.to]):'Business · opening question';
+  $('subject').textContent=s.closed?'Renewal outcomes recorded':latest?.title||'Which customers might miss renewal?';
+  $('detail').textContent=s.closed?outcome(list):latest?latest.text():'This week, 120 customers are due to renew. Run the simulation to see how the teams choose whom to call.';
+  $('revision').textContent=s.version>1?'Proposal v'+fmt(s.version)+' · revised limits':'';
+  $('state').textContent=s.closed?'Outcome recorded':ready?(count?'Awaiting approval':'Revise the campaign limits'):'Preparing';
+  $('num').textContent=$('compare').textContent=ready?fmt(count):'—';$('spend').textContent=ready?fmt(count*10)+' €':'—';
+  $('reason').textContent=ready?'Eligible customers: '+fmt(allowed.length)+'. Sales capacity: '+fmt(s.capacity)+' calls. The budget covers '+fmt(Math.floor(s.budget/10))+' offers. '+(count?'The tightest constraint determines the list size.':'At least one call slot and €10 are required.'):'The call list appears after the model, capacity, and budget are ready.';
   $('approve').hidden=!ready||s.closed||!count;$('observed').textContent=s.closed?outcome(list):'';
   $('customers').hidden=!ready||!count;$('rows').replaceChildren();
-  for(const r of list){const row=document.createElement('tr');[fa(r.a.id),pct(model(r.a)),fa(r.a.days),r.offer?'تماس و پیشنهاد':'مقایسه',s.closed?(r.renew?'بله':'خیر'):'در انتظار'].forEach(x=>addRow(row,'td',x));$('rows').append(row)}
-  $('log').replaceChildren();[...s.trail].reverse().forEach(e=>addRow($('log'),'li',e.line));if(!s.trail.length)addRow($('log'),'li','درخواست بیزینس آمادهٔ ارسال است.');
+  for(const r of list){const row=document.createElement('tr');[fmt(r.a.id),pct(model(r.a)),fmt(r.a.days),r.offer?'Call and offer':'Comparison',s.closed?(r.renew?'Yes':'No'):'Waiting'].forEach(x=>addRow(row,'td',x));$('rows').append(row)}
+  $('log').replaceChildren();[...s.trail].reverse().forEach(e=>addRow($('log'),'li',e.line));if(!s.trail.length)addRow($('log'),'li','Business is ready to send the campaign brief.');
 }
 $('play').onclick=()=>{if(timer){halt();render()}else{timer=setInterval(advance,2900);advance()}};
 $('step').onclick=()=>{halt();advance()};
-$('approve').onclick=()=>{if(s.closed||s.stage!==7||!plan().length)return;s.closed=true;focus=0;s.trail.push({actor:0,line:'مالک بیزینس نسخهٔ '+fa(s.version)+' را تأیید کرد.',body:outcome(plan())});save();render()};
+$('approve').onclick=()=>{if(s.closed||s.stage!==7||!plan().length)return;s.closed=true;focus=0;s.trail.push({actor:0,line:'Business approved proposal v'+fmt(s.version)+'.',body:outcome(plan())});save();render()};
 for(const id of ['capacity','budget']){
-  $(id).oninput=e=>{$(id==='capacity'?'capLabel':'budgetLabel').textContent=fa(e.target.value)+(id==='capacity'?' تماس':' یورو')};
+  $(id).oninput=e=>{$(id==='capacity'?'capLabel':'budgetLabel').textContent=fmt(e.target.value)+(id==='capacity'?' calls':' euros')};
   $(id).onchange=e=>revise(e.target);
 }
 $('reset').onclick=()=>{halt();s=fresh();focus=0;save();$('agent').open=false;$('customers').open=false;render()};

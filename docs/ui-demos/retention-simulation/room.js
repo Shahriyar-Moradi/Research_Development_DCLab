@@ -1,23 +1,23 @@
 'use strict';
 const desks={
-  biz:{team:'بیزینس',person:'مینا',job:'مالک تصمیم',icon:'ب',color:'#e5ebcb'},
-  ds:{team:'دیتا ساینس',person:'نیلوفر',job:'دیتا ساینتیست',icon:'د',color:'#d7e8ed'},
-  ml:{team:'یادگیری ماشین',person:'کاوه',job:'مهندس ML',icon:'م',color:'#e5def0'},
-  sales:{team:'فروش',person:'رها',job:'مدیر فروش',icon:'ف',color:'#f2e3d0'},
-  mkt:{team:'مارکتینگ',person:'آوا',job:'مدیر کمپین',icon:'ک',color:'#efdee5'}
+  biz:{team:'Business',person:'Mina',job:'Decision owner',icon:'B',color:'#e5ebcb'},
+  ds:{team:'Data Science',person:'Niloufar',job:'Data scientist',icon:'DS',color:'#d7e8ed'},
+  ml:{team:'Machine Learning',person:'Kaveh',job:'ML engineer',icon:'ML',color:'#e5def0'},
+  sales:{team:'Sales',person:'Raha',job:'Sales manager',icon:'S',color:'#f2e3d0'},
+  mkt:{team:'Marketing',person:'Ava',job:'Campaign manager',icon:'M',color:'#efdee5'}
 };
-const ids=Object.keys(desks),$=id=>document.getElementById(id),fa=n=>Number(n).toLocaleString('fa-IR');
-const key='dclab-team-room-1',data=createRetentionCohort();
-const title={brief:'تعریف تصمیم این هفته',idle:'منتظر درخواست بیزینس',audit:'بازبینی تعریف و ستون هدف',clarify:'پاسخ به سؤال دیتا ساینس',blocked:'انتظار برای تعریف قابل‌اندازه‌گیری',spec:'انتخاب ویژگی‌های مدل',evaluate:'بازبینی شواهد مدل',verify:'تفسیر رتبه‌بندی',capacity:'تأیید ظرفیت تماس',offer:'تأیید بودجهٔ پیشنهاد',join:'گردآوری پاسخ تیم‌ها',approve:'بررسی و تأیید فهرست',feedback:'بازبینی پیشنهاد',done:'گزارش تحویل شد',closed:'پرونده بسته شد',unavailable:'اجرای پرونده متوقف شد'};
+const ids=Object.keys(desks),$=id=>document.getElementById(id),fmt=n=>Number(n).toLocaleString('en-US');
+const key='dclab-team-room-en-1',data=createRetentionCohort();
+const title={brief:'Define this week’s decision',idle:'Waiting for the campaign brief',audit:'Check the outcome against the data',clarify:'Answer the data scientist’s question',blocked:'Waiting for a measurable outcome',spec:'Choose model inputs',evaluate:'Review model performance',verify:'Review the risk ranking',capacity:'Confirm call capacity',offer:'Confirm the offer budget',join:'Collect team responses',approve:'Review the call list',feedback:'Revise the proposal',done:'Report delivered',closed:'Case closed',unavailable:'Case on hold'};
 function initial(){return {v:1,tasks:{biz:'brief',ds:'idle',ml:'idle',sales:'idle',mkt:'idle'},chat:Object.fromEntries(ids.map(i=>[i,[]])),log:[],capacity:null,budget:null,tickets:null,model:null,ranking:false,version:0,closed:false,rejected:false}}
 let s=initial(),selected='biz',timer=null,cursor=0,fitted=null;
 try{const saved=JSON.parse(localStorage.getItem(key));if(saved?.v===1&&saved.tasks&&saved.chat)s=saved}catch{}
-function agent(id){return 'ایجنت '+desks[id].team}
+function agent(id){return desks[id].team+' agent'}
 function say(id,who,text,kind='agent'){s.chat[id].push({who,text,kind})}
-function seed(){say('biz',desks.biz.person,'این هفته ۱۲۰ مشتری در آستانهٔ تمدید داریم. با چه کسانی تماس بگیریم؟','human');say('biz',agent('biz'),'برای اقدام، یک رتبه‌بندی، ظرفیت فروش و بودجهٔ پیشنهاد لازم داریم. هدف کمپین را تأیید می‌کنی؟')}
+function seed(){say('biz',desks.biz.person,'We have 120 customers coming up for renewal. Who should we call this week?','human');say('biz',agent('biz'),'I can ask Data Science to rank customers, Sales how many calls they can make, and Marketing what we can offer. Ready to start?')}
 if(!s.chat.biz.length)seed();
 function send(from,to,text){
-  s.log.push({from,to,text});say(from,agent(from),'برای '+agent(to)+' فرستادم: '+text,'handoff');
+  s.log.push({from,to,text});say(from,agent(from),'Sent to the '+agent(to)+' — '+text,'handoff');
   say(to,agent(from),text,'handoff');
 }
 function save(){try{localStorage.setItem(key,JSON.stringify(s))}catch{}}
@@ -35,64 +35,64 @@ function rows(){
 function gather(){
   if(!s.ranking||s.capacity===null||s.budget===null||s.closed)return;
   s.version++;s.tasks.biz=rows().length?'approve':'feedback';
-  say('biz',agent('biz'),'پیشنهاد نسخهٔ '+fa(s.version)+' آماده است: '+fa(rows().length/2)+' تماس و به همین تعداد مشتری مشابه در گروه مقایسه. '+(rows().length?'مالک تصمیم می‌تواند فهرست را ببیند و تأیید کند.':'ظرفیت یا بودجه کافی نیست؛ از تیم مربوطه اصلاح بخواه.'));
+  say('biz',agent('biz'),'Proposal v'+fmt(s.version)+' is ready. Planned calls: '+fmt(rows().length/2)+'. The comparison group has the same number of customers with similar risk. '+(rows().length?'Review the list before approving it.':'Ask Sales to revise capacity or Marketing to revise the budget.'));
 }
-function outcome(){const list=rows(),n=list.length/2;return 'از '+fa(n)+' نفر در هر گروه، '+fa(list.filter(r=>r.offer&&r.renew).length)+' نفر با پیشنهاد و '+fa(list.filter(r=>!r.offer&&r.renew).length)+' نفر در گروه مقایسه تمدید کردند. این یک مشاهدهٔ ساختگی با نمونهٔ کوچک است.'}
+function outcome(){const list=rows(),n=list.length/2;return 'With '+fmt(n)+' customers in each group, '+fmt(list.filter(r=>r.offer&&r.renew).length)+' renewed in the offer group and '+fmt(list.filter(r=>!r.offer&&r.renew).length)+' renewed in the comparison group. These are simulated outcomes from a small sample.'}
 // A person decides only at their own desk. Their agent computes or forwards a scoped response.
 function choices(id){
   if(s.closed)return [];
   switch(s.tasks[id]){
-  case 'brief': return [['start','شروع کمپین تمدید']];
-  case 'audit':return [['confirm','تأیید برچسب «تمدید نشدن»'],['challenge','درخواست بررسی «لغو صریح»']];
-  case 'clarify':return [['resolve','هدف همین کمپین: تمدید نشدن'],['hold','توقف تا دریافت سابقهٔ لغو']];
-  case 'spec':return [['full','آموزش با سابقهٔ استفاده و تیکت'],['simple','آموزش فقط با سابقهٔ استفاده']];
-  case 'evaluate':return [['release','ارسال گزارش ارزیابی'],['rerun','تغییر ویژگی‌ها و آموزش مجدد']];
-  case 'verify':return [['interpret','تأیید تفسیر و تحویل به بیزینس']];
-  case 'capacity':return [['capacity','ثبت ظرفیت و پاسخ به بیزینس']];
-  case 'offer':return [['offer','ثبت بودجه و شرایط پیشنهاد']];
-  case 'approve':return [['approve','تأیید و مشاهدهٔ تمدیدها'],['change','بازگرداندن به فروش'],['terms','بازنگری بودجه با مارکتینگ']];
-  case 'feedback':return [['change','بازگرداندن به فروش'],['terms','بازنگری بودجه با مارکتینگ']];
+  case 'brief': return [['start','Start the renewal campaign']];
+  case 'audit':return [['confirm','Confirm non-renewal as the outcome'],['challenge','Ask about explicit cancellations']];
+  case 'clarify':return [['resolve','Use non-renewal for this campaign'],['hold','Pause until we have cancellation records']];
+  case 'spec':return [['full','Train with usage and support tickets'],['simple','Train with usage only']];
+  case 'evaluate':return [['release','Send evaluation to Data Science'],['rerun','Change inputs and retrain']];
+  case 'verify':return [['interpret','Send the findings to Business']];
+  case 'capacity':return [['capacity','Send capacity to Business']];
+  case 'offer':return [['offer','Confirm the offer budget']];
+  case 'approve':return [['approve','Approve and reveal renewals'],['change','Ask Sales to revise capacity'],['terms','Ask Marketing to revise budget']];
+  case 'feedback':return [['change','Ask Sales to revise capacity'],['terms','Ask Marketing to revise budget']];
   default:return [];
   }
 }
 function apply(id,action,value,note,automatic=false){
   const option=choices(id).find(c=>c[0]===action);if(!option)return;
   if((action==='capacity'||action==='offer')&&(!Number.isInteger(value)||value<0||value>(action==='capacity'?30:300)))return;
-  say(id,desks[id].person+(automatic?' · شبیه‌سازی':''),option[1]+(value!=null?' · '+fa(value):'')+(note?' — '+note:''),'human');
+  say(id,desks[id].person+(automatic?' · simulated':''),option[1]+(value!=null?' · '+fmt(value):'')+(note?' — '+note:''),'human');
   if(action==='start'){
     s.tasks={biz:'join',ds:'audit',ml:'idle',sales:'capacity',mkt:'offer'};
-    send('biz','ds','آیا می‌توان هفت روز پیش از سررسید، ریسک تمدید نشدن را تخمین زد؟');
-    say('ds',agent('ds'),'در داده، وضعیت تمدید پس از سررسید ثبت شده است. آیا این همان خروجی مورد نظر است؟ پیش از آموزش، تعریف تو لازم است.');
-    send('biz','sales','این هفته چند تماسِ مجاز می‌توانیم بگیریم؟');say('sales',agent('sales'),'از ۱۲۰ حساب، '+fa(data.cohort.filter(a=>a.consent).length)+' مورد مجوز تماس دارند. ظرفیت این هفته را ثبت کن.');
-    send('biz','mkt','برای پیشنهاد تمدید چه بودجه‌ای در اختیار داریم؟');say('mkt',agent('mkt'),'هر پیشنهاد به ۱۰ یورو اعتبار نیاز دارد. بودجهٔ در دسترس را تأیید کن.');
+    send('biz','ds','Can we estimate the risk of non-renewal seven days before a contract expires?');
+    say('ds',agent('ds'),'The records tell us whether a contract renewed by its due date. Is that the outcome you want me to predict?');
+    send('biz','sales','How many customers can we call this week?');say('sales',agent('sales'),'Of 120 customers, '+fmt(data.cohort.filter(a=>a.consent).length)+' have agreed to calls. How many can your team handle?');
+    send('biz','mkt','How much credit can we offer customers this week?');say('mkt',agent('mkt'),'Each offer reserves €10 in renewal credit. What budget can I send to Business?');
   }else if(action==='challenge'){
-    s.tasks.ds='blocked';s.tasks.biz='clarify';send('ds','biz','سابقهٔ لغو صریح در جدول نیست. آیا منظور همین کمپین تمدید نشدن است یا باید منتظر منبع لغو بمانیم؟');
+    s.tasks.ds='blocked';s.tasks.biz='clarify';send('ds','biz','The table records renewals but has no cancellation events. Should we predict non-renewal, or wait for cancellation records?');
   }else if(action==='resolve'){
-    s.tasks.biz='join';s.tasks.ds='audit';send('biz','ds','مالک بیزینس تعریف تمدید نشدن را تأیید کرد. قرارداد را با همین هدف بازبینی کن.');
+    s.tasks.biz='join';s.tasks.ds='audit';send('biz','ds','Mina confirmed non-renewal as the outcome. Please review the prediction task on that basis.');
   }else if(action==='hold'){
-    send('biz','ds','تا تأمین منبع رویداد لغو، پرونده را متوقف کن.');s.rejected=true;s.closed=true;ids.forEach(i=>s.tasks[i]='unavailable');
+    send('biz','ds','Pause the case until we have cancellation records.');s.rejected=true;s.closed=true;ids.forEach(i=>s.tasks[i]='unavailable');
   }else if(action==='confirm'){
-    s.tasks.ds='join';s.tasks.ml='spec';send('ds','ml','قرارداد تأیید شد: برچسب تمدید نشدن، زمان تصمیم هفت روز مانده به تمدید. ۹۰۰ ردیف قدیمی برای آموزش و ۳۰۰ ردیف بعدی برای ارزیابی.');
-    say('ml',agent('ml'),'ویژگی‌های در دسترس همان روز را انتخاب کن. نتیجهٔ تمدید وارد ویژگی‌ها نمی‌شود.');
+    s.tasks.ds='join';s.tasks.ml='spec';send('ds','ml','Predict non-renewal seven days before expiry. Train on the earliest 900 contracts and validate on the next 300.');
+    say('ml',agent('ml'),'Which inputs should I use? Both usage history and past ticket counts are available a week before expiry.');
   }else if(action==='full'||action==='simple'){
     s.tickets=action==='full';fitted=data.fit(s.tickets);s.model={score:fitted.score,baseline:fitted.baseScore};s.tasks.ml='evaluate';
-    say('ml',agent('ml'),'آموزش تمام شد. خطای بریر روی ۳۰۰ قرارداد بعدی: مدل '+fa(fitted.score.toFixed(3))+'، خط مبنا '+fa(fitted.baseScore.toFixed(3))+'؛ کمتر بهتر است. روش با خطای کمتر برای فهرست انتخاب می‌شود.');
+    say('ml',agent('ml'),'Training finished. On the next 300 contracts, the model’s Brier score was '+fmt(fitted.score.toFixed(3))+' and the baseline scored '+fmt(fitted.baseScore.toFixed(3))+'. Lower is better. I’ll use the better prediction method for ranking.');
   }else if(action==='rerun'){
-    s.tasks.ml='spec';s.model=null;fitted=null;say('ml',agent('ml'),'گزارش به تیم دیگری فرستاده نشده است. مشخصات اجرای بعدی را تعیین کن.');
+    s.tasks.ml='spec';s.model=null;fitted=null;say('ml',agent('ml'),'I’ve held back the report. Choose the inputs for the next run.');
   }else if(action==='release'){
-    s.tasks.ml='done';s.tasks.ds='verify';send('ml','ds','گزارش مدل با '+fa(s.tickets?2:1)+' ویژگی: خطای مدل '+fa(s.model.score.toFixed(3))+' و خطای مبنا '+fa(s.model.baseline.toFixed(3))+' روی ۳۰۰ قرارداد.');
-    say('ds',agent('ds'),'این مدل ریسک را مرتب می‌کند. برای سنجش اثر تماس، یک گروه مقایسه با ریسک مشابه پیشنهاد می‌دهم. نتیجه را تحویل بدهم؟');
+    s.tasks.ml='done';s.tasks.ds='verify';send('ml','ds','Inputs used: '+fmt(s.tickets?2:1)+'. The model’s Brier score was '+fmt(s.model.score.toFixed(3))+' versus a baseline of '+fmt(s.model.baseline.toFixed(3))+' on 300 validation contracts.');
+    say('ds',agent('ds'),'The ranking estimates who might miss renewal. To learn whether an offer helps, I suggest comparing customers with similar risk. Shall I send the plan?');
   }else if(action==='interpret'){
-    s.ranking=true;s.tasks.ds='done';send('ds','biz','رتبه‌بندی ۱۲۰ مشتری آماده است. افراد مجاز را برحسب ریسک جفت می‌کنیم و از هر جفت یک نفر با قرعه وارد گروه پیشنهاد می‌شود.');gather();
+    s.ranking=true;s.tasks.ds='done';send('ds','biz','The ranking covers 120 customers. We’ll pair eligible customers by risk, then randomly assign one in each pair to receive the offer.');gather();
   }else if(action==='capacity'||action==='offer'){
     if(action==='capacity')s.capacity=value;else s.budget=value;
-    s.tasks[id]='done';send(id,'biz',action==='capacity'?'ظرفیت قطعی این هفته '+fa(value)+' تماس است. حساب‌های فاقد رضایت حذف می‌شوند.':'بودجهٔ تأییدشده '+fa(value)+' یورو است. هر تماس واجد شرایط ۱۰ یورو اعتبار می‌گیرد.');gather();
+    s.tasks[id]='done';send(id,'biz',action==='capacity'?'Sales can make '+fmt(value)+' calls this week. We’ll only contact customers who consented.':'Marketing approved €'+fmt(value)+' for renewal offers. Each offer reserves €10.');gather();
   }else if(action==='change'||action==='terms'){
     const target=action==='change'?'sales':'mkt';s.tasks.biz='join';s.tasks[target]=target==='sales'?'capacity':'offer';
     if(target==='sales')s.capacity=null;else s.budget=null;
-    send('biz',target,'پیشنهاد نسخهٔ '+fa(s.version)+' برای بازنگری برگشت. محدودیت جدید را در میز خودت تأیید کن.');
+    send('biz',target,'Proposal v'+fmt(s.version)+' needs a revision. Please confirm the new limit at your desk.');
   }else if(action==='approve'){
-    s.closed=true;s.tasks.biz='closed';say('biz',agent('biz'),'تصمیم نسخهٔ '+fa(s.version)+' ثبت شد. '+outcome());
+    s.closed=true;s.tasks.biz='closed';say('biz',agent('biz'),'Business approved proposal v'+fmt(s.version)+'. '+outcome());
   }
   save();if(s.closed)stop();render();
 }
@@ -116,8 +116,8 @@ function visit(id){
   render();
 }
 function stateText(id){
-  if(choices(id).length)return 'نوبت '+desks[id].person;
-  if(s.tasks[id]==='join'&&id==='ds')return 'منتظر گزارش ML';
+  if(choices(id).length)return 'Waiting for '+desks[id].person;
+  if(s.tasks[id]==='join'&&id==='ds')return 'Waiting for the ML report';
   return title[s.tasks[id]];
 }
 function renderDesks(){
@@ -138,7 +138,7 @@ function renderDesks(){
 function renderMessages(){
   const d=desks[selected];
   $('role').textContent=d.person+' · '+d.job;
-  $('deskName').textContent='میز '+d.team;
+  $('deskName').textContent=d.team+' desk';
   $('symbol').textContent=d.icon;
   $('symbol').style.setProperty('--tone',d.color);
   $('task').textContent=title[s.tasks[selected]];
@@ -150,14 +150,14 @@ function renderMessages(){
     msg.append(el('b',m.who),el('p',m.text));
     chat.append(msg);
   }
-  if(!chat.childElementCount)chat.append(el('p','درخواست‌های این تیم و پاسخ ایجنت اینجا ثبت می‌شود.','empty'));
+  if(!chat.childElementCount)chat.append(el('p','Incoming requests and agent replies will appear here.','empty'));
   chat.scrollTop=chat.scrollHeight;
 }
 function report(id){
   const sent=s.log.filter(m=>m.from===id).at(-1);
-  const next=choices(id).map(c=>c[1]).join(' یا ');
-  return (sent?'آخرین تحویل به '+desks[sent.to].team+' — '+sent.text:'هنوز گزارشی از این میز به تیم دیگری ارسال نشده.')+
-    ' وضعیت فعلی: '+stateText(id)+'. '+(next?'تصمیم بعدی: '+next+'.':'');
+  const next=choices(id).map(c=>c[1]).join(' or ');
+  return (sent?'Last handoff to '+desks[sent.to].team+' — '+sent.text:'This desk has yet to send a report.')+
+    ' Current status: '+stateText(id)+'. '+(next?'Next decision: '+next+'.':'');
 }
 function renderActions(){
   const box=$('actions'),options=choices(selected),note=$('note');
@@ -165,13 +165,13 @@ function renderActions(){
   note.value=drafts[selected]||'';
   note.hidden=!options.length;
   $('noteLabel').hidden=note.hidden;
-  $('noteLabel').textContent='پاسخ در نقش '+desks[selected].person;
+  $('noteLabel').textContent='Reply as '+desks[selected].person;
   const numeric=options.some(([a])=>a==='capacity'||a==='offer');
   if(numeric){
     const capacity=selected==='sales',input=el('input');
     input.type='number';input.min='0';input.max=capacity?'30':'300';input.step='1';input.required=true;
     input.id='constraint';input.value=capacity?'18':'120';
-    const label=el('label',capacity?'تعداد تماس':'بودجه (یورو)');
+    const label=el('label',capacity?'Calls available':'Budget (€)');
     label.htmlFor=input.id;
     box.append(label,input);
   }
@@ -189,11 +189,11 @@ function renderActions(){
   });
   if(!options.length&&!s.closed){
     const next=ids.find(id=>choices(id).length);
-    if(next)box.append(button('رفتن به میز '+desks[next].team,()=>visit(next),'primary'));
+    if(next)box.append(button('Go to '+desks[next].team,()=>visit(next),'primary'));
   }
-  box.append(button('گزارش این ایجنت',()=>{
+  box.append(button('Get agent report',()=>{
     stop();
-    say(selected,desks[selected].person,'چه کاری انجام دادی و قدم بعدی چیست؟','human');
+    say(selected,desks[selected].person,'What have you done, and what happens next?','human');
     say(selected,agent(selected),report(selected));
     save();render();
   }));
@@ -205,32 +205,32 @@ function fact(label,value){
 }
 function renderCase(){
   const list=rows(),box=$('artifacts');
-  $('brief').textContent=s.rejected?'پرونده تا دریافت سابقهٔ لغو متوقف شد.':s.closed?outcome():'از میان ۱۲۰ مشتری در آستانهٔ تمدید، این هفته به چه کسانی پیشنهاد بدهیم؟';
+  $('brief').textContent=s.rejected?'The case is on hold until Business supplies cancellation records.':s.closed?outcome():'Which of the 120 customers approaching renewal should we call this week?';
   box.replaceChildren(
-    fact('قرارداد پیش‌بینی',s.rejected?'در انتظار منبع لغو':s.tasks.ml!=='idle'?'تمدید نشدن · هفت روز پیش از سررسید':'در انتظار تأیید تعریف'),
-    fact('ارزیابی مدل',s.model?'بریر '+fa(s.model.score.toFixed(3))+' · مبنا '+fa(s.model.baseline.toFixed(3)):'در انتظار اجرای آموزش'),
-    fact('ظرفیت فروش',s.capacity==null?'در انتظار فروش':fa(s.capacity)+' تماس'),
-    fact('بودجهٔ مارکتینگ',s.budget==null?'در انتظار مارکتینگ':fa(s.budget)+' یورو')
+    fact('Prediction target',s.rejected?'Waiting for cancellation records':s.tasks.ml!=='idle'?'Non-renewal · seven days before expiry':'Awaiting agreement on the outcome'),
+    fact('Model validation',s.model?'Brier score '+fmt(s.model.score.toFixed(3))+' · baseline '+fmt(s.model.baseline.toFixed(3)):'Awaiting training'),
+    fact('Sales capacity',s.capacity==null?'Awaiting Sales':fmt(s.capacity)+' calls'),
+    fact('Marketing budget',s.budget==null?'Awaiting Marketing':fmt(s.budget)+' euros')
   );
-  if(s.version)box.append(fact('پیشنهاد نسخهٔ '+fa(s.version),s.tasks.biz==='join'?'برگشت برای بازنگری':fa(list.length/2)+' تماس · '+(s.closed?'تأیید شد':'در انتظار تصمیم')));
+  if(s.version)box.append(fact('Proposal v'+fmt(s.version),s.tasks.biz==='join'?'Returned for revision':fmt(list.length/2)+' calls · '+(s.closed?'approved':'awaiting approval')));
   $('list').replaceChildren();
-  if(!list.length)$('list').append(el('p','هنوز فهرستی برای تماس آماده نیست.','empty'));
+  if(!list.length)$('list').append(el('p','The call list will appear once the teams have returned their findings.','empty'));
   for(const r of list){
-    const parts=['حساب '+fa(r.a.id),r.offer?'پیشنهاد':'مقایسه','ریسک '+fa(Math.round(fittedModel().model(r.a)*100))+'٪'];
-    if(s.closed)parts.push(r.renew?'تمدید شد':'تمدید نشد');
+    const parts=['Account '+fmt(r.a.id),r.offer?'Offer':'Comparison','Risk '+fmt(Math.round(fittedModel().model(r.a)*100))+'%'];
+    if(s.closed)parts.push(r.renew?'Renewed':'Did not renew');
     $('list').append(el('div',parts.join(' · ')));
   }
   $('history').replaceChildren();
-  $('count').textContent=fa(s.log.length)+' تحویل';
+  $('count').textContent=fmt(s.log.length)+' handoffs';
   for(const m of s.log.slice().reverse()){
     const row=el('li');
-    row.append(el('b',desks[m.from].team+' به '+desks[m.to].team+' — '),document.createTextNode(m.text));
+    row.append(el('b',desks[m.from].team+' → '+desks[m.to].team+' — '),document.createTextNode(m.text));
     $('history').append(row);
   }
-  if(!s.log.length)$('history').append(el('li','با شروع کمپین، سه درخواست از بیزینس به تیم‌ها ارسال می‌شود.','empty'));
+  if(!s.log.length)$('history').append(el('li','Starting the campaign sends requests to Data Science, Sales, and Marketing.','empty'));
 }
 function render(){
-  $('play').textContent=timer?'مکث و ادامهٔ دستی':'تماشای همکاری تیم‌ها';
+  $('play').textContent=timer?'Pause and take over':'Watch the teams work';
   $('play').disabled=s.closed;
   renderDesks();renderMessages();renderActions();renderCase();
 }
@@ -255,7 +255,7 @@ $('play').onclick=()=>{
 $('response').onsubmit=e=>e.preventDefault();
 $('note').oninput=e=>drafts[selected]=e.target.value;
 $('response').addEventListener('focusin',()=>{
-  if(timer){stop();$('play').textContent='تماشای همکاری تیم‌ها'}
+  if(timer){stop();$('play').textContent='Watch the teams work'}
 });
 $('restart').onclick=()=>{stop();render();$('confirm').showModal()};
 $('keep').onclick=()=>$('confirm').close();
