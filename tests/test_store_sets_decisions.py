@@ -53,6 +53,19 @@ class DecisionSetsTest(unittest.TestCase):
         path = self.layout.sets(model_type, *folder.split("/"), "v1") / f"{split}.jsonl"
         return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()] if path.exists() else []
 
+    def test_placements_keep_only_folder_and_quality_for_the_types_the_sets_build(self):
+        # 2026-11-22: 1.9 million placements as whole dictionaries were the builder's 2.2 GB peak
+        from dclab_rnd.store.sets import decisions
+
+        placed = decisions.placements(self.layout)
+        self.assertTrue(placed)
+        for (rid, model_type), choice in placed.items():
+            self.assertIn(model_type, decisions.MODELS)
+            self.assertIsInstance(choice, tuple)
+            self.assertEqual(len(choice), 2)  # (folder, quality): nothing else is read
+        folders = {c[0] for c in placed.values()}
+        self.assertTrue(any(isinstance(f, str) and "column.is_identifier" in f for f in folders), folders)
+
     def test_the_sets_hold_the_best_labels_split_by_group_with_a_manifest_and_a_card(self):
         from dclab_rnd.store.sets import decisions
 

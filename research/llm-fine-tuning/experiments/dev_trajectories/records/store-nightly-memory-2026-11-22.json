@@ -1,0 +1,98 @@
+{
+  "package": "store-nightly-memory-2026-11-22",
+  "title": "The nightly store run pauses for other work's memory, and the decision sets need less of it",
+  "date": "2026-11-22",
+  "request": "The owner: fix the nightly store run's memory use.",
+  "spec": "The scheduled store run is never lost to another job's memory: over 6 GB of swap it pauses and goes on under 5 GB, stops only after 3 hours paused or under 2 GB of disk, never leaves the run stopped, and logs how much the run itself held. The decision sets are built with a lower peak and the same content.",
+  "plan": [
+    "read the nightly log: when and where each run was stopped",
+    "measure the decision builder's peak on the real store, stage by stage",
+    "pause instead of stop in the scheduler",
+    "one set at a time and compact placements in the builder",
+    "prove the same 189 sets by fingerprint",
+    "independent review and its fixes"
+  ],
+  "decisions": [
+    {
+      "decision": "Pause the run (SIGSTOP) instead of stopping it on swap",
+      "why": "the stopped nights (11-19, 11-22) overlapped a 3-hour exam and the test gates; alone the run fits with swap about 3 GB, so waiting for the other work keeps four hours of progress"
+    },
+    {
+      "decision": "Keep placements as (folder, quality) with shared strings, for the types the sets build",
+      "why": "the builder reads only those two fields; 1.9 million whole dictionaries were its peak"
+    },
+    {
+      "decision": "Stop shrinking at 2.05 GB",
+      "why": "what remains is the 370,000 decision records the sets need; reading them differently is a larger change for a smaller gain, and the pause covers the nights"
+    }
+  ],
+  "change": "scripts/store_scheduled.py guard, go_on, pause and resume; dclab_rnd/store/sets/decisions.py placements and per-set writing; tests.",
+  "findings": [
+    {
+      "id": "N1",
+      "source": "measurement",
+      "severity": "behaviour",
+      "defect": "the nightly store run was stopped on 11-19 and 11-22 and the store had no whole run from 11-18 to 11-22",
+      "scenario": "the swap guard stopped the run at 6 GB while other heavy work ran (the planning exam; the gates)",
+      "cause": "the guard stopped the run whatever held the memory",
+      "fix": "pause over 6 GB, go on under 5 GB, stop after 3 hours paused; log the run's own memory at each pause",
+      "test": "tests/test_store_scheduled.py test_swap_over_six_gb_pauses_the_run_and_it_goes_on_under_five and the watcher test"
+    },
+    {
+      "id": "N2",
+      "source": "measurement",
+      "severity": "latent",
+      "defect": "the decision builder peaked at 2.66 GB",
+      "scenario": "measured on the real store: placements() held 1.9 million choices as dictionaries (2.2 GB) and every set's 686,771 examples were held to the end",
+      "cause": "whole dictionaries where two fields are read; all sets written at the end",
+      "fix": "(folder, quality) pairs of interned strings for the built types; one set built, written and let go at a time",
+      "test": "old and new builds on the real store: all 189 sets identical by sha256; peak 2.05 GB; test_placements_keep_only_folder_and_quality_for_the_types_the_sets_build"
+    },
+    {
+      "id": "N3",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "a paused run could be left stopped forever",
+      "scenario": "Ctrl-C or SIGTERM to the script while the run is paused: the child stays stopped, its exit-with-the-parent guard is a thread inside it, and every later night is refused as 'another store run is going'",
+      "cause": "no SIGCONT on the script's own exit",
+      "fix": "child.wait in try/finally that continues a paused child; a SIGTERM handler raising SystemExit (the previous handler restored)",
+      "test": "test_ctrl_c_while_the_run_is_paused_lets_it_go_on"
+    },
+    {
+      "id": "N4",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "an error in the watcher while paused left the run stopped and the script waiting forever",
+      "scenario": "sysctl failing to start under memory pressure while the run is paused",
+      "cause": "no finally in the watcher; the resume logged before it sent SIGCONT",
+      "fix": "the watcher's finally continues a paused child; SIGCONT before the log",
+      "test": "test_an_error_reading_the_swap_while_paused_never_leaves_the_run_stopped, test_a_stop_while_paused_continues_the_child_before_interrupting_it"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "decision builder on the real store, old against new",
+      "gate": "every set identical; a lower peak",
+      "fixed_before_run": true,
+      "result": "189 of 189 sets identical by fingerprint; peak 2.66 to 2.05 GB; 173 s to 134 s",
+      "verdict": "pass"
+    },
+    {
+      "name": "store tests and store-check",
+      "gate": "every store test and the store's scripted day pass",
+      "fixed_before_run": true,
+      "result": "327 tests in 46 files OK; make store-check 30 of 30",
+      "verdict": "pass"
+    }
+  ],
+  "outcome": "A night with other heavy work now waits instead of losing the run; the builder peaks a quarter lower with the same sets.",
+  "lessons": [
+    "Read when a guard fired against what else ran then before shrinking the guarded program.",
+    "Measure memory stage by stage: the obvious suspect (all examples held) was not the peak."
+  ],
+  "risks": [
+    "A pause holds the run's memory (about 2 GB) while other work runs; macOS may swap it out.",
+    "Not yet seen on a real night."
+  ],
+  "commits": []
+}

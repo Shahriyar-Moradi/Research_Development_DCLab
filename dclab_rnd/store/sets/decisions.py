@@ -42,17 +42,25 @@ def decision_reasoning(point: str, state: dict[str, Any], options: list[str], an
     missing, never filled."""
     return None
 
-def placements(layout: Layout) -> dict[tuple[str, str], dict[str, Any]]:
-    """The curators' standing choice per (record, model type): the latest a rule made and the write tool let through."""
+def placements(layout: Layout) -> dict[tuple[str, str], tuple[Optional[str], Optional[str]]]:
+    """The curators' standing choice per (record, model type): the latest a rule made and the write tool let through, as
+    (folder, quality), the two fields the sets read, for the model types the sets build. 2026-11-22: 1.9 million choices
+    as whole dictionaries took 2.2 GB, the builder's whole peak; as pairs of shared strings they take a fraction."""
+    from sys import intern
+
     store = Store(layout)
-    out: dict[tuple[str, str], dict[str, Any]] = {}
+    out: dict[tuple[str, str], tuple[Optional[str], Optional[str]]] = {}
     for entry in sorted(store.entries("curation"), key=lambda e: (e.captured_at, e.version)):
         for line in store.read(entry).decode("utf-8").splitlines():
             d = json.loads(line)
             if d.get("used") is False or d.get("refused") or not str(d.get("curator", "")).startswith("rule:"):
                 continue
-            out[(d["record"], d["model_type"])] = {k: d.get(k) for k in ("folder", "quality", "curator", "model_type", "record")}  # the fields the sets read:
-    return out  # 1.5 million whole choices took 2.7 GB (2026-11-03)
+            if d["model_type"] not in MODELS:  # a type no set here builds is never read
+                continue
+            folder, quality = d.get("folder"), d.get("quality")
+            out[(intern(str(d["record"])), intern(str(d["model_type"])))] = (
+                intern(folder) if isinstance(folder, str) else folder, intern(quality) if isinstance(quality, str) else quality)
+    return out
 
 
 def _best_label(labels: list[StoreRecord]) -> tuple[Any, Optional[str]]:
@@ -178,18 +186,19 @@ def build(layout: Optional[Layout] = None, scripted: Optional[frozenset[str]] = 
                       if isinstance(a, dict) and a.get("by") == "model_role" and str(a.get("source") or "").startswith("mr")}
             if r.id in wanted:
                 records[r.id] = r
-    sets: dict[tuple[str, str], list[DecisionExample]] = defaultdict(list)
     out_of_sets: dict[str, int] = defaultdict(int)
     set_aside: set[str] = set()
     thoughts = thinking_by_request(layout, named)
-    for (rid, model_type), choice in sorted(placed.items()):
+
+    def example(rid: str, model_type: str, choice: tuple[Optional[str], Optional[str]]) -> Optional[DecisionExample]:
+        folder, quality = choice
         record = records.get(rid)
-        if model_type not in MODELS or record is None or record.type != "decision" or choice.get("quality") == "out":
-            continue
+        if model_type not in MODELS or record is None or record.type != "decision" or quality == "out":
+            return None
         group = record.body.get("group")
         if not group:
             out_of_sets["no group: it cannot be sealed"] += 1
-            continue
+            return None
         own = labels.get(str(record.body.get("id")), [])
         if record.provenance.workspace in scripted:  # a scripted person's label is a script's: never a confirmed human label
             own = [lab for lab in own if LEDGER_SOURCES.get(str(lab.body.get("source")), lab.body.get("source")) != "person"]
@@ -212,7 +221,7 @@ def build(layout: Optional[Layout] = None, scripted: Optional[frozenset[str]] = 
             more = [Provenance.model_validate({k: v for k, v in linked[1].items() if k in Provenance.model_fields})] if linked else []
             ex = DecisionExample(id=f"{model_type}:{rid}", model_type=model_type, split=split_of(str(group)), provenance=record.provenance,
                                  more=more,
-                                 weight=weight, point=str(record.body.get("point")), group=str(choice.get("folder") or "").split("/")[0] or "general",
+                                 weight=weight, point=str(record.body.get("point")), group=str(folder or "").split("/")[0] or "general",
                                  split_group=str(group),
                                  state=state, options=[str(o) for o in record.body.get("options") or []], answers=answers, label=value, label_source=source,
                                  **({"reasoning": thought, "reasoning_source": "recorded"} if thought else
@@ -220,21 +229,46 @@ def build(layout: Optional[Layout] = None, scripted: Optional[frozenset[str]] = 
                                     {"no_reasoning": _why_none(record.body, thoughts)} if _why_none(record.body, thoughts) else {}))
         except Exception as exc:  # noqa: BLE001 - a record whose state the contract refuses (a value in it) never enters a set
             out_of_sets[f"refused by its contract: {type(exc).__name__}"] += 1
-            continue
-        sets[(model_type, str(choice.get("folder")))].append(ex)
-        if model_type == "m1_students" and any(a.by.startswith(STUDENTS) for a in answers):
-            sets[(model_type, f"{choice.get('folder')}/pairs")].append(ex.model_copy(update={"id": f"{ex.id}:pair"}))
-    if set_aside:
-        out_of_sets["decisions whose scripted person's label was set aside"] = len(set_aside)
-    report = {"sets": {}, "out_of_sets": dict(out_of_sets)}
+            return None
+        return ex
+
+    # 2026-11-22: one set at a time, written and let go (every set's examples were held to the end: 686,771 examples, a 2.5 GB
+    # peak for this builder alone, and the nightly run was stopped by its swap guard). Within a set the order is the record's
+    # id, as before, so each set is written the same.
+    groups: dict[tuple[str, str], list[tuple[str, tuple[Optional[str], Optional[str]]]]] = defaultdict(list)
+    for (rid, model_type), choice in placed.items():
+        groups[(model_type, str(choice[0]))].append((rid, choice))
+    report = {"sets": {}, "out_of_sets": {}}
     abouts = {"m1_students": "Every decision of one point with its teachers' answers and its best label: what a student of that point learns.",
               "m2_workflow_decisions": "The workflow's choices of one point, by system (dclab, rnd, internal).",
               "m3_ml_decisions": "The technical choices of one point on tables, by family."}
-    for (model_type, folder), examples in sorted(sets.items()):
+    written: dict[str, Any] = {}
+
+    def write(model_type: str, folder: str, examples: list[DecisionExample]) -> None:
         sources = [{"entry": e.provenance.entry, "sha256": e.provenance.sha256} for e in examples]
         about = abouts[model_type] + (" Pairs: the decisions a student answered beside its teachers." if folder.endswith("/pairs") else "")
         m = write_set(layout, model_type, folder, examples, sources={json.dumps(s, sort_keys=True): s for s in sources}.values(), about=about)
-        report["sets"][f"{model_type}/{folder}"] = m.counts
+        written[f"{model_type}/{folder}"] = m.counts
+
+    for (model_type, folder), members in sorted(groups.items()):
+        examples: list[DecisionExample] = []
+        pairs: list[DecisionExample] = []
+        for rid, choice in sorted(members, key=lambda m: m[0]):
+            ex = example(rid, model_type, choice)
+            if ex is None:
+                continue
+            examples.append(ex)
+            if model_type == "m1_students" and any(a.by.startswith(STUDENTS) for a in ex.answers):
+                pairs.append(ex.model_copy(update={"id": f"{ex.id}:pair"}))
+        if examples:
+            write(model_type, folder, examples)
+        if pairs:
+            write(model_type, f"{folder}/pairs", pairs)
+        del examples, pairs
+    if set_aside:
+        out_of_sets["decisions whose scripted person's label was set aside"] = len(set_aside)
+    report["sets"] = dict(sorted(written.items()))
+    report["out_of_sets"] = dict(out_of_sets)
     return report
 
 

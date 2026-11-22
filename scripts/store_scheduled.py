@@ -3,7 +3,8 @@
 ``python scripts/store_scheduled.py`` runs ``python -m dclab_rnd.store run`` once, at low priority, when all hold:
 a whole run is due (the conductor's own rule: the last one an hour ago or more), no other store run is going, the
 server's worker is not running (it runs the store itself), and at least 2 GB of disk is free; while it runs, it is stopped (SIGINT, so it records where it was) when free disk falls
-under 2 GB. No live model is ever called (``DCLAB_NO_LIVE_MODELS=1``, as ``make capture``).
+under 2 GB, and paused (SIGSTOP, everything it did kept) while the swap is over 6 GB, going on once it is under 5 GB; a run paused
+for 3 hours is stopped. Each pause logs the memory the store run itself holds, so a night says whose memory filled the Mac. No live model is ever called (``DCLAB_NO_LIVE_MODELS=1``, as ``make capture``).
 
 ``--install`` writes ``~/Library/LaunchAgents/ai.dclab.store.plist`` (every night at 01:30) and loads it; ``--uninstall``
 unloads and removes it; ``--status`` says whether it is installed and what the last scheduled run did. The log is
@@ -31,6 +32,8 @@ LOG = Path.home() / "Library" / "Logs" / "dclab" / "store-scheduled.log"
 NIGHT = {"Hour": 1, "Minute": 30}  # the owner, 2026-11-03: every night, not every 6 hours
 MIN_FREE = 2 * 1024 ** 3
 MAX_SWAP = 6 * 1024 ** 3  # the owner, 2026-11-03: up to 6 GB of swap is fine; the 2 GB free-disk guard still stops a run first if the swap fills the disk
+RESUME_SWAP = 5 * 1024 ** 3  # a paused run goes on once the swap is back under 5 GB (a gap, so it does not pause and go on every 30 s)
+MAX_PAUSE = 3 * 3600  # paused this long, the swap is not someone else's passing job: the run is stopped as before
 
 
 def log(line: str) -> None:
@@ -87,6 +90,34 @@ def stop_child(child: subprocess.Popen) -> None:
             time.sleep(1)
 
 
+def rss_of(pid: int) -> int:
+    """Bytes the process holds in memory now (``ps -o rss``, kilobytes); 0 where it cannot be read."""
+    out = subprocess.run(["ps", "-o", "rss=", "-p", str(pid)], capture_output=True, text=True).stdout.strip()
+    return int(out) * 1024 if out.isdigit() else 0
+
+
+def guard(state: dict, swap: int, free: int, now: float) -> str:
+    """What the watcher does now: "stop_disk" (free disk under 2 GB: always first), "pause" (swap over 6 GB: the run is
+    stopped where it is, SIGSTOP, and keeps everything it did), "resume" (paused and the swap back under 5 GB),
+    "stop_swap" (paused for 3 hours: the swap is not a passing job's), or "go". 2026-11-22: the nightly runs of 11-19 and
+    11-22 were stopped while a 3-hour exam or the test gates held the memory; the same run alone fits (swap about 3 GB)."""
+    if free < MIN_FREE:
+        return "stop_disk"
+    paused = state.get("paused_at")
+    if paused is None:
+        if swap > MAX_SWAP:
+            state["paused_at"] = now
+            return "pause"
+        return "go"
+    if now - paused >= MAX_PAUSE:
+        return "stop_swap"
+    if swap < RESUME_SWAP:
+        state["paused_at"] = None
+        state["resumed_from"] = paused
+        return "resume"
+    return "wait"
+
+
 def run_once() -> int:
     sys.path.insert(0, str(ROOT))
     from dclab_rnd.store import conductor
@@ -100,23 +131,57 @@ def run_once() -> int:
     python = ROOT / ".venv" / "bin" / "python"
     child = subprocess.Popen(["nice", "-n", "10", str(python if python.exists() else sys.executable), "-m", "dclab_rnd.store", "run"],
                              cwd=ROOT, env=env, stdout=open(LOG, "a"), stderr=subprocess.STDOUT)
-    stopped = {"low_disk": False, "swap": False}
+    stopped = {"low_disk": False, "swap": False, "pauses": 0, "paused_s": 0.0, "rss_at_pause": []}
+
+    def go_on(state: dict) -> None:
+        """A paused child is never left stopped: its own exit-with-the-parent guard is a thread inside it."""
+        if state.get("paused_at") is not None and child.poll() is None:
+            child.send_signal(signal.SIGCONT)
+            state["paused_at"] = None
+
+    watched = {"paused_at": None}
 
     def watch() -> None:
-        while child.poll() is None:
-            if shutil.disk_usage(Path.home()).free < MIN_FREE:
-                stopped["low_disk"] = True
-                stop_child(child)
-                return
-            if swap_used() > MAX_SWAP:
-                stopped["swap"] = True
-                stop_child(child)
-                return
-            time.sleep(30)
+        state = watched
+        try:
+            while child.poll() is None:
+                act = guard(state, swap_used(), shutil.disk_usage(Path.home()).free, time.time())
+                if act in ("stop_disk", "stop_swap"):
+                    stopped["low_disk" if act == "stop_disk" else "swap"] = True
+                    if state["paused_at"] is not None:
+                        stopped["paused_s"] += time.time() - state["paused_at"]
+                    go_on(state)  # a stopped process answers no interrupt
+                    stop_child(child)
+                    return
+                if act == "pause":
+                    rss = rss_of(child.pid)
+                    child.send_signal(signal.SIGSTOP)
+                    stopped["pauses"] += 1
+                    stopped["rss_at_pause"].append(rss)
+                    log(f"paused: swap over 6 GB; the store run holds {rss / 1024 ** 3:.1f} GB, the rest is other work (goes on under 5 GB)")
+                elif act == "resume":
+                    child.send_signal(signal.SIGCONT)  # first: a failing log never leaves it stopped
+                    stopped["paused_s"] += time.time() - (state.pop("resumed_from", None) or time.time())
+                    log("resumed: swap back under 5 GB")
+                time.sleep(30)
+        finally:
+            go_on(state)  # the watcher ending for any reason (an error reading the swap) never leaves the run stopped
 
+    def on_term(signum, frame):  # noqa: ARG001 - launchd or a person stopping this script: the finally below runs
+        raise SystemExit(128 + signum)
+
+    previous = signal.signal(signal.SIGTERM, on_term)
     threading.Thread(target=watch, daemon=True).start()
-    code = child.wait()
-    log(f"ended: exit {code}" + (" (stopped: free disk under 2 GB)" if stopped["low_disk"] else "") + (" (stopped: swap over 6 GB, the run does not fit in memory)" if stopped["swap"] else ""))
+    try:
+        code = child.wait()
+    finally:
+        go_on(watched)  # Ctrl-C or SIGTERM here while paused: the child goes on and its own guard ends it
+        signal.signal(signal.SIGTERM, previous)
+    note = (" (stopped: free disk under 2 GB)" if stopped["low_disk"] else "") + \
+        (" (stopped: swap stayed over 5 GB for 3 hours while paused)" if stopped["swap"] else "") + \
+        (f" ({stopped['pauses']} pause(s) for other work's memory, {stopped['paused_s'] / 60:.0f} min paused; the run held "
+         f"{max(stopped['rss_at_pause']) / 1024 ** 3:.1f} GB at most)" if stopped["pauses"] else "")
+    log(f"ended: exit {code}" + note)
     return code
 
 
