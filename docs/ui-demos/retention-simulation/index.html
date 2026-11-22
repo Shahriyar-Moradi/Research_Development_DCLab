@@ -1,12 +1,56 @@
 <!doctype html>
-<html lang="en" dir="ltr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DCLab · Renewal workspace</title>
-<link rel="stylesheet" href="room.css">
-<header><div class="brand" dir="ltr"><i>dc</i> DCLab</div><div class="path">Team workspace <em>/</em> Customer renewal</div><a href="walkthrough.html">View the calculations</a></header>
-<main><section class="intro"><div><small class="eyebrow">Customer operations</small><h1>Renewal workspace</h1><p>Watch five teams plan a renewal campaign, or select a desk to make that team’s next decision.</p></div><div class="run"><button id="play" class="primary"></button><button id="restart">Restart</button></div></section>
-<div class="layout"><aside class="teams panel"><div class="heading"><small class="eyebrow">Project members</small><h2>Team desks</h2></div><div id="desks"></div><p class="legend">Select a team to see its current task and the conversation between the team member and their agent.</p></aside>
-<section class="desk panel"><div class="heading"><div class="deskhead"><span class="symbol" id="symbol"></span><div><small class="eyebrow" id="role"></small><h2 id="deskName"></h2></div></div></div><div class="task"><small>Current task</small><b id="task"></b><span id="status"></span></div>
-<div id="chat" role="log" aria-live="polite"></div><form id="response"><label for="note" id="noteLabel"></label><textarea id="note" rows="2" placeholder="Add an optional note for your agent…"></textarea><div id="actions"></div></form></section>
-<aside class="case panel"><div class="heading"><small class="eyebrow">Shared case</small><h2>This week’s decision</h2></div><div class="pad"><p id="brief"></p><div id="artifacts"></div><details><summary>View customer list</summary><div id="list"></div></details></div></aside>
-<section class="timeline panel"><div class="heading"><h2>Agent handoffs</h2><span id="count"></span></div><ol id="history"></ol></section></div><footer>This local simulation uses synthetic customer records. The model trains in your browser. In watch mode, rules simulate the agents and their human teammates.</footer></main>
-<dialog id="confirm"><h2>Restart this case?</h2><p>Restarting clears the conversations and decisions in this English run.</p><button id="keep">Keep this case</button><button id="clear">Restart case</button></dialog>
-<script src="cohort.js"></script><script src="room.js"></script></html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Customer renewal · DCLab</title>
+  <link rel="stylesheet" href="room.css">
+</head>
+<body>
+<a class="skip" href="#content">Skip to workspace</a>
+<div class="shell">
+  <aside class="rail">
+    <div class="brand"><i aria-hidden="true">dc</i>DCLab</div>
+    <nav aria-label="Project views" id="views">
+      <button data-view="room" aria-current="page"><span aria-hidden="true">◫</span>Team room</button>
+      <button data-view="evidence"><span aria-hidden="true">▥</span>Model evidence</button>
+      <button data-view="decision"><span aria-hidden="true">▤</span>Decision brief</button>
+    </nav>
+    <section class="members"><h2>Team desks</h2><div id="desks"></div></section>
+    <div class="railfoot"><a href="GUIDE.md">Demo guide ↗</a><a href="walkthrough.html">Calculation walkthrough ↗</a></div>
+  </aside>
+  <main id="content" tabindex="-1">
+    <header><span>Team workspace <b>/</b> Customer operations</span><span class="mode">Local simulation</span></header>
+    <section class="intro"><div><h1>Customer renewal</h1><p>Choose whom to call before this week’s 120 contracts expire.</p></div>
+      <div class="run"><button id="play" class="primary"></button><button id="step" title="Simulate one team decision">Step</button><button id="restart">Restart</button></div></section>
+    <ol class="phases" aria-label="Case progress" id="phases"></ol>
+    <div id="roomView">
+      <div class="layout">
+        <section class="desk panel"><div class="heading"><div class="deskhead"><span class="symbol" id="symbol"></span><div><small id="role"></small><h2 id="deskName"></h2></div></div><button id="agentReport">Agent report</button></div>
+          <div class="task"><div><small>Current task</small><strong id="task"></strong></div><span id="status"></span></div>
+          <div id="chat" role="log" aria-label="Desk conversation" aria-live="polite"></div>
+          <form id="response"><label for="note" id="noteLabel"></label><textarea id="note" rows="2" placeholder="Optional note for your agent"></textarea><div id="actions"></div></form>
+        </section>
+        <aside class="panel"><div class="heading"><h2>Campaign brief</h2><span id="version"></span></div><div class="pad"><p id="brief"></p><div id="artifacts"></div><button data-view="decision">Open decision brief →</button></div></aside>
+      </div>
+      <section class="timeline panel"><div class="heading"><div><h2>Agent handoffs</h2><small id="count"></small></div><label>Show <select id="filter"><option value="">All teams</option></select></label></div><ol id="history"></ol></section>
+    </div>
+    <section id="evidenceView" class="panel report" hidden><div class="heading"><h2>Model evidence</h2><button id="goMl">Open ML desk →</button></div><div class="pad"><div class="metrics" id="dataMetrics"></div><h3>Prediction contract</h3><p id="contract"></p><p>Use activity available seven days before expiry. Renewal status is the label. Consent and offer eligibility restrict outreach after scoring.</p>
+      <h3>Validation runs</h3><p>The Brier score is the average squared error of a probability forecast. Lower scores are better. Each run uses the same validation contracts.</p><div id="runs"></div>
+      <h3>Eligible customers by predicted risk</h3><div id="riskBands"></div>
+    </div></section>
+    <section id="decisionView" class="panel report" hidden><div class="heading"><h2>Decision brief</h2><button id="export">Download report ↓</button></div><div class="pad"><p id="decisionState"></p>
+      <div id="metrics" class="metrics"></div>
+      <section class="sandbox"><h3>Try different limits</h3><p>Explore a call limit and an offer budget. Each call reserves €10 and requires one eligible customer for comparison.</p>
+        <div class="sliders"><label>Sales capacity <output id="capOut" for="cap"></output><input type="range" min="0" max="30" value="18" id="cap"></label><label>Offer budget <output id="moneyOut" for="money"></output><input type="range" min="0" max="300" step="1" value="120" id="money"></label></div>
+        <p id="scenario" aria-live="polite"></p><button id="requestLimits">Send revised limits to teams</button>
+      </section>
+      <h3>Proposal history</h3><div id="versions"></div>
+      <div class="listhead"><h3>Customer list</h3><label>Group <select id="group"><option value="all">Both groups</option><option value="offer">Offer</option><option value="comparison">Comparison</option></select></label></div><div class="tablewrap" id="list"></div>
+      <div id="result"></div><button id="goBiz">Open Business desk →</button>
+    </div></section>
+    <footer>The team conversations are scripted. Model fitting, ranking and budget calculations run in your browser on synthetic records.</footer>
+  </main>
+</div>
+<dialog id="confirm"><h2>Restart this case?</h2><p>This clears the current simulation on this browser. You can download the decision brief first.</p><button id="keep">Keep this case</button><button id="clear">Restart case</button></dialog>
+<script src="cohort.js"></script><script src="room.js"></script><script src="case-views.js"></script>
+</body></html>

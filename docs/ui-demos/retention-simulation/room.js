@@ -9,12 +9,19 @@ const desks={
 const ids=Object.keys(desks),$=id=>document.getElementById(id),fmt=n=>Number(n).toLocaleString('en-US');
 const key='dclab-team-room-en-1',data=createRetentionCohort();
 const title={brief:'Define this week’s decision',idle:'Waiting for the campaign brief',audit:'Check the outcome against the data',clarify:'Answer the data scientist’s question',blocked:'Waiting for a measurable outcome',spec:'Choose model inputs',evaluate:'Review model performance',verify:'Review the risk ranking',capacity:'Confirm call capacity',offer:'Confirm the offer budget',join:'Collect team responses',approve:'Review the call list',feedback:'Revise the proposal',done:'Report delivered',closed:'Case closed',unavailable:'Case on hold'};
-function initial(){return {v:1,tasks:{biz:'brief',ds:'idle',ml:'idle',sales:'idle',mkt:'idle'},chat:Object.fromEntries(ids.map(i=>[i,[]])),log:[],capacity:null,budget:null,tickets:null,model:null,ranking:false,version:0,closed:false,rejected:false}}
+function initial(){return {v:1,runs:[],proposals:[],requested:{},tasks:{biz:'brief',ds:'idle',ml:'idle',sales:'idle',mkt:'idle'},chat:Object.fromEntries(ids.map(i=>[i,[]])),log:[],capacity:null,budget:null,tickets:null,model:null,ranking:false,version:0,closed:false,rejected:false}}
 let s=initial(),selected='biz',timer=null,cursor=0,fitted=null;
 try{const saved=JSON.parse(localStorage.getItem(key));if(saved?.v===1&&saved.tasks&&saved.chat)s=saved}catch{}
 function agent(id){return desks[id].team+' agent'}
 function say(id,who,text,kind='agent'){s.chat[id].push({who,text,kind})}
 function seed(){say('biz',desks.biz.person,'We have 120 customers coming up for renewal. Who should we call this week?','human');say('biz',agent('biz'),'I can ask Data Science to rank customers, Sales how many calls they can make, and Marketing what we can offer. Ready to start?')}
+// Older demos persisted the current result but did not keep a structured revision history.
+function proposalSnapshot(){
+  return {version:s.version,capacity:s.capacity,budget:s.budget,calls:rows().length/2};
+}
+s.runs ??= s.model?[{...s.model,tickets:s.tickets}]:[];
+s.proposals ??= s.version && s.capacity!==null && s.budget!==null?[proposalSnapshot()]:[];
+s.requested ??= {};
 if(!s.chat.biz.length)seed();
 function send(from,to,text){
   s.log.push({from,to,text});say(from,agent(from),'Sent to the '+agent(to)+' — '+text,'handoff');
@@ -34,12 +41,13 @@ function rows(){
 }
 function gather(){
   if(!s.ranking||s.capacity===null||s.budget===null||s.closed)return;
-  s.version++;s.tasks.biz=rows().length?'approve':'feedback';
+  s.version++;s.proposals.push(proposalSnapshot());s.tasks.biz=rows().length?'approve':'feedback';
   say('biz',agent('biz'),'Proposal v'+fmt(s.version)+' is ready. Planned calls: '+fmt(rows().length/2)+'. The comparison group has the same number of customers with similar risk. '+(rows().length?'Review the list before approving it.':'Ask Sales to revise capacity or Marketing to revise the budget.'));
 }
 function outcome(){const list=rows(),n=list.length/2;return 'With '+fmt(n)+' customers in each group, '+fmt(list.filter(r=>r.offer&&r.renew).length)+' renewed in the offer group and '+fmt(list.filter(r=>!r.offer&&r.renew).length)+' renewed in the comparison group. These are simulated outcomes from a small sample.'}
 // A person decides only at their own desk. Their agent computes or forwards a scoped response.
 function choices(id){
+  if(s.rejected && id==='biz')return [['reopen','Reopen with non-renewal as the target']];
   if(s.closed)return [];
   switch(s.tasks[id]){
   case 'brief': return [['start','Start the renewal campaign']];
@@ -71,11 +79,16 @@ function apply(id,action,value,note,automatic=false){
     s.tasks.biz='join';s.tasks.ds='audit';send('biz','ds','Mina confirmed non-renewal as the outcome. Please review the prediction task on that basis.');
   }else if(action==='hold'){
     send('biz','ds','Pause the case until we have cancellation records.');s.rejected=true;s.closed=true;ids.forEach(i=>s.tasks[i]='unavailable');
+  }else if(action==='reopen'){
+    s.closed=false;s.rejected=false;
+    s.tasks={biz:'join',ds:'audit',ml:'idle',sales:s.capacity===null?'capacity':'done',mkt:s.budget===null?'offer':'done'};
+    send('biz','ds','Business reopened the case to investigate non-renewal. Please check the revised target before training.');
   }else if(action==='confirm'){
     s.tasks.ds='join';s.tasks.ml='spec';send('ds','ml','Predict non-renewal seven days before expiry. Train on the earliest 900 contracts and validate on the next 300.');
     say('ml',agent('ml'),'Which inputs should I use? Both usage history and past ticket counts are available a week before expiry.');
   }else if(action==='full'||action==='simple'){
     s.tickets=action==='full';fitted=data.fit(s.tickets);s.model={score:fitted.score,baseline:fitted.baseScore};s.tasks.ml='evaluate';
+    s.runs.push({...s.model,tickets:s.tickets});
     say('ml',agent('ml'),'Training finished. On the next 300 contracts, the model’s Brier score was '+fmt(fitted.score.toFixed(3))+' and the baseline scored '+fmt(fitted.baseScore.toFixed(3))+'. Lower is better. I’ll use the better prediction method for ranking.');
   }else if(action==='rerun'){
     s.tasks.ml='spec';s.model=null;fitted=null;say('ml',agent('ml'),'I’ve held back the report. Choose the inputs for the next run.');
@@ -86,13 +99,22 @@ function apply(id,action,value,note,automatic=false){
     s.ranking=true;s.tasks.ds='done';send('ds','biz','The ranking covers 120 customers. We’ll pair eligible customers by risk, then randomly assign one in each pair to receive the offer.');gather();
   }else if(action==='capacity'||action==='offer'){
     if(action==='capacity')s.capacity=value;else s.budget=value;
+    delete s.requested[id];delete numericDrafts[id];
     s.tasks[id]='done';send(id,'biz',action==='capacity'?'Sales can make '+fmt(value)+' calls this week. We’ll only contact customers who consented.':'Marketing approved €'+fmt(value)+' for renewal offers. Each offer reserves €10.');gather();
   }else if(action==='change'||action==='terms'){
     const target=action==='change'?'sales':'mkt';s.tasks.biz='join';s.tasks[target]=target==='sales'?'capacity':'offer';
     if(target==='sales')s.capacity=null;else s.budget=null;
     send('biz',target,'Proposal v'+fmt(s.version)+' needs a revision. Please confirm the new limit at your desk.');
   }else if(action==='approve'){
-    s.closed=true;s.tasks.biz='closed';say('biz',agent('biz'),'Business approved proposal v'+fmt(s.version)+'. '+outcome());
+    const count=rows().length/2;
+    s.closed=true;s.tasks.biz='closed';
+    send('biz','sales','Proposal v'+s.version+' approved. Release the '+count+' offer assignments in the simulation.');
+    send('sales','biz','Simulated outreach completed for '+count+' customers. The '+count+' comparison customers received no offer.');
+    send('biz','mkt','Record reserved credit for the approved offer group.');
+    send('mkt','biz','€'+count*10+' reserved from the €'+s.budget+' budget. €'+(s.budget-count*10)+' remains available.');
+    send('biz','ds','Compare simulated renewals across the two assigned groups.');
+    send('ds','biz',outcome());
+    say('biz',agent('biz'),'Business approved proposal v'+fmt(s.version)+'. Sales, Marketing and Data Science have returned their closing reports.');
   }
   save();if(s.closed)stop();render();
 }
@@ -109,14 +131,16 @@ function button(label,fn,cls){
   node.onclick=fn;
   return node;
 }
-const drafts={};
+const drafts={},numericDrafts={};
 function visit(id){
   stop();
   selected=id;
+  currentView='room';
   render();
 }
 function stateText(id){
   if(choices(id).length)return 'Waiting for '+desks[id].person;
+  if(id==='ml'&&s.tasks[id]==='idle'&&s.tasks.biz!=='brief')return 'Waiting for Data Science';
   if(s.tasks[id]==='join'&&id==='ds')return 'Waiting for the ML report';
   return title[s.tasks[id]];
 }
@@ -129,7 +153,7 @@ function renderDesks(){
     const mark=el('span',d.icon,'symbol');
     mark.style.setProperty('--tone',d.color);
     const name=el('span');
-    name.append(el('b',d.team),el('small',d.person+' · '+stateText(id)));
+    name.append(el('b',d.team),el('small',choices(id).length?d.person+' · decision needed':d.person+' · '+stateText(id)));
     const status=choices(id).length?'waiting':s.tasks[id]==='done'?'done':'';
     b.append(mark,name,el('i',null,'dot '+status));
     $('desks').append(b);
@@ -170,7 +194,8 @@ function renderActions(){
   if(numeric){
     const capacity=selected==='sales',input=el('input');
     input.type='number';input.min='0';input.max=capacity?'30':'300';input.step='1';input.required=true;
-    input.id='constraint';input.value=capacity?'18':'120';
+    input.id='constraint';input.value=numericDrafts[selected] ?? s.requested[selected] ?? s.proposals.at(-1)?.[capacity?'capacity':'budget'] ?? (capacity?18:120);
+    input.oninput=()=>numericDrafts[selected]=input.value;
     const label=el('label',capacity?'Calls available':'Budget (€)');
     label.htmlFor=input.id;
     box.append(label,input);
@@ -191,13 +216,13 @@ function renderActions(){
     const next=ids.find(id=>choices(id).length);
     if(next)box.append(button('Go to '+desks[next].team,()=>visit(next),'primary'));
   }
-  box.append(button('Get agent report',()=>{
+}
+$('agentReport').onclick=()=>{
     stop();
     say(selected,desks[selected].person,'What have you done, and what happens next?','human');
     say(selected,agent(selected),report(selected));
     save();render();
-  }));
-}
+};
 function fact(label,value){
   const row=el('div',null,'fact');
   row.append(el('small',label),el('strong',value));
@@ -213,36 +238,34 @@ function renderCase(){
     fact('Marketing budget',s.budget==null?'Awaiting Marketing':fmt(s.budget)+' euros')
   );
   if(s.version)box.append(fact('Proposal v'+fmt(s.version),s.tasks.biz==='join'?'Returned for revision':fmt(list.length/2)+' calls · '+(s.closed?'approved':'awaiting approval')));
-  $('list').replaceChildren();
-  if(!list.length)$('list').append(el('p','The call list will appear once the teams have returned their findings.','empty'));
-  for(const r of list){
-    const parts=['Account '+fmt(r.a.id),r.offer?'Offer':'Comparison','Risk '+fmt(Math.round(fittedModel().model(r.a)*100))+'%'];
-    if(s.closed)parts.push(r.renew?'Renewed':'Did not renew');
-    $('list').append(el('div',parts.join(' · ')));
-  }
+  $('version').textContent=s.version?'v'+s.version:'';
+  const events=s.log.filter(m=>!$('filter').value || [m.from,m.to].includes($('filter').value));
   $('history').replaceChildren();
-  $('count').textContent=fmt(s.log.length)+' handoffs';
-  for(const m of s.log.slice().reverse()){
+  $('count').textContent=events.length+' of '+s.log.length+' handoffs';
+  for(const m of events.slice().reverse()){
     const row=el('li');
-    row.append(el('b',desks[m.from].team+' → '+desks[m.to].team+' — '),document.createTextNode(m.text));
+    row.append(el('b',desks[m.from].team+' → '+desks[m.to].team),el('p',m.text));
     $('history').append(row);
   }
-  if(!s.log.length)$('history').append(el('li','Starting the campaign sends requests to Data Science, Sales, and Marketing.','empty'));
+  if(!events.length)$('history').append(el('li',s.log.length?'No handoffs for this team yet.':'Start the campaign to dispatch the first three requests.','empty'));
 }
 function render(){
-  $('play').textContent=timer?'Pause and take over':'Watch the teams work';
-  $('play').disabled=s.closed;
-  renderDesks();renderMessages();renderActions();renderCase();
+  $('play').textContent=timer?'Pause and take over':s.tasks.biz==='approve'?'Awaiting approval':s.closed?'Watch complete':'Watch the teams work';
+  $('play').disabled=s.closed||s.tasks.biz==='approve';
+  $('step').disabled=$('play').disabled;
+  renderDesks();renderMessages();renderActions();renderCase();renderViews();
 }
 function step(){
+  if(s.closed || s.tasks.biz==='approve'){stop();render();return}
   for(let i=0;i<ids.length;i++){
     const id=ids[cursor++%ids.length],options=choices(id);
     if(!options.length)continue;
     selected=id;
     let action=options[0][0];
     if(s.tasks[id]==='feedback')action=s.capacity===0?'change':'terms';
-    const value=action==='capacity'?18:action==='offer'?120:null;
+    const value=action==='capacity'?(s.requested.sales??18):action==='offer'?(s.requested.mkt??120):null;
     apply(id,action,value,null,true);
+    if(s.tasks.biz==='approve'){stop();selected='biz';render()}
     return;
   }
   stop();render();
@@ -261,8 +284,8 @@ $('restart').onclick=()=>{stop();render();$('confirm').showModal()};
 $('keep').onclick=()=>$('confirm').close();
 $('clear').onclick=()=>{
   $('confirm').close();
-  s=initial();selected='biz';cursor=0;fitted=null;
-  for(const id of ids)delete drafts[id];
+  s=initial();selected='biz';cursor=0;fitted=null;currentView='room';
+  $('filter').value='';$('group').value='all';resetScenario();
+  for(const id of ids){delete drafts[id];delete numericDrafts[id]}
   seed();save();render();
 };
-render();
