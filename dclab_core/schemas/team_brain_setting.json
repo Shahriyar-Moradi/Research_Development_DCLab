@@ -1,0 +1,82 @@
+{
+  "$id": "https://dclab.dev/schemas/dclab_core.team_brain_setting.v1.json",
+  "additionalProperties": false,
+  "description": "One role's brain as a reviewer or the owner set it: the arm, since when, by whom, why, and what it replaced.",
+  "properties": {
+    "arm": {
+      "enum": [
+        "rules",
+        "helper",
+        "agent"
+      ],
+      "title": "Arm",
+      "type": "string"
+    },
+    "by": {
+      "enum": [
+        "reviewer",
+        "owner"
+      ],
+      "title": "By",
+      "type": "string"
+    },
+    "previous": {
+      "anyOf": [
+        {
+          "enum": [
+            "rules",
+            "helper",
+            "agent"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "The arm it replaced (None: the default, rules).",
+      "title": "Previous"
+    },
+    "reason": {
+      "description": "Why, in the reviewer's words: kept in the audit trail.",
+      "maxLength": 300,
+      "minLength": 1,
+      "title": "Reason",
+      "type": "string"
+    },
+    "role": {
+      "enum": [
+        "lead",
+        "business",
+        "data_science",
+        "ml_engineering",
+        "sales",
+        "marketing"
+      ],
+      "title": "Role",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "dclab_core.team_brain_setting.v1",
+      "default": "dclab_core.team_brain_setting.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "since": {
+      "description": "ISO 8601, UTC.",
+      "title": "Since",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "role",
+    "arm",
+    "by",
+    "reason",
+    "since"
+  ],
+  "title": "BrainSetting",
+  "type": "object"
+}

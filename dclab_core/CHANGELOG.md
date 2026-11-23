@@ -4,6 +4,24 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.171.0 (2026-11-23)
+
+- New `team_brain` (B1 of the team workspace): which brain a team agent runs with. `ARMS` (`rules`, `helper`, `agent`;
+  `DEFAULT_ARM` `rules`), `ROLES` (the six team agents a host may switch: lead, business, data_science, ml_engineering,
+  sales, marketing; a specialist or the Home entry is always `rules`), `REVIEWERS`, `SOURCES` (`default`, `stored`,
+  `override`) and `FALLBACKS` (why a model arm fell back to the rules: `no_model`, `no_live_models`, `refused`,
+  `timeout`, `invalid_output`, `error`, `stopped`: the turn ended before the rules finished, so no model was asked; `busy`: too many shadow requests were out
+  at once, so no model was asked). `BrainSetting` (`dclab_core.team_brain_setting.v1`): one role's arm as a
+  reviewer or the owner set it, with the arm it replaced, who, why and since when. `parse_override(text)` reads a host's
+  override (`helper`, or `lead=agent,sales=helper`; anything else is an error, never ignored). `arm_of(settings, role,
+  override)` gives the arm a turn runs with and where it came from.
+- `experience`: `ExperienceEvent` v21 adds `team.brain.answered` (the agent, the arm and where it came from, the arm that
+  acted, the fallback code, the rules' first tool and the model's, whether they agreed, the model request; codes and ids
+  only, never a prompt, a reply or the person's words). v20 reads unchanged.
+- `ledger`: the workflow point `team.brain` (which brain's call a team agent's turn acts on: `rules`, `helper`, `agent`),
+  with the state fields `brain_arm`, `brain_source`, `brain_fallback`. The rules always answer; a model arm's answer is
+  the arm when its output passed its check, None with the fallback as its reason when it did not.
+
 ## 0.170.0 (2026-11-23)
 
 - New `target_contract` (T1 of the team workspace): a feasibility claim means the outcome the person confirmed.

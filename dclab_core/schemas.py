@@ -27,6 +27,7 @@ import dclab_core.task_execution_plan  # noqa: F401  (TP-01B: bounded action pro
 import dclab_core.leak_evidence  # noqa: F401  (2026-11-19: evidence on name-suspected leak columns)
 import dclab_core.team_work  # noqa: F401  (W1 of 2026-11-20: team tasks, actions, reports, decisions)
 import dclab_core.target_contract  # noqa: F401  (T1 of 2026-11-23: a confirmed target and what a label column records)
+import dclab_core.team_brain  # noqa: F401  (B1 of 2026-11-23: a team role's brain, set by one audited switch)
 from dclab_core.contracts import CONTRACTS
 
 SCHEMA_DIR = Path(__file__).resolve().parent / "schemas"

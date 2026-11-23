@@ -1726,3 +1726,38 @@ definition is a `TargetContract`, and a dataset's label column declares its `Lab
 is offered. Until it has a team workspace, `adapters/main_product_experience.KINDS_MISSING` lists the two kinds and
 `conformance.POINTS_NOT_MAPPED` the point, each with its reason; no main-product field is mapped, since the pinned
 inventory has no team tables.
+
+## Which brain a team agent runs with (2026-11-23, dclab-core 0.171.0)
+
+Every team agent acts through one strict layer: the same tools, the same guard, the same task store and report builder.
+Only what chooses its next step differs, its *brain* (`team_brain.ARMS`): `rules` (code chooses every step: the first
+release, the default of every role), `helper` (code decides and a model helps at named seats, used only where a code
+check passes), `agent` (a model plans and chooses its calls inside the strict layer). The switch is per role
+(`team_brain.ROLES`: lead, business, data_science, ml_engineering, sales, marketing), so a host can run a mixed team
+(an agent Lead with a rules Sales). A specialist and the person's Home entry always run on the rules.
+
+| Record | What it holds |
+|---|---|
+| `BrainSetting` (`team_brain_setting.v1`) | One role's arm as a reviewer or the owner set it, the arm it replaced, who, why and since when. |
+| `team.brain.answered` (`experience_event.v21`) | Which brain answered a turn: the arm and where it came from (`default`, `stored`, `override`), the arm that acted, the fallback code, the rules' first tool and the model's, whether they agreed, the model request. Codes and ids only. |
+| ledger point `team.brain` | The same turn as a decision: the rules' answer always, the model's beside it (the arm, or None with the fallback as its reason). |
+
+What the host owes:
+
+1. One audited change per role: a reviewer or the owner, a reason, the setting and its audit row written together; the
+   same arm again changes nothing. `rules` is the default: removing a setting returns the role to it.
+2. Read the arm on every turn (`arm_of(settings, role, override)`): a test's or an evaluation's override first, then the
+   stored setting, then `rules`. An override that does not parse (`parse_override` raises) must be reported, never
+   silently read as another arm.
+3. Fall back to the rules whenever a model arm cannot answer (no model, a refused or failed request, a timeout, an
+   answer its check refuses) and record why as one of `FALLBACKS`. A turn never stops on its brain.
+4. Ask every model with its thinking on and keep the exchange with its thinking summary beside the answer; never ask a
+   model to write its reasoning in its reply.
+
+In the R&D studio (`dclab_rnd/teamspace/brains.py`) the switch lives in the workspace's routing document under
+`team_brains`, `GET /api/team-brains` reads it and `PUT /api/team-brains/{role}` (the owner's) changes it;
+`DCLAB_TEAM_BRAIN` is the override. In B1 a model arm answers in shadow only: asked once per turn beside the rules on the
+same state (which tool next), checked, recorded, never acted on. Its request is built before the rules act and sent
+after their run ends, outside the delivery and its time limit, so a slow model never holds, fails or repeats a
+delivery; a turn that raised is recorded as `stopped` and asks no model. Its seats (B2) and its loop (B3) come next;
+B3's acting agent arm takes its own delivery deadline, the rules keeping theirs.

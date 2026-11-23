@@ -166,6 +166,12 @@ class Settings(BaseSettings):
                     cast(raw)
                 except ValueError:
                     out.append(f"{name} must be a number, not {raw[:20]!r}")
+        try:  # B1: the team agents' brain override, one arm or role=arm pairs (dclab_core.team_brain.parse_override)
+            from dclab_core.team_brain import parse_override
+
+            parse_override(os.environ.get("DCLAB_TEAM_BRAIN", ""))
+        except ValueError as exc:
+            out.append(f"DCLAB_TEAM_BRAIN: {exc}")
         from .models import settings as model_settings  # a tier's reasoning field, template setting or argument format set wrong
 
         for tier_name in model_settings.ROUTABLE:

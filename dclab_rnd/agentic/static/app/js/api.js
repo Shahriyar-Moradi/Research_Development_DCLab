@@ -349,6 +349,23 @@
    *  @property {(Array<*>|null)=} forbidden
    *  @property {*=} text
    */
+  /** @typedef {Object} TeamBrainDoc
+   *  @property {*=} role
+   *  @property {*=} arm
+   *  @property {*=} source
+   *  @property {*=} setting
+   */
+  /** @typedef {Object} TeamBrainSet
+   *  @property {*=} arm
+   *  @property {*=} reason
+   */
+  /** @typedef {Object} TeamBrainsDoc
+   *  @property {(Array<*>|null)=} roles
+   *  @property {(Array<*>|null)=} arms
+   *  @property {*=} default
+   *  @property {*=} override
+   *  @property {(Array<*>|null)=} history
+   */
   /** @typedef {Object} TeamCreate
    *  @property {*=} name
    *  @property {*=} kind
@@ -679,6 +696,8 @@
     studioStatus: ["GET", "/studio", [], []],
     syntheticTemplates: ["GET", "/synthetic/templates", [], []],
     teamAgentJob: ["GET", "/team-agents/{name}", ["name"], []],
+    teamBrains: ["GET", "/team-brains", [], []],
+    setTeamBrain: ["PUT", "/team-brains/{role}", ["role"], []],
     myTeamThreads: ["GET", "/team-threads", [], ["project_id"]],
     teamSettings: ["GET", "/team/settings", [], []],
     setTeamSettings: ["PUT", "/team/settings", [], []],
@@ -2168,6 +2187,18 @@
   client.teamAgentJob = (...args) => call('teamAgentJob', args);
   client.path.teamAgentJob = (...args) => build('teamAgentJob', args).path;
   client.href.teamAgentJob = (...args) => '/api' + build('teamAgentJob', args).path;
+  /** GET /api/team-brains: Team Brains
+   *  @param {{headers?: Object}} [opts]
+   *  @returns {Promise<TeamBrainsDoc>} */
+  client.teamBrains = (...args) => call('teamBrains', args);
+  client.path.teamBrains = (...args) => build('teamBrains', args).path;
+  client.href.teamBrains = (...args) => '/api' + build('teamBrains', args).path;
+  /** PUT /api/team-brains/{role}: Set Team Brain
+   *  @param {string} role
+   *  @param {{body: TeamBrainSet, headers?: Object}} [opts]
+   *  @returns {Promise<TeamBrainDoc>} */
+  client.setTeamBrain = (...args) => call('setTeamBrain', args);
+  client.path.setTeamBrain = (...args) => build('setTeamBrain', args).path;
   /** GET /api/team-threads: My Team Threads
    *  @param {{query?: {project_id?: *}, headers?: Object}} [opts]
    *  @returns {Promise<Array<TeamThreadDoc>>} */

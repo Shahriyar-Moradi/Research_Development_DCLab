@@ -1,0 +1,216 @@
+{
+  "package": "team-b1-brain-switch",
+  "title": "Each team agent gets a brain chosen per role by one audited switch, the rules by default, a model only beside them",
+  "date": "2026-11-23",
+  "request": "Package B1 of the team workspace plan (Part B, 'The design: two layers and one switch'): give each team agent (Lead, Business, Data Science, ML Engineering, Sales, Marketing) a brain chosen per role by one audited switch with three arms (rules, the default; helper; agent), so B2 and B3 only fill in brains. The rules arm must stay exactly today's behaviour; a model arm that fails falls back to the rules and the fallback is recorded; new purposes team_helper and team_agent with prompt files and harness entries; the team tool scope in the prompt gate; every model call keeps its API thinking summary; every turn records which arm answered.",
+  "spec": "dclab-core 0.171.0: new team_brain.py (ARMS, DEFAULT_ARM, ROLES, REVIEWERS, SOURCES, FALLBACKS, BrainSetting v1, parse_override, arm_of); ExperienceEvent v21 (team.brain.answered); ledger point team.brain with state fields brain_arm, brain_source, brain_fallback. dclab_rnd: teamspace/brains.py (the Brain protocol, RulesBrain, HelperBrain, AgentBrain, switch, arm_for, overview, record), agents.run_turn asks the role's brain beside the rules, ledger/capture.team_brain_answered, purposes team_helper and team_agent with prompts, harness AGENTS['teamspace'] purposes, prompts.TOOL_SCOPES adds team, GET /api/team-brains and PUT /api/team-brains/{role} (owner only), DCLAB_TEAM_BRAIN override checked by Settings.problems.",
+  "plan": [
+    "put the arm names, the switch record and the override reader in dclab_core as a small contract; the wiring in dclab_rnd",
+    "make run_turn ask a Brain chosen by arm_for, with the rules arm returning nothing and the rules loop left as it was",
+    "give the helper and agent arms one shadow seat each (which tool comes next), asked once per turn through the gateway, checked by code, never acted on",
+    "store the switch in the workspace's routing document under team_brains, audited like the other routing switches",
+    "record every turn that ran as team.brain.answered and the ledger point team.brain, with the fallback reason and the model request",
+    "prove with scripted transports that both purposes keep their thinking whole, and that every existing team test passes unchanged"
+  ],
+  "decisions": [
+    {
+      "decision": "In B1 the rules always act; a helper or agent arm answers once per turn in shadow, before the rules act, on the same stored state",
+      "why": "the seats (B2) and the loop (B3) do not exist yet, so a model's choice has no checked place to be used; asking before the rules act lets its answer be compared with the rules' first call on exactly the state the rules saw, and nothing a model says can change a task"
+    },
+    {
+      "decision": "The B1 seat for both model arms is 'which tool comes next': the helper names one from the list as JSON (shown the rules' choice), the agent calls one of the agent's own tools",
+      "why": "it is the smallest output code can check fully (a name in the offered list, or none), it exercises the two shapes B2 and B3 will use (a closed answer at a seat, a tool call inside the guard), and it gives a comparable training row per turn (rules' tool against the model's)"
+    },
+    {
+      "decision": "The switch lives in the workspace's routing document (models/routing.py) under team_brains, changed in one locked read-change-write with an audit row (kind routing, move set_team_brain), reviewer or owner and a reason",
+      "why": "the same file or PostgreSQL row, lock and audit pattern as ledger/routing.switch and models/routing.switch: no new table or migration, and the server and a worker read the same setting"
+    },
+    {
+      "decision": "DCLAB_TEAM_BRAIN overrides the stored setting (one arm, or role=arm pairs); a value that does not parse is ignored with a message on every turn and reported by Settings.problems before the server starts",
+      "why": "tests and evaluations need to set arms without writing the workspace, as DCLAB_CASE_AGENT does; an unparsable override must never become another arm, and the server's start-up check is where the repo reports a wrong setting"
+    },
+    {
+      "decision": "The team purposes are not 'shown cells' (cell_values 0, request_cells False): every exchange is kept whole with its thinking in the workspace; keeps_text False",
+      "why": "they see the agent's job, the task's status and revision, the person's question and tool names, never a table; but a team's notes stay in the team, so the words never leave the workspace for training (may_leave false)"
+    },
+    {
+      "decision": "Thinking comes only from the gateway's thinking setting (thinking_for gives adaptive; the Anthropic client sends display summarized); the prompts ask for a tool name or a tool call, never for reasoning",
+      "why": "the owner's rule: the API thinking summary is the record of the model's thinking; asking for reasoning in the reply would be a second, invented record"
+    },
+    {
+      "decision": "A skipped turn (nothing left to do) records nothing and asks no model; a turn that ran records team.brain.answered and the team.brain decision, the rules arm included",
+      "why": "a repeated delivery must stay free and silent as before; every turn that acted is a training row of who answered it, even on the rules"
+    },
+    {
+      "decision": "Bump dclab_core to 0.171.0 with a small team_brain contract, ExperienceEvent v21 and one ledger point",
+      "why": "the arm names, the switch record and the turn's record are what a host that adopts team agents must agree on; the brains themselves stay in dclab_rnd"
+    },
+    {
+      "decision": "A model arm's request runs after the rules' run, on its own daemon thread outside the delivery, not inside it with the time left",
+      "why": "a shadow answer has no reason to hold a delivery; giving it the time left would still delay every delivery of a switched role and tie the answer to a limit that is the rules'. The cost is that a process that exits at once (a command-line run) may cut it off: brains.drain waits for what is still out"
+    }
+  ],
+  "change": "dclab_core: team_brain.py (new), experience.py (v21, team.brain.answered), ledger.py (team.brain, three state fields), schemas.py, workflow_labels.py, adapters/conformance.py, adapters/main_product_experience.py, version 0.171.0, CHANGELOG, schemas. dclab_rnd: teamspace/brains.py (new), teamspace/agents.py run_turn, ledger/capture.py and ledger/__init__.py, models/settings.py (team_helper, team_agent), agents/harness.py, prompts/__init__.py (team scope), prompts/team_helper.md and team_agent.md (new), settings.py (override check), agentic/routers/team_threads.py, agentic/api_models.py, accounts/guard.py, the generated api.js and data catalog. tests: test_team_brains.py (new), the experience version string in five tests, a data-limit test for the two purposes, run_parallel.py blanks DCLAB_TEAM_BRAIN.",
+  "findings": [
+    {
+      "id": "B1-1",
+      "source": "test",
+      "severity": "gap",
+      "defect": "The new test class inherited every test of the shared team fixture and ran the whole team contract suite a second time",
+      "scenario": "test_team_brains reused test_teamspace_agents._Contract for its workspace, project and Business thread; the first run reported 40 tests where 16 were its own",
+      "cause": "_Contract is a mixin holding both the fixture and its tests",
+      "fix": "the inherited test_ methods are set to None on the B1 mixin, so only the fixture is reused; the team contract tests run once, in their own file",
+      "test": "tests/test_team_brains.py runs 16 tests on files and PostgreSQL",
+      "impact": "about doubled time for the team suite and two copies of every team failure",
+      "verdict": "confirmed"
+    },
+    {
+      "id": "B1-2",
+      "source": "test",
+      "severity": "behaviour",
+      "defect": "The harness and prompt gates fail until the scripted suites ran on the new prompts and the team tool scope",
+      "scenario": "test_harness_gate after adding team_helper.md, team_agent.md and the team scope: stale prompt:team_agent, prompt:team_helper, tools:team",
+      "cause": "prompts and tool schemas are code pinned by the suites' stored fingerprints",
+      "fix": "make agent-eval and make harness-eval run (scripted, free) and store the new fingerprints",
+      "test": "tests/test_harness_gate.py and tests/test_prompt_gate.py",
+      "verdict": "confirmed"
+    },
+    {
+      "id": "B1-3",
+      "source": "test",
+      "severity": "privacy",
+      "defect": "Two new model purposes had no test of what data they may be shown",
+      "scenario": "test_model_data_limits.test_every_purpose_has_a_limit_and_a_test listed team_helper and team_agent as untested purposes",
+      "cause": "every purpose of models/settings.py needs a test that its prompts hold no more cell values than its limit",
+      "fix": "a data-limit test drives the helper and the agent brain on a turn beside a marked table and finds no cell value in either prompt (limit 0)",
+      "test": "tests/test_model_data_limits.py test_the_team_brains_see_the_task_and_the_tools_never_a_table",
+      "verdict": "confirmed"
+    },
+    {
+      "id": "B1-R1",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "The shadow model was asked inside the delivery target, before the rules acted, so a slow model failed, repeated and finally blocked the delivery",
+      "scenario": "a role switched to the helper, a model answering in 35 s against DCLAB_TEAM_DELIVERY_TIMEOUT_SECONDS of 30: the target raises TargetTimeout, the attempt is counted, the abandoned thread later lets the rules act, the relay retries and asks the model again; after 5 attempts the row is blocked while up to 5 abandoned threads act on the same task",
+      "cause": "run_turn called the model in line before run_policy, and run_turn runs inside delivery._call's time limit",
+      "fix": "the request is built before the rules act (the same state, so the comparison holds) and sent only after the rules' run has ended, on a thread of its own outside the delivery (brains.finish); the rules and the delivery never wait on a model, and a repeated delivery finds nothing left, so it asks no model",
+      "test": "tests/test_team_brains.py test_a_slow_model_never_fails_repeats_or_delays_a_delivery (a transport sleeping 1 s against a 0.4 s delivery limit: delivered on the first attempt, one rules run, one model request)",
+      "impact": "a switched role's deliveries blocked and about five times the model spend, with the lane's one-turn-at-a-time rule broken",
+      "alternatives": [
+        "give the request the delivery's time left with a margin and record no_time otherwise: rejected, it still delays every delivery of a switched role and couples a shadow answer to a delivery limit",
+        "a per-arm delivery deadline now: rejected for B1, no model acts inside a delivery yet; B3's acting agent arm gets it, read from arm_for, the rules keeping 30 s"
+      ],
+      "verdict": "confirmed"
+    },
+    {
+      "id": "B1-R2",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "A turn whose rules' run raised left no record of its brain, and a store read in the record could fail a turn whose rules had already acted",
+      "scenario": "a Stop at a checkpoint or a failing tool inside run_policy; or turn.work.task raising while the record reads the task's problem id",
+      "cause": "brains.record ran only after run_policy returned, and read the task outside any try",
+      "fix": "the record is written in a finally (brains.finish), as 'stopped' for a model arm whose turn did not complete, and no model is asked for it; every read and write of the record is caught and reported, never raised",
+      "test": "tests/test_team_brains.py test_a_turn_that_raises_is_still_recorded_and_asks_no_model and test_a_record_that_cannot_read_the_store_never_fails_the_turn",
+      "verdict": "confirmed"
+    },
+    {
+      "id": "B1-R3",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "The model request's span started its own trace instead of belonging to the turn's",
+      "scenario": "a delivery job running a switched role's turn: the model_request span was opened outside the run's agent_loop span",
+      "cause": "the request was made before run_policy opened the run's span",
+      "fix": "run_turn opens one team_turn span (with the run id) around the run and the request's preparation; the request's thread runs in a copy of that context with the turn's run id bound, so its span is a child of the turn's",
+      "test": "tests/test_team_brains.py test_the_helper_answers_beside_the_rules_its_thinking_is_kept_and_the_rules_still_act: the model.request event has the run's id and the run's trace",
+      "verdict": "confirmed"
+    },
+    {
+      "id": "B1-R4",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "Shadow threads had no limit: a burst of deliveries on a switched role started one thread and one model request each",
+      "scenario": "many tasks delivered to a role switched to helper at once",
+      "cause": "finish started a daemon thread per asked turn with no cap",
+      "fix": "MAX_LIVE = 4: the cap is checked and the slot taken under one lock in _thread; a turn past it raises Busy and is recorded with the fallback busy, asking no model",
+      "test": "tests/test_team_brains.py test_a_burst_past_the_cap_asks_no_model_and_is_recorded_busy",
+      "verdict": "confirmed"
+    },
+    {
+      "id": "B1-R5",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "A process ending while a shadow request was out lost the request's exchange, its thinking and the turn's only record",
+      "scenario": "a command-line comparison run or a worker restart ending within the model's 60-120 s after the last turn",
+      "cause": "daemon threads are killed at exit and nothing waited for them",
+      "fix": "atexit.register(drain, 130): the process waits for requests still out, at most the agent purpose's seconds and a margin",
+      "test": "not unit-tested (atexit at interpreter exit); drain itself is covered by every threaded test",
+      "verdict": "confirmed"
+    },
+    {
+      "id": "B1-R6",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "prepare could fail the rules' turn on a store error, and a thread that failed to start held a slot for good",
+      "scenario": "a transient PostgreSQL error while the gateway reads whether the project is private; or RuntimeError can't start new thread",
+      "cause": "the client lookup ran outside any try; _thread added the thread to the live set before start() and never removed it on failure",
+      "fix": "the lookup is inside try and falls back to error; a failed start() discards the slot and finish records the turn with the fallback error",
+      "test": "tests/test_team_brains.py test_a_store_error_while_preparing_never_fails_the_rules_turn, test_a_thread_that_cannot_start_holds_no_slot_and_the_turn_is_recorded",
+      "verdict": "confirmed"
+    },
+    {
+      "id": "B1-T1",
+      "source": "test",
+      "severity": "gap",
+      "defect": "The slow-model test's 0.4 s delivery limit failed on PostgreSQL while a gate loaded the machine",
+      "scenario": "test_a_slow_model_never_fails_repeats_or_delays_a_delivery on PostgreSQL during make check-quick",
+      "cause": "the rules' own turn took longer than 0.4 s under load, so the limit tested the machine, not the design",
+      "fix": "a 2 s limit with a 4 s model: the model is still twice the limit",
+      "test": "the same test, 28 of 28 on files and PostgreSQL",
+      "verdict": "confirmed"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "the existing team suites on the rules arm",
+      "gate": "every existing team test passes unchanged (test_teamspace_agents, threads, routes, team_api, lead_workspace, team_commercial, team_target), on files and PostgreSQL",
+      "fixed_before_run": true,
+      "result": "294 tests in 10 files passed except test_harness_gate, which needed the suites rerun on the new prompts",
+      "verdict": "pass",
+      "cost_eur": 0.0,
+      "limits": [
+        "scripted transports only: no live model was asked in B1"
+      ]
+    },
+    {
+      "name": "the brain switch and its records",
+      "gate": "default rules for every role; reviewer or owner and a reason; audited once per change; override wins; no model or a bad answer or a timeout falls back with its reason; helper and agent thinking stored whole; the model's call never run",
+      "fixed_before_run": true,
+      "result": "tests/test_team_brains.py: 16 tests pass on files and PostgreSQL",
+      "verdict": "pass",
+      "cost_eur": 0.0
+    },
+    {
+      "name": "the scripted suites on the new prompts and the team tool scope",
+      "gate": "make agent-eval stores a complete run with no policy erroring; make harness-eval passes every regression case and dev journey",
+      "fixed_before_run": true,
+      "result": "AEV-133 stored complete; HRN-143: 17 of 17 right on every step and part, EUR 0",
+      "verdict": "pass",
+      "cost_eur": 0.0,
+      "limits": [
+        "the suites do not exercise the team agents' model arms; that is B4's comparison"
+      ]
+    }
+  ],
+  "outcome": "Each team role now runs with a brain read on every turn from one audited switch (rules by default). The rules arm is today's agents unchanged; a helper or agent arm asks its model once per turn beside the rules (built on the same state, sent after the rules' run on its own thread, so no delivery waits on it), checked by code and recorded with its thinking and its fallback reason, and never acted on until B2 and B3 give it seats and a loop.",
+  "lessons": [
+    "A mixin that holds a fixture and its tests is reused for the fixture only by switching its tests off; otherwise every reuse runs the whole suite again.",
+    "Asking a shadow model before the rules act, not after, is what makes its answer comparable: after the rules act, the stored state it reads has already moved on.",
+    "Anything observational (a shadow model, a record) must run outside a deadline that guards real work: inside it, a slow observer turns into retries of the work itself."
+  ],
+  "risks": [
+    "A switched role waits for its model on every turn (one attempt, at most 60 s for the helper and 120 s for the agent) although the answer is not used in B1: switch roles only for a measured comparison.",
+    "The B1 seat ('which tool next') is not the helper's real seats; B2 must replace HelperBrain.beside, not extend it.",
+    "The shadow requests are not limited in number: a burst of deliveries on a switched role starts one thread each; a short-lived process should call brains.drain before it exits."
+  ],
+  "commits": []
+}

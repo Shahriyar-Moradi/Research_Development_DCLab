@@ -838,8 +838,16 @@ _RULES_POLICY: Optional[type] = None
 
 def run_turn(turn: TeamTurn, registry: Any = None) -> dict[str, Any]:
     """One turn of a team agent on the one loop: its rules choose each call, the guard checks it, the run is traced. A turn
-    with nothing left to do runs nothing (a repeated delivery). Returns the steps, refusals and how it ended."""
+    with nothing left to do runs nothing (a repeated delivery). Returns the steps, refusals and how it ended.
+
+    B1 (2026-11-23): the role's brain (``brains.arm_for``: the audited switch, default ``rules``). A role switched to the
+    helper or agent arm builds its model's request on the state the rules are about to read, and sends it only after the
+    rules' run has ended, on its own thread (``brains.finish``): the rules, and the delivery around them, never wait on a
+    model. In B1 the rules always act, and a model that cannot answer falls back to them with its reason. Every turn that
+    ran records which brain answered, even when its run raised. The rules arm runs as before. Returns ``brain`` too."""
+    from ..agents.harness import tracer
     from ..agents.runtime import Policy, run as run_policy
+    from . import brains
 
     base = turn.agent.split(":")[0]
     brain = BRAINS.get(base) or (_unsupported if turn.extra.get("unsupported") and base in CONFIGS else None)
@@ -854,12 +862,25 @@ def run_turn(turn: TeamTurn, registry: Any = None) -> dict[str, Any]:
         registry = default_registry()
     policy = _rules_policy(Policy)(name=f"{AGENT}.{base}", system=SYSTEM, tools=config_of(turn.agent).policy_tools, max_steps=MAX_STEPS,
                     max_seconds=120.0)
+    from .. import observe
+
+    arm, source = brains.arm_for(turn.env, base)
+    trace = tracer(policy.name)  # the run's id, known before it starts: the model asked beside the rules joins this run
     why = (turn.row or {}).get("kind") or turn.extra.get("mode") or "turn"
     messages = [{"role": "user", "content": f"{why} on {turn.task_id}"}]
-    result = run_policy(policy, ScriptedChoices(brain, turn, first), registry, messages, context=turn)
+    # one span for the turn: the rules' run and the model's request (sent after it, on its own thread) share its trace
+    with observe.span(name=f"team_turn {policy.name}"[:120], **{"dclab.agent": policy.name, "dclab.run": trace.run_id}):
+        prepared = brains.brain(arm).prepare(turn, first, policy.tools, registry)  # built on the state the rules read; not sent
+        completed = False
+        try:
+            result = run_policy(policy, ScriptedChoices(brain, turn, first), registry, messages, context=turn, trace=trace)
+            completed = True
+        finally:  # recorded whether the run completed or raised; the model is asked only after a completed run, never waited on
+            brains.finish(turn, arm, source, first, prepared, trace.run_id, completed)
     steps = [{"tool": s.tool, "ok": s.ok, "result": s.result} for s in result.steps]
     return {"agent": turn.agent, "task_id": turn.task_id, "skipped": False, "steps": steps, "stopped": result.stopped,
-            "refused": [s["result"]["error"] for s in steps if not s["ok"]], "final": result.final}
+            "refused": [s["result"]["error"] for s in steps if not s["ok"]], "final": result.final,
+            "brain": {"arm": arm, "source": source, "acted": "rules", "asked": isinstance(prepared, brains.Asked)}}
 
 
 # ---------------------------------------------------------------------------------------------------------- entry points

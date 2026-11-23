@@ -60,6 +60,8 @@ NOT_LEARNED = {
                               "classifier on it can only copy the rule",
     "team.target_agreement": "0.170.0 (T1): the rule's answer on two codes (the event confirmed, the events recorded), recorded "
                              "where feasibility is decided; a classifier on it can only copy the rule",
+    "team.brain": "0.171.0 (B1): which brain answered a team agent's turn is the audited switch's setting, not a judgment; the "
+                  "model's answers beside the rules' are measured by the arms' comparison (B4), never learned from the switch",
     "command.intent_route": "not decided by the studio yet",
     "proposal.completeness": "not decided by the studio yet",
     "department.proposal": "labelled where it is judged: a person's judgment of each proposal, not a journey (30.22)",

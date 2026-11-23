@@ -274,7 +274,7 @@
   {
    "contract": "experience_event",
    "reads": [],
-   "version": "dclab_core.experience_event.v20"
+   "version": "dclab_core.experience_event.v21"
   },
   {
    "contract": "experience_session",
@@ -634,6 +634,11 @@
    "version": "dclab_core.team_action.v1"
   },
   {
+   "contract": "team_brain_setting",
+   "reads": [],
+   "version": "dclab_core.team_brain_setting.v1"
+  },
+  {
    "contract": "team_decision",
    "reads": [
     "dclab_core.team_decision.v1"
@@ -778,7 +783,7 @@
    "what": "A solved project from its problem to its report, one row per project: the card, the map, the routes, the stages run and the report's kept sentences, never a row of its table; only projects whose consent allows training, and none at all below the builder's minimum of projects (30.19)."
   }
  ],
- "dclab_core": "0.170.0",
+ "dclab_core": "0.171.0",
  "decision_points": [
   {
    "about": "Which tool does the agent call next?",
@@ -1532,6 +1537,17 @@
    "point": "task.framing",
    "subjects": [
     "draft",
+    "project"
+   ]
+  },
+  {
+   "about": "Which brain's call does a team agent's turn act on?",
+   "answer": "choice",
+   "decided_in": "ledger/capture.py team_brain_answered, called from teamspace/agents.py run_turn after every team agent's turn that ran (B1): the rules' answer always, the helper's or agent's beside it (or why it fell back), and the arm that acted",
+   "kind": "workflow",
+   "main_product": null,
+   "point": "team.brain",
+   "subjects": [
     "project"
    ]
   },
@@ -2782,6 +2798,31 @@
     "task": "meta"
    },
    "kind": "team.action.started",
+   "leaves_at": "improve",
+   "never_leaves": [],
+   "train_only": []
+  },
+  {
+   "emitted_by": [
+    "dclab_rnd/teamspace/brains.py"
+   ],
+   "example": "python -m dclab_rnd.experience search --kind team.brain.answered",
+   "family": "team",
+   "fields": {
+    "acted": "meta",
+    "agent": "meta",
+    "agreed": "meta",
+    "arm": "meta",
+    "fallback": "meta",
+    "mode": "meta",
+    "model_tool": "meta",
+    "problem": "meta",
+    "request": "meta",
+    "rule_tool": "meta",
+    "source": "meta",
+    "task": "meta"
+   },
+   "kind": "team.brain.answered",
    "leaves_at": "improve",
    "never_leaves": [],
    "train_only": []

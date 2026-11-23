@@ -47,6 +47,17 @@ PURPOSES: dict[str, Purpose] = {
     "task_decomposer": Purpose("standard", 30, "TP-02: the confirmed goal, column names and roles without values, validated workflow, "
                                                "deterministic task graph, capability metadata and planning budgets; proposes task "
                                                "groups and dependencies only, never calls tools or changes solution decisions", cell_values=0),
+    # B1 of the team workspace (2026-11-23): a team agent's brain when its role is switched to the helper or the agent arm.
+    # Shown the team's own records, never a table: not "shown cells" (cell_values 0), so each exchange is kept whole with its
+    # thinking in the workspace; keeps_text False: a team's notes stay in the workspace (team privacy), never leave it to train
+    "team_helper": Purpose("standard", 60, "B1: one team agent's turn as the helper arm sees it: the agent's role and job, the task's "
+                                           "status, kind and brief revision, the brief's words (the person's question), the turn's "
+                                           "reason, the names of the tools the agent may call and the step the rules chose; never a "
+                                           "table, a row or a cell value", cell_values=0),
+    "team_agent": Purpose("standard", 120, "B1: one team agent's turn as the agent arm sees it: the agent's role and job, the task's "
+                                           "status, kind and brief revision, the brief's words (the person's question), the turn's "
+                                           "reason and the schemas of the tools the agent may call; never a table, a row or a cell value",
+                          cell_values=0),
     "home_intent": Purpose("standard", 60, "H2: the person's request and their replies to Home's questions, to read which kind of help they need; "
                                            "never data, column names or cell values", cell_values=0),
     "home_query": Purpose("standard", 60, "H6: the person's question, what Home understood (the brief) and each column's name, kind, "

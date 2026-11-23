@@ -52,6 +52,7 @@ WRITE_ROUTES = {
     "PUT /api/consent": (EVENTS, ["decision.accepted"]),  # the switch, audited as a policy
     "PUT /api/twin/settings": (EVENTS, ["decision.accepted"]),  # 25.4: the owner's switch for Claude beside the system, audited as a policy
     "PUT /api/team/settings": (EVENTS, ["decision.accepted"]),  # 28.8: the team's switch and budgets, audited as a policy
+    "PUT /api/team-brains/{role}": (EVENTS, ["decision.accepted"]),  # B1: a team role's brain, audited as routing (point routing:team_brain:<role>)
     "POST /api/drafts/{draft_id}/twin/messages": (EVENTS, ["chat.person"]),  # 25.4: a message to Claude alone (surface twin); Claude's lane is the twin folder
     "POST /api/drafts/{draft_id}/twin/pick": (EVENTS, ["decision.accepted"]),  # 25.5: the person's pick between the two answers (point twin.pick)
     "PUT /api/projects/{project_id}/brief": (EVENTS, ["decision.accepted"]),  # 30.14: the person's Solution Brief (point solution.brief); signing is the gate's approval

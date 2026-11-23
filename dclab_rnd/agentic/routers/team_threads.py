@@ -35,8 +35,8 @@ from fastapi.responses import StreamingResponse
 
 from ...memory import scope as mem_scope
 from ...teamspace import stream, threads as th
-from ..api_models import (HandoffHistoryDoc, Router, TeamAgentJobDoc, TeamMessageDoc, TeamMessagePost, TeamTaskView, TeamThreadDoc,
-                          TeamThreadOpen, TeamThreadView, WorkspaceOverview)
+from ..api_models import (HandoffHistoryDoc, Router, TeamAgentJobDoc, TeamBrainDoc, TeamBrainsDoc, TeamBrainSet, TeamMessageDoc,
+                          TeamMessagePost, TeamTaskView, TeamThreadDoc, TeamThreadOpen, TeamThreadView, WorkspaceOverview)
 from ..services import Services, services
 
 router = Router()
@@ -473,4 +473,33 @@ async def team_agent_job(name: str, s: Services = Depends(services)):
             if base not in tw.DIRECTORY:
                 raise HTTPException(404, "No such team agent")
         return job_description(key)
+    return await asyncio.to_thread(run)
+
+
+@router.get("/api/team-brains", response_model=TeamBrainsDoc)
+async def team_brains(s: Services = Depends(services)):
+    """B1: every team role's brain (rules, helper, agent), where it came from (default, stored, or the DCLAB_TEAM_BRAIN
+    override), and the last changes. Any member of the workspace reads it."""
+    from ...teamspace import brains
+
+    return await asyncio.to_thread(brains.overview, s)
+
+
+@router.put("/api/team-brains/{role}", response_model=TeamBrainDoc)
+async def set_team_brain(role: str, payload: TeamBrainSet, s: Services = Depends(services)):
+    """B1: one audited switch of a team role's brain, the owner's (``accounts/guard.SPECIAL``: admin), with a reason; the
+    rules are the default. The change and its audit row are written together; the same arm again changes nothing."""
+    from ...accounts.principal import LOCAL_OWNER, current
+    from ...teamspace import brains
+
+    who = current() or LOCAL_OWNER
+
+    def run() -> dict[str, Any]:
+        try:
+            brains.switch(s.gateway.routing, s.audit, role, str(payload.arm or ""), who.role, str(payload.reason or ""))
+        except PermissionError as exc:
+            raise HTTPException(403, str(exc)) from None
+        except brains.BrainSwitchError as exc:
+            raise HTTPException(422, str(exc)) from None
+        return next(r for r in brains.overview(s)["roles"] if r["role"] == role)
     return await asyncio.to_thread(run)

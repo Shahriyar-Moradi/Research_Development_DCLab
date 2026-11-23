@@ -109,6 +109,8 @@ CAPTURED = {
     "team.correction_accept": "ledger/capture.py team_correction_accepted, called where a correction of a team's answer arrives "
                               "(teamspace, T2): applied, the same one again, or based on a revision that moved on (the rule's "
                               "answer on the two revisions)",
+    "team.brain": "ledger/capture.py team_brain_answered, called from teamspace/agents.py run_turn after every team agent's turn "
+                  "that ran (B1): the rules' answer always, the helper's or agent's beside it (or why it fell back), and the arm that acted",
     "team.target_agreement": "ledger/capture.py team_target_agreement, called from teamspace/tools.py where Data Science inspects "
                              "the table and ML Engineering validates the contract (T1): whether a label column records the event "
                              "the person confirmed, and is mature",

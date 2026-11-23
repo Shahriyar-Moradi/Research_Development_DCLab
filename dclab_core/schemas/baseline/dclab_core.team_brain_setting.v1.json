@@ -1,0 +1,69 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "arm": {
+      "enum": [
+        "rules",
+        "helper",
+        "agent"
+      ],
+      "type": "string"
+    },
+    "by": {
+      "enum": [
+        "reviewer",
+        "owner"
+      ],
+      "type": "string"
+    },
+    "previous": {
+      "anyOf": [
+        {
+          "enum": [
+            "rules",
+            "helper",
+            "agent"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "reason": {
+      "maxLength": 300,
+      "minLength": 1,
+      "type": "string"
+    },
+    "role": {
+      "enum": [
+        "lead",
+        "business",
+        "data_science",
+        "ml_engineering",
+        "sales",
+        "marketing"
+      ],
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "dclab_core.team_brain_setting.v1",
+      "default": "dclab_core.team_brain_setting.v1",
+      "type": "string"
+    },
+    "since": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "role",
+    "arm",
+    "by",
+    "reason",
+    "since"
+  ],
+  "type": "object"
+}

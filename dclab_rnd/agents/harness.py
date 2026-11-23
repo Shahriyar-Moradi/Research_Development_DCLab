@@ -59,8 +59,9 @@ AGENTS: dict[str, Agent] = {
     "coordinator": Agent("dclab_rnd.draft.coordinator:Coordinator.run", "session", (), "the lead agent: problem to built project, gate by gate"),
     "learning": Agent("dclab_rnd.learning.scoreboard:attempt", "session", (), "H0: one challenge pack's attempt, each arm solved from the "
                       "public folder and graded against the key, a step with its whole grade"),
-    "teamspace": Agent("dclab_rnd.teamspace.agents:run_turn", "loop", (), "W5: the team agents (Business, Data Science, a fixture "
-                       "model specialist), deterministic: code chooses each tool call from the stored task, no model is asked"),
+    "teamspace": Agent("dclab_rnd.teamspace.agents:run_turn", "loop", ("team_helper", "team_agent"), "W5: the team agents (Business, "
+                       "Data Science, a fixture model specialist), deterministic: code chooses each tool call from the stored task; "
+                       "B1: a role switched to the helper or agent arm also asks its model beside the rules (teamspace/brains.py)"),
     "twin": Agent("dclab_rnd.twin:run", "session", ("ai_first",), "a twin run (25.2, 25.3): the current system and Claude on one problem, two lanes at once, "
                                                        "each a workspace folder; Claude serves every purpose of its lane through the lane's own client"),
 }

@@ -748,13 +748,34 @@ class DataLimitTests(unittest.TestCase):
         self.assertEqual(report["status"], "proposed")
         self.assertEqual(self.assertWithinLimit("task_planner"), set())
 
+    def test_the_team_brains_see_the_task_and_the_tools_never_a_table(self):
+        """B1 (2026-11-23): a team agent's helper and agent arms are shown the agent's job, the task's state, the person's
+        question and the tools' names or schemas; the turn reads no table, so no cell of the project's table can reach them."""
+        from types import SimpleNamespace
+
+        from dclab_rnd.agents import default_registry
+        from dclab_rnd.teamspace import brains
+
+        marked_table()  # the project's table exists beside the task; the brains never read it
+        task = SimpleNamespace(id="T-1", status="open", brief_revision=1, owner_team="data_science", requester=SimpleNamespace(team="business"),
+                               question="Who should Sales call before renewal?")
+        g = gateway({"team_helper": [{"content": '{"tool": "team_accept"}', "tool_calls": [], "usage": {}}],
+                     "team_agent": [tool_call("team_accept", {"task_id": "T-1"})]})
+        turn = SimpleNamespace(env=SimpleNamespace(gateway=g), work=SimpleNamespace(task=lambda pid, tid: task), project_id="p1",
+                               agent="data_science", task_id="T-1", row={"kind": "task"}, extra={})
+        offered = ("team_accept", "team_block", "team_return_report")
+        self.assertEqual(brains.HelperBrain().beside(turn, ("team_accept", {}), offered, default_registry())["tool"], "team_accept")
+        self.assertEqual(brains.AgentBrain().beside(turn, ("team_accept", {}), offered, default_registry())["tool"], "team_accept")
+        self.assertEqual(self.assertWithinLimit("team_helper"), set())
+        self.assertEqual(self.assertWithinLimit("team_agent"), set())
+
     def test_every_purpose_has_a_limit_and_a_test(self):
         tested = {"home_agent", "home_intent", "home_query", "home_business", "parse_pattern", "synthetic_schema", "evidence_answer", "stage_notes", "project_answer", "lesson_proposal", "intern",
                   "leakage_review", "notebook_review", "problem_analyst", "conversation_reader", "data_investigator", "brief_checker", "feature_engineer", "solution_planner", "critic", "reporter",
                   "decision_answer", "decision_labeler", "routing_labeler", "home_understand", "decomposer", "map_reviewer", "data_need", "solution_router", "ai_first", "solver_answer",
                   "understanding_critic", "solution_challenger", "debate_judge", "metric_question", "workspace_chat", "store_curator", "reasoning_teacher", "notebook_cell",
                   "home_orchestrator", "reflector", "memory_embedding", "case_agent", "case_specialist", "route_check", "task_decomposer", "task_planner",
-                  "no_data_architect", "no_data_critic"}
+                  "no_data_architect", "no_data_critic", "team_helper", "team_agent"}
         no_user_data = {"campaign", "campaign_review", "embedding",  # research tools and evidence search: the repository's records and a typed question, never a workspace's data
                         "journey_writer", "journey_checker",  # S8 B1 (below)
                         "exam_plain", "e2e_plain_agent", "exam_person", "exam_judge"}  # 37.0: written, simulated people and invented exam tables' column views (tests/test_conversation_exam.py); S8 B1: invented replica tables' column names and written people, never a workspace's data (tests/test_people_writer.py)

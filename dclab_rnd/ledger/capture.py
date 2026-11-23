@@ -1381,3 +1381,34 @@ def team_target_agreement(project_id: str, task_id: str, verdict: str, *, event:
                   [answer("rule", "rule:target_contract.agreement", verdict)], verdict, "rule", state=state,
                   options=list(TARGET_VERDICTS), project=project_id)
     return getattr(record, "id", None)
+
+
+# ---------------------------------------------------------------------- 0.171.0: which brain answered a team agent's turn
+
+BRAIN_ARMS = ("rules", "helper", "agent")
+
+
+@_quiet
+def team_brain_answered(project_id: str, task_id: str, agent: str, *, arm: str, source: str, acted: str = "rules",
+                        rule_tool: Optional[str] = None, model: Optional[dict[str, Any]] = None, run: Optional[str] = None) -> Optional[str]:
+    """B1: which brain's call a team agent's turn acted on (``teamspace/agents.py`` ``run_turn``). The rules always answer
+    (their first tool as ``raw``); a role switched to the helper or agent arm adds the model's answer: the arm when its
+    output passed its check (the tool it chose as ``raw``), None when it fell back to the rules, with the reason as a code
+    and the model request that carries the exchange and its thinking as ``source``. ``acted`` is the arm whose call the
+    turn acted on: ``rules`` in B1, where a model arm answers in shadow only. Codes and ids: never a prompt, a reply or the
+    person's words. One record per turn (its run)."""
+    if arm not in BRAIN_ARMS or acted not in BRAIN_ARMS:
+        raise ValueError(f"a team brain is one of {BRAIN_ARMS}, not {arm!r} / {acted!r}")
+    base = _code(str(agent).split(":")[0]) or "team"
+    answers = [answer("rule", f"rule:teamspace.{base}", "rules", raw=_code(rule_tool))]
+    state: dict[str, Any] = {"team": base, "brain_arm": arm, "brain_source": _code(source)}
+    if model is not None:
+        fallback = _code(model.get("fallback"))
+        answers.append(answer("model_role", str(model.get("purpose") or f"team_{arm}"), None if fallback else arm,
+                              raw=_code(model.get("tool")), reason=fallback, source=str(model.get("request") or "") or None))
+        state.update(model_available=fallback not in ("no_model", "no_live_models"), brain_fallback=fallback,
+                     agreed=None if fallback else _code(model.get("tool")) == _code(rule_tool))
+    used = "rule" if acted == "rules" else "model_role"
+    record = _put("team.brain", ("project", f"{project_id}:{task_id}:{base}:{run or 'turn'}"[:200]), answers, acted, used, state=state,
+                  options=list(BRAIN_ARMS), project=project_id, run=run)
+    return getattr(record, "id", None)

@@ -409,6 +409,29 @@ class TeamTaskView(Doc):
     deliveries: list[Any] | None = None
 
 
+class TeamBrainSet(Doc):
+    """B1: switch one team role's brain: ``arm`` (rules, helper or agent) and ``reason`` (kept in the audit trail)."""
+    arm: Any = ""
+    reason: Any = ""
+
+
+class TeamBrainDoc(Doc):
+    """B1: one team role's brain now: its arm, where that came from (default, stored, override) and the stored setting."""
+    role: Any = None
+    arm: Any = None
+    source: Any = None
+    setting: Any = None
+
+
+class TeamBrainsDoc(Doc):
+    """B1: every switchable team role's brain, the arms, whether an override is set, and the last changes."""
+    roles: list[Any] | None = None
+    arms: list[Any] | None = None
+    default: Any = None
+    override: Any = None
+    history: list[Any] | None = None
+
+
 class TeamAgentJobDoc(Doc):
     """W8: a team agent's job description: who it represents, what it is responsible for, the actions it may take (each with
     what performs it and whether it is available), the report it owes, what it reads and what it may never do."""

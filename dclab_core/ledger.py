@@ -104,6 +104,9 @@ STATE_FIELDS: dict[str, tuple[str, tuple[str, ...]]] = {
     # the table declares, whether one records that event, whether its outcomes are known, whether the answer replaced an earlier one
     "target_event": (CODE, ()), "label_columns": (COUNT, ()), "event_recorded": (FLAG, ()), "outcomes_mature": (FLAG, ()),
     "answer_changed": (FLAG, ()),
+    # 0.171.0 (B1): a team agent's turn, the brain its role is switched to (an arm), where that came from (default, stored,
+    # override), and why a model arm fell back to the rules (a code of dclab_core.team_brain.FALLBACKS)
+    "brain_arm": (CODE, ()), "brain_source": (CODE, ()), "brain_fallback": (CODE, ()),
     "verdict": (CODE, ()), "agreed": (FLAG, ()),  # 28.6: the second opinion's judge, and whether its two readers agreed
     # 30.11: the modifiers' evidence, as aggregates of the training rows
     "rows_per_key": (MEASURE, ()), "rate_change": (MEASURE, ()), "class_shift": (MEASURE, ()), "level_shift": (MEASURE, ()),
@@ -276,6 +279,10 @@ POINTS: dict[str, Point] = {p.key: p for p in (
     # checks the experiment's contract
     _p("team.target_agreement", W, "project", "choice", "Does the table record the outcome the person confirmed?",
        choices=("agrees", "no_target", "no_label", "event_mismatch", "immature")),
+    # 0.171.0 (B1, 2026-11-23): which brain's call a team agent's turn acts on (dclab_core.team_brain): the rules always
+    # answer; a helper or agent arm answers beside them, and a model arm that cannot answer falls back to the rules
+    _p("team.brain", W, "project", "choice", "Which brain's call does a team agent's turn act on?",
+       choices=("rules", "helper", "agent")),
     # H2 (2026-10-28): the kind of help a request needs, read before anything else on Home; labelled by the person's choice
     _p("request.intent", W, "draft", "choice", "Which kind of help does the request need?",
        choices=("prediction", "analysis", "preparation", "reporting", "business", "advice")),

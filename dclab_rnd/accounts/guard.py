@@ -118,6 +118,7 @@ SPECIAL = {
     # Claude beside the system (25.4): the owner's switch; the sessions are the record's, as the timelines
     ("GET", "/api/team/settings"): "read",  # 28.8: the team's switch and budgets
     ("PUT", "/api/team/settings"): "admin",
+    ("PUT", "/api/team-brains/{role}"): "admin",  # B1: a team role's brain (rules, helper, agent), the owner's audited switch
     ("GET", "/api/twin/settings"): "read",
     ("PUT", "/api/twin/settings"): "admin",
     ("GET", "/api/twin/sessions"): "timelines",
