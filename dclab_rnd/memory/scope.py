@@ -50,8 +50,12 @@ def _now() -> str:
 
 
 def auth_enabled() -> bool:
-    """True when account sign-in is configured for this deployment."""
-    return bool(os.environ.get("DCLAB_AUTH", "").strip())
+    """True when account sign-in is configured for this deployment: ``DCLAB_AUTH`` is password or oidc. "none" (and unset
+    or empty) is no sign-in, exactly as the server's settings read it (``accounts.principal.auth_mode``): before T5a any
+    non-empty value counted, so ``DCLAB_AUTH=none`` refused the local owner its own team threads."""
+    from ..accounts.principal import auth_mode
+
+    return auth_mode(os.environ.get("DCLAB_AUTH")) != "none"
 
 
 def workspace_of(store: Any) -> str:

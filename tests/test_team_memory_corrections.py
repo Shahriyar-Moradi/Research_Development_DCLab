@@ -9,10 +9,12 @@ items (v1, v2) read unchanged. On files and on PostgreSQL (``tests/run_parallel.
 ``dclab_test``).
 """
 
+import contextvars
 import json
 import os
 import sys
 import tempfile
+import threading
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
@@ -39,6 +41,9 @@ SALES, MARKETING, BUSINESS = "team_sales01", "team_mkt0001", "team_biz0001"
 MEMBERS = {"sam": (SALES,), "mia": (MARKETING,), "sara": (BUSINESS,), "dana": (BUSINESS,)}
 SALES_AGENT = tw.Actor(kind="agent", id="sales", team="sales")
 MKT_AGENT = tw.Actor(kind="agent", id="marketing", team="marketing")
+SARA = tw.Actor(kind="person", id="sara", team="business")
+DANA = tw.Actor(kind="person", id="dana", team="business")
+T2 = "2026-11-20T09:10:00+00:00"
 NOTE = "Territory North is excluded from outreach this quarter."
 FIFTY, THIRTY = "Sales can call 50 accounts this week.", "Sales can call 30 accounts this week."
 PASSWORD = "a long enough password"
@@ -67,7 +72,10 @@ class _Contract:
         self.ws = self.work.workspace
         wid = db.workspace_for(self.home) if db.database_url(required=False) else None
         self.log = experience.open_log(self.home, wid)
-        token = context.set_services(SimpleNamespace(experience=self.log))
+        from dclab_rnd.ledger import open_ledger
+
+        self.ledger = open_ledger(self.home, wid)  # a real ledger: a refused record would otherwise go unseen (the review of W7)
+        token = context.set_services(SimpleNamespace(experience=self.log, ledger=self.ledger))
         self.addCleanup(context.reset_services, token)
         self.pid = self.projects.create("Renewal retention", goal="Who should Sales call")["id"]
         self.prob = create_problem(self.projects, self.pid, "Renewal", workspace_id=self.ws)["problem_id"]
@@ -102,6 +110,21 @@ class _Contract:
         return tw.TeamDecision(id=id, problem_id=self.prob, decision_owner=tw.Actor(kind="person", id="dana", team="business"),
                                option=f"{id}: call the shortlisted accounts", constraint_revisions=list(constraints),
                                evidence_revisions=list(evidence))
+
+    def approved(self, id, constraints=(), evidence=(), when=T1, **over):
+        """The decision as dana approved it."""
+        doc = {**self.decision(id, constraints, evidence).model_dump(), "approval": {"who": DANA.model_dump(), "when": when}, **over}
+        return tw.TeamDecision.model_validate(doc)
+
+    def owner(self):
+        """dana, holding the role that may approve a team's decision."""
+        return self.scope("dana", role="owner")
+
+    def events(self, *kinds):
+        return self.log.read(kinds=list(kinds))
+
+    def stored(self, id):
+        return next(d["decision"] for d in ts.decisions(self.home, self.scope("sara")) if d["decision"].id == id)
 
     def biz_messages(self):
         return self.threads.messages(self.biz_thread)
@@ -183,8 +206,8 @@ class _Contract:
         self.finished_task("T-capacity", "sales", SALES_AGENT, "draft_contact_list", [cite], [ts.fact_evidence(fifty)])
         offer = tw.EvidenceRef(source="sample:offer_v1", ref="offer:v1", input_revision="v1")
         self.finished_task("T-offer", "marketing", MKT_AGENT, "check_eligibility", ["sample:offer_v1"], [offer])
-        calls = ts.record_decision(self.home, sara, self.decision("D-calls", [cite], ["T-capacity@r1"]), thread_id=self.biz_thread)
-        ts.record_decision(self.home, sara, self.decision("D-offer", ["offer:v1"], ["T-offer@r1"]), thread_id=self.biz_thread)
+        calls = ts.record_decision(self.home, sara, self.decision("D-calls", [cite], ["T-capacity@r1"]), actor=SARA, thread_id=self.biz_thread)
+        ts.record_decision(self.home, sara, self.decision("D-offer", ["offer:v1"], ["T-offer@r1"]), actor=SARA, thread_id=self.biz_thread)
         self.assertFalse(calls["stale"])
         self.assertEqual(ts.stale_marks(self.home, sara), [])
         before = {t: self.work.task_view(self.pid, t) for t in ("T-capacity", "T-offer")}
@@ -245,13 +268,19 @@ class _Contract:
     def test_a_decision_is_recorded_only_by_a_writer_on_its_own_problem(self):
         viewer = AuthorizedScope(workspace_id=self.ws, principal_id="vic", role="viewer", project_id=self.pid, problem_id=self.prob)
         with self.assertRaises(AccessDenied):
-            ts.record_decision(self.home, viewer, self.decision("D-x", [], []))
+            ts.record_decision(self.home, viewer, self.decision("D-x", [], []), actor=tw.Actor(kind="person", id="vic"))
         other = create_problem(self.projects, self.pid, "Another", workspace_id=self.ws)["problem_id"]
         with self.assertRaises(AccessDenied):
             ts.record_decision(self.home, self.scope("sara"), tw.TeamDecision(
-                id="D-y", problem_id=other, decision_owner=tw.Actor(kind="person", id="dana"), option="x"))
-        kept = ts.record_decision(self.home, self.scope("sara"), self.decision("D-z", [], []))
+                id="D-y", problem_id=other, decision_owner=tw.Actor(kind="person", id="dana"), option="x"), actor=SARA)
+        kept = ts.record_decision(self.home, self.scope("sara"), self.decision("D-z", [], []), actor=SARA)
         self.assertEqual((kept["kind"], kept["stale"], kept["cites"]), ("team_decision", False, []))
+        fact = bases.upsert_base_fact(self.home, self.scope("sam"), target="problem", subject="sales", field="capacity", text=FIFTY,
+                                      source="s")["entry"]
+        with self.assertRaisesRegex(ValueError, "refused citation"):  # a forged revision keeps its own error, and is recorded
+            ts.record_decision(self.home, self.scope("sara"), self.decision("D-f", [f"fact:{fact['entry_id']}@r9"], []), actor=SARA)
+        self.assertEqual([e.payload["rule"] for e in self.events("team.decision.refused")], ["no_write", "other_problem", "bad_citation"])
+        self.assertEqual([d["decision"].id for d in ts.decisions(self.home, self.scope("sara"))], ["D-z"])
 
 
     # ------------------------------------------------------------------ the review of 2026-11-20 (findings 2, 3, 5, 6, 7)
@@ -282,7 +311,7 @@ class _Contract:
         parent = self.work.report_task(self.pid, "T-plan", revision=1, current_brief_revision=1, answer="Call 50 accounts.",
                                        next_task=tw.NextStep(closed=True), move_to="complete", by=BIZ).item
         self.assertEqual(parent.child_reports, ["T-cap@r1"])
-        ts.record_decision(self.home, sara, self.decision("D-plan", [ts.fact_citation(offer)], ["T-plan@r1"]), thread_id=self.biz_thread)
+        ts.record_decision(self.home, sara, self.decision("D-plan", [ts.fact_citation(offer)], ["T-plan@r1"]), actor=SARA, thread_id=self.biz_thread)
         first = bases.correct_base_fact(self.home, mia, offer["entry_id"], "The renewal offer is 5 percent off.")
         self.assertEqual(first["team_work"]["stale"], ["team_decision:D-plan"])
         second = bases.correct_base_fact(self.home, sam, cap["entry_id"], THIRTY)
@@ -299,19 +328,222 @@ class _Contract:
         self.assertIn("decision D-plan (needs dana's review)", text)
         self.assertIn("30 accounts", text)
 
-    def test_recording_a_decision_again_keeps_its_approval_and_never_changes_its_owner(self):
-        """Finding 3."""
+    # ------------------------------------------------------------------ T5a (2026-11-23): only the decision owner approves
+    def test_only_the_decision_owner_holding_the_permission_records_an_approval(self):
+        """Finding 3 of 2026-11-20, inverted by T5a: sara recording dana's approval was accepted. Now the approval is the
+        acting person's own: the decision owner, holding ``approve_decision``, and never an agent."""
         sara, mia = self.scope("sara"), self.scope("mia")
-        ts.record_decision(self.home, sara, self.decision("D-1", [], []), thread_id=self.biz_thread)
-        approved = self.decision("D-1", [], []).model_copy(update={"approval": tw.Approval(
-            who=tw.Actor(kind="person", id="dana", team="business"), when=T1)})
-        ts.record_decision(self.home, sara, tw.TeamDecision.model_validate(approved.model_dump()), thread_id=self.biz_thread)
-        fresh = {d["decision"].id: d["decision"] for d in ts.decisions(self.home, self.scope("dana"))}
-        self.assertEqual(fresh["D-1"].approval.who.id, "dana")
+        first = ts.record_decision(self.home, sara, self.decision("D-1", [], []), actor=SARA, thread_id=self.biz_thread)
+        self.assertEqual((first["doc"]["revision"], first["doc"]["schema_version"]), (1, "dclab_core.team_decision.v2"))
+        refusals = [(sara, SARA, "not_owner"),                         # another person writes down dana's approval
+                    (sara, DANA, "actor_mismatch"),                    # sara's session naming dana as the one acting
+                    (self.scope("dana"), DANA, "no_permission"),       # dana, whose role may not approve a team's decision
+                    (self.owner(), tw.Actor(kind="agent", id="business", team="business"), "agent"),  # an agent, in dana's own session
+                    (self.owner(), tw.Actor(kind="agent", id="dana", team="business"), "agent")]
+        for scope, actor, rule in refusals:
+            with self.subTest(rule=rule, actor=f"{actor.kind}:{actor.id}"):
+                with self.assertRaises(ts.DecisionRefused) as caught:
+                    ts.record_decision(self.home, scope, self.approved("D-1"), actor=actor, thread_id=self.biz_thread)
+                self.assertEqual(caught.exception.rule, rule)
+                self.assertIsInstance(caught.exception, AccessDenied)
+                self.assertIsNone(self.stored("D-1").approval)  # nothing was written
+        kept = ts.record_decision(self.home, self.owner(), self.approved("D-1"), actor=DANA, thread_id=self.biz_thread)
+        self.assertEqual((kept["doc"]["revision"], kept["doc"]["approval"]["who"]["id"]), (2, "dana"))
+        fresh = self.stored("D-1")
+        self.assertEqual((fresh.approval.who.id, fresh.revision), ("dana", 2))
         other = tw.TeamDecision(id="D-1", problem_id=self.prob, decision_owner=tw.Actor(kind="person", id="mia"), option="call nobody")
-        with self.assertRaisesRegex(ValueError, "dana's decision"):
-            ts.record_decision(self.home, mia, other)
-        self.assertEqual(ts.decisions(self.home, sara)[0]["decision"].option, "D-1: call the shortlisted accounts")
+        with self.assertRaisesRegex(ts.DecisionRefused, "dana's decision"):
+            ts.record_decision(self.home, mia, other, actor=tw.Actor(kind="person", id="mia", team="marketing"))
+        self.assertEqual(self.stored("D-1").option, "D-1: call the shortlisted accounts")
+        # what is kept for training: one event per accepted write, one per refusal with its rule, and the approval as a decision
+        self.assertEqual([(e.payload["decision"], e.payload["what"], e.payload["revision"]) for e in self.events("team.decision.recorded")],
+                         [("D-1", "proposed", 1)])
+        done = self.events("team.decision.approved")
+        self.assertEqual([(e.actor, e.payload["decision"], e.payload["by"], e.payload["revision"]) for e in done], [("person", "D-1", "dana", 2)])
+        refused = self.events("team.decision.refused")
+        self.assertEqual([e.payload["rule"] for e in refused], [r for _, _, r in refusals] + ["owner_changed"])
+        self.assertEqual([e.actor for e in refused], ["person", "person", "person", "agent", "agent", "person"])
+        self.assertNotIn("shortlisted", json.dumps([e.payload for e in done + refused + self.events("team.decision.recorded")]))
+        point = self.ledger.records(point="team.decision_approve")
+        self.assertEqual([(r.subject.key, r.value_used, r.used, r.answers[0].answerer) for r in point],
+                         [(f"{self.pid}:D-1", True, "person", "person:dana")])
+        self.assertEqual(dict(point[0].state), {"evidence_reports": 0, "constraints": 0, "replaces_earlier": False})
+
+    def test_a_stale_click_is_a_conflict_and_changes_nothing(self):
+        sara = self.scope("sara")
+        ts.record_decision(self.home, sara, self.decision("D-1", [], []), actor=SARA)
+        changed = self.decision("D-1", [], []).model_copy(update={"option": "D-1: call only the top 30"})
+        second = ts.record_decision(self.home, sara, changed, actor=SARA, expected_revision=1)
+        self.assertEqual(second["doc"]["revision"], 2)
+        with self.assertRaises(bases.RevisionConflictError) as caught:  # dana still looks at revision 1
+            ts.record_decision(self.home, self.owner(), self.approved("D-1"), actor=DANA, expected_revision=1)
+        self.assertEqual((caught.exception.expected_revision, caught.exception.current_revision), (1, 2))
+        self.assertEqual(caught.exception.to_detail()["error"], "revision_conflict")
+        self.assertEqual((self.stored("D-1").approval, self.stored("D-1").revision), (None, 2))
+        with self.assertRaises(bases.RevisionConflictError):  # "I expect no such decision yet"
+            ts.record_decision(self.home, sara, self.decision("D-1", [], []), actor=SARA, expected_revision=0)
+        self.assertEqual([e.payload["rule"] for e in self.events("team.decision.refused")], ["revision_conflict", "revision_conflict"])
+        self.assertEqual(self.events("team.decision.approved"), [])
+        seen = self.approved("D-1", option="D-1: call only the top 30")  # having read revision 2, dana approves it
+        self.assertEqual(ts.record_decision(self.home, self.owner(), seen, actor=DANA, expected_revision=2)["doc"]["revision"], 3)
+
+    def test_two_approvals_racing_leave_one_approval(self):
+        ts.record_decision(self.home, self.scope("sara"), self.decision("D-1", [], []), actor=SARA)
+        owner, gate, results = self.owner(), threading.Barrier(2), {}
+
+        def click(n, when):
+            gate.wait(timeout=10)
+            try:
+                results[n] = ts.record_decision(self.home, owner, self.approved("D-1", when=when), actor=DANA, expected_revision=1,
+                                                request_id=f"click-{n}")
+            except Exception as exc:  # noqa: BLE001 - the loser's refusal is the result
+                results[n] = exc
+        clicks = [threading.Thread(target=contextvars.copy_context().run, args=(click, n, when)) for n, when in ((1, T1), (2, T2))]
+        for t in clicks:
+            t.start()
+        for t in clicks:
+            t.join(timeout=30)
+        won = [r for r in results.values() if isinstance(r, dict)]
+        lost = [r for r in results.values() if isinstance(r, bases.RevisionConflictError)]
+        self.assertEqual((len(won), len(lost)), (1, 1), results)
+        self.assertEqual((self.stored("D-1").revision, self.stored("D-1").approval.when), (2, won[0]["doc"]["approval"]["when"]))
+        self.assertEqual(len(self.events("team.decision.approved")), 1)
+        self.assertEqual(len(self.ledger.records(point="team.decision_approve")), 1)
+
+    def test_a_retry_with_the_same_request_returns_the_stored_entry_and_records_nothing_twice(self):
+        ts.record_decision(self.home, self.scope("sara"), self.decision("D-1", [], []), actor=SARA, request_id="req-propose")
+        first = ts.record_decision(self.home, self.owner(), self.approved("D-1"), actor=DANA, expected_revision=1, request_id="req-approve")
+        again = ts.record_decision(self.home, self.owner(), self.approved("D-1", when=T2), actor=DANA, expected_revision=1,
+                                   request_id="req-approve")  # the same click, sent again after its answer was lost
+        self.assertEqual(again, first)
+        self.assertEqual((again["doc"]["revision"], again["doc"]["approval"]["when"], again["doc"]["request_id"]),
+                         (2, tw.Approval(who=DANA, when=T1).when, "req-approve"))
+        late = ts.record_decision(self.home, self.scope("sara"), self.decision("D-1", [], []), actor=SARA, request_id="req-propose")
+        self.assertEqual(late, first)  # an older request's retry: the decision as it stands now, never a second write
+        self.assertEqual(len(self.events("team.decision.approved")), 1)
+        self.assertEqual(len(self.events("team.decision.recorded")), 1)
+        self.assertEqual(self.events("team.decision.refused"), [])
+        self.assertEqual(len(self.ledger.records(point="team.decision_approve")), 1)
+        # the review of T5a: the same request id on another write (another person's, another content) is refused aloud,
+        # never answered with the stored entry as if it had been kept
+        ts.record_decision(self.home, self.scope("sara"), self.decision("D-2", [], []), actor=SARA, request_id="req-2")
+        for scope, actor, doc in ((self.owner(), DANA, self.approved("D-2")),
+                                  (self.scope("sara"), SARA, self.decision("D-2", [], []).model_copy(update={"option": "D-2: call nobody"}))):
+            with self.assertRaises(ts.DecisionRefused) as caught:
+                ts.record_decision(self.home, scope, doc, actor=actor, request_id="req-2")
+            self.assertEqual(caught.exception.rule, "request_reused")
+        self.assertEqual([e.payload["rule"] for e in self.events("team.decision.refused")], ["request_reused", "request_reused"])
+        self.assertEqual((self.stored("D-2").approval, self.stored("D-2").revision), (None, 1))
+
+    def test_a_decisions_record_reaches_the_ledger_only_through_the_guarded_write(self):
+        """The review of T5a: ``bases.link_dependents`` called with a decision's document and no guard stored an approval
+        with no check, no event and no revision."""
+        forged = {"ref": "team_decision:D-6", "kind": "team_decision", "doc": json.loads(self.approved("D-6").model_dump_json())}
+        with self.assertRaisesRegex(ValueError, "record_decision"):
+            bases.link_dependents(self.home, self.scope("sara"), [forged])
+        self.assertEqual(ts.decisions(self.home, self.scope("sara")), [])
+        ts.record_decision(self.home, self.scope("sara"), self.decision("D-6", [], []), actor=SARA)
+        with self.assertRaisesRegex(ValueError, "record_decision"):
+            bases.link_dependents(self.home, self.scope("sara"), [forged])
+        self.assertIsNone(self.stored("D-6").approval)
+
+    def test_a_decision_supersedes_only_its_own_owners_earlier_decision(self):
+        """The review of T5a: "the owner never changes" was bypassed in one hop, by a new decision of another person's
+        naming dana's approved decision as the one it replaces."""
+        ts.record_decision(self.home, self.owner(), self.approved("D-1"), actor=DANA)
+        mia = tw.Actor(kind="person", id="mia", team="marketing")
+        theirs = tw.TeamDecision(id="D-2", problem_id=self.prob, decision_owner=mia, option="D-2: call nobody", supersedes="D-1",
+                                 approval=tw.Approval(who=mia, when=T2))
+        with self.assertRaises(ts.DecisionRefused) as caught:
+            ts.record_decision(self.home, self.scope("mia", role="owner"), theirs, actor=mia)
+        self.assertEqual(caught.exception.rule, "owner_changed")
+        self.assertIn("dana's decision", str(caught.exception))
+        self.assertEqual([d["decision"].id for d in ts.decisions(self.home, self.scope("sara"))], ["D-1"])
+        self.assertEqual(self.events("team.decision.refused")[-1].payload["rule"], "owner_changed")
+
+    def test_an_approved_decisions_option_changes_only_as_a_new_decision_naming_what_it_replaces(self):
+        sam = self.scope("sam")
+        fifty = bases.upsert_base_fact(self.home, sam, target="problem", subject="sales", field="capacity", text=FIFTY, source="s")["entry"]
+        ts.record_decision(self.home, self.owner(), self.approved("D-1", [ts.fact_citation(fifty)]), actor=DANA, thread_id=self.biz_thread)
+        thirty = bases.correct_base_fact(self.home, sam, fifty["entry_id"], THIRTY)["entry"]
+        self.assertTrue(next(d for d in ts.decisions(self.home, sam) if d["decision"].id == "D-1")["stale"])
+        for change in ({"option": "D-1: call 30 accounts"}, {"constraint_revisions": [ts.fact_citation(thirty)]},
+                       {"evidence_revisions": ["T-capacity@r2"]}):
+            with self.subTest(change=sorted(change)):
+                with self.assertRaises(ts.DecisionRefused) as caught:  # even its owner does not rewrite what was approved
+                    ts.record_decision(self.home, self.owner(), self.approved("D-1", [ts.fact_citation(fifty)], **change), actor=DANA)
+                self.assertEqual(caught.exception.rule, "immutable")
+        kept = self.stored("D-1")
+        self.assertEqual((kept.option, kept.constraint_revisions, kept.revision),
+                         ("D-1: call the shortlisted accounts", [ts.fact_citation(fifty)], 1))
+        new = self.approved("D-2", [ts.fact_citation(thirty)], when=T2, option="D-2: call 30 accounts", supersedes="D-1")
+        with self.assertRaises(ts.DecisionRefused) as caught:
+            ts.record_decision(self.home, self.owner(), new.model_copy(update={"supersedes": "D-0"}), actor=DANA)
+        self.assertEqual(caught.exception.rule, "unknown_superseded")
+        made = ts.record_decision(self.home, self.owner(), new, actor=DANA, thread_id=self.biz_thread)
+        self.assertEqual((made["doc"]["supersedes"], made["doc"]["revision"], made["stale"]), ("D-1", 1, False))
+        self.assertEqual(self.stored("D-1").option, "D-1: call the shortlisted accounts")  # the earlier decision keeps its snapshot
+        approvals = self.ledger.records(point="team.decision_approve")
+        self.assertEqual([(r.subject.key, dict(r.state)["replaces_earlier"]) for r in approvals],
+                         [(f"{self.pid}:D-1", False), (f"{self.pid}:D-2", True)])
+        outcome = {"outcome": "22 of 30 renewed", "outcome_at": T2, "outcome_by": SARA.model_dump(), "outcome_measure": "renewed_within_30_days"}
+        logged = ts.record_decision(self.home, self.scope("sara"), self.approved("D-2", [ts.fact_citation(thirty)], when=T2,
+                                    option="D-2: call 30 accounts", supersedes="D-1", **outcome), actor=SARA)
+        self.assertEqual((logged["doc"]["revision"], logged["doc"]["outcome_by"]["id"]), (2, "sara"))
+        self.assertEqual([e.payload["what"] for e in self.events("team.decision.recorded")], ["outcome"])
+        self.assertNotIn("22 of 30", json.dumps([e.payload for e in self.events("team.decision.recorded")]))
+
+    def test_without_sign_in_the_local_owner_approves_its_own_decision(self):
+        """No accounts: the one person on the machine is the owner (``principal_id`` "owner") and holds the permission."""
+        from dclab_rnd.accounts.principal import LOCAL_OWNER
+
+        local = resolve_scope(workspace_id=self.ws, principal=LOCAL_OWNER, projects=self.projects, project_id=self.pid,
+                              problem_id=self.prob)
+        me = tw.Actor(kind="person", id=local.principal_id)
+        mine = tw.TeamDecision(id="D-local", problem_id=self.prob, decision_owner=me, option="call the shortlist",
+                               approval=tw.Approval(who=me, when=T1))
+        kept = ts.record_decision(self.home, local, mine, actor=me, expected_revision=0)
+        self.assertEqual((local.principal_id, kept["doc"]["approval"]["who"]["id"], kept["doc"]["revision"]), ("owner", "owner", 1))
+        with self.assertRaises(ts.DecisionRefused) as caught:  # dana's decision is still dana's, even to the local owner
+            ts.record_decision(self.home, local, self.approved("D-dana"), actor=me)
+        self.assertEqual(caught.exception.rule, "not_owner")
+
+    def test_the_correction_writer_and_kinds_t2_calls_keep_codes_and_revisions_only(self):
+        """T5a declares, for T2, the ledger point ``team.correction_accept`` and the kinds ``team.correction.applied`` and
+        ``team.correction.refused``: each verdict is kept with the two revisions, an unknown verdict is not kept."""
+        from dclab_rnd.ledger import capture
+
+        for verdict, base, current in (("apply", 1, 1), ("duplicate", 1, 2), ("stale_base", 1, 3)):
+            self.assertTrue(capture.team_correction_accepted(self.pid, "T-eta", verdict, base_revision=base, current_revision=current))
+        self.assertIsNone(capture.team_correction_accepted(self.pid, "T-eta", "overwrite", base_revision=1, current_revision=3))
+        kept = self.ledger.records(point="team.correction_accept")
+        self.assertEqual([(r.value_used, r.used, r.answers[0].answerer, dict(r.state)) for r in kept],
+                         [("apply", "rule", "rule:correction_write", {"base_revision": 1, "current_revision": 1}),
+                          ("duplicate", "rule", "rule:correction_write", {"base_revision": 1, "current_revision": 2}),
+                          ("stale_base", "rule", "rule:correction_write", {"base_revision": 1, "current_revision": 3})])
+        self.assertEqual({r.subject.key for r in kept}, {f"{self.pid}:T-eta@r1"})
+        done = experience.record("team.correction.applied", "agent", {"task": "T-eta", "problem": self.prob, "by": "data_science",
+                                 "by_kind": "agent", "verdict": "apply", "base_revision": 1, "revision": 2, "report": "T-eta@r2"},
+                                 log=self.log, project=self.pid)
+        late = experience.record("team.correction.refused", "agent", {"task": "T-eta", "problem": self.prob, "by": "data_science",
+                                 "by_kind": "agent", "verdict": "stale_base", "base_revision": 1, "revision": 3,
+                                 "reason": "based on revision 1; the answer is at revision 3"}, log=self.log, project=self.pid)
+        self.assertEqual((done.schema_version, late.payload["verdict"]), ("dclab_core.experience_event.v19", "stale_base"))
+        self.assertTrue(all(c in ("meta", "count") for e in (done, late) for c in e.classes.values()))
+
+    def test_a_v1_decision_stored_before_t5a_reads_and_takes_its_next_write(self):
+        """A decision kept by the earlier release (``team_decision.v1``, no revision) reads as revision 1, and its owner
+        approves it at revision 2."""
+        sara = self.scope("sara")
+        ts.record_decision(self.home, sara, self.decision("D-old", [], []), actor=SARA)
+        v1 = {k: v for k, v in self.decision("D-old", [], []).model_dump(mode="json").items()
+              if k not in ("revision", "request_id", "supersedes", "outcome_at", "outcome_by", "outcome_measure", "policy_ref")}
+        v1["schema_version"] = "dclab_core.team_decision.v1"
+        store, key = bases._store(self.home), sara.problem_key
+        store.change("problem", key, {}, lambda doc: (doc["dependents"]["team_decision:D-old"].update(doc=v1, requests={}) or True, None))
+        self.assertEqual((self.stored("D-old").revision, self.stored("D-old").schema_version), (1, "dclab_core.team_decision.v2"))
+        kept = ts.record_decision(self.home, self.owner(), self.approved("D-old"), actor=DANA, expected_revision=1)
+        self.assertEqual((kept["doc"]["revision"], kept["doc"]["schema_version"]), (2, "dclab_core.team_decision.v2"))
 
     def test_a_team_draft_is_reviewed_only_by_a_member_through_its_base(self):
         """Finding 5."""

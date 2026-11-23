@@ -32,6 +32,7 @@ Rules enforced here:
 
 from __future__ import annotations
 
+import copy
 import json
 import os
 import re
@@ -1015,8 +1016,11 @@ def _roots(dep: Mapping[str, Any]) -> set[str]:
     return {str(c["old_entry_id"]) for c in dep.get("changed_sources") or [] if c.get("old_entry_id")}
 
 
+REQUESTS_KEPT = 50  # how many request ids a decision's ledger entry remembers (a retried request is the same write)
+
+
 def link_dependents(home: Path, scope: AuthorizedScope, links: Iterable[Mapping[str, Any]], *,
-                    log: Any = None) -> list[dict[str, Any]]:
+                    log: Any = None, guard: Any = None) -> list[dict[str, Any]]:
     """Record team work resting on this problem's facts, in the problem base's ledger, and mark stale at once whatever
     cites a fact already corrected or retired (a late reply on an obsolete revision). Each link: ``ref`` (its key),
     ``kind`` (one of :data:`DEPENDENT_KINDS`), ``cites`` (``fact:<entry id>@r<revision>`` strings; ones naming no entry
@@ -1025,12 +1029,23 @@ def link_dependents(home: Path, scope: AuthorizedScope, links: Iterable[Mapping[
     report; every corrected fact under them is carried over), and who it concerns (``_LINK_FIELDS``); a decision also its
     ``doc`` (a later record of the same decision replaces it, never with another decision owner). Idempotent per ref;
     stale stays stale until a person rechecks it. Returns the ledger's dependents. Names, ids and revisions only, never a
-    table value. No revision moves: no fact changed."""
+    table value. No revision moves: no fact changed.
+
+    ``guard`` (T5a, ``teamspace.store.record_decision``): called for each link carrying a ``doc``, under the base's lock,
+    with the stored ledger entry (a copy; None when there is none) and the link. It returns the doc to keep; or None,
+    and the stored entry stays exactly as it is; or it raises, and nothing at all is written. So the check of who may
+    write a decision, of the revision the writer read and of a repeated request reads the same stored record the write
+    replaces (two approvals at once: one is kept). A link carrying a ``doc`` without a guard is refused: a decision is
+    never stored unjudged. A kept doc's ``request_id`` is remembered on the entry with the link's ``request_hash``
+    (``requests``: id -> what that request wrote, as a fingerprint), the last :data:`REQUESTS_KEPT`."""
     scope_kind, scope_id = _scope_target(scope, "problem")
     wanted = [dict(link) for link in links]
     for link in wanted:
         if not link.get("ref") or link.get("kind") not in DEPENDENT_KINDS:
             raise ValueError(f"a dependent names its ref and a kind among {DEPENDENT_KINDS}")
+        if link.get("doc") is not None and guard is None:  # the review of T5a: an approval stored with no check at all
+            raise ValueError(f"{link['ref']}: a decision's record is written through teamspace.store.record_decision "
+                             "(its guard judges who may write it), never linked directly")
     kept: dict[str, Any] = {}
 
     def apply(doc: dict[str, Any]) -> tuple[bool, Any]:
@@ -1048,6 +1063,11 @@ def link_dependents(home: Path, scope: AuthorizedScope, links: Iterable[Mapping[
             via = [str(v) for v in link.get("stale_via") or () if str(v) in deps and deps[str(v)].get("stale")]
             ref = str(link["ref"])
             held = deps.get(ref)
+            if guard is not None and link.get("doc") is not None:
+                judged = guard(copy.deepcopy(held) if held is not None else None, link)  # raises: nothing is written
+                if judged is None:
+                    continue  # the stored entry stands as it is (a repeated request, or the same record again)
+                link["doc"] = judged
             if held is None and not cites and not via and link.get("doc") is None:
                 continue  # rests on nothing in this base (a decision is kept all the same: it is read back from here)
             if held is not None and link.get("doc") is not None and held.get("doc") is not None:
@@ -1068,6 +1088,10 @@ def link_dependents(home: Path, scope: AuthorizedScope, links: Iterable[Mapping[
             if link.get("doc") is not None and link["doc"] != held.get("doc"):
                 held["doc"] = link["doc"]
                 held["updated_at"] = _now()
+                request = link["doc"].get("request_id")
+                if request:
+                    known = {**(held.get("requests") or {}), str(request): str(link.get("request_hash") or "")}
+                    held["requests"] = dict(list(known.items())[-REQUESTS_KEPT:])
             obsolete = [o for o in (_obsolete(c, by_id, rev) for c in held["cites"]) if o is not None]
             if obsolete:
                 _stale_dependent(held, obsolete, "cites a fact corrected after its revision")

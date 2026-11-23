@@ -104,6 +104,11 @@ CAPTURED = {
     "modifier.review_capacity": "ledger/capture.py solution_saved: the proposal's rule against the saved capacity (30.12)",
     "team.task_owner": "teamspace/store.py create_task and delegate (W7): the team that owns each task between team agents, "
                        "the requester's choice or the parent owner's, with the asking team and whether it is a child task",
+    "team.decision_approve": "teamspace/store.py record_decision (T5a): the decision owner's approval of a team's decision, a "
+                             "person's answer, with how many reports and constraints it rests on and whether it replaces an earlier one",
+    "team.correction_accept": "ledger/capture.py team_correction_accepted, called where a correction of a team's answer arrives "
+                              "(teamspace, T2): applied, the same one again, or based on a revision that moved on (the rule's "
+                              "answer on the two revisions)",
     "critic.send_back": "orchestra/walk.py critic: each concern the critic weighed, sent back to the person or not (29.6); labelled measured when the person's answer changed the field",
     "workflow.revisit": "studio/graph.py: a completed stage run again",
     "image.near_copy": "kinds/embedded.py leakage (an image table): pairs of training images of different sources, by their pictures' cosine",

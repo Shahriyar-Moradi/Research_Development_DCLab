@@ -500,6 +500,27 @@ class PgRoutesLocalTests(_RoutesLocal, unittest.TestCase):
         cls.env = {"DCLAB_DATABASE_URL": cls.url}
 
 
+class AuthNoneRoutesTests(_RoutesLocal, unittest.TestCase):
+    """T5a (2026-11-23): ``DCLAB_AUTH=none`` is no sign-in, as the server's settings read it. The memory scope counted any
+    non-empty value as sign-in on, so the local owner (no user id) was refused its own team threads: every test of the
+    local owner runs here again with the setting written out."""
+
+    env = {"DCLAB_DATABASE_URL": "", "DCLAB_AUTH": "none"}
+
+    def test_none_is_read_as_no_sign_in_by_the_scope_and_the_settings_alike(self):
+        from dclab_rnd.memory import scope as mem_scope
+        from dclab_rnd.settings import Settings
+
+        self.assertEqual(self.services.settings.auth, "none")
+        for value, on in (("", False), ("none", False), ("None", False), (" NONE ", False), ("password", True), ("OIDC", True)):
+            with mock.patch.dict(os.environ, {"DCLAB_AUTH": value}):
+                self.assertEqual(mem_scope.auth_enabled(), on, value)
+                self.assertEqual(Settings.load(tempfile.mkdtemp()).auth != "none", on, value)
+        thread = th.open_threads(self.services.store.home).open_thread(self.pid, self.prob, "business", label="Business")[0]
+        owner = SimpleNamespace(user_id=None, role="owner", via="local")
+        self.assertEqual(th.access(thread, owner, None, auth_on=mem_scope.auth_enabled()), "write")
+
+
 # ---------------------------------------------------------------------------------------------------------- HTTP, sign-in
 class SignedInRoutesTests(unittest.TestCase):
     """With password sign-in (PostgreSQL): two workspaces; in the first an owner, a Business member, a Data Science member,

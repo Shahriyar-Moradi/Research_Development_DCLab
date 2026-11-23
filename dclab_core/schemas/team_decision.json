@@ -61,9 +61,9 @@
       "type": "object"
     }
   },
-  "$id": "https://dclab.dev/schemas/dclab_core.team_decision.v1.json",
+  "$id": "https://dclab.dev/schemas/dclab_core.team_decision.v2.json",
   "additionalProperties": false,
-  "description": "The decision owner's choice, the evidence and constraints it rested on, and what happened after.",
+  "description": "The decision owner's choice, the evidence and constraints it rested on, and what happened after.\n\nv2 (0.169.0) adds what a host needs to keep one honest record of it: ``revision`` (each accepted write is the next\none, so a person who read an older one is told), ``request_id`` (the same request sent twice is one write),\n``supersedes`` (the earlier decision this one replaces: an approved decision is never edited), who measured the\noutcome, when and on which measure, and the policy it was approved under. A v1 decision reads as revision 1.",
   "properties": {
     "approval": {
       "anyOf": [
@@ -133,14 +133,88 @@
       "default": null,
       "title": "Outcome"
     },
+    "outcome_at": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "v2: when the outcome was observed.",
+      "title": "Outcome At"
+    },
+    "outcome_by": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Actor"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "v2: who recorded the outcome."
+    },
+    "outcome_measure": {
+      "anyOf": [
+        {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "v2: the measure the outcome was read on, by its name (renewed_within_30_days): a name, never a sentence.",
+      "title": "Outcome Measure"
+    },
+    "policy_ref": {
+      "anyOf": [
+        {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "v2: the policy the decision was approved under, by reference (policy:renewal-outreach@v2): a reference, never its words.",
+      "title": "Policy Ref"
+    },
     "problem_id": {
       "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
       "title": "Problem Id",
       "type": "string"
     },
+    "request_id": {
+      "anyOf": [
+        {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "v2: the request that made this write; the same request again is the same write.",
+      "title": "Request Id"
+    },
+    "revision": {
+      "default": 1,
+      "description": "v2: which accepted write of this decision this is, from 1.",
+      "minimum": 1,
+      "title": "Revision",
+      "type": "integer"
+    },
     "schema_version": {
-      "const": "dclab_core.team_decision.v1",
-      "default": "dclab_core.team_decision.v1",
+      "const": "dclab_core.team_decision.v2",
+      "default": "dclab_core.team_decision.v2",
       "title": "Schema Version",
       "type": "string"
     },
@@ -148,6 +222,20 @@
       "default": false,
       "title": "Simulated Follow Up",
       "type": "boolean"
+    },
+    "supersedes": {
+      "anyOf": [
+        {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "v2: the earlier decision this one replaces.",
+      "title": "Supersedes"
     }
   },
   "required": [

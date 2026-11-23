@@ -4,6 +4,33 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.169.0 (2026-11-23)
+
+- `team_work` (T5a of the team workspace): only the decision owner approves, and an approved decision is never edited.
+  `TeamDecision` v2 (reads v1 unchanged, at revision 1) adds `revision` (each accepted write is the next one, from 1),
+  `request_id` (the same request again is the same write), `supersedes` (the earlier decision this one replaces),
+  `outcome_at`, `outcome_by`, `outcome_measure` (who observed the outcome, when, on which measure; only with an outcome)
+  and `policy_ref` (the measure and the policy are a name and a reference, with an id's pattern: never a sentence). `TeamWork` v2 carries it and reads a v1 document; `CONTRACT` is `dclab_core.team_work.v2`.
+  New rule `decision_write(stored, new, actor, may_approve_role) -> DecisionVerdict` (`ok`, `kind`, `reason`,
+  `revision`), which every write of a decision passes: an approval is the act of the decision owner in person
+  (`may_approve`: never an agent or a team) who also holds the host's permission (`not_owner`, `agent`,
+  `no_permission`); once approved, the option, the evidence and constraint revisions, the policy and the approval
+  itself cannot change, and what a decision supersedes is said when it is first recorded (`immutable`: a change is a new
+  decision naming `supersedes`); the owner never changes (`owner_changed`); an outcome follows an approval already
+  recorded, names the actor as its recorder (`no_approval`, `not_actor`), and once kept is never rewritten or erased
+  in place (`immutable`). Kept writes are `recorded`,
+  `approved`, `outcome`, or `unchanged` (the same content: nothing to write). Reasons name ids and states, never the
+  option's words. The host keeps the revision, compares the one the writer read and remembers request ids.
+- `experience`: `ExperienceEvent` v19 adds `team.decision.recorded`, `team.decision.approved`,
+  `team.decision.refused` (with the rule that refused and the revisions compared), `team.correction.applied` and
+  `team.correction.refused` (a correction of a team's answer: the verdict `apply`, `duplicate` or `stale_base`, the
+  revision it was based on and the current one). Ids, states and counts only. `dclab_core.experience_event.v19` reads
+  every earlier event unchanged.
+- `ledger`: two workflow points, `team.decision_approve` (does the decision owner approve the team's decision; a
+  person's answer) and `team.correction_accept` (is a correction of a team's answer applied: `apply`, `duplicate`,
+  `stale_base`; the rule's answer), with the state fields `evidence_reports`, `constraints`, `replaces_earlier`,
+  `base_revision` and `current_revision` (counts and a flag). `DecisionRecord`'s shape is unchanged.
+
 ## 0.168.0 (2026-11-21)
 
 - `team_work`: the Lead hands work to more teams. `LEAD_ROUTES["model"]` is Data Science then ML Engineering (asked

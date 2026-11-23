@@ -1,0 +1,214 @@
+{
+  "$defs": {
+    "Actor": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 120,
+          "minLength": 1,
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "agent",
+            "team",
+            "person"
+          ],
+          "type": "string"
+        },
+        "team": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*(:[A-Za-z0-9_.-]+)?$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "kind",
+        "id"
+      ],
+      "type": "object"
+    },
+    "Approval": {
+      "additionalProperties": false,
+      "properties": {
+        "when": {
+          "type": "string"
+        },
+        "who": {
+          "$ref": "#/$defs/Actor"
+        }
+      },
+      "required": [
+        "who",
+        "when"
+      ],
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "approval": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Approval"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "constraint_revisions": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 50,
+      "type": "array"
+    },
+    "decision_owner": {
+      "$ref": "#/$defs/Actor"
+    },
+    "evidence_revisions": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 50,
+      "type": "array"
+    },
+    "follow_up_date": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+      "type": "string"
+    },
+    "option": {
+      "maxLength": 2000,
+      "minLength": 1,
+      "type": "string"
+    },
+    "outcome": {
+      "anyOf": [
+        {
+          "maxLength": 2000,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "outcome_at": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "outcome_by": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Actor"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "outcome_measure": {
+      "anyOf": [
+        {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "policy_ref": {
+      "anyOf": [
+        {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "problem_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+      "type": "string"
+    },
+    "request_id": {
+      "anyOf": [
+        {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "revision": {
+      "default": 1,
+      "minimum": 1,
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": "dclab_core.team_decision.v2",
+      "default": "dclab_core.team_decision.v2",
+      "type": "string"
+    },
+    "simulated_follow_up": {
+      "default": false,
+      "type": "boolean"
+    },
+    "supersedes": {
+      "anyOf": [
+        {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "problem_id",
+    "decision_owner",
+    "option"
+  ],
+  "type": "object"
+}

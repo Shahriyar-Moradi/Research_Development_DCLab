@@ -1316,3 +1316,42 @@ def team_task_routed(project_id: str, task_id: str, owner_team: str, *, from_tea
                                                   "routed_by": _code(routed_by)}, project=project_id)
     return getattr(record, "id", None)
 
+
+
+# ---------------------------------------------------------------------- 0.169.0: a team's decision approved, a correction accepted
+
+@_quiet
+def team_decision_approved(project_id: str, decision_id: str, *, by: str, approved: bool = True, evidence: int = 0,
+                           constraints: int = 0, replaces_earlier: bool = False) -> Optional[str]:
+    """T5a: the decision owner's answer on a team's decision, recorded where the approval is kept (``teamspace/store.py``
+    ``record_decision``). Always a person's answer (``by``: the owner's id): no rule and no agent approves. ``approved``
+    False is the owner declining (T5b's control). The state is what the decision rested on, as counts and a flag: how many
+    reports and constraints, whether it replaces an earlier decision; never the option's words or a table's value."""
+    record = _put("team.decision_approve", ("project", f"{project_id}:{decision_id}"[:200]),
+                  [answer("person", f"person:{by}", bool(approved))], bool(approved), "person",
+                  state={"evidence_reports": max(0, int(evidence)), "constraints": max(0, int(constraints)),
+                         "replaces_earlier": bool(replaces_earlier)}, options=["yes", "no"], project=project_id)
+    return getattr(record, "id", None)
+
+
+CORRECTION_VERDICTS = ("apply", "duplicate", "stale_base")
+
+
+@_quiet
+def team_correction_accepted(project_id: str, task_id: str, verdict: str, *, base_revision: int, current_revision: int,
+                             rule: str = "correction_write") -> Optional[str]:
+    """T2: what was done with a correction of a team's answer, recorded where the correction arrives. ``verdict`` is the
+    rule's answer, one of :data:`CORRECTION_VERDICTS`: ``apply`` (it is based on the current revision and becomes the next
+    one), ``duplicate`` (the same correction again: nothing changes), ``stale_base`` (it names an older revision than the
+    current one, so a late correction never overwrites a newer answer). ``base_revision``: the revision the correction says
+    it corrects; ``current_revision``: the task's current one when it arrived (0: no report yet). ``rule`` names the
+    function that judged it. The state is the two revisions only: never the answer's words, a table's value or a team's
+    private note. One record per (task, base revision, current revision): a retried call adds another record of the same
+    judgment, which is what happened."""
+    if verdict not in CORRECTION_VERDICTS:
+        raise ValueError(f"a correction's verdict is one of {CORRECTION_VERDICTS}, not {verdict!r}")
+    base, current = max(0, int(base_revision)), max(0, int(current_revision))
+    record = _put("team.correction_accept", ("project", f"{project_id}:{task_id}@r{base}"[:200]),
+                  [answer("rule", f"rule:{_code(rule) or 'correction_write'}", verdict)], verdict, "rule",
+                  state={"base_revision": base, "current_revision": current}, options=list(CORRECTION_VERDICTS), project=project_id)
+    return getattr(record, "id", None)

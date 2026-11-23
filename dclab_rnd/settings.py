@@ -57,8 +57,9 @@ class Settings(BaseSettings):
     @field_validator("auth", mode="before")
     @classmethod
     def _auth(cls, value):
-        value = str(value or "").strip().lower()
-        return value if value in ("password", "oidc") else "none"
+        from .accounts.principal import auth_mode
+
+        return auth_mode(value)
 
     @field_validator("cookie_secure", mode="before")
     @classmethod

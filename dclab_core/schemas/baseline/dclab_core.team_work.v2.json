@@ -1,0 +1,894 @@
+{
+  "$defs": {
+    "ActionLine": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "pattern": "^[a-z][a-z0-9_]*(:[A-Za-z0-9_.-]+)?$",
+          "type": "string"
+        },
+        "action_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+          "type": "string"
+        },
+        "actor": {
+          "maxLength": 120,
+          "minLength": 1,
+          "type": "string"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "ref": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "status": {
+          "enum": [
+            "planned",
+            "running",
+            "denied",
+            "timed_out",
+            "succeeded",
+            "failed",
+            "skipped",
+            "simulated"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "action_id",
+        "action",
+        "actor",
+        "status"
+      ],
+      "type": "object"
+    },
+    "Actor": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 120,
+          "minLength": 1,
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "agent",
+            "team",
+            "person"
+          ],
+          "type": "string"
+        },
+        "team": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*(:[A-Za-z0-9_.-]+)?$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "kind",
+        "id"
+      ],
+      "type": "object"
+    },
+    "Approval": {
+      "additionalProperties": false,
+      "properties": {
+        "when": {
+          "type": "string"
+        },
+        "who": {
+          "$ref": "#/$defs/Actor"
+        }
+      },
+      "required": [
+        "who",
+        "when"
+      ],
+      "type": "object"
+    },
+    "Assignment": {
+      "additionalProperties": false,
+      "properties": {
+        "done_criteria": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 20,
+          "minItems": 1,
+          "type": "array"
+        },
+        "question": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "question",
+        "done_criteria"
+      ],
+      "type": "object"
+    },
+    "EvidenceRef": {
+      "additionalProperties": false,
+      "properties": {
+        "assumptions": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 20,
+          "type": "array"
+        },
+        "input_revision": {
+          "maxLength": 120,
+          "minLength": 1,
+          "type": "string"
+        },
+        "private": {
+          "default": false,
+          "type": "boolean"
+        },
+        "ref": {
+          "maxLength": 300,
+          "minLength": 1,
+          "type": "string"
+        },
+        "source": {
+          "maxLength": 300,
+          "minLength": 1,
+          "type": "string"
+        },
+        "uncertainty": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "source",
+        "ref",
+        "input_revision"
+      ],
+      "type": "object"
+    },
+    "NextStep": {
+      "additionalProperties": false,
+      "properties": {
+        "closed": {
+          "default": false,
+          "type": "boolean"
+        },
+        "owner": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "unblocks": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "type": "object"
+    },
+    "ReportActions": {
+      "additionalProperties": false,
+      "properties": {
+        "completed": {
+          "items": {
+            "$ref": "#/$defs/ActionLine"
+          },
+          "maxItems": 200,
+          "type": "array"
+        },
+        "failed": {
+          "items": {
+            "$ref": "#/$defs/ActionLine"
+          },
+          "maxItems": 200,
+          "type": "array"
+        },
+        "skipped": {
+          "items": {
+            "$ref": "#/$defs/ActionLine"
+          },
+          "maxItems": 200,
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "Requester": {
+      "additionalProperties": false,
+      "properties": {
+        "member": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "team": {
+          "pattern": "^[a-z][a-z0-9_]*(:[A-Za-z0-9_.-]+)?$",
+          "type": "string"
+        },
+        "thread_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "team",
+        "thread_id"
+      ],
+      "type": "object"
+    },
+    "TeamAction": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "pattern": "^[a-z][a-z0-9_]*(:[A-Za-z0-9_.-]+)?$",
+          "type": "string"
+        },
+        "action_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+          "type": "string"
+        },
+        "actor": {
+          "$ref": "#/$defs/Actor"
+        },
+        "ended_at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "failure_ref": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "input_revision": {
+          "maxLength": 120,
+          "minLength": 1,
+          "type": "string"
+        },
+        "output_ref": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "responded_by": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Actor"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "retry_key": {
+          "maxLength": 300,
+          "minLength": 1,
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "dclab_core.team_action.v1",
+          "default": "dclab_core.team_action.v1",
+          "type": "string"
+        },
+        "source": {
+          "pattern": "^(tool|human):[A-Za-z0-9_.:@-]+$",
+          "type": "string"
+        },
+        "started_at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "status": {
+          "default": "planned",
+          "enum": [
+            "planned",
+            "running",
+            "denied",
+            "timed_out",
+            "succeeded",
+            "failed",
+            "skipped",
+            "simulated"
+          ],
+          "type": "string"
+        },
+        "task_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "task_id",
+        "action_id",
+        "actor",
+        "action",
+        "source",
+        "input_revision",
+        "retry_key"
+      ],
+      "type": "object"
+    },
+    "TeamDecision": {
+      "additionalProperties": false,
+      "properties": {
+        "approval": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Approval"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "constraint_revisions": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 50,
+          "type": "array"
+        },
+        "decision_owner": {
+          "$ref": "#/$defs/Actor"
+        },
+        "evidence_revisions": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 50,
+          "type": "array"
+        },
+        "follow_up_date": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+          "type": "string"
+        },
+        "option": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "type": "string"
+        },
+        "outcome": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "outcome_at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "outcome_by": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Actor"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "outcome_measure": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "policy_ref": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "problem_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+          "type": "string"
+        },
+        "request_id": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "revision": {
+          "default": 1,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "schema_version": {
+          "const": "dclab_core.team_decision.v2",
+          "default": "dclab_core.team_decision.v2",
+          "type": "string"
+        },
+        "simulated_follow_up": {
+          "default": false,
+          "type": "boolean"
+        },
+        "supersedes": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "schema_version",
+        "id",
+        "problem_id",
+        "decision_owner",
+        "option"
+      ],
+      "type": "object"
+    },
+    "TeamTask": {
+      "additionalProperties": false,
+      "properties": {
+        "allowed_inputs": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 50,
+          "type": "array"
+        },
+        "allowed_tools": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 50,
+          "type": "array"
+        },
+        "brief_revision": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "budget_eur": {
+          "default": 0.0,
+          "minimum": 0,
+          "type": "number"
+        },
+        "created_at": {
+          "type": "string"
+        },
+        "done_criteria": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 20,
+          "minItems": 1,
+          "type": "array"
+        },
+        "expected_output": {
+          "maxLength": 300,
+          "minLength": 1,
+          "type": "string"
+        },
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+          "type": "string"
+        },
+        "owner_team": {
+          "pattern": "^[a-z][a-z0-9_]*(:[A-Za-z0-9_.-]+)?$",
+          "type": "string"
+        },
+        "parent_task_id": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "problem_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+          "type": "string"
+        },
+        "project_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+          "type": "string"
+        },
+        "question": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "type": "string"
+        },
+        "requester": {
+          "$ref": "#/$defs/Requester"
+        },
+        "schema_version": {
+          "const": "dclab_core.team_task.v1",
+          "default": "dclab_core.team_task.v1",
+          "type": "string"
+        },
+        "status": {
+          "default": "open",
+          "enum": [
+            "open",
+            "accepted",
+            "waiting_for_person",
+            "waiting_for_team",
+            "partial",
+            "complete",
+            "blocked",
+            "failed",
+            "cancelled",
+            "superseded"
+          ],
+          "type": "string"
+        },
+        "superseded_by": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "workspace_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "id",
+        "workspace_id",
+        "project_id",
+        "problem_id",
+        "brief_revision",
+        "requester",
+        "owner_team",
+        "question",
+        "expected_output",
+        "done_criteria",
+        "created_at"
+      ],
+      "type": "object"
+    },
+    "WorkReport": {
+      "additionalProperties": false,
+      "properties": {
+        "actions": {
+          "$ref": "#/$defs/ReportActions"
+        },
+        "answer": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "type": "string"
+        },
+        "assignment": {
+          "$ref": "#/$defs/Assignment"
+        },
+        "brief_revision": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "child_reports": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 50,
+          "type": "array"
+        },
+        "created_at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "evidence": {
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "maxItems": 100,
+          "type": "array"
+        },
+        "limits": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 50,
+          "type": "array"
+        },
+        "next_task": {
+          "$ref": "#/$defs/NextStep"
+        },
+        "outstanding": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 50,
+          "type": "array"
+        },
+        "owner": {
+          "pattern": "^[a-z][a-z0-9_]*(:[A-Za-z0-9_.-]+)?$",
+          "type": "string"
+        },
+        "parent_task_id": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "revision": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "schema_version": {
+          "const": "dclab_core.work_report.v1",
+          "default": "dclab_core.work_report.v1",
+          "type": "string"
+        },
+        "simulated": {
+          "default": false,
+          "type": "boolean"
+        },
+        "status": {
+          "enum": [
+            "complete",
+            "partial",
+            "blocked",
+            "failed",
+            "superseded"
+          ],
+          "type": "string"
+        },
+        "superseded_by": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "supersedes": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "task_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "task_id",
+        "revision",
+        "brief_revision",
+        "answer",
+        "status",
+        "assignment",
+        "owner",
+        "next_task"
+      ],
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "actions": {
+      "items": {
+        "$ref": "#/$defs/TeamAction"
+      },
+      "maxItems": 20000,
+      "type": "array"
+    },
+    "decisions": {
+      "items": {
+        "$ref": "#/$defs/TeamDecision"
+      },
+      "maxItems": 500,
+      "type": "array"
+    },
+    "problem_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",
+      "type": "string"
+    },
+    "reports": {
+      "items": {
+        "$ref": "#/$defs/WorkReport"
+      },
+      "maxItems": 5000,
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "dclab_core.team_work.v2",
+      "default": "dclab_core.team_work.v2",
+      "type": "string"
+    },
+    "tasks": {
+      "items": {
+        "$ref": "#/$defs/TeamTask"
+      },
+      "maxItems": 2000,
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "problem_id"
+  ],
+  "type": "object"
+}

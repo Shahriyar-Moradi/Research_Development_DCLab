@@ -167,6 +167,8 @@ POINTS_NOT_MAPPED: dict[str, str] = {
         "workflow.stage_approval", "workflow.stop", "workflow.g4", "agent.tool_choice", "team.next_node", "critic.send_back")},
     **{p: _NO_NAME.format(what="reporting and learning point") for p in ("report.claim", "lesson.accept")},
     **{p: _NO_NAME.format(what="team workspace routing point (W7)") for p in ("team.task_owner",)},
+    **{p: _NO_NAME.format(what="team workspace point (0.169.0: a decision's approval, a correction's acceptance)")
+       for p in ("team.decision_approve", "team.correction_accept")},
     **{p: _NO_NAME.format(what="image problem's check (26.8)") for p in ("image.near_copy", "image.label_suspect", "image.flip_safe")},
     **{p: _NO_NAME.format(what="recipe modifier (30.11)") for p in ("modifier.rare_positives", "modifier.groups", "modifier.time_order",
                                                                          "modifier.noisy_labels", "modifier.review_capacity")},

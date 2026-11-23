@@ -448,7 +448,7 @@ class DirectoryTest(unittest.TestCase):
 
 class ContractTest(unittest.TestCase):
     def test_the_records_are_registered_versioned_and_round_trip(self):
-        self.assertEqual(tw.CONTRACT, "dclab_core.team_work.v1")
+        self.assertEqual(tw.CONTRACT, "dclab_core.team_work.v2")  # 0.169.0: its decisions are v2
         for name in ("team_task", "team_action", "work_report", "team_decision", "agent_config", "team_work"):
             self.assertIn(name, CONTRACTS)
         child = task()
@@ -513,6 +513,135 @@ class LeadRulesTest(unittest.TestCase):
         for team in ("ml_engineering", "sales"):
             self.assertIn("contact_customers", tw.DIRECTORY[team].forbidden)
             self.assertEqual(tw.delegation_refusal(tw.DIRECTORY["lead"], team), None)
+
+
+DANA = tw.Actor(kind="person", id="dana", team="business")
+
+
+def decision(**over):
+    return tw.TeamDecision(**{"id": "D-1", "problem_id": "PB-1", "decision_owner": DANA, "option": "Call the 50 riskiest accounts",
+                              "evidence_revisions": ["T-ds@r1"], "constraint_revisions": ["capacity@r2"], **over})
+
+
+def approved(by=DANA, **over):
+    return decision(approval=tw.Approval(who=by, when=T1), **over)
+
+
+class DecisionWriteTest(unittest.TestCase):
+    """0.169.0 (T5a): TeamDecision v2 (a revision, a request identity, what it replaces, who measured the outcome) and
+    ``decision_write``, the one rule every write of a decision passes."""
+
+    def test_a_v1_decision_reads_as_v2_at_revision_one_alone_and_inside_a_v1_bundle(self):
+        self.assertEqual(tw.TeamDecision.model_fields["schema_version"].default, "dclab_core.team_decision.v2")
+        current = decision()
+        self.assertEqual((current.revision, current.request_id, current.supersedes, current.policy_ref), (1, None, None, None))
+        new = {"revision", "request_id", "supersedes", "outcome_at", "outcome_by", "outcome_measure", "policy_ref"}
+        v1 = {k: v for k, v in current.model_dump(mode="json").items() if k not in new} | {"schema_version": "dclab_core.team_decision.v1"}
+        for read in (tw.TeamDecision.read(v1), tw.TeamDecision.model_validate(v1)):  # a host's stored row, either way it is read
+            self.assertEqual((read.schema_version, read.revision, read.option), ("dclab_core.team_decision.v2", 1, current.option))
+        with self.assertRaises(ValueError):
+            tw.TeamDecision.read({**v1, "schema_version": "dclab_core.team_decision.v3"})
+        bundle = {"schema_version": "dclab_core.team_work.v1", "problem_id": "PB-1", "tasks": [], "actions": [], "reports": [],
+                  "decisions": [v1]}
+        work = tw.TeamWork.read(bundle)
+        self.assertEqual((work.schema_version, work.decisions[0].revision), ("dclab_core.team_work.v2", 1))
+        self.assertEqual(tw.TeamWork.read(json.loads(work.model_dump_json())), work)
+        self.assertEqual(tw.TeamDecision.read(current.model_dump_json()), current)
+
+    def test_the_new_fields_keep_their_own_rules(self):
+        with self.assertRaisesRegex(ValueError, "replace itself"):
+            decision(supersedes="D-1")
+        for extra in ({"outcome_at": T2}, {"outcome_by": DANA}, {"outcome_measure": "renewed_within_30_days"}):
+            with self.assertRaisesRegex(ValueError, "outcome"):  # what was measured, when and by whom belong to an outcome
+                approved(**extra)
+        with self.assertRaisesRegex(ValueError, "zone"):
+            approved(outcome="22 of 50 renewed", outcome_at="2026-12-20T09:00:00")
+        with self.assertRaises(ValueError):
+            decision(revision=0)
+        for field in ("policy_ref", "outcome_measure"):  # the review of T5a: a reference or a name, never a sentence (they reach records)
+            with self.assertRaises(ValueError):
+                approved(outcome="22 of 50 renewed", **{field: "Refund policy: customers of ACME get 40% off until March"})
+        done = approved(outcome="22 of 50 renewed", outcome_at=T2, outcome_by=DANA, outcome_measure="renewed_within_30_days",
+                        policy_ref="policy:renewal-outreach@v2", revision=3, request_id="req-7", follow_up_date="2026-12-20")
+        self.assertEqual(tw.TeamDecision.read(done.model_dump_json()), done)
+
+    def test_a_proposal_is_recorded_by_anyone_who_may_write_and_changed_until_it_is_approved(self):
+        first = tw.decision_write(None, decision(), BUSINESS, False)
+        self.assertEqual((first.ok, first.kind, first.revision), (True, "recorded", 1))
+        changed = tw.decision_write(decision(), decision(option="Call the 40 riskiest accounts"), SARA, False)
+        self.assertEqual((changed.ok, changed.kind, changed.revision), (True, "recorded", 2))
+        same = tw.decision_write(decision(revision=4), decision(request_id="req-9"), SARA, False)  # the same content again
+        self.assertEqual((same.ok, same.kind, same.revision), (True, "unchanged", 4))
+
+    def test_only_the_decision_owner_holding_the_permission_approves_and_never_an_agent(self):
+        stored = decision()
+        cases = [(SARA, True, "not_owner"),                                             # another person, even one who may approve
+                 (tw.Actor(kind="agent", id="dana", team="business"), True, "agent"),   # an agent named like the owner
+                 (BUSINESS, True, "agent"),
+                 (tw.Actor(kind="team", id="dana"), True, "agent"),
+                 (DANA, False, "no_permission")]                                        # the owner, whose role may not approve
+        for actor, role, kind in cases:
+            with self.subTest(actor=actor.id, kind=actor.kind, role=role):
+                for held in (stored, None):  # approving a recorded proposal, and recording one already approved
+                    verdict = tw.decision_write(held, approved(), actor, role)
+                    self.assertEqual((verdict.ok, verdict.kind), (False, kind))
+                    self.assertNotIn("riskiest", verdict.reason)  # ids and states only: never the option's words
+        ok = tw.decision_write(stored, approved(), DANA, True)
+        self.assertEqual((ok.ok, ok.kind, ok.revision), (True, "approved", 2))
+        self.assertEqual(tw.decision_write(None, approved(), DANA, True).kind, "approved")
+        self.assertTrue(tw.may_approve(DANA, stored) and not tw.may_approve(SARA, stored))
+
+    def test_an_approved_decision_keeps_its_option_and_citations_and_a_change_is_a_new_decision(self):
+        held = approved(revision=2)
+        for change in ({"option": "Call the 30 riskiest accounts"}, {"evidence_revisions": ["T-ds@r2"]},
+                       {"constraint_revisions": ["capacity@r3"]}, {"policy_ref": "policy:other"}):
+            with self.subTest(change=sorted(change)):
+                verdict = tw.decision_write(held, approved(**change), DANA, True)
+                self.assertEqual((verdict.ok, verdict.kind), (False, "immutable"))
+                self.assertIn("supersedes", verdict.reason)
+        again = tw.decision_write(held, decision(approval=tw.Approval(who=DANA, when=T2)), DANA, True)  # approved once
+        self.assertEqual((again.ok, again.kind), (False, "immutable"))
+        withdrawn = tw.decision_write(held, decision(), DANA, True)  # an approval is never taken back in place
+        self.assertEqual((withdrawn.ok, withdrawn.kind), (False, "immutable"))
+        replaced = tw.decision_write(held, approved(supersedes="D-0"), DANA, True)  # what it replaces is said once, when made
+        self.assertEqual((replaced.ok, replaced.kind), (False, "immutable"))
+        new = approved(id="D-2", option="Call the 30 riskiest accounts", constraint_revisions=["capacity@r3"], supersedes="D-1")
+        self.assertEqual(tw.decision_write(None, new, DANA, True).kind, "approved")  # the correction: a new decision
+
+    def test_the_owner_never_changes_and_a_record_is_its_own_decisions(self):
+        mia = tw.Actor(kind="person", id="mia", team="marketing")
+        other = tw.decision_write(decision(), decision(decision_owner=mia), mia, True)
+        self.assertEqual((other.ok, other.kind), (False, "owner_changed"))
+        self.assertIn("dana's decision", other.reason)
+        for wrong in (decision(id="D-2"), decision(problem_id="PB-2")):
+            self.assertEqual(tw.decision_write(decision(), wrong, DANA, True).kind, "other_decision")
+
+    def test_an_outcome_follows_an_approval_already_recorded(self):
+        outcome = {"outcome": "22 of 50 renewed", "outcome_at": T2, "outcome_measure": "renewed_within_30_days"}
+        early = tw.decision_write(decision(), approved(**outcome), DANA, True)  # approval and outcome in one write
+        self.assertEqual((early.ok, early.kind), (False, "no_approval"))
+        self.assertEqual(tw.decision_write(None, approved(**outcome), DANA, True).kind, "no_approval")
+        held = approved(revision=2)
+        logged = tw.decision_write(held, approved(**outcome, outcome_by=SARA), SARA, False)  # whoever may write logs what happened
+        self.assertEqual((logged.ok, logged.kind, logged.revision), (True, "outcome", 3))
+        forged = tw.decision_write(held, approved(**outcome, outcome_by=DANA), SARA, False)
+        self.assertEqual((forged.ok, forged.kind), (False, "not_actor"))
+        unnamed = tw.decision_write(held, approved(**outcome), BUSINESS, False)  # the review of T5a: an outcome says who recorded it
+        self.assertEqual((unnamed.ok, unnamed.kind), (False, "not_actor"))
+        by_agent = tw.decision_write(held, approved(**outcome, outcome_by=BUSINESS, simulated_follow_up=True), BUSINESS, False)
+        self.assertEqual(by_agent.kind, "outcome")  # an agent may log a (simulated) follow-up, under its own name
+
+    def test_a_recorded_outcome_is_never_rewritten_or_erased_in_place(self):
+        """The review of T5a: any writer, an agent too, could replace or remove an outcome already kept."""
+        outcome = {"outcome": "22 of 50 renewed", "outcome_at": T2, "outcome_measure": "renewed_within_30_days", "outcome_by": SARA}
+        held = approved(revision=3, **outcome)
+        for change in ({**outcome, "outcome": "48 of 50 renewed"}, {**outcome, "outcome_measure": "renewed_within_90_days"},
+                       {**outcome, "outcome_by": BUSINESS}, {**outcome, "simulated_follow_up": True}, {}):
+            for actor in (SARA, BUSINESS, DANA):
+                verdict = tw.decision_write(held, approved(**change), actor, True)
+                self.assertEqual((verdict.ok, verdict.kind), (False, "immutable"), (sorted(change), actor.id))
+        later = tw.decision_write(held, approved(**outcome, follow_up_date="2027-01-15"), SARA, False)  # the next check's date may move
+        self.assertEqual((later.ok, later.kind, later.revision), (True, "recorded", 4))
 
 
 if __name__ == "__main__":

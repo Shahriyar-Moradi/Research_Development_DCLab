@@ -1590,3 +1590,69 @@ The R&D host is the reference:
 
 In the main product the same split applies once it has a team workspace: its assistant is the entry and its planner the
 coordinator, so a person's request never reaches a team without passing a coordinator that joins the replies.
+
+## Who approves a team's decision, and how a write of it is kept (2026-11-23, dclab-core 0.169.0)
+
+A decision a team's agent proposes is the business's to take. Before 0.169.0 the contract said only that the approval
+names the decision owner; any person who could write could record that approval for them. Now the write itself is
+judged.
+
+`TeamDecision` v2 (`dclab_core.team_decision.v2`; a v1 decision reads unchanged, at revision 1; `TeamWork` v2 carries
+it) adds:
+
+| Field | What it holds |
+|---|---|
+| `revision` | Which accepted write of this decision this is, from 1. The host sets it. |
+| `request_id` | The request that made the write: the same request again is the same write. |
+| `supersedes` | The earlier decision this one replaces. An approved decision is never edited. |
+| `outcome_at`, `outcome_by`, `outcome_measure` | When the outcome was observed, who recorded it, and the measure it was read on, by its name (only with an `outcome`). |
+| `policy_ref` | The policy the decision was approved under, by reference. Like the measure it has an id's pattern: a reference, never the policy's words. |
+
+`decision_write(stored, new, actor, may_approve_role)` returns a `DecisionVerdict` (`ok`, `kind`, `reason`, the
+`revision` the write gets). `stored` is the record the host holds (None when there is none); `may_approve_role` is the
+host's own permission check for the actor.
+
+| Kind | Kept? | When |
+|---|---|---|
+| `recorded` | yes | a proposal recorded or changed before any approval; a follow-up date after it |
+| `approved` | yes | the decision owner, a person holding the permission, approves |
+| `outcome` | yes | an outcome is recorded on a decision whose approval was already kept |
+| `unchanged` | yes (nothing to write) | the same content again |
+| `not_owner`, `agent`, `no_permission` | no | the approval comes from another person, from an agent or a team, or from an owner whose role may not approve |
+| `immutable` | no | an approved decision's option, evidence or constraint revisions, policy or approval would change, or what it supersedes would; a recorded outcome would be rewritten or erased |
+| `owner_changed`, `other_decision` | no | another owner, or another decision's record |
+| `no_approval`, `not_actor` | no | an outcome before (or in the same write as) the approval; an outcome that does not name the actor as its recorder |
+
+What the host owes (the rule is pure and sees only the two records and the actor):
+
+1. Call it under the lock that guards the stored record, so the record it judges is the record the write replaces.
+2. Check that a person named as the actor is the signed-in person; an agent acts inside a person's or the workspace's
+   authority and is refused every approval by the rule.
+3. Compare the revision the writer read with the stored one before calling the rule, and refuse a stale one as a
+   conflict; set `revision` from the verdict.
+4. Remember the request ids of kept writes, each with a fingerprint of what it wrote: answer the same request again
+   with the stored record, without a second write, and refuse the same id on another write.
+5. Check that `supersedes` names a decision of the same problem and of the same decision owner (the rule sees one
+   decision; a new decision of another person's must not take an approved one over).
+   Never store a decision's record by a path that skips the rule.
+6. Record what happened: `team.decision.recorded`, `team.decision.approved` or `team.decision.refused`
+   (`dclab_core.experience_event.v19`), and the ledger point `team.decision_approve` for an approval (a person's
+   answer; its state is how many reports and constraints the decision rests on and whether it replaces an earlier one).
+
+v19 also declares `team.correction.applied` and `team.correction.refused`, and the ledger the point
+`team.correction_accept` (`apply`, `duplicate`, `stale_base`), for a correction of a team's answer that names the
+revision it is based on. Every field of the five kinds is an id, a state or a count: never the option's words, an
+outcome, a table's value or a team's private note.
+
+The R&D host is the reference: `dclab_rnd/teamspace/store.py` `record_decision(home, scope, decision, *, actor,
+expected_revision=None, request_id=None)` and `DecisionRefused`; `dclab_rnd/memory/bases.py` `link_dependents(...,
+guard=)` (the rule runs inside the problem base's change, on files and on PostgreSQL, so two approvals at once leave
+one); the permission is `approve_decision` in `accounts/roles.py`; `ledger/capture.py` `team_decision_approved` and
+`team_correction_accepted`; `tests/test_team_memory_corrections.py` and `tests/test_core_team_work.py`. No migration:
+a decision lives in the problem base's document.
+
+In the main product the same rule belongs on the write of its governed approvals once it has a team workspace: its
+approval rows already name an approver, and `decision_write` is the check that the approver is the decision's owner and
+that an approved record is replaced, never edited. Until then `adapters/main_product_experience.KINDS_MISSING` lists
+the five kinds and `conformance.POINTS_NOT_MAPPED` the two points, each with its reason; no main-product field is
+mapped, since the pinned inventory has no team tables.

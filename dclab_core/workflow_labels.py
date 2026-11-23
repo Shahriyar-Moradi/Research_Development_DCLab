@@ -54,6 +54,10 @@ NOT_LEARNED = {
     "critic.send_back": "labelled where it is decided, by whether the person's answer changed the card's field (29.6)",
     "team.task_owner": "W7: recorded where a task between team agents is saved; no journey plays the team workspace yet, so no "
                        "label exists to learn from (the deterministic agents route by their rules)",
+    "team.decision_approve": "0.169.0 (T5a): a person's own approval, recorded where it is kept; no journey plays a decision "
+                             "owner yet, and an approval is never handed to a model",
+    "team.correction_accept": "0.169.0 (T2): the rule's answer on two revisions, recorded where the correction arrives; a "
+                              "classifier on it can only copy the rule",
     "command.intent_route": "not decided by the studio yet",
     "proposal.completeness": "not decided by the studio yet",
     "department.proposal": "labelled where it is judged: a person's judgment of each proposal, not a journey (30.22)",

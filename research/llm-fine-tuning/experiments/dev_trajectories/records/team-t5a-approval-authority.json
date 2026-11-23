@@ -1,0 +1,187 @@
+{
+  "package": "team-t5a-approval-authority",
+  "title": "Only the decision owner approves a team's decision, and an approved decision is never edited",
+  "date": "2026-11-23",
+  "request": "Package T5a of the team workspace plan (Part A, item 1): today one person can record another person's approval of a team's decision. Enforce who approves, add a revision and a request identity, record every write and refusal, and make DCLAB_AUTH=none mean no sign-in everywhere.",
+  "spec": "dclab-core 0.169.0: TeamDecision v2 (revision, request_id, supersedes, outcome_at, outcome_by, outcome_measure, policy_ref; reads v1 at revision 1), TeamWork v2, the pure rule decision_write(stored, new, actor, may_approve_role) returning a DecisionVerdict. ExperienceEvent v19 with team.decision.recorded/approved/refused and team.correction.applied/refused; ledger points team.decision_approve and team.correction_accept. dclab_rnd: teamspace/store.py record_decision(home, scope, decision, *, actor, expected_revision, request_id) judged under the problem base's lock through memory/bases.py link_dependents(guard=); DecisionRefused; ledger/capture.py team_decision_approved and team_correction_accepted (the second for package T2); memory/scope.py auth_enabled reads the normalised setting (accounts/principal.py auth_mode). Files and PostgreSQL, no migration.",
+  "plan": [
+    "read how a decision is stored today (the problem base's ledger) and where roles are checked",
+    "failing tests first: the rule's cases in the core, then the store's (another person's approval, an agent, a stale click, two approvals at once, a retry, an edit after approval, DCLAB_AUTH=none)",
+    "TeamDecision v2 reading v1, and decision_write, in dclab_core",
+    "the event kinds, the ledger points and the two capture writers, for T5a and T2 in one experience version",
+    "record_decision judged inside the base's locked change, with its events and the approval's ledger record",
+    "auth_enabled on the normalised setting",
+    "version, changelog, schemas, integration guide",
+    "independent review, its fixes with tests, the tests on files and PostgreSQL, the wheel check"
+  ],
+  "decisions": [
+    {
+      "decision": "Judge the write inside the problem base's change (a guard passed to link_dependents), not before it",
+      "why": "the rule must read the same stored record the write replaces; a check before the lock lets two approvals at once both pass. One guard gives files (folder lock) and PostgreSQL (advisory lock, version check, rollback) the same behaviour with no migration"
+    },
+    {
+      "decision": "A change to an approved decision is a new decision naming supersedes, never an edit",
+      "why": "whoever acted on the first approval must still be able to read exactly what was approved; the owner's test is approve 50, correct to 30, re-approve"
+    },
+    {
+      "decision": "TeamWork moves to v2 with TeamDecision",
+      "why": "the contracts' rule: a change in a contained model moves the container's version, since readers refuse unknown fields; v1 documents read unchanged"
+    },
+    {
+      "decision": "A person named as the actor must be the scope's own principal; an agent may record a proposal or a follow-up but the rule refuses it every approval",
+      "why": "the scope is what the server verified; an actor argument that could name anyone would move the old hole (sara writing dana's approval) from the document to the argument"
+    },
+    {
+      "decision": "A repeated request id returns the stored entry only when the actor and content are the same (moments aside); the same id on another write is refused",
+      "why": "the reviewer showed a reused id answered an approval attempt with the unapproved entry as if it had been kept; excluding the moments keeps a retry stamped a second later a retry"
+    },
+    {
+      "decision": "auth_enabled follows the server's normalised setting exactly (password or oidc, else none)",
+      "why": "the server and the worker refuse to start on a mistyped DCLAB_AUTH, so the two readings can no longer disagree; before, 'none' made the scope refuse the local owner the server had let in"
+    },
+    {
+      "decision": "The approval's ledger record is a person's answer only, with counts and one flag as its state",
+      "why": "no rule and no agent approves, and a state never holds the option's words or a table's value"
+    }
+  ],
+  "change": "dclab_core/team_work.py (TeamDecision v2, DecisionVerdict, decision_write, TeamWork v2), experience.py (v19, five kinds), ledger.py (two points, five state fields), workflow_labels.py, adapters/conformance.py, adapters/main_product_experience.py, schemas and three baselines, CHANGELOG, 0.169.0; dclab_rnd/teamspace/store.py (record_decision, DecisionRefused), memory/bases.py (link_dependents guard, requests), memory/scope.py, accounts/principal.py, settings.py, ledger/capture.py, ledger/__init__.py; docs/guides/CORE_INTEGRATION.md; tests.",
+  "findings": [
+    {
+      "id": "T5A-1",
+      "source": "owner",
+      "severity": "behaviour",
+      "defect": "one person could record another person's approval of a team's decision",
+      "scenario": "sara (ML engineer) calls record_decision with a decision whose approval names dana: the approval is stored and read back as dana's",
+      "cause": "record_decision checked only that the caller may write, the problem and the citations; the contract checked only that the approval names the owner; approve_decision was enforced nowhere",
+      "fix": "decision_write under the base's lock: the actor is the decision owner in person and holds approve_decision; a person actor must be the scope's principal; an agent or team actor is refused",
+      "test": "tests/test_team_memory_corrections.py test_only_the_decision_owner_holding_the_permission_records_an_approval; tests/test_core_team_work.py test_only_the_decision_owner_holding_the_permission_approves_and_never_an_agent"
+    },
+    {
+      "id": "T5A-2",
+      "source": "owner",
+      "severity": "behaviour",
+      "defect": "a later record replaced the stored decision whole, with no revision and no request identity",
+      "scenario": "dana approves while sara changes the option; or a click is sent twice after a lost answer: the last write wins silently, or a second approval is stored",
+      "cause": "the ledger kept the last document given for a ref",
+      "fix": "each kept write is the next revision; expected_revision refuses a stale one as a RevisionConflictError; a repeated request id returns the stored entry; an approved decision's option, citations, policy and approval are immutable",
+      "test": "test_a_stale_click_is_a_conflict_and_changes_nothing, test_two_approvals_racing_leave_one_approval, test_a_retry_with_the_same_request_returns_the_stored_entry_and_records_nothing_twice, test_an_approved_decisions_option_changes_only_as_a_new_decision_naming_what_it_replaces"
+    },
+    {
+      "id": "T5A-3",
+      "source": "owner",
+      "severity": "behaviour",
+      "defect": "with DCLAB_AUTH=none the local owner was refused its own team threads",
+      "scenario": "DCLAB_AUTH=none, open a team thread as the local owner: 403 Not yours to read",
+      "cause": "auth_enabled was bool(DCLAB_AUTH), so 'none' counted as sign-in on, while the server's settings read it as off; access() then asked for a user id the local owner does not have",
+      "fix": "accounts/principal.py auth_mode is the one reading; the settings validator and auth_enabled both use it",
+      "test": "tests/test_teamspace_threads.py AuthNoneRoutesTests (the local owner's route tests again under DCLAB_AUTH=none, and test_none_is_read_as_no_sign_in_by_the_scope_and_the_settings_alike); run against the old reading it fails with the 403"
+    },
+    {
+      "id": "T5A-4",
+      "source": "reviewer",
+      "severity": "latent",
+      "defect": "link_dependents called with a decision's document and no guard stored an approval unjudged",
+      "scenario": "bases.link_dependents(home, sara_scope, [{ref: team_decision:D-6, kind: team_decision, doc: D-6 with dana's approval}]): stored, with no event, no ledger record and no revision",
+      "cause": "the guard was optional and the old path that keeps any document stayed open beside it",
+      "fix": "a link carrying a doc without a guard is refused before the base is touched",
+      "test": "test_a_decisions_record_reaches_the_ledger_only_through_the_guarded_write"
+    },
+    {
+      "id": "T5A-5",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "another person could take over an approved decision through supersedes",
+      "scenario": "dana approves D-1; mia (owner role) records D-2 with decision_owner mia, supersedes D-1 and her own approval: kept",
+      "cause": "only the existence of the superseded decision was checked; the pure rule sees one decision",
+      "fix": "the host refuses (owner_changed) a decision that supersedes another owner's decision",
+      "test": "test_a_decision_supersedes_only_its_own_owners_earlier_decision"
+    },
+    {
+      "id": "T5A-6",
+      "source": "reviewer",
+      "severity": "privacy",
+      "defect": "a sentence could reach an event as a meta field",
+      "scenario": "approve with policy_ref 'Refund policy: customers of ACME get 40% off until March': the whole sentence in team.decision.approved.policy",
+      "cause": "policy_ref and outcome_measure were free text up to 300 characters",
+      "fix": "both carry the id pattern in the contract (v2 was not released): a reference and a name",
+      "test": "tests/test_core_team_work.py test_the_new_fields_keep_their_own_rules"
+    },
+    {
+      "id": "T5A-7",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "a reused request id swallowed a different write silently",
+      "scenario": "propose with request r1, then an approval sent with r1: the unapproved entry comes back as if kept, and no refusal is recorded",
+      "cause": "the repeat check compared the id alone, before any other check",
+      "fix": "each remembered id keeps a fingerprint of the actor and content; the same id on another write is refused as request_reused and recorded",
+      "test": "test_a_retry_with_the_same_request_returns_the_stored_entry_and_records_nothing_twice (its second half)"
+    },
+    {
+      "id": "T5A-8",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "a recorded outcome could be rewritten or erased in place by any writer, an agent too",
+      "scenario": "after approval an agent writes an outcome, then another, then removes it: all three kept; leaving outcome_by empty avoided the check of who records",
+      "cause": "the rule froze what the approval covers but not the outcome, and checked outcome_by only when it was given",
+      "fix": "a kept outcome is immutable; an outcome names the actor as its recorder",
+      "test": "tests/test_core_team_work.py test_a_recorded_outcome_is_never_rewritten_or_erased_in_place, test_an_outcome_follows_an_approval_already_recorded"
+    },
+    {
+      "id": "T5A-9",
+      "source": "test",
+      "severity": "flaky",
+      "verdict": "open",
+      "defect": "tests/test_memory_bases_storage.py test_racing_processes_on_one_revision_leave_one_winner failed once in four runs on PostgreSQL",
+      "scenario": "two processes open the same new workspace at once: the second insert of its workspace row fails with a duplicate primary key (pk_workspace), before any base is written",
+      "cause": "the insert says on conflict (key) do nothing, but two racing inserts collide on the id; storage/db.py, not touched by this package",
+      "fix": "not fixed here: outside this package's files; rerun three times, three passes; reported to the main session",
+      "test": "",
+      "open": "storage/db.py workspace_for: the insert should ignore a conflict on the id too"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "the old reading of DCLAB_AUTH against the new one, on the local owner's route test",
+      "gate": "the test fails on the old reading and passes on the new one",
+      "fixed_before_run": true,
+      "result": "old: 403 'Not yours to read', 1 failure; new: 0 failures",
+      "verdict": "pass"
+    },
+    {
+      "name": "the review's findings as tests, before their fixes",
+      "gate": "every new test fails before its fix and passes after",
+      "fixed_before_run": true,
+      "result": "9 failing tests in 2 files before (3 core, 3 on files and the same 3 on PostgreSQL); 0 after",
+      "verdict": "pass"
+    },
+    {
+      "name": "the package's test files on files and on PostgreSQL",
+      "gate": "every test of the listed files passes on both stores",
+      "fixed_before_run": true,
+      "result": "files: 425 tests in 20 files, 1 failing (test_devlog's freshness check, until make sft-dev); PostgreSQL: 202 tests in 8 files, 1 failing once (a racing-process test in code not touched, 3 passes of 3 on rerun)",
+      "verdict": "fail",
+      "next": "the main session runs make sft-dev and make catalog; the flaky race in storage/db.py is reported"
+    },
+    {
+      "name": "make core-wheel-check",
+      "gate": "dclab_core 0.169.0 builds and runs in a clean Python 3.12",
+      "fixed_before_run": true,
+      "result": "passed, dclab-core 0.169.0",
+      "verdict": "pass"
+    }
+  ],
+  "outcome": "An approval is kept only for the decision owner in person holding approve_decision; every write has a revision, stale and repeated writes are handled, an approved decision and a recorded outcome are never edited, every write and refusal is recorded, and DCLAB_AUTH=none is no sign-in everywhere. The routes and the approval control are T5b.",
+  "lessons": [
+    "Adding a guarded path is not enough: close the unguarded one beside it, or the hole only moves.",
+    "A pure rule that sees one record cannot protect a link between two records; say in its contract what the host owes.",
+    "A free-text field that an event copies is a privacy field: give references and names an id's pattern.",
+    "An idempotency key needs a fingerprint of what it wrote, or it answers a different write with success."
+  ],
+  "risks": [
+    "approval.when is the caller's; T5b's route should stamp it on the server.",
+    "A decision whose owner left cannot be superseded by another person: that needs an owner's hand-over rule, not built here.",
+    "The data catalog is stale until make catalog; no route or page uses record_decision yet (T5b).",
+    "The ledger point team.correction_accept and the two correction kinds are declared here and written by T2."
+  ],
+  "commits": []
+}

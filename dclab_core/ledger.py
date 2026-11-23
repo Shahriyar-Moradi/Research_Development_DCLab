@@ -96,6 +96,10 @@ STATE_FIELDS: dict[str, tuple[str, tuple[str, ...]]] = {
     "team": (CODE, ()), "field": (CODE, ()), "concern_source": (CODE, ()), "pending": (FLAG, ()), "critic_passed": (FLAG, ()),
     "rounds": (COUNT, ()), "answered": (FLAG, ()),
     "from_team": (CODE, ()), "routed_by": (CODE, ()), "child": (FLAG, ()),  # W7: a task's routing (the asking team, who chose, a child task)
+    # 0.169.0 (T5a, T2): what a team's decision rests on when its owner approves it (how many reports and constraints,
+    # whether it replaces an earlier decision), and the two revisions a correction of a team's answer is judged on
+    "evidence_reports": (COUNT, ()), "constraints": (COUNT, ()), "replaces_earlier": (FLAG, ()),
+    "base_revision": (COUNT, ()), "current_revision": (COUNT, ()),
     "verdict": (CODE, ()), "agreed": (FLAG, ()),  # 28.6: the second opinion's judge, and whether its two readers agreed
     # 30.11: the modifiers' evidence, as aggregates of the training rows
     "rows_per_key": (MEASURE, ()), "rate_change": (MEASURE, ()), "class_shift": (MEASURE, ()), "level_shift": (MEASURE, ()),
@@ -257,6 +261,12 @@ POINTS: dict[str, Point] = {p.key: p for p in (
     # W7 (2026-11-21): the collaborative workspace's routing, which team owns a task between team agents (the requester's
     # choice, or the parent's owner when it delegates); a team's kind (business, data_science, ...), open-ended
     _p("team.task_owner", W, "project", "value", "Which team owns a task between team agents?"),
+    # 0.169.0 (T5a, T2 of the team workspace, 2026-11-23): the decision owner's approval of a team's decision (a person's
+    # answer, never an agent's), and whether a correction of a team's answer is applied, is the same one again, or rests
+    # on a revision that has moved on (the rule's answer)
+    _p("team.decision_approve", W, "project", "noul", "Does the decision owner approve the team's decision?"),
+    _p("team.correction_accept", W, "project", "choice", "Is a correction of a team's answer applied?",
+       choices=("apply", "duplicate", "stale_base")),
     # H2 (2026-10-28): the kind of help a request needs, read before anything else on Home; labelled by the person's choice
     _p("request.intent", W, "draft", "choice", "Which kind of help does the request need?",
        choices=("prediction", "analysis", "preparation", "reporting", "business", "advice")),

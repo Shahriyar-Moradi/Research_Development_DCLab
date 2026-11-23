@@ -51,6 +51,8 @@ from typing import Any, Iterator, Mapping, Optional, Sequence
 
 from dclab_core import team_work as tw
 
+from ..memory.scope import AccessDenied
+
 Row = dict[str, Any]
 FOLDER = Path("teamspace")
 FILE = "work.json"
@@ -892,27 +894,147 @@ def _problem_scope(scope: Any) -> None:
         raise AccessDenied("a problem's team work needs an authorized project_id and problem_id")
 
 
-def record_decision(home: Path, scope: Any, decision: tw.TeamDecision, *, thread_id: Optional[str] = None, log: Any = None) -> Row:
-    """Keep a decision the owner made (or is asked to make) in the problem base's ledger, with the fact revisions it rests
-    on (its constraint revisions that cite facts) and the reports it rests on (its evidence revisions). A decision citing
-    a fact already corrected is stale at once. Recorded by a person who may write; the approval itself is the decision
-    owner's alone (``team_work`` refuses any other approver). Recording the same decision again (its approval, its
-    outcome) replaces the stored record; a record naming another decision owner is refused. Returns its ledger entry."""
+class DecisionRefused(AccessDenied):
+    """A decision's write was refused and nothing was written (T5a). ``rule``: why, as a code: one of
+    ``team_work.decision_write``'s refusals (``not_owner``, ``agent``, ``no_permission``, ``immutable``, ``owner_changed``,
+    ``other_decision``, ``no_approval``, ``not_actor``; ``verdict`` is then the rule's verdict) or this store's own
+    (``no_write``, ``other_problem``, ``actor_mismatch``, ``unknown_superseded``, ``owner_changed`` for a superseded
+    decision of another owner, ``request_reused``). Its words name ids and states only.
+    Two refusals keep their own class and are recorded with the rules ``bad_citation`` (ValueError) and
+    ``revision_conflict`` (``memory.bases.RevisionConflictError``)."""
+
+    def __init__(self, rule: str, reason: str, verdict: Optional[tw.DecisionVerdict] = None):
+        self.rule, self.verdict = str(rule), verdict
+        super().__init__(reason)
+
+
+def _decision_event(log: Any, scope: Any, kind: str, actor: tw.Actor, payload: Row) -> None:
+    """A decision's event in the workspace's record, under its project (best effort: the write or the refusal stands).
+    Ids, states and counts only: never the option's words or an outcome."""
+    try:
+        from .. import experience
+
+        experience.record(kind, "person" if actor.kind == "person" else "agent", {k: v for k, v in payload.items() if v is not None},
+                          log=log, project=str(scope.project_id))
+    except Exception:  # noqa: BLE001
+        pass
+
+
+def record_decision(home: Path, scope: Any, decision: tw.TeamDecision, *, actor: tw.Actor, thread_id: Optional[str] = None,
+                    log: Any = None, expected_revision: Optional[int] = None, request_id: Optional[str] = None) -> Row:
+    """Keep a decision (proposed, approved, or with its outcome) in the problem base's ledger, with the fact revisions it
+    rests on (its constraint revisions that cite facts) and the reports it rests on (its evidence revisions). A decision
+    citing a fact already corrected is stale at once. Returns its ledger entry (``doc``: the decision as kept).
+
+    ``actor``: who is acting. A person is the scope's own principal (a session never names another person as the one
+    acting); an agent acts inside a person's or the workspace's scope and never approves. T5a (2026-11-23):
+
+    - Every write passes ``team_work.decision_write`` against the stored record, under the base's lock: an approval is the
+      decision owner's own act and needs the ``approve_decision`` permission (``accounts/roles.py``; without sign-in the
+      local owner holds it); once approved, the option, its citations and its policy never change (a correction is a new
+      decision naming this one in ``supersedes``, which must be a decision of this problem); the owner never changes; an
+      outcome follows an approval already kept. A refusal raises :class:`DecisionRefused` and is recorded.
+    - ``expected_revision``: the decision's revision the writer read (0: none yet). Another write since then raises
+      ``memory.bases.RevisionConflictError`` and nothing is written (two approvals at once: one is kept).
+    - ``request_id``: the request making this write. The same request again (the same actor and content; its moments may
+      differ) returns the stored entry as it stands, with no second write, event or ledger record (a retry after a lost
+      answer). The same id on another write is refused (``request_reused``).
+    - Each kept write is the decision's next ``revision`` and is recorded: ``team.decision.recorded`` (proposed, changed,
+      outcome) or ``team.decision.approved`` with the ledger point ``team.decision_approve``."""
+    from ..accounts.roles import allows
+    from ..ledger import capture
     from ..memory import bases
-    from ..memory.scope import AccessDenied
 
     _problem_scope(scope)
+    stamped = tw.TeamDecision.model_validate({**_dump(decision), "request_id": request_id})  # a malformed request id: ValueError
+    seen: Row = {"current": None, "owner": decision.decision_owner.id}
+
+    def refused(rule: str, reason: str, verdict: Optional[tw.DecisionVerdict] = None) -> DecisionRefused:
+        _decision_event(log, scope, "team.decision.refused", actor,
+                        {"decision": decision.id, "problem": scope.problem_id, "owner": seen["owner"], "by": actor.id,
+                         "by_kind": actor.kind, "rule": rule, "reason": reason[:tw.SHORT], "revision": seen["current"],
+                         "expected_revision": expected_revision, "request": request_id})
+        return DecisionRefused(rule, reason, verdict)
+
     if not scope.can_write:
-        raise AccessDenied(f"role {scope.role!r} cannot record a decision")
+        raise refused("no_write", f"role {scope.role!r} cannot record a decision")
     if decision.problem_id != scope.problem_id:
-        raise AccessDenied(f"decision {decision.id} belongs to problem {decision.problem_id}, not {scope.problem_id}")
-    bases.check_citations(home, scope, _citations(decision.constraint_revisions))  # a forged or foreign citation: refused
-    link = {"ref": decision_ref(decision.id), "kind": "team_decision", "cites": _citations(decision.constraint_revisions),
+        raise refused("other_problem", f"decision {decision.id} belongs to problem {decision.problem_id}, not {scope.problem_id}")
+    if actor.kind == "person" and str(actor.id) != str(scope.principal_id):
+        raise refused("actor_mismatch", f"{actor.id} is named as the person acting, but this session is {scope.principal_id}'s")
+    cites = _citations(decision.constraint_revisions)
+    try:
+        bases.check_citations(home, scope, cites)  # a forged or foreign citation: refused (ValueError, as for a task or a report)
+    except ValueError:
+        refused("bad_citation", f"{decision.id} cites a fact this problem does not hold, or at a revision it was never written at")
+        raise
+    if decision.supersedes is not None:  # a decision is never removed and its owner never changes: what is read now holds at the write
+        held = bases.read_base(home, scope, "problem").get("dependents") or []
+        earlier = next((d["doc"] for d in held if d["ref"] == decision_ref(decision.supersedes) and d.get("doc")), None)
+        if earlier is None:
+            raise refused("unknown_superseded", f"{decision.id} supersedes {decision.supersedes}, which is not a decision of this problem")
+        theirs = str((earlier.get("decision_owner") or {}).get("id"))
+        if theirs != str(decision.decision_owner.id):  # the review of T5a: the owner changed in one hop, through a new decision
+            raise refused("owner_changed", f"{decision.supersedes} is {theirs}'s decision: only {theirs}'s own decision supersedes it")
+    may = allows(scope.role, "approve_decision")
+    judged: Row = {}
+    # what this request writes, without the host's stamps and the moments (a retry may be stamped a second later): the
+    # same request id with another fingerprint is another write, refused aloud (the review of T5a)
+    content = decision.model_dump(mode="json", exclude={"revision", "request_id", "outcome_at"})
+    if content.get("approval"):
+        content["approval"] = {**content["approval"], "when": None}
+    fingerprint = hashlib.sha256(json.dumps([actor.kind, actor.id, content], sort_keys=True).encode("utf-8")).hexdigest()[:32]
+
+    def guard(entry: Optional[Row], _link: Mapping[str, Any]) -> Optional[Row]:
+        """Under the base's lock: the stored record this write would replace, and whether it may."""
+        doc = (entry or {}).get("doc")
+        stored = tw.TeamDecision.model_validate(doc) if doc else None
+        seen.update(current=stored.revision if stored is not None else 0,
+                    owner=stored.decision_owner.id if stored is not None else decision.decision_owner.id)
+        known = (entry or {}).get("requests") or {}
+        if request_id and request_id in known:
+            if known[request_id] != fingerprint:
+                raise DecisionRefused("request_reused", f"request {request_id} already made another write of {decision.id}")
+            judged["repeat"] = True
+            return None
+        if expected_revision is not None and int(expected_revision) != seen["current"]:
+            raise bases.RevisionConflictError(scope="team_decision", scope_id=decision.id, expected_revision=int(expected_revision),
+                                              current_revision=seen["current"], current_entries=[doc] if doc else [],
+                                              attempted={"decision": decision.id, "request_id": request_id})
+        verdict = judged["verdict"] = tw.decision_write(stored, decision, actor, may)
+        judged["first"] = stored is None
+        if not verdict.ok:
+            raise DecisionRefused(verdict.kind, verdict.reason, verdict)
+        if verdict.kind == "unchanged":
+            return None
+        return _dump(stamped.model_copy(update={"revision": verdict.revision}))
+
+    link = {"ref": decision_ref(decision.id), "kind": "team_decision", "cites": cites,
             "project_id": scope.project_id, "decision_id": decision.id, "thread_id": thread_id,
-            "decision_owner": decision.decision_owner.id, "label": f"decision {decision.id}", "doc": _dump(decision),
-            "stale_via": [report_ref(scope.project_id, r) for r in decision.evidence_revisions]}
-    deps = bases.link_dependents(home, scope, [link], log=log)  # kept even when it cites nothing here, to be read back
-    return next(d for d in deps if d["ref"] == link["ref"])
+            "decision_owner": decision.decision_owner.id, "label": f"decision {decision.id}", "doc": _dump(stamped),
+            "request_hash": fingerprint, "stale_via": [report_ref(scope.project_id, r) for r in decision.evidence_revisions]}
+    try:
+        deps = bases.link_dependents(home, scope, [link], log=log, guard=guard)  # kept even when it cites nothing here
+    except DecisionRefused as error:  # the rule's refusal, raised under the lock: recorded once the lock is released
+        raise refused(error.rule, str(error), error.verdict) from None
+    except bases.RevisionConflictError as error:
+        refused("revision_conflict", f"expected revision {error.expected_revision}, current revision {error.current_revision}")
+        raise
+    entry = next(d for d in deps if d["ref"] == link["ref"])
+    verdict = judged.get("verdict")
+    if judged.get("repeat") or verdict is None or verdict.kind == "unchanged":
+        return entry
+    facts = {"decision": decision.id, "problem": scope.problem_id, "owner": decision.decision_owner.id, "by": actor.id,
+             "revision": verdict.revision, "evidence": len(decision.evidence_revisions), "constraints": len(decision.constraint_revisions),
+             "supersedes": decision.supersedes, "request": request_id, "stale": bool(entry.get("stale"))}
+    if verdict.kind == "approved":
+        _decision_event(log, scope, "team.decision.approved", actor, {**facts, "policy": decision.policy_ref})
+        capture.team_decision_approved(scope.project_id, decision.id, by=actor.id, evidence=len(decision.evidence_revisions),
+                                       constraints=len(decision.constraint_revisions), replaces_earlier=decision.supersedes is not None)
+    else:
+        what = "outcome" if verdict.kind == "outcome" else "proposed" if judged.get("first") else "changed"
+        _decision_event(log, scope, "team.decision.recorded", actor, {**facts, "by_kind": actor.kind, "what": what})
+    return entry
 
 
 def stale_marks(home: Path, scope: Any) -> list[Row]:
@@ -1611,7 +1733,7 @@ def open_team_work(home: Path, url: Optional[str] = None, projects: Any = None) 
     return FileTeamWork(Path(home), projects=projects)
 
 
-__all__ = ["decision_ref", "decisions", "fact_citation", "fact_evidence", "mark_fact_dependents_stale", "record_decision",
+__all__ = ["DecisionRefused", "decision_ref", "decisions", "fact_citation", "fact_evidence", "mark_fact_dependents_stale", "record_decision",
            "report_citations", "report_ref", "stale_marks", "task_citations", "task_ref",
            "Conflict", "TeamBusy", "import_project", "reply_text", "simulated_sources", "DELIVERY_KINDS", "DELIVERY_STATES", "FileTeamWork", "PgTeamWork", "Written", "history_lines", "initiator_of",
            "is_due", "open_team_work", "scrub", "team_label"]

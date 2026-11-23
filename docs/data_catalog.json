@@ -274,7 +274,7 @@
   {
    "contract": "experience_event",
    "reads": [],
-   "version": "dclab_core.experience_event.v18"
+   "version": "dclab_core.experience_event.v19"
   },
   {
    "contract": "experience_session",
@@ -623,8 +623,10 @@
   },
   {
    "contract": "team_decision",
-   "reads": [],
-   "version": "dclab_core.team_decision.v1"
+   "reads": [
+    "dclab_core.team_decision.v1"
+   ],
+   "version": "dclab_core.team_decision.v2"
   },
   {
    "contract": "team_record",
@@ -638,8 +640,10 @@
   },
   {
    "contract": "team_work",
-   "reads": [],
-   "version": "dclab_core.team_work.v1"
+   "reads": [
+    "dclab_core.team_work.v1"
+   ],
+   "version": "dclab_core.team_work.v2"
   },
   {
    "contract": "track_outcome",
@@ -759,7 +763,7 @@
    "what": "A solved project from its problem to its report, one row per project: the card, the map, the routes, the stages run and the report's kept sentences, never a row of its table; only projects whose consent allows training, and none at all below the builder's minimum of projects (30.19)."
   }
  ],
- "dclab_core": "0.168.0",
+ "dclab_core": "0.169.0",
  "decision_points": [
   {
    "about": "Which tool does the agent call next?",
@@ -1513,6 +1517,28 @@
    "point": "task.framing",
    "subjects": [
     "draft",
+    "project"
+   ]
+  },
+  {
+   "about": "Is a correction of a team's answer applied?",
+   "answer": "choice",
+   "decided_in": "ledger/capture.py team_correction_accepted, called where a correction of a team's answer arrives (teamspace, T2): applied, the same one again, or based on a revision that moved on (the rule's answer on the two revisions)",
+   "kind": "workflow",
+   "main_product": null,
+   "point": "team.correction_accept",
+   "subjects": [
+    "project"
+   ]
+  },
+  {
+   "about": "Does the decision owner approve the team's decision?",
+   "answer": "noul",
+   "decided_in": "teamspace/store.py record_decision (T5a): the decision owner's approval of a team's decision, a person's answer, with how many reports and constraints it rests on and whether it replaces an earlier one",
+   "kind": "workflow",
+   "main_product": null,
+   "point": "team.decision_approve",
+   "subjects": [
     "project"
    ]
   },
@@ -2735,6 +2761,46 @@
    "train_only": []
   },
   {
+   "emitted_by": [],
+   "example": "python -m dclab_rnd.experience search --kind team.correction.applied",
+   "family": "team",
+   "fields": {
+    "base_revision": "count",
+    "by": "meta",
+    "by_kind": "meta",
+    "problem": "meta",
+    "report": "meta",
+    "request": "meta",
+    "revision": "count",
+    "task": "meta",
+    "verdict": "meta"
+   },
+   "kind": "team.correction.applied",
+   "leaves_at": "improve",
+   "never_leaves": [],
+   "train_only": []
+  },
+  {
+   "emitted_by": [],
+   "example": "python -m dclab_rnd.experience search --kind team.correction.refused",
+   "family": "team",
+   "fields": {
+    "base_revision": "count",
+    "by": "meta",
+    "by_kind": "meta",
+    "problem": "meta",
+    "reason": "meta",
+    "request": "meta",
+    "revision": "count",
+    "task": "meta",
+    "verdict": "meta"
+   },
+   "kind": "team.correction.refused",
+   "leaves_at": "improve",
+   "never_leaves": [],
+   "train_only": []
+  },
+  {
    "emitted_by": [
     "dclab_rnd/agentic/routers/teams.py"
    ],
@@ -2746,6 +2812,78 @@
     "team": "meta"
    },
    "kind": "team.created",
+   "leaves_at": "improve",
+   "never_leaves": [],
+   "train_only": []
+  },
+  {
+   "emitted_by": [
+    "dclab_rnd/teamspace/store.py"
+   ],
+   "example": "python -m dclab_rnd.experience search --kind team.decision.approved",
+   "family": "team",
+   "fields": {
+    "by": "meta",
+    "constraints": "count",
+    "decision": "meta",
+    "evidence": "count",
+    "owner": "meta",
+    "policy": "meta",
+    "problem": "meta",
+    "request": "meta",
+    "revision": "count",
+    "stale": "meta",
+    "supersedes": "meta"
+   },
+   "kind": "team.decision.approved",
+   "leaves_at": "improve",
+   "never_leaves": [],
+   "train_only": []
+  },
+  {
+   "emitted_by": [
+    "dclab_rnd/teamspace/store.py"
+   ],
+   "example": "python -m dclab_rnd.experience search --kind team.decision.recorded",
+   "family": "team",
+   "fields": {
+    "by": "meta",
+    "by_kind": "meta",
+    "constraints": "count",
+    "decision": "meta",
+    "evidence": "count",
+    "owner": "meta",
+    "problem": "meta",
+    "request": "meta",
+    "revision": "count",
+    "stale": "meta",
+    "supersedes": "meta",
+    "what": "meta"
+   },
+   "kind": "team.decision.recorded",
+   "leaves_at": "improve",
+   "never_leaves": [],
+   "train_only": []
+  },
+  {
+   "emitted_by": [
+    "dclab_rnd/teamspace/store.py"
+   ],
+   "example": "python -m dclab_rnd.experience search --kind team.decision.refused",
+   "family": "team",
+   "fields": {
+    "by": "meta",
+    "by_kind": "meta",
+    "decision": "meta",
+    "expected_revision": "count",
+    "owner": "meta",
+    "problem": "meta",
+    "reason": "meta",
+    "request": "meta",
+    "revision": "count",
+    "rule": "meta"
+   },
+   "kind": "team.decision.refused",
    "leaves_at": "improve",
    "never_leaves": [],
    "train_only": []

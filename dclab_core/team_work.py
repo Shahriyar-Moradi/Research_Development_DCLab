@@ -12,14 +12,15 @@ that keep it honest. Pure pydantic and Python: the host stores the records, deli
   (:func:`build_report`). It never lists an unfinished action as done, never fills a missing child result, never
   carries a private note, and says when anything in it was simulated.
 - :class:`TeamDecision`: the decision owner's choice, with the evidence and constraint revisions it rested on. Only that
-  person approves it (:func:`may_approve`).
+  person approves it (:func:`may_approve`), and every write of it passes :func:`decision_write` (0.169.0): once approved,
+  its option and citations never change; a correction is a new decision naming the one it replaces.
 - :class:`AgentConfig`: an agent's job description, read by code and shown to people: who it represents, what it owns,
   the actions it may take (each bound to ``tool:<name>`` or ``human:<who>``), what its report must cover, what it may
   read, what it may never do. :data:`DIRECTORY` has one per row of the owner's action directory.
 - :class:`TeamWork`: one problem's work in one document (tasks, actions, reports, decisions), for export and replay.
 
-Contract ``dclab_core.team_work.v1`` (:data:`CONTRACT`), with each record also versioned on its own so a host can store
-it as a row. Names, references and short words only: never a table's value.
+Contract ``dclab_core.team_work.v2`` (:data:`CONTRACT`; v2 carries ``team_decision.v2`` and reads v1), with each record
+also versioned on its own so a host can store it as a row. Names, references and short words only: never a table's value.
 """
 
 from __future__ import annotations
@@ -27,13 +28,13 @@ from __future__ import annotations
 import json
 import re
 from datetime import datetime, timezone
-from typing import Any, ClassVar, Iterable, Literal, Optional, Sequence, Union
+from typing import Any, ClassVar, Iterable, Literal, Mapping, Optional, Sequence, Union
 
 from pydantic import Field, field_validator, model_validator
 
 from dclab_core.contracts import CONTRACTS, Contract, Versioned, _version
 
-CONTRACT = "dclab_core.team_work.v1"
+CONTRACT = "dclab_core.team_work.v2"
 
 ID = r"^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$"
 NAME = r"^[a-z][a-z0-9_]*(:[A-Za-z0-9_.-]+)?$"  # a team, agent or action name, with an optional qualifier (model:eta)
@@ -338,9 +339,15 @@ class Approval(Contract):
 
 
 class TeamDecision(Versioned):
-    """The decision owner's choice, the evidence and constraints it rested on, and what happened after."""
+    """The decision owner's choice, the evidence and constraints it rested on, and what happened after.
 
-    schema_version: Literal["dclab_core.team_decision.v1"] = _version("team_decision")
+    v2 (0.169.0) adds what a host needs to keep one honest record of it: ``revision`` (each accepted write is the next
+    one, so a person who read an older one is told), ``request_id`` (the same request sent twice is one write),
+    ``supersedes`` (the earlier decision this one replaces: an approved decision is never edited), who measured the
+    outcome, when and on which measure, and the policy it was approved under. A v1 decision reads as revision 1."""
+
+    schema_version: Literal["dclab_core.team_decision.v2"] = _version("team_decision", 2)
+    READS: ClassVar[frozenset[str]] = frozenset({"dclab_core.team_decision.v1"})  # the same fields, without the v2 ones
     id: str = Field(pattern=ID)
     problem_id: str = Field(pattern=ID)
     decision_owner: Actor = Field(description="The person who decides.")
@@ -351,6 +358,24 @@ class TeamDecision(Versioned):
     follow_up_date: Optional[str] = None
     outcome: Optional[str] = Field(default=None, max_length=TEXT)
     simulated_follow_up: bool = False
+    revision: int = Field(default=1, ge=1, description="v2: which accepted write of this decision this is, from 1.")
+    request_id: Optional[str] = Field(default=None, pattern=ID, description="v2: the request that made this write; the "
+                                      "same request again is the same write.")
+    supersedes: Optional[str] = Field(default=None, pattern=ID, description="v2: the earlier decision this one replaces.")
+    outcome_at: Optional[str] = Field(default=None, description="v2: when the outcome was observed.")
+    outcome_by: Optional[Actor] = Field(default=None, description="v2: who recorded the outcome.")
+    outcome_measure: Optional[str] = Field(default=None, pattern=ID, description="v2: the measure the outcome was read on, "
+                                           "by its name (renewed_within_30_days): a name, never a sentence.")
+    policy_ref: Optional[str] = Field(default=None, pattern=ID, description="v2: the policy the decision was approved "
+                                      "under, by reference (policy:renewal-outreach@v2): a reference, never its words.")
+
+    @model_validator(mode="before")
+    @classmethod
+    def _v1(cls, data: Any) -> Any:
+        """A v1 decision (alone, or inside a stored bundle or ledger row) is the same decision at revision 1."""
+        if isinstance(data, Mapping) and data.get("schema_version") in cls.READS:
+            return {**data, "schema_version": cls.model_fields["schema_version"].default}
+        return data
 
     @field_validator("follow_up_date")
     @classmethod
@@ -358,6 +383,11 @@ class TeamDecision(Versioned):
         if value is not None:
             datetime.strptime(value, "%Y-%m-%d")
         return value
+
+    @field_validator("outcome_at")
+    @classmethod
+    def _when(cls, value: Optional[str]) -> Optional[str]:
+        return _utc(value)
 
     @model_validator(mode="after")
     def _rules(self):
@@ -369,7 +399,94 @@ class TeamDecision(Versioned):
             raise ValueError("an outcome follows an approved decision")
         if self.simulated_follow_up and self.outcome is None:
             raise ValueError("a simulated follow-up records its (simulated) outcome")
+        if self.outcome is None and (self.outcome_at or self.outcome_by or self.outcome_measure):
+            raise ValueError("when, by whom and on which measure belong to a recorded outcome")
+        if self.supersedes == self.id:
+            raise ValueError("a decision cannot replace itself")
         return self
+
+
+class DecisionVerdict(Contract):
+    """Whether a write of a decision is kept, what it is, and in plain words why not (ids and states, never the option)."""
+
+    ok: bool
+    kind: Literal["recorded", "approved", "outcome", "unchanged",                                   # kept
+                  "other_decision", "owner_changed", "agent", "not_owner", "no_permission",        # refused: who
+                  "immutable", "no_approval", "not_actor"]                                         # refused: what
+    reason: str = Field(min_length=1, max_length=SHORT)
+    revision: int = Field(ge=1, description="The revision the write gets when kept; the stored one otherwise.")
+
+
+_WRITE_STAMPS = frozenset({"revision", "request_id"})   # set by the host on each accepted write: never a change by themselves
+_FROZEN = ("option", "evidence_revisions", "constraint_revisions", "approval", "policy_ref")  # what an approval covers
+_OUTCOME = ("outcome", "outcome_at", "outcome_by", "outcome_measure", "simulated_follow_up")
+
+
+def decision_write(stored: Optional[TeamDecision], new: TeamDecision, actor: Actor, may_approve_role: bool) -> DecisionVerdict:
+    """Whether ``actor`` may replace the stored decision (None: not recorded yet) with ``new``.
+
+    ``may_approve_role``: whether the host's role check lets this actor approve a team's decision (the permission; that
+    the actor is who they say is the host's check too). Why each rule:
+
+    - A record keeps its decision: the same id and problem, and the same decision owner for good (another person's
+      record never takes a decision over).
+    - An approval is the decision owner's own act: the actor is that person (:func:`may_approve`: never an agent or a
+      team, however good its recommendation), and holds the permission. A person who may write but does not own the
+      decision cannot write the owner's approval down for them.
+    - What was approved stays as it was approved: the option, the evidence and constraint revisions, the policy and
+      the approval itself. A change is a new decision that names this one in ``supersedes``, so whoever acted on the
+      first can still read what they acted on. What it replaces is said when a decision is first recorded.
+    - An outcome follows an approval already recorded (never the same write: what happened comes after the choice), and
+      names the actor as the one who recorded it (a person, or an agent logging a follow-up under its own name). Once
+      kept it is never rewritten or erased in place: what was observed stays what was recorded.
+
+    Until it is approved, a proposal may be recorded and changed by anyone the host lets write. The same content again is
+    ``unchanged`` (nothing to write). ``revision`` and ``request_id`` are the host's stamps and are not compared."""
+    current = stored.revision if stored is not None else 0
+    following = current + 1
+
+    def no(kind: str, reason: str) -> DecisionVerdict:
+        return DecisionVerdict(ok=False, kind=kind, reason=reason[:SHORT], revision=max(current, 1))
+
+    if stored is not None:
+        if (stored.id, stored.problem_id) != (new.id, new.problem_id):
+            return no("other_decision", f"{new.id} is not the stored decision {stored.id} of problem {stored.problem_id}")
+        if stored.decision_owner.id != new.decision_owner.id:
+            return no("owner_changed", f"{stored.id} is {stored.decision_owner.id}'s decision: its owner never changes")
+        if stored.model_dump(exclude=_WRITE_STAMPS) == new.model_dump(exclude=_WRITE_STAMPS):
+            return DecisionVerdict(ok=True, kind="unchanged", reason=f"{new.id} is already recorded so", revision=current)
+        if stored.supersedes != new.supersedes:
+            return no("immutable", f"what {stored.id} supersedes is said once, when it is first recorded")
+    approved = stored is not None and stored.approval is not None
+    if approved:
+        changed = [f for f in _FROZEN if getattr(stored, f) != getattr(new, f)]
+        if changed:
+            return no("immutable", f"{stored.id} is approved: its {', '.join(changed)} cannot change; record a new "
+                                   f"decision that supersedes {stored.id}")
+    approving = new.approval is not None and not approved
+    if approving:
+        if actor.kind != "person":
+            return no("agent", f"a {actor.kind} never approves for the decision owner ({new.decision_owner.id})")
+        if not may_approve(actor, new):
+            return no("not_owner", f"only {new.decision_owner.id}, the decision owner, approves {new.id}; {actor.id} does not")
+        if not may_approve_role:
+            return no("no_permission", f"{actor.id} owns {new.id} but does not hold the permission to approve a team's decision")
+    outcome_changed = any(getattr(new, f) != (getattr(stored, f) if stored is not None else TeamDecision.model_fields[f].default)
+                          for f in _OUTCOME)
+    if outcome_changed:
+        if not approved:
+            return no("no_approval", f"an outcome of {new.id} is recorded after its approval, in a write of its own")
+        if stored.outcome is not None:
+            return no("immutable", f"the outcome of {stored.id} is recorded: it is not rewritten or erased; record a new "
+                                   f"decision that supersedes {stored.id}")
+        if new.outcome_by is None or (new.outcome_by.kind, new.outcome_by.id) != (actor.kind, actor.id):
+            named = new.outcome_by.id if new.outcome_by is not None else "nobody"
+            return no("not_actor", f"the outcome of {new.id} names {named} as its recorder, but {actor.id} records it")
+    if approving:
+        return DecisionVerdict(ok=True, kind="approved", reason=f"{actor.id} approves {new.id}", revision=following)
+    if outcome_changed:
+        return DecisionVerdict(ok=True, kind="outcome", reason=f"the outcome of {new.id} is recorded", revision=following)
+    return DecisionVerdict(ok=True, kind="recorded", reason=f"{new.id} is recorded", revision=following)
 
 
 # ------------------------------------------------------------------------------------------------------ agents
@@ -423,14 +540,23 @@ class AgentConfig(Versioned):
 
 
 class TeamWork(Versioned):
-    """One problem's team work in one document: its tasks, actions, reports and decisions."""
+    """One problem's team work in one document: its tasks, actions, reports and decisions. v2 (0.169.0): its decisions are
+    ``team_decision.v2``; a v1 document reads unchanged, its decisions at revision 1."""
 
-    schema_version: Literal["dclab_core.team_work.v1"] = _version("team_work")
+    schema_version: Literal["dclab_core.team_work.v2"] = _version("team_work", 2)
+    READS: ClassVar[frozenset[str]] = frozenset({"dclab_core.team_work.v1"})
     problem_id: str = Field(pattern=ID)
     tasks: list[TeamTask] = Field(default_factory=list, max_length=2000)
     actions: list[TeamAction] = Field(default_factory=list, max_length=20000)
     reports: list[WorkReport] = Field(default_factory=list, max_length=5000)
     decisions: list[TeamDecision] = Field(default_factory=list, max_length=500)
+
+    @classmethod
+    def read(cls, document: Any):
+        data = json.loads(document) if isinstance(document, (str, bytes)) else dict(document)
+        if data.get("schema_version") in cls.READS:  # a v1 document: the same fields; its decisions upgrade themselves
+            data = {**data, "schema_version": cls.model_fields["schema_version"].default}
+        return super().read(data)
 
     @model_validator(mode="after")
     def _one_problem(self):

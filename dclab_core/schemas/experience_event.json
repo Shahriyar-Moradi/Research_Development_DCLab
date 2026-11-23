@@ -178,7 +178,7 @@
     },
     "JsonValue": {}
   },
-  "$id": "https://dclab.dev/schemas/dclab_core.experience_event.v18.json",
+  "$id": "https://dclab.dev/schemas/dclab_core.experience_event.v19.json",
   "additionalProperties": false,
   "allOf": [
     {
@@ -15451,6 +15451,880 @@
       "if": {
         "properties": {
           "kind": {
+            "const": "team.correction.applied"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "base_revision"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "base_revision"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "base_revision"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "base_revision"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "by"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "by"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "by"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "by"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "by_kind"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "by_kind"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "by_kind"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "by_kind"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "problem"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "problem"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "problem"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "problem"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "report"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "report"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "report"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "report"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "request"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "request"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "request"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "request"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "revision"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "revision"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "revision"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "revision"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "task"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "task"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "task"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "task"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "verdict"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "verdict"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "verdict"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "verdict"
+                  ]
+                }
+              }
+            }
+          }
+        ],
+        "properties": {
+          "classes": {
+            "properties": {
+              "base_revision": {
+                "const": "count"
+              },
+              "by": {
+                "const": "meta"
+              },
+              "by_kind": {
+                "const": "meta"
+              },
+              "problem": {
+                "const": "meta"
+              },
+              "report": {
+                "const": "meta"
+              },
+              "request": {
+                "const": "meta"
+              },
+              "revision": {
+                "const": "count"
+              },
+              "task": {
+                "const": "meta"
+              },
+              "verdict": {
+                "const": "meta"
+              }
+            },
+            "propertyNames": {
+              "enum": [
+                "base_revision",
+                "by",
+                "by_kind",
+                "problem",
+                "report",
+                "request",
+                "revision",
+                "task",
+                "verdict"
+              ]
+            }
+          },
+          "payload": {
+            "propertyNames": {
+              "enum": [
+                "base_revision",
+                "by",
+                "by_kind",
+                "problem",
+                "report",
+                "request",
+                "revision",
+                "task",
+                "verdict"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "team.correction.refused"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "base_revision"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "base_revision"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "base_revision"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "base_revision"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "by"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "by"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "by"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "by"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "by_kind"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "by_kind"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "by_kind"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "by_kind"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "problem"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "problem"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "problem"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "problem"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "reason"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "reason"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "reason"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "reason"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "request"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "request"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "request"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "request"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "revision"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "revision"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "revision"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "revision"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "task"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "task"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "task"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "task"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "verdict"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "verdict"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "verdict"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "verdict"
+                  ]
+                }
+              }
+            }
+          }
+        ],
+        "properties": {
+          "classes": {
+            "properties": {
+              "base_revision": {
+                "const": "count"
+              },
+              "by": {
+                "const": "meta"
+              },
+              "by_kind": {
+                "const": "meta"
+              },
+              "problem": {
+                "const": "meta"
+              },
+              "reason": {
+                "const": "meta"
+              },
+              "request": {
+                "const": "meta"
+              },
+              "revision": {
+                "const": "count"
+              },
+              "task": {
+                "const": "meta"
+              },
+              "verdict": {
+                "const": "meta"
+              }
+            },
+            "propertyNames": {
+              "enum": [
+                "base_revision",
+                "by",
+                "by_kind",
+                "problem",
+                "reason",
+                "request",
+                "revision",
+                "task",
+                "verdict"
+              ]
+            }
+          },
+          "payload": {
+            "propertyNames": {
+              "enum": [
+                "base_revision",
+                "by",
+                "by_kind",
+                "problem",
+                "reason",
+                "request",
+                "revision",
+                "task",
+                "verdict"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
             "const": "team.created"
           }
         },
@@ -15608,6 +16482,1587 @@
                 "by",
                 "kind",
                 "team"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "team.decision.approved"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "by"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "by"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "by"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "by"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "constraints"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "constraints"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "constraints"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "constraints"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "decision"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "decision"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "decision"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "decision"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "evidence"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "evidence"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "evidence"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "evidence"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "owner"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "owner"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "owner"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "owner"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "policy"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "policy"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "policy"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "policy"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "problem"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "problem"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "problem"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "problem"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "request"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "request"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "request"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "request"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "revision"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "revision"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "revision"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "revision"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "stale"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "stale"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "stale"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "stale"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "supersedes"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "supersedes"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "supersedes"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "supersedes"
+                  ]
+                }
+              }
+            }
+          }
+        ],
+        "properties": {
+          "classes": {
+            "properties": {
+              "by": {
+                "const": "meta"
+              },
+              "constraints": {
+                "const": "count"
+              },
+              "decision": {
+                "const": "meta"
+              },
+              "evidence": {
+                "const": "count"
+              },
+              "owner": {
+                "const": "meta"
+              },
+              "policy": {
+                "const": "meta"
+              },
+              "problem": {
+                "const": "meta"
+              },
+              "request": {
+                "const": "meta"
+              },
+              "revision": {
+                "const": "count"
+              },
+              "stale": {
+                "const": "meta"
+              },
+              "supersedes": {
+                "const": "meta"
+              }
+            },
+            "propertyNames": {
+              "enum": [
+                "by",
+                "constraints",
+                "decision",
+                "evidence",
+                "owner",
+                "policy",
+                "problem",
+                "request",
+                "revision",
+                "stale",
+                "supersedes"
+              ]
+            }
+          },
+          "payload": {
+            "propertyNames": {
+              "enum": [
+                "by",
+                "constraints",
+                "decision",
+                "evidence",
+                "owner",
+                "policy",
+                "problem",
+                "request",
+                "revision",
+                "stale",
+                "supersedes"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "team.decision.recorded"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "by"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "by"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "by"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "by"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "by_kind"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "by_kind"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "by_kind"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "by_kind"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "constraints"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "constraints"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "constraints"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "constraints"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "decision"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "decision"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "decision"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "decision"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "evidence"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "evidence"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "evidence"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "evidence"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "owner"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "owner"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "owner"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "owner"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "problem"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "problem"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "problem"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "problem"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "request"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "request"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "request"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "request"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "revision"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "revision"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "revision"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "revision"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "stale"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "stale"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "stale"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "stale"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "supersedes"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "supersedes"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "supersedes"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "supersedes"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "what"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "what"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "what"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "what"
+                  ]
+                }
+              }
+            }
+          }
+        ],
+        "properties": {
+          "classes": {
+            "properties": {
+              "by": {
+                "const": "meta"
+              },
+              "by_kind": {
+                "const": "meta"
+              },
+              "constraints": {
+                "const": "count"
+              },
+              "decision": {
+                "const": "meta"
+              },
+              "evidence": {
+                "const": "count"
+              },
+              "owner": {
+                "const": "meta"
+              },
+              "problem": {
+                "const": "meta"
+              },
+              "request": {
+                "const": "meta"
+              },
+              "revision": {
+                "const": "count"
+              },
+              "stale": {
+                "const": "meta"
+              },
+              "supersedes": {
+                "const": "meta"
+              },
+              "what": {
+                "const": "meta"
+              }
+            },
+            "propertyNames": {
+              "enum": [
+                "by",
+                "by_kind",
+                "constraints",
+                "decision",
+                "evidence",
+                "owner",
+                "problem",
+                "request",
+                "revision",
+                "stale",
+                "supersedes",
+                "what"
+              ]
+            }
+          },
+          "payload": {
+            "propertyNames": {
+              "enum": [
+                "by",
+                "by_kind",
+                "constraints",
+                "decision",
+                "evidence",
+                "owner",
+                "problem",
+                "request",
+                "revision",
+                "stale",
+                "supersedes",
+                "what"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "team.decision.refused"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "by"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "by"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "by"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "by"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "by_kind"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "by_kind"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "by_kind"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "by_kind"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "decision"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "decision"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "decision"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "decision"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "expected_revision"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "expected_revision"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "expected_revision"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "expected_revision"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "owner"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "owner"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "owner"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "owner"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "problem"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "problem"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "problem"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "problem"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "reason"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "reason"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "reason"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "reason"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "request"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "request"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "request"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "request"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "revision"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "revision"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "revision"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "revision"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "rule"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "rule"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "rule"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "rule"
+                  ]
+                }
+              }
+            }
+          }
+        ],
+        "properties": {
+          "classes": {
+            "properties": {
+              "by": {
+                "const": "meta"
+              },
+              "by_kind": {
+                "const": "meta"
+              },
+              "decision": {
+                "const": "meta"
+              },
+              "expected_revision": {
+                "const": "count"
+              },
+              "owner": {
+                "const": "meta"
+              },
+              "problem": {
+                "const": "meta"
+              },
+              "reason": {
+                "const": "meta"
+              },
+              "request": {
+                "const": "meta"
+              },
+              "revision": {
+                "const": "count"
+              },
+              "rule": {
+                "const": "meta"
+              }
+            },
+            "propertyNames": {
+              "enum": [
+                "by",
+                "by_kind",
+                "decision",
+                "expected_revision",
+                "owner",
+                "problem",
+                "reason",
+                "request",
+                "revision",
+                "rule"
+              ]
+            }
+          },
+          "payload": {
+            "propertyNames": {
+              "enum": [
+                "by",
+                "by_kind",
+                "decision",
+                "expected_revision",
+                "owner",
+                "problem",
+                "reason",
+                "request",
+                "revision",
+                "rule"
               ]
             }
           }
@@ -21402,7 +23857,12 @@
         "team.renamed",
         "team.removed",
         "team.member_added",
-        "team.member_removed"
+        "team.member_removed",
+        "team.decision.recorded",
+        "team.decision.approved",
+        "team.decision.refused",
+        "team.correction.applied",
+        "team.correction.refused"
       ],
       "title": "Kind",
       "type": "string"
@@ -21423,8 +23883,8 @@
       "type": "array"
     },
     "schema_version": {
-      "const": "dclab_core.experience_event.v18",
-      "default": "dclab_core.experience_event.v18",
+      "const": "dclab_core.experience_event.v19",
+      "default": "dclab_core.experience_event.v19",
       "title": "Schema Version",
       "type": "string"
     },

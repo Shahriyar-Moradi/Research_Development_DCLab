@@ -45,6 +45,17 @@ class Principal:
                 "workspaces": [{"id": w, "name": n, "role": r, "role_label": label(r)} for w, n, r in self.workspaces]}
 
 
+AUTH_MODES = ("password", "oidc")  # the ways of signing in; anything else is no sign-in ("none")
+
+
+def auth_mode(value: object) -> str:
+    """The sign-in mode a ``DCLAB_AUTH`` value means: ``password`` or ``oidc``, else ``none`` (unset, empty, "none", in any
+    case). The one reading of it: the server's settings and the memory scope both ask here, so "none" is never read as
+    sign-in on by one and off by the other."""
+    text = str(value or "").strip().lower()
+    return text if text in AUTH_MODES else "none"
+
+
 LOCAL_OWNER = Principal(role="owner", via="local")
 ANONYMOUS = Principal(role=None, via="anonymous")
 
