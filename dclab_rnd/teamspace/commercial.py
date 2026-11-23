@@ -212,6 +212,10 @@ def act(ctx: Any, task: tw.TeamTask, action: str, tool: str, subject: Optional[s
     status, ref, revision = "succeeded", None, f"brief-{task.brief_revision}"
     sample = _sample(task)
     given = _subject(subject) if tool not in ("check_exclusions",) else {}
+    if tool in _FROM_WORDS:
+        given = _from_words(ctx, task, action, tool, given)  # B3, the review's R1: the member's words, never the caller's values
+    elif tool == "share_reference":
+        _answered(ctx, task, action, str(given.get("r") or ""))
     response = safe_id(str(given.get("r") or "none"))
     if tool == "check_exclusions":  # Sales: the do-not-contact list, with the date it was read, removed before any plan
         found = fixtures.sample(sample) if sample else None
@@ -272,6 +276,54 @@ def act(ctx: Any, task: tw.TeamTask, action: str, tool: str, subject: Optional[s
                               output_ref=ref if status in tw.DONE_ACTIONS else None,
                               failure_ref=ref if status in tw.FAILED_ACTIONS else None)
     return {"task_id": task.id, "action": _line(ended), "duplicate": duplicate}
+
+
+_FROM_WORDS = ("draft_list", "offer_rules", "campaign_calendar", "offer_cost")  # tools whose values come from a member's answer
+
+
+def _answered(ctx: Any, task: tw.TeamTask, action: str, response: str) -> tw.TeamAction:
+    """The member's answer ``response`` as this team recorded it on the task (a finished human-bound action), or ValueError."""
+    view = ctx.work.task_view(ctx.project_id, task.id)
+    found = [a for a in (view or {}).get("actions") or () if a.actor.id == ctx.agent and a.source.startswith("human:")
+             and a.status in tw.DONE_ACTIONS and a.responded_by is not None and a.output_ref == f"response:{response}"]
+    if not response or not found:
+        raise ValueError(f"{action} reads a member's recorded answer (subject r): none named {response or '(none)'} on {task.id}")
+    return found[-1]
+
+
+def _from_words(ctx: Any, task: tw.TeamTask, action: str, tool: str, given: dict[str, Any]) -> dict[str, Any]:
+    """The values a commercial tool reads, rebuilt from the member's own words (B3, the review's R1): ``r`` must name an answer
+    this team recorded on the task, the words must be that member's (``tools.answer_words``: the turn that carries them),
+    and every value the caller gave must equal what the words say. Both arms go through here: the rules give the same
+    values, a model cannot give others."""
+    from .tools import answer_words
+
+    response = str(given.get("r") or "")
+    asked = _answered(ctx, task, action, response)
+    words = answer_words(ctx, task, response, asked.responded_by.id)
+    if words is None:
+        raise ValueError(f"{action} reads the member's own words, which only the turn carrying their answer holds")
+    if tool == "draft_list":
+        found = capacity_of(words)
+        read = {"capacity": found if found is not None else -1}
+    else:
+        terms = terms_of(words)
+        keys = {"offer_rules": ("eligible",), "campaign_calendar": ("start", "end"), "offer_cost": ("amount", "budget")}[tool]
+        read = {k: terms[k] for k in keys}
+    for key, value in read.items():
+        if key in given and given[key] is not None and value is not None and str(given[key]) != str(value) \
+                and not (isinstance(value, (int, float)) and _same(given[key], value)):
+            raise ValueError(f"{action}: the member said {key} {value}, not {given[key]}: a value is the member's words, never a caller's")
+        if key in given and given[key] is not None and value is None:
+            raise ValueError(f"{action}: the member's words give no {key}; it is never filled in")
+    return {"r": response, **read}
+
+
+def _same(a: Any, b: Any) -> bool:
+    try:
+        return abs(float(a) - float(b)) < 1e-9
+    except (TypeError, ValueError):
+        return False
 
 
 # ---------------------------------------------------------------------------------------------------------- the brains

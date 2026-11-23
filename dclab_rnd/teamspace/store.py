@@ -151,6 +151,17 @@ def history_lines(entries: Sequence[Mapping[str, Any]]) -> list[str]:
                                                                             else f" · not delivered: {e['state']}") for e in entries]
 
 
+def _lease_until(row: Mapping[str, Any]) -> Optional[datetime]:
+    """B3: until when an agent turn running on this row holds it (None: no turn runs on it)."""
+    held = row.get("agent_turn") or {}
+    if held.get("state") != "running" or not held.get("until"):
+        return None
+    try:
+        return datetime.fromisoformat(str(held["until"]))
+    except ValueError:
+        return None
+
+
 def is_due(row: Mapping[str, Any], now: Optional[datetime] = None) -> bool:
     """Whether a pending row may be tried now (no next attempt set, or its time has come)."""
     at = row.get("next_attempt_at")
@@ -862,12 +873,102 @@ class _TeamWork:
                            reason=f"Not delivered to {team_label(row['to_team'])} after {row['attempts']} attempts ({kind}).")
             else:
                 wait = min(cap_seconds, backoff_seconds * (2 ** (row["attempts"] - 1)))
-                row["next_attempt_at"] = (failed + timedelta(seconds=wait)).isoformat(timespec="milliseconds")
+                at = failed + timedelta(seconds=wait)
+                held = _lease_until(row)  # B3: an agent turn still running on this row: no retry before its lease ends
+                row["next_attempt_at"] = max(at, held).isoformat(timespec="milliseconds") if held is not None else \
+                    at.isoformat(timespec="milliseconds")
             return True
         row, changed = self._change_delivery(delivery_id, put, project_id)
         if changed and row["status"] == "blocked":
             self._ended(row, "blocked")
         return row
+
+    # ------------------------------------------------------------------ B3: one agent turn per delivery (a lease on the row)
+    def agent_turn_claim(self, delivery_id: str, token: str, run: str, *, seconds: float, project_id: Optional[str] = None) -> tuple[str, Row]:
+        """Take the row's agent turn, or say why not, in one change of the row (B3: retries must not repeat actions).
+
+        The row keeps ``agent_turn``: who holds it (``token``), its run, its state (``running``, ``done``, ``ended``), until
+        when the lease holds (``until``) and how many writes it started (``writes``). While it holds, the row's next
+        attempt is the lease's end, so the relay and a second deliverer leave it alone. Returns one of:
+
+        - ``claimed``: this caller holds it now (a new turn, or one cut off before any write: run again);
+        - ``held``: another turn runs it and its lease holds (nothing is started);
+        - ``finished``: a turn already ended on it (done or ended; a delivery handed over again: no second turn);
+        - ``interrupted``: a turn was cut off after it started a write (a crash); it is marked ended and never run again;
+        - ``fell_back``: an agent turn fell back to the rules on it, or an earlier attempt ran with no agent turn (the role
+          was on the rules then); a retry is the rules' again, never a model's on top;
+        - ``delivered``: the row is not pending and holds no agent turn (nothing to claim).
+
+        with the row as it is now."""
+        now = datetime.now(timezone.utc)
+        until = now + timedelta(seconds=max(1.0, float(seconds)))
+        verdict = {"state": "claimed"}
+
+        def put(row: Row) -> bool:
+            held = dict(row.get("agent_turn") or {})
+            state = held.get("state")
+            if state in ("done", "ended"):
+                verdict["state"] = "finished"
+                return False
+            if state == "fell_back":  # the rules took the turn (and may have written): it stays theirs
+                verdict["state"] = "fell_back"
+                return False
+            if not held and int(row.get("attempts") or 0) > 0:
+                # an attempt before this one ran with no agent turn (the role was on the rules then): the rules may have
+                # written, so the turn stays theirs (the review of B3, R4)
+                verdict["state"] = "fell_back"
+                row["agent_turn"] = {"state": "fell_back", "fallback": "stopped", "run": None,
+                                     "ended": now.isoformat(timespec="milliseconds")}
+                return True
+            if state == "running" and held.get("token") != token:
+                lease = _lease_until(row)
+                if lease is not None and lease > now:
+                    verdict["state"] = "held"
+                    return False
+                if int(held.get("writes") or 0) > 0:
+                    verdict["state"] = "interrupted"
+                    held.update(state="ended", stopped="interrupted", ended=now.isoformat(timespec="milliseconds"))
+                    row.update(agent_turn=held, next_attempt_at=None)
+                    return True
+            row["agent_turn"] = {"token": token, "run": run, "state": "running", "writes": 0, "started": now.isoformat(timespec="milliseconds"),
+                                 "until": until.isoformat(timespec="milliseconds"),
+                                 **({"after": held.get("run")} if held.get("run") and held.get("token") != token else {})}
+            row["next_attempt_at"] = until.isoformat(timespec="milliseconds")
+            return True
+        found = self.delivery(delivery_id, project_id)
+        if found is None:
+            raise KeyError(delivery_id)
+        if found["status"] != "pending":
+            state = (found.get("agent_turn") or {}).get("state")
+            return ("finished" if state in ("done", "ended", "running") else "delivered"), found
+        row, _ = self._change_delivery(delivery_id, put, project_id)
+        if row["status"] != "pending" and verdict["state"] == "claimed":  # delivered or stopped meanwhile
+            state = (row.get("agent_turn") or {}).get("state")
+            return ("finished" if state in ("done", "ended", "running") else "delivered"), row
+        return verdict["state"], row
+
+    def agent_turn_mark(self, delivery_id: str, token: str, *, project_id: Optional[str] = None, **fields: Any) -> Optional[Row]:
+        """Change the row's agent turn while this caller holds it (``token``): ``writes`` (counted *before* a write starts,
+        so a crash in the middle never reads as a turn that did nothing), ``state``, ``stopped``, ``until``. A row no longer
+        pending, or held by another, is left as it is (None). Ending the turn (``state`` done or ended, or fell_back: the
+        rules took the turn, and a retry of the row is theirs again) frees the row's next attempt."""
+        def put(row: Row) -> bool:
+            held = dict(row.get("agent_turn") or {})
+            if held.get("token") != token:
+                return False
+            held.update({k: v for k, v in fields.items() if v is not None})
+            if fields.get("state") in ("done", "ended", "fell_back"):
+                held["ended"] = datetime.now(timezone.utc).isoformat(timespec="milliseconds")
+                row["next_attempt_at"] = None
+            elif fields.get("until"):
+                row["next_attempt_at"] = fields["until"]
+            row["agent_turn"] = held
+            return True
+        try:
+            row, changed = self._change_delivery(delivery_id, put, project_id)
+        except KeyError:
+            return None
+        return row if changed else None
 
     def delivery_stop(self, delivery_id: str, status: str, reason: str, *, error: Any = None, project_id: Optional[str] = None) -> Row:
         """End a pending delivery without delivering it: ``refused`` (the member no longer has the authority) or ``blocked``.

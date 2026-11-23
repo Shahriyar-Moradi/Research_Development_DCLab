@@ -178,7 +178,7 @@
     },
     "JsonValue": {}
   },
-  "$id": "https://dclab.dev/schemas/dclab_core.experience_event.v22.json",
+  "$id": "https://dclab.dev/schemas/dclab_core.experience_event.v23.json",
   "additionalProperties": false,
   "allOf": [
     {
@@ -15451,6 +15451,1028 @@
       "if": {
         "properties": {
           "kind": {
+            "const": "team.agent.turn"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "agent"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "agent"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "agent"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "agent"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "delivery"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "delivery"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "delivery"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "delivery"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "euros"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "euros"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "euros"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "euros"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "fallback"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "fallback"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "fallback"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "fallback"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "outcome"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "outcome"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "outcome"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "outcome"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "plan_chars"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "plan_chars"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "plan_chars"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "plan_chars"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "plan_sha256"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "plan_sha256"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "plan_sha256"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "plan_sha256"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "plan_steps"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "plan_steps"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "plan_steps"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "plan_steps"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "problem"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "problem"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "problem"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "problem"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "refusals"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "refusals"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "refusals"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "refusals"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "refused"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "refused"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "refused"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "refused"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "request"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "request"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "request"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "request"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "role"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "role"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "role"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "role"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "run"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "run"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "run"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "run"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "seconds"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "seconds"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "seconds"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "seconds"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "sentences_kept"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "sentences_kept"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "sentences_kept"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "sentences_kept"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "sentences_refused"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "sentences_refused"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "sentences_refused"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "sentences_refused"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "steps"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "steps"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "steps"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "steps"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "stopped"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "stopped"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "stopped"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "stopped"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "task"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "task"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "task"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "task"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "tools"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "tools"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "tools"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "tools"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "writes"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "writes"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "writes"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "writes"
+                  ]
+                }
+              }
+            }
+          }
+        ],
+        "properties": {
+          "classes": {
+            "properties": {
+              "agent": {
+                "const": "meta"
+              },
+              "delivery": {
+                "const": "meta"
+              },
+              "euros": {
+                "const": "count"
+              },
+              "fallback": {
+                "const": "meta"
+              },
+              "outcome": {
+                "const": "meta"
+              },
+              "plan_chars": {
+                "const": "count"
+              },
+              "plan_sha256": {
+                "const": "meta"
+              },
+              "plan_steps": {
+                "const": "count"
+              },
+              "problem": {
+                "const": "meta"
+              },
+              "refusals": {
+                "const": "meta"
+              },
+              "refused": {
+                "const": "count"
+              },
+              "request": {
+                "const": "meta"
+              },
+              "role": {
+                "const": "meta"
+              },
+              "run": {
+                "const": "meta"
+              },
+              "seconds": {
+                "const": "count"
+              },
+              "sentences_kept": {
+                "const": "count"
+              },
+              "sentences_refused": {
+                "const": "count"
+              },
+              "steps": {
+                "const": "count"
+              },
+              "stopped": {
+                "const": "meta"
+              },
+              "task": {
+                "const": "meta"
+              },
+              "tools": {
+                "const": "meta"
+              },
+              "writes": {
+                "const": "count"
+              }
+            },
+            "propertyNames": {
+              "enum": [
+                "agent",
+                "delivery",
+                "euros",
+                "fallback",
+                "outcome",
+                "plan_chars",
+                "plan_sha256",
+                "plan_steps",
+                "problem",
+                "refusals",
+                "refused",
+                "request",
+                "role",
+                "run",
+                "seconds",
+                "sentences_kept",
+                "sentences_refused",
+                "steps",
+                "stopped",
+                "task",
+                "tools",
+                "writes"
+              ]
+            }
+          },
+          "payload": {
+            "propertyNames": {
+              "enum": [
+                "agent",
+                "delivery",
+                "euros",
+                "fallback",
+                "outcome",
+                "plan_chars",
+                "plan_sha256",
+                "plan_steps",
+                "problem",
+                "refusals",
+                "refused",
+                "request",
+                "role",
+                "run",
+                "seconds",
+                "sentences_kept",
+                "sentences_refused",
+                "steps",
+                "stopped",
+                "task",
+                "tools",
+                "writes"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
             "const": "team.brain.answered"
           }
         },
@@ -26064,7 +27086,8 @@
         "team.target.confirmed",
         "team.target.mismatch",
         "team.brain.answered",
-        "team.helper.seat"
+        "team.helper.seat",
+        "team.agent.turn"
       ],
       "title": "Kind",
       "type": "string"
@@ -26085,8 +27108,8 @@
       "type": "array"
     },
     "schema_version": {
-      "const": "dclab_core.experience_event.v22",
-      "default": "dclab_core.experience_event.v22",
+      "const": "dclab_core.experience_event.v23",
+      "default": "dclab_core.experience_event.v23",
       "title": "Schema Version",
       "type": "string"
     },

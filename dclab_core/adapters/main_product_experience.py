@@ -101,6 +101,8 @@ KINDS_MISSING = {
        for k in ("team.target.confirmed", "team.target.mismatch")},
     "team.helper.seat": "no team agents there yet (0.172.0): a helper seat's outcome (the model's answer used where its code check "
                         "passed, else the rules') is recorded when it adopts dclab_core.team_brain.SeatRecord",
+    "team.agent.turn": "no team agents there yet (0.173.0): an agent-arm turn (its plan as a measure, writes, refusals, report "
+                       "sentences kept and refused, cost) is recorded when it adopts dclab_core.team_brain.AgentTurnRecord",
     "team.brain.answered": "no team agents there yet (0.171.0): which brain (rules, helper, agent) answered a team agent's turn is "
                            "recorded when it adopts dclab_core.team_brain",
     "track.outcome": "no Home front door with kinds of help there yet (36.2): what a person did with an answer, table, brief or dashboard is recorded when it adopts dclab_core.track_outcome",

@@ -8,7 +8,8 @@ corrects). For each row the job:
 1. rechecks the member who started it, now, with write permission (``memory.scope.revalidate_job_scope``): a member who
    lost access, or was made a viewer, gets the row refused and the target is never called;
 2. hands the row to the delivery target, within a time limit (``DCLAB_TEAM_DELIVERY_TIMEOUT_SECONDS``, 30; B2: plus the
-   helper seats' seconds for a turn where a helper-arm role may be asked before the rules act): the default,
+   helper seats' seconds for a turn where a helper-arm role may be asked before the rules act; B3: plus the agent turn's
+   seconds and a margin when the recipient's model acts on the row, ``agent_arm.turn_seconds``): the default,
    :func:`default_target`, posts it into its team thread (W3, ``teamspace/threads.py``: the recipient's, or for a reply
    the thread its task came from, once per row id) and then gives the recipient team's agent its turn (W5,
    ``teamspace/agents.py``); :func:`set_target` replaces it (tests);
@@ -24,6 +25,11 @@ an attempt too (``settle``), so the limit holds.
 What the requester sees (``reason``) is fixed words and the error's class; the error's text stays in ``last_error``,
 scrubbed. A target is called with the row, whose ``id`` is its idempotency key: a target cut off by a crash or the time
 limit after it acted may be called again for the same id, and must treat that as the same delivery.
+
+B3: a row a model acts on (the recipient's role on the agent arm) is held by one agent turn at a time: the turn takes a
+lease on the row (``store.agent_turn_claim``), its end is the row's next attempt while it runs (the relay and a second
+deliverer leave it alone; a failed attempt never retries before it ends), and a row handed over again during the turn
+raises :class:`TurnHeld` (a temporary failure: nothing started), after it ended runs no second turn.
 """
 
 from __future__ import annotations
@@ -52,6 +58,10 @@ class PermanentFailure(Exception):
 
 class TargetTimeout(TemporaryFailure):
     """The recipient did not answer within the time limit."""
+
+
+class TurnHeld(TemporaryFailure):
+    """B3: an agent turn is running on this row (its lease holds): nothing is started; the row waits for that turn."""
 
 
 class JobFailed(Exception):
@@ -107,8 +117,10 @@ def timeout_seconds(env: Any = None, row: Optional[Mapping[str, Any]] = None, st
     if env is None or not row:
         return base
     try:
-        from . import seats
+        from . import agent_arm, seats
 
+        if agent_arm.acts_on(env, row):  # B3: the recipient's model acts on this row: its own limit (its budget and a margin)
+            return base + agent_arm.turn_seconds()
         task = (store or store_for(env)).task(row["project_id"], row["task_id"])
         requester = task.requester.team if task is not None else None
         return base + seats.seat_seconds() if seats.waits_in(env, row.get("to_team"), requester) else base
@@ -333,5 +345,5 @@ def settle(env: Any, payload: Mapping[str, Any], reason: str, job: Mapping[str, 
         pass
 
 
-__all__ = ["KIND", "JobFailed", "PermanentFailure", "REFUSED", "TargetTimeout", "TemporaryFailure", "acknowledge", "authorize", "default_target", "enqueue",
+__all__ = ["KIND", "JobFailed", "PermanentFailure", "REFUSED", "TargetTimeout", "TemporaryFailure", "TurnHeld", "acknowledge", "authorize", "default_target", "enqueue",
            "job_key", "lane_of", "requeue_undelivered", "run", "send", "set_membership_checker", "set_target", "settle", "store_for"]

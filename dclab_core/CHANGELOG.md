@@ -4,6 +4,30 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.173.0 (2026-11-24)
+
+- `team_brain` (B3 of the team workspace, the agent arm acts): in the `agent` arm a model chooses the turn's calls inside
+  the strict layer, plan first. `AGENT_OUTCOMES` (`acted`, `fell_back`, `ended`, `repeat`), `AGENT_STOPS` (the model's
+  own end, a budget of steps, seconds or euros, a failing model, a turn cut off by a crash, no plan), `REPORT_REFUSALS`
+  (why code refused a report sentence: a number or number word no record holds, an action claimed without its terminal
+  record, an overclaim, a promise of an action), `PLAN_CHARS`. `CLAIMS` and `claimed_actions(sentence)`: the actions a
+  sentence says were done (a denial, a request or a future is no claim); `unrecorded_claims(sentence, done)` against the
+  actions with a terminal record (`CLAIM_ACTIONS` maps a claim to the directory actions that meet it; `NEVER_RECORDED`:
+  train, deploy, approve and contact customers have no tool, so a claim of them is always refused);
+  `promises_action(sentence)`. The claims cover every directory action a team performs, contact by any verb (called,
+  sent, told, notified, offered...) in the active and the passive, approval given or signed off, and a person's
+  confirmation (`person_confirmed`, met only by a recorded human answer, `PERSON`); a denial counts in its own clause only.
+  `FALLBACKS` adds `budget` (a budget ended before the first action), `person_entry` (a turn a person's own message
+  starts is code's) and `no_action` (a plan followed by no write on a task still open: the work never waits on a model
+  that did nothing); `SEAT_OUTCOMES` is written out and unchanged. `AgentTurnRecord`
+  (`dclab_core.team_agent_turn.v1`): one agent-arm turn, its plan as a measure (length, steps, SHA-256: the words stay
+  with the host), its calls, writes and refusals, its report's kept and refused sentences, its cost; a fallback only
+  before the first write.
+- `experience`: `ExperienceEvent` v23 adds `team.agent.turn` (codes, ids and measures; never the plan, a prompt or a
+  reply). v22 reads unchanged.
+- `ledger`: the workflow point `team.agent_report` (does an agent-arm report keep every sentence the model wrote?), with
+  the state fields `sentences_kept`, `sentences_refused` and `report_refusal`.
+
 ## 0.172.0 (2026-11-23)
 
 - `team_brain` (B2 of the team workspace, the helper arm): in the `helper` arm code still decides everything and a model

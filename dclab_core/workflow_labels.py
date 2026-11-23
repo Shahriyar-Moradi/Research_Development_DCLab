@@ -62,6 +62,9 @@ NOT_LEARNED = {
                              "where feasibility is decided; a classifier on it can only copy the rule",
     "team.helper_seat": "0.172.0 (B2): whether a helper seat's answer was used is its code check's verdict, not a judgment; "
                         "whether the used answers were right is measured by the arms' comparison (B4), never learned from the check",
+    "team.agent_report": "0.173.0 (B3): whether code kept an agent-arm report's sentences is its check's verdict (numbers traced "
+                         "to records, no unrecorded action claimed), not a judgment; the reports' quality is measured by the arms' "
+                         "comparison (B4)",
     "team.brain": "0.171.0 (B1): which brain answered a team agent's turn is the audited switch's setting, not a judgment; the "
                   "model's answers beside the rules' are measured by the arms' comparison (B4), never learned from the switch",
     "command.intent_route": "not decided by the studio yet",

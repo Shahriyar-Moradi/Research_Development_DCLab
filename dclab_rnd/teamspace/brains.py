@@ -6,7 +6,7 @@ only its *brain* differs (``dclab_core.team_brain``):
 - ``rules``: today's agents (``agents.BRAINS`` through ``agents.ScriptedChoices``), unchanged, the default of every role;
 - ``helper``: code decides and a model helps at named seats, its answer used only where a code check passes (B2:
   ``teamspace/seats.py``; the seats each role has are ``dclab_core.team_brain.ROLE_SEATS``);
-- ``agent``: a model chooses the agent's next call inside the strict layer (the full loop is B3's).
+- ``agent``: a model runs the agent's turn inside the strict layer (B3: ``teamspace/agent_arm.py``).
 
 **B2, the helper arm.** B1's helper placeholder (which tool next, in shadow) is replaced by the seats. The rules still
 choose every call. Where they reach a seat whose answer changes what they do next (reading the person's words, the teams a
@@ -16,22 +16,17 @@ are asked after the turn on the thread below. :func:`finish` records the turn's 
 of its answers was used) and starts the after-seats. A helper-arm turn's delivery gets the seats' seconds on top of the
 rules' limit (``delivery.timeout_seconds``); a role on the rules keeps its limit.
 
-**The agent arm in B1 always lets the rules act, and never waits on a model.** A role switched to ``agent`` also asks its
-model once per turn which tool comes next. Its request is *built* before the rules act, from the same stored state the rules
-read (so the two answers are comparable), and *sent* only after the rules' run has ended, on a thread of its own outside
-the delivery (:func:`finish`): a slow model never holds, fails, repeats or delays a delivery (the review of B1, F1). The
-answer is checked by code (a tool the agent may call, or "none") and recorded beside the rules' first call; it is never
-executed. When no model serves the purpose (none configured, ``DCLAB_NO_LIVE_MODELS=1``), the turn stopped before the
-rules finished, the request is refused (a cap, the Admin page's stop), times out or fails, or its answer fails the check,
-the turn falls back to the rules and the reason is recorded (``dclab_core.team_brain.FALLBACKS``). Every model request
-goes through the gateway with thinking on (``models/settings.thinking_for``: summarized thinking on Anthropic), and the
-exchange is kept whole with its thinking: the team purposes are shown team records, never a table's cells. The request
-runs in the turn's context: the same run id, and a span of the turn's trace (``team_turn``).
+**B1's agent arm answered in shadow; B3's acts** (``teamspace/agent_arm.py``). On a delivered row a role switched to
+``agent`` runs its turn on the agent loop (``agents.runtime.run``) with the team tools: plan first, its own choice of calls
+through the same guard, budgets, one turn per delivery (a lease on the row), and the rules only when the model cannot act
+before its first write (the reason recorded, ``dclab_core.team_brain.FALLBACKS``). Its delivery has its own limit
+(``delivery.timeout_seconds`` reads ``agent_arm.acts_on``); the rules keep theirs. Every model request goes through the
+gateway with thinking on (``models/settings.thinking_for``: summarized thinking on Anthropic), and the exchange is kept
+whole with its thinking: the team purposes are shown team records, never a table's cells.
 
-**B3** (the agent arm acts): its loop runs inside the delivery and needs longer than the rules' 30 s. The deadline belongs
-to the arm then: ``delivery.timeout_seconds`` reads the recipient's arm (``arm_for``) and gives an acting model arm its
-own limit, the rules keeping theirs. B2 made that seam for the helper: a turn where a helper before-seat can run gets the
-rules' limit plus the seats' seconds (``seats.waits_in``, ``seats.seat_seconds``).
+B1's one-shot request (:class:`AgentBrain`: which tool next, checked, never acted on) stays for a measurement that wants
+it (``beside``), and :func:`finish` still sends such a request on its capped thread after a turn (``busy`` past the cap,
+``stopped`` for a turn that did not complete); B2's after-seats use that thread too.
 
 **The switch** (:func:`switch`): one audited change per role, by a reviewer or the owner, with a reason; stored in the
 workspace's routing document (``models/routing.py``, the same file or PostgreSQL row the model purposes use) under
@@ -331,8 +326,8 @@ class HelperBrain:
 
 
 class AgentBrain(_ModelBrain):
-    """B1's agent: offered the agent's own tools, it calls the one that should come next (or none). Its call is never run in
-    B1; B3 runs the loop on ``agents.runtime.run`` with the same tools and guard."""
+    """B1's one-shot agent: offered the agent's own tools, it calls the one that should come next (or none); its call is
+    never run. B3's acting agent arm is ``teamspace/agent_arm.py`` (the turn's loop on ``agents.runtime.run``)."""
 
     arm, purpose, prompt = "agent", "team_agent", "team_agent"
 

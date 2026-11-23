@@ -751,8 +751,9 @@ class DataLimitTests(unittest.TestCase):
     def test_the_team_brains_see_the_task_and_the_tools_never_a_table(self):
         """B1 (2026-11-23): a team agent's agent arm is shown the agent's job, the task's state, the person's question and the
         tools' schemas. B2: the helper's seats are shown the person's words with the events allowed, the rules' question, and
-        a report the team returned (its words, limits and next owner). The turn reads no table, so no cell of the project's
-        table can reach them."""
+        a report the team returned (its words, limits and next owner). B3: the agent arm's loop is shown the brief with the
+        agent's action directory and budget, then its own tools' results (the team's records). The turn reads no table, so no
+        cell of the project's table can reach them."""
         from types import SimpleNamespace
 
         from dclab_rnd.agents import default_registry
@@ -781,6 +782,16 @@ class DataLimitTests(unittest.TestCase):
         seats._after_seat(turn, "data_science", "explain_report", "T-1", "T-1@1", None)
         offered = ("team_accept", "team_block", "team_return_report")
         self.assertEqual(brains.AgentBrain().beside(turn, ("team_accept", {}), offered, default_registry())["tool"], "team_accept")
+        # B3: the agent arm's loop is shown the same brief, its action directory and budget, then its own tools' results
+        from dclab_rnd.agents.harness import tracer
+        from dclab_rnd.teamspace import agent_arm
+
+        turn.env.gateway = gateway({"team_agent": [tool_call("team_plan", {"plan": "1. Accept the task.\n2. Inspect the sample."}),
+                                                   {"content": "Done.", "tool_calls": [], "usage": {},
+                                                    "assistant_message": {"role": "assistant", "content": "Done."}}]})
+        out = agent_arm.act(turn, default_registry(), base="data_science", source="override", name="teamspace.data_science",
+                            trace=tracer("teamspace.data_science"), brain=agents.BRAINS["data_science"])
+        self.assertEqual(getattr(out, "reason", None), "no_action")  # it planned and wrote nothing: the rules take the turn
         self.assertEqual(self.assertWithinLimit("team_helper"), set())
         self.assertEqual(self.assertWithinLimit("team_agent"), set())
 

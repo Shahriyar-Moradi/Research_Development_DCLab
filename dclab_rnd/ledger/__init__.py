@@ -112,6 +112,10 @@ CAPTURED = {
     "team.helper_seat": "ledger/capture.py team_helper_seat, called from teamspace/seats.py wherever a helper-arm role's seat was "
                         "reached (B2): the rules' answer always, the model's beside it (its code when its check passed, else None "
                         "with the reason), and whose answer the turn went on with",
+    "team.agent_report": "ledger/capture.py team_agent_report, called from teamspace/agent_arm.py where an agent-arm team agent's "
+                         "report was written (B3): the model's sentences offered as its findings, code's check (kept when every "
+                         "number traces to a record and no action is claimed without its terminal record, else refused, with the "
+                         "first reason)",
     "team.brain": "ledger/capture.py team_brain_answered, called from teamspace/agents.py run_turn after every team agent's turn "
                   "that ran (B1): the rules' answer always, the helper's or agent's beside it (or why it fell back), and the arm that acted",
     "team.target_agreement": "ledger/capture.py team_target_agreement, called from teamspace/tools.py where Data Science inspects "

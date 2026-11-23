@@ -1444,3 +1444,29 @@ def team_helper_seat(project_id: str, task_id: str, agent: str, *, role: str, se
                   used, "model_role" if used == "model" else "rule", state=state, options=list(HELPER_SEAT_CHOICES),
                   level=2, project=project_id, run=run)  # a helper seat acts with a check (level 2), whether or not this answer passed
     return getattr(record, "id", None)
+
+
+# ---------------------------------------------------------------------- 0.173.0: an agent-arm report, checked by code
+AGENT_REPORT_CHOICES = ("kept", "refused")
+
+
+@_quiet
+def team_agent_report(project_id: str, task_id: str, agent: str, *, kept: int, refused: int, refusal: Optional[str] = None,
+                      report: Optional[str] = None, run: Optional[str] = None) -> Optional[str]:
+    """B3: a team agent on the agent arm returned a report (``teamspace/agent_arm.py``). The model wrote its findings and
+    recommendation; code kept a sentence only when every number in it traces to a record and it claims no action without
+    its terminal record. The value is ``kept`` when every sentence held, else ``refused`` (the first refusal's reason as a
+    code of ``dclab_core.team_brain.REPORT_REFUSALS``). The model's sentences are the model's answer (its counts), code's
+    verdict the check's. Counts and codes: never a sentence. One record per report."""
+    from dclab_core.team_brain import REPORT_REFUSALS
+
+    if refusal is not None and refusal not in REPORT_REFUSALS:
+        raise ValueError(f"a refused sentence's reason is one of {REPORT_REFUSALS}, not {refusal!r}")
+    base = _code(str(agent).split(":")[0]) or "team"
+    value = "refused" if refused else "kept"
+    answers = [answer("model_role", "team_agent", "kept"),  # the model offered every sentence as its finding
+               answer("rule", "rule:teamspace.report_check", value, reason=_code(refusal))]
+    state: dict[str, Any] = {"team": base, "sentences_kept": int(kept), "sentences_refused": int(refused), "report_refusal": _code(refusal)}
+    record = _put("team.agent_report", ("project", f"{project_id}:{task_id}:{report or 'report'}:{run or 'turn'}"[:200]), answers, value,
+                  "rule", state=state, options=list(AGENT_REPORT_CHOICES), level=2, project=project_id, run=run)
+    return getattr(record, "id", None)

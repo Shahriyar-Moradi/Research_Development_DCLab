@@ -274,7 +274,7 @@
   {
    "contract": "experience_event",
    "reads": [],
-   "version": "dclab_core.experience_event.v22"
+   "version": "dclab_core.experience_event.v23"
   },
   {
    "contract": "experience_session",
@@ -634,6 +634,11 @@
    "version": "dclab_core.team_action.v1"
   },
   {
+   "contract": "team_agent_turn",
+   "reads": [],
+   "version": "dclab_core.team_agent_turn.v1"
+  },
+  {
    "contract": "team_brain_setting",
    "reads": [],
    "version": "dclab_core.team_brain_setting.v1"
@@ -788,7 +793,7 @@
    "what": "A solved project from its problem to its report, one row per project: the card, the map, the routes, the stages run and the report's kept sentences, never a row of its table; only projects whose consent allows training, and none at all below the builder's minimum of projects (30.19)."
   }
  ],
- "dclab_core": "0.172.0",
+ "dclab_core": "0.173.0",
  "decision_points": [
   {
    "about": "Which tool does the agent call next?",
@@ -1542,6 +1547,17 @@
    "point": "task.framing",
    "subjects": [
     "draft",
+    "project"
+   ]
+  },
+  {
+   "about": "Does a team agent's report keep every sentence the model wrote, or did code refuse one?",
+   "answer": "choice",
+   "decided_in": "ledger/capture.py team_agent_report, called from teamspace/agent_arm.py where an agent-arm team agent's report was written (B3): the model's sentences offered as its findings, code's check (kept when every number traces to a record and no action is claimed without its terminal record, else refused, with the first reason)",
+   "kind": "workflow",
+   "main_product": null,
+   "point": "team.agent_report",
+   "subjects": [
     "project"
    ]
   },
@@ -2814,6 +2830,41 @@
     "task": "meta"
    },
    "kind": "team.action.started",
+   "leaves_at": "improve",
+   "never_leaves": [],
+   "train_only": []
+  },
+  {
+   "emitted_by": [
+    "dclab_rnd/teamspace/agent_arm.py"
+   ],
+   "example": "python -m dclab_rnd.experience search --kind team.agent.turn",
+   "family": "team",
+   "fields": {
+    "agent": "meta",
+    "delivery": "meta",
+    "euros": "count",
+    "fallback": "meta",
+    "outcome": "meta",
+    "plan_chars": "count",
+    "plan_sha256": "meta",
+    "plan_steps": "count",
+    "problem": "meta",
+    "refusals": "meta",
+    "refused": "count",
+    "request": "meta",
+    "role": "meta",
+    "run": "meta",
+    "seconds": "count",
+    "sentences_kept": "count",
+    "sentences_refused": "count",
+    "steps": "count",
+    "stopped": "meta",
+    "task": "meta",
+    "tools": "meta",
+    "writes": "count"
+   },
+   "kind": "team.agent.turn",
    "leaves_at": "improve",
    "never_leaves": [],
    "train_only": []

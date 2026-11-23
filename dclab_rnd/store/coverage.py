@@ -69,7 +69,8 @@ CAPTURE: dict[str, Capture] = {
     "team": Capture((*_RUN, "event:team.handoff", "event:team.recorded", "store:workflows")),
     "teamspace": Capture((*_RUN, "event:team.task.created", "event:team.action.ended", "event:team.report.written",
                           "point:team.task_owner", "event:team.brain.answered", "point:team.brain", "purpose:team_helper",
-                          "purpose:team_agent", "event:team.helper.seat", "point:team.helper_seat")),  # W5, W7: the team agents, the Lead and Home: every task, action and report, and each task's owning team; B1: which brain answered each turn and its model requests; B2: each helper seat, whose answer was used
+                          "purpose:team_agent", "event:team.helper.seat", "point:team.helper_seat", "event:team.agent.turn",
+                          "point:team.agent_report")),  # W5, W7: the team agents, the Lead and Home: every task, action and report, and each task's owning team; B1: which brain answered each turn and its model requests; B2: each helper seat, whose answer was used; B3: each agent-arm turn (its plan, writes, refusals, cost) and its reports' sentences kept or refused
     "campaign": Capture((*_RUN, "purpose:campaign", "store:actions")),
     "mcp": Capture((*_RUN, "event:tool.call", "store:actions")),
     "orchestra": Capture((*_RUN, "store:workflows")),

@@ -1,0 +1,263 @@
+{
+  "$id": "https://dclab.dev/schemas/dclab_core.team_agent_turn.v1.json",
+  "additionalProperties": false,
+  "description": "One turn of a team agent on the agent arm (0.173.0, B3): how it ended, why it stopped, its plan as a measure (the\nwords stay with the host), what it did, what code refused, what its report kept, and what it cost. Codes, ids and\nmeasures: never the person's words, a prompt, the plan or a reply.",
+  "properties": {
+    "agent": {
+      "maxLength": 80,
+      "minLength": 1,
+      "title": "Agent",
+      "type": "string"
+    },
+    "delivery": {
+      "anyOf": [
+        {
+          "maxLength": 120,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "The delivery this turn answered (one turn per delivery).",
+      "title": "Delivery"
+    },
+    "euros": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Euros"
+    },
+    "fallback": {
+      "anyOf": [
+        {
+          "enum": [
+            "no_model",
+            "no_live_models",
+            "refused",
+            "timeout",
+            "invalid_output",
+            "error",
+            "stopped",
+            "busy",
+            "unsure",
+            "check_failed",
+            "budget",
+            "person_entry",
+            "no_action"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Why the rules acted instead (outcome fell_back only).",
+      "title": "Fallback"
+    },
+    "outcome": {
+      "enum": [
+        "acted",
+        "fell_back",
+        "ended",
+        "repeat"
+      ],
+      "title": "Outcome",
+      "type": "string"
+    },
+    "plan_chars": {
+      "default": 0,
+      "maximum": 4000,
+      "minimum": 0,
+      "title": "Plan Chars",
+      "type": "integer"
+    },
+    "plan_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Of the plan's words, kept whole by the host.",
+      "title": "Plan Sha256"
+    },
+    "plan_steps": {
+      "default": 0,
+      "maximum": 200,
+      "minimum": 0,
+      "title": "Plan Steps",
+      "type": "integer"
+    },
+    "refusals": {
+      "description": "Each refused sentence's reason, a code of REPORT_REFUSALS.",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 50,
+      "title": "Refusals",
+      "type": "array"
+    },
+    "refused": {
+      "default": 0,
+      "description": "Calls the guard, a check or a schema refused: nothing changed.",
+      "minimum": 0,
+      "title": "Refused",
+      "type": "integer"
+    },
+    "request": {
+      "anyOf": [
+        {
+          "maxLength": 120,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "The last model request: its exchange keeps the thinking.",
+      "title": "Request"
+    },
+    "role": {
+      "enum": [
+        "lead",
+        "business",
+        "data_science",
+        "ml_engineering",
+        "sales",
+        "marketing"
+      ],
+      "title": "Role",
+      "type": "string"
+    },
+    "run": {
+      "anyOf": [
+        {
+          "maxLength": 120,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "The agent's run: its steps, each an agent.step.",
+      "title": "Run"
+    },
+    "schema_version": {
+      "const": "dclab_core.team_agent_turn.v1",
+      "default": "dclab_core.team_agent_turn.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "seconds": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Seconds"
+    },
+    "sentences_kept": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Sentences Kept",
+      "type": "integer"
+    },
+    "sentences_refused": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Sentences Refused",
+      "type": "integer"
+    },
+    "steps": {
+      "default": 0,
+      "description": "Tool calls the model made, the plan and reads included.",
+      "minimum": 0,
+      "title": "Steps",
+      "type": "integer"
+    },
+    "stopped": {
+      "anyOf": [
+        {
+          "enum": [
+            "answered",
+            "steps",
+            "time",
+            "euros",
+            "replies",
+            "max_output_tokens",
+            "tools_as_text",
+            "error",
+            "timeout",
+            "refused",
+            "interrupted",
+            "no_plan"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Stopped"
+    },
+    "task": {
+      "anyOf": [
+        {
+          "maxLength": 200,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Task"
+    },
+    "tools": {
+      "description": "The tools called, in order, as codes.",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 200,
+      "title": "Tools",
+      "type": "array"
+    },
+    "writes": {
+      "default": 0,
+      "description": "Calls that wrote team work and ran (the guard let them through).",
+      "minimum": 0,
+      "title": "Writes",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "schema_version",
+    "role",
+    "agent",
+    "outcome"
+  ],
+  "title": "AgentTurnRecord",
+  "type": "object"
+}

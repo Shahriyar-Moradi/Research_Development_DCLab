@@ -109,6 +109,9 @@ STATE_FIELDS: dict[str, tuple[str, tuple[str, ...]]] = {
     "brain_arm": (CODE, ()), "brain_source": (CODE, ()), "brain_fallback": (CODE, ()),
     # 0.172.0 (B2): a helper seat (dclab_core.team_brain.SEATS) and its outcome (used, or why the rules' answer stood)
     "helper_seat": (CODE, ()), "seat_outcome": (CODE, ()),
+    # 0.173.0 (B3): an agent-arm report's sentences, kept or refused by code, and the first refusal's reason (a code of
+    # dclab_core.team_brain.REPORT_REFUSALS)
+    "sentences_kept": (COUNT, ()), "sentences_refused": (COUNT, ()), "report_refusal": (CODE, ()),
     "verdict": (CODE, ()), "agreed": (FLAG, ()),  # 28.6: the second opinion's judge, and whether its two readers agreed
     # 30.11: the modifiers' evidence, as aggregates of the training rows
     "rows_per_key": (MEASURE, ()), "rate_change": (MEASURE, ()), "class_shift": (MEASURE, ()), "level_shift": (MEASURE, ()),
@@ -290,6 +293,11 @@ POINTS: dict[str, Point] = {p.key: p for p in (
     # promises nothing; an explanation whose numbers are the report's), else the rules' own
     _p("team.helper_seat", W, "project", "choice", "At a helper seat, does the turn go on with the model's answer or the rules'?",
        choices=("model", "rule")),
+    # 0.173.0 (B3, 2026-11-24): an agent-arm team agent wrote its report's findings and recommendation; code keeps a sentence
+    # only when every number in it traces to a record and it claims no action without its terminal record ("kept" when all
+    # of them held, else "refused"); the numbers themselves are attached by code from the records
+    _p("team.agent_report", W, "project", "choice", "Does a team agent's report keep every sentence the model wrote, or did code refuse one?",
+       choices=("kept", "refused")),
     # H2 (2026-10-28): the kind of help a request needs, read before anything else on Home; labelled by the person's choice
     _p("request.intent", W, "draft", "choice", "Which kind of help does the request need?",
        choices=("prediction", "analysis", "preparation", "reporting", "business", "advice")),

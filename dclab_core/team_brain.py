@@ -22,7 +22,24 @@ other two change nothing the rules do (:data:`AFTER_SEATS`: a report explained i
 sees) and are asked after the turn, never waited on. :func:`check_code` and :func:`check_question` are the portable code
 checks; the explanation and the risks are checked by the host's citation check.
 
-Contracts ``dclab_core.team_brain_setting.v1`` and ``dclab_core.team_helper_seat.v1``.
+**The agent arm acts** (B3, 0.173.0). In the ``agent`` arm a model chooses the turn's calls inside the strict layer (the
+same tools, guard, task store and report builder as the rules). It writes its plan first (kept whole by the host), then
+chooses its actions, their order, its questions and hand-overs. A host owes it four rules, each checked by code:
+
+- budgets per turn (steps, seconds, euros): when one ends, the turn ends with what was done recorded (:data:`AGENT_STOPS`);
+- a fallback only *before* the first action: a model that is missing, refused, late, invalid or failing, or a budget that
+  ends before any write, leaves the turn to the rules (one of :data:`FALLBACKS`). After an action the rules never run on
+  top (they would repeat work): the turn ends and its partial state is recorded (``ended``);
+- one turn per delivery: a delivery handed over again while its turn runs, or after it ended, starts no second turn;
+- a report keeps the model's sentences only where they hold: every number traces to a record (an action's output, a
+  tool's result, a returned report or the brief), no sentence claims an action without its terminal record
+  (:func:`claimed_actions`), overclaims or promises an action (:data:`REPORT_REFUSALS`). Code attaches the numbers from
+  the records itself.
+
+:class:`AgentTurnRecord` is one agent turn's record. Codes, ids and measures: the plan's words stay with the host (its
+exchange and its turn journal), never in the record.
+
+Contracts ``dclab_core.team_brain_setting.v1``, ``dclab_core.team_helper_seat.v1`` and ``dclab_core.team_agent_turn.v1``.
 """
 
 from __future__ import annotations
@@ -30,7 +47,7 @@ from __future__ import annotations
 import re
 from typing import Any, Literal, Mapping, Optional, Sequence, Union
 
-from pydantic import Field
+from pydantic import Field, model_validator
 
 from dclab_core.contracts import CONTRACTS, Versioned, _version
 
@@ -41,9 +58,14 @@ ROLES = ("lead", "business", "data_science", "ml_engineering", "sales", "marketi
 REVIEWERS = ("reviewer", "owner")  # who may switch a role's brain
 SOURCES = ("default", "stored", "override")  # where a turn's arm came from
 # why a model arm's turn fell back to the rules ("stopped": the turn ended before the rules finished, so no model was asked).
-# 0.172.0 (B2): a helper seat also falls back when the model said "unsure" or its answer failed the seat's code check
+# 0.172.0 (B2): a helper seat also falls back when the model said "unsure" or its answer failed the seat's code check.
+# 0.173.0 (B3): an agent-arm turn also falls back when a budget ended before its first action (``budget``), and a turn a
+# person's own message starts (their case opened in their words, their answer recorded) is code's, never a model's
+# (``person_entry``): code writes down exactly what the person gave; a turn that planned and then wrote nothing on a task still
+# open (every write refused, or none made) falls back too (``no_action``), so the work is never left waiting, and the arm's
+# comparison counts it as the agent's failure
 FALLBACKS = ("no_model", "no_live_models", "refused", "timeout", "invalid_output", "error", "stopped", "busy", "unsure",
-             "check_failed")
+             "check_failed", "budget", "person_entry", "no_action")
 SHORT = 300
 
 # ---------------------------------------------------------------------------------------------- 0.172.0 (B2): the seats
@@ -61,7 +83,9 @@ ROLE_SEATS: dict[str, tuple[str, ...]] = {
     "marketing": ("explain_report", "list_risks"),
 }
 UNSURE = "unsure"  # what a code seat answers when the words do not settle it: the rules then ask, as before
-SEAT_OUTCOMES = ("used", *FALLBACKS)  # "used": the check passed and the model's answer was used
+# "used": the check passed and the model's answer was used (0.173.0: written out, so B3's fallbacks are no seat's outcome)
+SEAT_OUTCOMES = ("used", "no_model", "no_live_models", "refused", "timeout", "invalid_output", "error", "stopped", "busy", "unsure",
+                 "check_failed")
 QUESTION_CHARS = 240  # a clarifying question's wording, at most
 _NUMBER = re.compile(r"\d|\b(?:zero|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|twenty|thirty|forty|fifty|"
                      r"sixty|seventy|eighty|ninety|hundred|thousand|million|billion|half|percent)\b", re.I)
@@ -177,9 +201,175 @@ def check_question(text: Any, *, options: Sequence[str] = (), limit: int = QUEST
     return None
 
 
-for _model in (BrainSetting, SeatRecord):
+# ---------------------------------------------------------------------------------------------- 0.173.0 (B3): the agent acts
+# How an agent-arm turn ended: it acted (and ended on its own words), fell back to the rules before any action, ended
+# after an action without finishing (a budget, a failing model, a crash), or was a delivery handed over again (no turn)
+AGENT_OUTCOMES = ("acted", "fell_back", "ended", "repeat")
+# Why its run stopped: the model answered (its own end), a budget (steps, seconds, euros; replies: the requests' bound),
+# a reply cut twice at its length limit, calls written as text, the model failing (error, timeout, refused), a turn cut
+# off by a crash and not run again (interrupted), or no plan before the first action (no_plan)
+AGENT_STOPS = ("answered", "steps", "time", "euros", "replies", "max_output_tokens", "tools_as_text", "error", "timeout", "refused",
+               "interrupted", "no_plan")
+# Why code refused one of the model's report sentences (or limits)
+REPORT_REFUSALS = ("number_not_in_records", "number_word_not_in_records", "claims_unrecorded_action", "overclaims",
+                   "promises_action", "unknown_source", "empty")
+PLAN_CHARS = 4000  # a plan's words, at most (kept whole: the host never cuts one)
+
+_WORDS = r"(?:\s+[\w'-]+){0,4}\s+"
+# A sentence that says an action was done. Each claim is checked against the action log: an action with no terminal
+# record ("succeeded" or "simulated") on the task or a task it handed out is a claim code refuses. The last four have no
+# tool in any release of the team workspace, so a claim of them is always refused (unless the sentence denies it).
+_BEEN = r"(?:\s+[\w'-]+){0,4}\s+(?:was|were|has been|have been|had been|got|is now|are now)\s+"  # the passive: "the schema was inspected"
+CLAIMS: dict[str, "re.Pattern[str]"] = {name: re.compile(pattern, re.I) for name, pattern in (
+    ("inspect_schema", rf"\b(?:inspected|examined|read|reviewed|looked at|went through)\b{_WORDS}(?:schema|columns?)\b|"
+                       rf"\b(?:schema|columns?)\b{_BEEN}(?:inspected|examined|read|reviewed|looked at)\b"),
+    ("check_leakage", rf"\b(?:checked|tested|screened|audited|ran)\b(?:{_WORDS})?(?:for\s+)?(?:\w+\s+)?leak\w*|"
+                      rf"\bleak\w*\b{_BEEN}(?:checked|tested|screened|audited|ruled out)\b"),
+    ("define_baseline", rf"\b(?:defined|set|named|chose|picked|fixed)\b{_WORDS}baseline\b|\bbaseline\b{_BEEN}(?:defined|set|named|chosen|picked|fixed)\b"),
+    ("validate_contract", rf"\bvalidated\b{_WORDS}contract\b|\bcontract\b{_BEEN}validated\b"),
+    ("review_evidence", rf"\breviewed\b{_WORDS}(?:evidence|repl(?:y|ies)|reports?|answers?)\b|"
+                        rf"\b(?:evidence|repl(?:y|ies)|reports?|answers?)\b{_BEEN}reviewed\b"),
+    ("delegate", rf"\b(?:delegated|handed|assigned|opened)\b{_WORDS}(?:tasks?|work|it|this|request)\b|"
+                 r"\basked\s+(?:the\s+)?(?:data science|ml engineering|sales|marketing|business)\b|"
+                 rf"\b(?:tasks?|work|request)\b{_BEEN}(?:delegated|handed|assigned|opened)\b"),
+    ("score", r"\bscored\b"),
+    ("train", r"\b(?:trained|retrained|fitted|fit)\b(?:\s+[\w'-]+){0,3}\s+models?\b|\bmodels?\b(?:\s+[\w'-]+){0,4}\s+(?:was|were|has been|have been|had been|got|is now)\s+(?:trained|retrained|fitted)\b"),
+    ("deploy", r"\bdeployed\b"),
+    ("approve", r"\bapproved\b|\bsigned[- ]off\b|\bapproval\b(?:\s+[\w'-]+){0,3}\s+(?:was|has been|had been)\s+(?:given|granted)\b|"
+                r"\bgave\s+(?:the\s+|their\s+|his\s+|her\s+|its\s+)?(?:approval|sign-?off|go-ahead)\b"),
+    # 0.173.0, the review of B3 (R2): every directory action a team performs, and what a person said
+    ("draft_contact_list", rf"\b(?:drafted|prepared|built|made|compiled|produced)\b{_WORDS}(?:call |contact )?list\b|"
+                           rf"\b(?:call |contact )?list\b{_BEEN}(?:drafted|prepared|built|made|compiled)\b"),
+    ("check_exclusions", rf"\b(?:removed|excluded|filtered out|took out)\b{_WORDS}(?:do-not-contact|exclusions?)\b|"
+                         rf"\bchecked\b{_WORDS}(?:exclusions?|do-not-contact)\b|\bexclusions?\b{_BEEN}(?:checked|applied|removed)\b"),
+    ("check_eligibility", rf"\bchecked\b{_WORDS}eligib\w*|\beligib\w*\b{_BEEN}checked\b"),
+    ("check_campaign_dates", rf"\bchecked\b{_WORDS}(?:campaign(?:'s)? )?dates\b|\bdates\b{_BEEN}checked\b"),
+    ("check_cost", rf"\bchecked\b{_WORDS}(?:cost|budget)\b|\b(?:cost|budget)\b{_BEEN}checked\b"),
+    ("check_prerequisites", rf"\bchecked\b{_WORDS}prerequisites?\b|\bprerequisites?\b{_BEEN}checked\b"),
+    ("present_options", rf"\bpresented\b{_WORDS}(?:options?|report|findings)\b|\b(?:options?|report)\b{_BEEN}presented\b"),
+    ("record_decision", rf"\brecorded\b{_WORDS}decision\b|\bdecision\b{_BEEN}recorded\b"),
+    ("run_evaluation", rf"\bevaluated\b{_WORDS}models?\b|\bmodels?\b{_BEEN}evaluated\b"),
+    ("register_version", rf"\bregistered\b{_WORDS}(?:models?|versions?)\b|\b(?:models?|versions?)\b{_BEEN}registered\b"),
+    ("compare_baseline", rf"\bcompared\b{_WORDS}(?:with |to |against )?(?:the |a )?baseline\b"),
+    ("person_confirmed", r"\b(?P<who>[A-Z][a-z]+|the (?:person|owner|decision owner|member|requester|customer|client))\b(?:\s+[\w'-]+){0,3}?\s+"
+                         r"(?:has |have |had )?(?:confirmed|agreed|accepted|said)\b|\b(?:confirmed|agreed|accepted)\s+by\s+"
+                         r"(?:[A-Z][a-z]+|the (?:person|owner|decision owner|member|requester|customer|client))\b"),
+    ("contact_customers", rf"\b(?:called|rang|contacted|e-?mailed|phoned|messaged|texted|reached out to|sent|told|notified|informed|offered)\b"
+                          r"(?:\s+[\w'-]+){0,5}?\s+(?:to\s+)?(?:the\s+|our\s+|all\s+)?(?:[\w-]+\s+)?(?:customers?|accounts?|clients?|users?|people|them)\b|"
+                          rf"\b(?:customers?|accounts?|clients?|users?|people|they)\b{_BEEN}(?:called|rang|contacted|e-?mailed|phoned|messaged|"
+                          r"texted|reached|sent|told|notified|informed|offered)\b"),
+)}
+NEVER_RECORDED = ("train", "deploy", "approve", "contact_customers")  # no team tool performs them
+# a name that is a team or the agent itself, never a person who confirmed something ("Sales confirmed the capacity")
+_NOT_PEOPLE = frozenset({"i", "we", "it", "this", "that", "they", "he", "she", "you", "data", "science", "sales", "marketing", "business",
+                         "lead", "engineering", "ml", "code", "dclab", "the", "a", "an", "our", "its", "their", "team", "both", "each", "all"})
+PERSON = "human_response"  # what meets a person's confirmation: a finished human-bound action (a person's recorded answer)
+# The directory actions each claim is met by (any of them, with a terminal record)
+CLAIM_ACTIONS: dict[str, tuple[str, ...]] = {
+    "delegate": ("delegate", "delegate_specialist", "delegate_analysis", "request_sales_input", "request_marketing_input", "open_case"),
+    "review_evidence": ("review_evidence", "reconcile_replies", "present_options", "present_report"),
+    "draft_contact_list": ("draft_contact_list", "revise_on_correction"),
+    "present_options": ("present_options", "present_report"),
+    "person_confirmed": (PERSON,),
+}
+# A claim is no claim when the words just before it deny it, ask for it, or put it in the future or a condition:
+# "nothing was trained", "Sales should call them", "before anyone contacted them"
+_NOT_DONE = re.compile(r"\b(?:no|not|never|nothing|none|neither|nor|without|cannot|can't|won't|n't|before|until|if|unless|"
+                       r"will|would|should|could|can|may|might|must|needs?|asks?|asked to|wants?|plans?|once)\b", re.I)
+# A denial inside a claim's own words ("we called no customers"). "Not just", "not only" and "no fewer than" widen the
+# claim instead of denying it ("we emailed not just the top accounts but all customers"), so they never count.
+_INNER_DENIAL = re.compile(r"\b(?:not|never|no)\b(?!\s+(?:just|only|merely|simply|fewer|less|more|later)\b)", re.I)
+
+
+def claimed_actions(sentence: Any) -> list[str]:
+    """The actions a sentence says were done (keys of :data:`CLAIMS`), in their order. A claim the words just before it
+    deny, ask for or put in the future ("nothing was trained", "Sales should call them") is no claim. Words only: whether
+    the action was done is the host's to check against its action log."""
+    text = " ".join(str(sentence or "").split())
+    out: list[str] = []
+    for name, pattern in CLAIMS.items():
+        for match in pattern.finditer(text):
+            # a denial counts in its own clause only: "No list was drafted, but we called the customers" claims the call
+            head = text[:match.start()]
+            cut = max((m.end() for m in re.finditer(r"[;,:]|\bbut\b", head, re.I)), default=0)
+            before = head[cut:].split()[-6:]
+            if _NOT_DONE.search(" ".join(before)) or _INNER_DENIAL.search(match.group(0)):
+                continue  # denied before it, or inside it ("the accounts on the list were never ... called")
+            who = (match.groupdict().get("who") or "") if name == "person_confirmed" else ""
+            if who and who.split()[-1].lower() in _NOT_PEOPLE:
+                continue  # a team or the agent confirmed it: its own action, not a person's answer
+            if name not in out:
+                out.append(name)
+            break
+    return out
+
+
+def unrecorded_claims(sentence: Any, done: Sequence[str]) -> list[str]:
+    """The actions ``sentence`` claims that ``done`` (the directory actions with a terminal record; :data:`PERSON` when a
+    person's answer is recorded) does not hold."""
+    have = set(done)
+    return [c for c in claimed_actions(sentence)
+            if c in NEVER_RECORDED or not (have & ({c} | set(CLAIM_ACTIONS.get(c, ()))))]
+
+
+def promises_action(sentence: Any) -> bool:
+    """Whether a sentence promises an action in the agent's own name ("I will call them"): an agent acts through its tools."""
+    return bool(_PROMISE.search(" ".join(str(sentence or "").split())))
+
+
+AgentOutcome = Literal["acted", "fell_back", "ended", "repeat"]
+AgentStop = Literal["answered", "steps", "time", "euros", "replies", "max_output_tokens", "tools_as_text", "error", "timeout", "refused",
+                    "interrupted", "no_plan"]
+Fallback = Literal["no_model", "no_live_models", "refused", "timeout", "invalid_output", "error", "stopped", "busy", "unsure",
+                   "check_failed", "budget", "person_entry", "no_action"]
+_CODE = r"^[a-z0-9_]{1,60}$"
+
+
+class AgentTurnRecord(Versioned):
+    """One turn of a team agent on the agent arm (0.173.0, B3): how it ended, why it stopped, its plan as a measure (the
+    words stay with the host), what it did, what code refused, what its report kept, and what it cost. Codes, ids and
+    measures: never the person's words, a prompt, the plan or a reply."""
+
+    schema_version: Literal["dclab_core.team_agent_turn.v1"] = _version("team_agent_turn", 1)
+    role: Role
+    agent: str = Field(min_length=1, max_length=80)
+    task: Optional[str] = Field(default=None, max_length=200)
+    run: Optional[str] = Field(default=None, max_length=120, description="The agent's run: its steps, each an agent.step.")
+    delivery: Optional[str] = Field(default=None, max_length=120, description="The delivery this turn answered (one turn per delivery).")
+    outcome: AgentOutcome
+    stopped: Optional[AgentStop] = None
+    fallback: Optional[Fallback] = Field(default=None, description="Why the rules acted instead (outcome fell_back only).")
+    plan_chars: int = Field(default=0, ge=0, le=PLAN_CHARS)
+    plan_steps: int = Field(default=0, ge=0, le=200)
+    plan_sha256: Optional[str] = Field(default=None, pattern=r"^[0-9a-f]{64}$", description="Of the plan's words, kept whole by the host.")
+    steps: int = Field(default=0, ge=0, description="Tool calls the model made, the plan and reads included.")
+    writes: int = Field(default=0, ge=0, description="Calls that wrote team work and ran (the guard let them through).")
+    refused: int = Field(default=0, ge=0, description="Calls the guard, a check or a schema refused: nothing changed.")
+    tools: list[str] = Field(default_factory=list, max_length=200, description="The tools called, in order, as codes.")
+    sentences_kept: int = Field(default=0, ge=0)
+    sentences_refused: int = Field(default=0, ge=0)
+    refusals: list[str] = Field(default_factory=list, max_length=50, description="Each refused sentence's reason, a code of REPORT_REFUSALS.")
+    euros: Optional[float] = Field(default=None, ge=0)
+    seconds: Optional[float] = Field(default=None, ge=0)
+    request: Optional[str] = Field(default=None, max_length=120, description="The last model request: its exchange keeps the thinking.")
+
+    @model_validator(mode="after")
+    def _rules(self):
+        if (self.outcome == "fell_back") != (self.fallback is not None):
+            raise ValueError("a turn names its fallback exactly when the rules acted instead")
+        if self.outcome == "fell_back" and self.writes:
+            raise ValueError("a turn falls back to the rules only before its first action")
+        if any(not re.fullmatch(_CODE, t) for t in self.tools):
+            raise ValueError("a tool is named by its code")
+        if any(r not in REPORT_REFUSALS for r in self.refusals):
+            raise ValueError(f"a refused sentence's reason is one of {REPORT_REFUSALS}")
+        return self
+
+
+for _model in (BrainSetting, SeatRecord, AgentTurnRecord):
     CONTRACTS[_model.model_fields["schema_version"].default.split(".")[1]] = _model
 
-__all__ = ["AFTER_SEATS", "ARMS", "BEFORE_SEATS", "BrainSetting", "CONTRACT", "DEFAULT_ARM", "FALLBACKS", "QUESTION_CHARS", "QUESTION_CHECKS",
+__all__ = ["AFTER_SEATS", "AGENT_OUTCOMES", "PERSON", "AGENT_STOPS", "ARMS", "AgentTurnRecord", "BEFORE_SEATS", "BrainSetting", "CLAIMS", "CLAIM_ACTIONS",
+           "CONTRACT", "DEFAULT_ARM", "FALLBACKS", "NEVER_RECORDED", "PLAN_CHARS", "QUESTION_CHARS", "QUESTION_CHECKS", "REPORT_REFUSALS",
            "REVIEWERS", "ROLES", "ROLE_SEATS", "SEATS", "SEAT_OUTCOMES", "SOURCES", "SeatRecord", "UNSURE", "arm_of", "check_code",
-           "check_question", "parse_override"]
+           "check_question", "claimed_actions", "parse_override", "promises_action", "unrecorded_claims"]

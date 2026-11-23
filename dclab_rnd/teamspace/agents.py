@@ -885,7 +885,13 @@ def run_turn(turn: TeamTurn, registry: Any = None) -> dict[str, Any]:
     B2 (2026-11-23): the turn's helper seats (``seats.attach``) are on it before the rules choose anything, so the rules'
     functions and the tools reach the seats a helper-arm role has (none on the rules: the rules run exactly as before).
     Before Data Science's rules would ask what the outcome means, the requester's helper may read the request
-    (``seats.before_rules``). ``brain.acted`` is ``helper`` when one of its checked answers was used."""
+    (``seats.before_rules``). ``brain.acted`` is ``helper`` when one of its checked answers was used.
+
+    B3 (2026-11-24): a role on the agent arm no longer answers in shadow. On a delivered row its model runs the turn
+    (``agent_arm.act``: plan first, its own choice of calls through the same tools and guard, budgets, one turn per
+    delivery). When it cannot act before its first write, the rules run the turn on a run of their own and the fallback is
+    recorded; after a write they never run on top. Its result has ``refused`` empty (a call the guard refuses is the guard
+    doing its job, not a broken delivery: ``guard_refused`` lists them) and ``agent_turn``."""
     from ..agents.harness import tracer
     from ..agents.runtime import Policy, run as run_policy
     from . import brains, seats
@@ -900,11 +906,26 @@ def run_turn(turn: TeamTurn, registry: Any = None) -> dict[str, Any]:
     arm, source = brains.arm_for(turn.env, base)
     trace = tracer(name)  # the run's id, known before it starts: a model asked at a seat or beside the rules joins this run
     held = seats.attach(turn, arm, trace.run_id)
+    fallback = None
     # one span for the turn: the seats asked before and inside the rules' run, the run, and the requests sent after it
     with observe.span(name=f"team_turn {name}"[:120], **{"dclab.agent": name, "dclab.run": trace.run_id}):
+        if arm == "agent" and brain is BRAINS.get(base):
+            # B3: the model acts inside the strict layer; before its first write a model that cannot answer leaves the turn to
+            # the rules (on their own run), after one the rules never run on top
+            from ..agents import default_registry
+            from . import agent_arm
+
+            registry = registry if registry is not None else default_registry()
+
+            out = agent_arm.act(turn, registry, base=base, source=source, name=name, trace=trace, brain=brain)
+            if not isinstance(out, agent_arm.Fallback):
+                return out
+            fallback, trace = out, tracer(name)
         seats.before_rules(turn)
         first = brain(turn)
         if first is None:
+            if fallback is not None:  # the rules have nothing left either: the turn is recorded all the same
+                brains.record(turn, arm, source, ("none", {}), fallback.model, fallback.run)
             return {"agent": turn.agent, "task_id": turn.task_id, "skipped": True, "steps": [], "refused": [], "run": None}
         if registry is None:
             from ..agents import default_registry
@@ -914,7 +935,12 @@ def run_turn(turn: TeamTurn, registry: Any = None) -> dict[str, Any]:
                                        max_seconds=120.0)
         why = (turn.row or {}).get("kind") or turn.extra.get("mode") or "turn"
         messages = [{"role": "user", "content": f"{why} on {turn.task_id}"}]
-        prepared = brains.brain(arm).prepare(turn, first, policy.tools, registry)  # built on the state the rules read; not sent
+        if fallback is not None:
+            prepared: Any = fallback.model  # recorded at once: why the rules act on the agent arm's turn
+        elif arm == "agent":
+            prepared = None  # a directory agent without rules of its own (unsupported): nothing to fall back from
+        else:
+            prepared = brains.brain(arm).prepare(turn, first, policy.tools, registry)  # built on the state the rules read; not sent
         completed, result = False, None
         try:
             result = run_policy(policy, ScriptedChoices(brain, turn, first), registry, messages, context=turn, trace=trace)

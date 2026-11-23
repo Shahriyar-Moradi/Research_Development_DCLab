@@ -255,22 +255,52 @@ def _responder(ctx: TeamTurn, task: tw.TeamTask, action: str, person: str, respo
 
     - the turn acts for a member (``initiator``): the person is that member, and the turn's own person (if named);
     - the task's owner records an answer relayed to it: the requesting agent already recorded the same response from the
-      same person (a finished human-bound action with that response id), so the owner only repeats what was given."""
+      same person (a finished human-bound action with that response id), so the owner only repeats what was given;
+    - B3 (the review's G1): the requester, or an owner that asked its own team, records only from that person's own words
+      (:func:`answer_words`: this turn's message, or an answer already recorded on the task it was handed from), so a model
+      can never record an answer nobody gave."""
     who = (ctx.initiator or {}).get("user_id")
     if who is not None and str(who) != person:
         return f"Refused: this turn acts for {who}; it cannot record an answer by {person}."
     if ctx.person is not None and ctx.person != person:
         return f"Refused: this turn carries {ctx.person}'s words; it cannot record an answer by {person}."
-    if own_team_binding(ctx.config.binding(action) or ""):
-        return None  # T3: the owner asked its own team, in its own thread: this turn carries that member's words (holds_role checks the team)
-    if task.owner_team == ctx.agent and task.requester.team != ctx.agent:
+    own_team = own_team_binding(ctx.config.binding(action) or "")
+    if not own_team and task.owner_team == ctx.agent and task.requester.team != ctx.agent:
         given = [a for a in _actions(ctx, task.id) if a.actor.id == task.requester.team and a.source.startswith("human:")
                  and a.status in tw.DONE_ACTIONS and a.responded_by is not None and a.responded_by.id == person
                  and a.output_ref == f"response:{response_id}"]
         if not given:
             return (f"Refused: no answer {response_id or '(none)'} by {person} was recorded by {task.requester.team}; the owner "
                     "records only an answer its requester carried.")
+        return None
+    # T3: the owner asked its own team (holds_role checks the team); or the requester records its person's answer. Either way
+    # only from that person's own words: those this turn carries, or (a coordinator carrying an answer down) those already
+    # recorded on the task it was handed from. B3, the review's G1: never an answer a model made up
+    if answer_words(ctx, task, response_id, person) is None:
+        return (f"Refused: {person} gave no answer {response_id or '(none)'} here; an agent records a person's answer only from "
+                "the words that person gave (this turn's message, or an answer already recorded on the task it was handed from).")
     return None
+
+
+def answer_words(ctx: TeamTurn, task: tw.TeamTask, response_id: str, person: Optional[str] = None) -> Optional[str]:
+    """The person's own words for ``response_id``, or None (B3, the review's G1): the words this turn carries (a person's
+    message, run by code) when its response is that one; else, for a task handed out from another, the answer already
+    recorded on that task (its ``answer`` delivery, and a person's response recorded with the same id). ``person`` None:
+    whoever gave it."""
+    rid = safe_id(response_id or "")
+    if ctx.person is not None and ctx.text is not None and (person is None or ctx.person == person):
+        carried = ctx.extra.get("response_id")
+        if carried is None or safe_id(str(carried)) == rid:
+            return str(ctx.text)
+    if not task.parent_task_id:
+        return None
+    view = ctx.work.task_view(ctx.project_id, task.parent_task_id)
+    if view is None:
+        return None
+    recorded = any(a.source.startswith("human:") and a.status in tw.DONE_ACTIONS and a.responded_by is not None
+                   and (person is None or a.responded_by.id == person) and a.output_ref == f"response:{response_id}" for a in view["actions"])
+    words = next((d["text"] for d in view["deliveries"] if d["kind"] == "answer" and d["key"] == f"answer:{task.parent_task_id}:r-{rid}"), None)
+    return words if recorded and words else None
 
 
 def _binding_fits(move: str, binding: str) -> bool:
@@ -286,11 +316,33 @@ def _binding_fits(move: str, binding: str) -> bool:
 
 
 class TeamGuard:
-    """Every write of the team scope passes here first (see the module's docstring for what it refuses)."""
+    """Every write of the team scope passes here first (see the module's docstring for what it refuses). B3: the team's
+    reads (``team_read_task``, ``team_read_notes``) ask :meth:`read_refusal` before they read anything."""
 
     def __call__(self, tool: Tool, context: Any, arguments: dict[str, Any], proceed: Callable[[], Any]) -> Any:
         why = self.refusal(tool, context, arguments)
         return {"error": why} if why else proceed()
+
+    @staticmethod
+    def read_refusal(ctx: Any, *, task_id: Optional[str] = None, team: Optional[str] = None) -> Optional[str]:
+        """Why the acting agent may not read this, or None. The member it acts for may still change work in the project
+        (rechecked at every read, as at every write); a task it reads is one it owns or asked for (a Lead reads the tasks it
+        handed out: it asked for them); a team's notes (its own thread) stay in that team: an agent reads only its own."""
+        if not isinstance(ctx, TeamTurn) or ctx.config is None or ctx.work is None:
+            return "Team tools run only in a team agent's turn, with its workspace's team work."
+        why = _authority(ctx)
+        if why:
+            return why
+        if team is not None and str(team).split(":")[0] != ctx.agent.split(":")[0]:
+            return (f"Refused: {team}'s notes stay in that team; {ctx.agent} reads only its own team's notes. Ask that team "
+                    "through a task instead.")
+        if task_id is not None:
+            task = ctx.work.task(ctx.project_id, str(task_id))
+            if task is None:
+                return f"Refused: no task {task_id} in project {ctx.project_id}."
+            if task.owner_team != ctx.agent and task.requester.team != ctx.agent:
+                return f"Refused: {ctx.agent} neither owns nor requested {task.id}."
+        return None
 
     @staticmethod
     def refusal(tool: Tool, ctx: Any, args: dict[str, Any]) -> Optional[str]:
@@ -339,10 +391,13 @@ class TeamGuard:
         if move == "answer":
             if task.requester.team != ctx.agent:
                 return f"Refused: only the requesting team ({task.requester.team}) carries its person's answer."
+            response = str(args.get("response_id") or "")
             answered = [a for a in _actions(ctx, task.id) if a.actor.id == ctx.agent and a.source.startswith("human:")
-                        and a.status in tw.DONE_ACTIONS and a.responded_by is not None]
+                        and a.status in tw.DONE_ACTIONS and a.responded_by is not None and a.output_ref == f"response:{response}"]
             if not answered:
                 return "Refused: record the person's response first (team_record_human_response); an answer is never made up."
+            if answer_words(ctx, task, response, answered[-1].responded_by.id) is None:  # B3, the review's G1
+                return "Refused: the answer carried is the person's own words, and this turn holds none for that response."
         return None
 
 
@@ -574,7 +629,9 @@ def _answer(ctx: TeamTurn, task_id: str, response_id: str, text: str) -> Row:
     """The person's answer to the owner, as an ``answer`` delivery saved once per response (``store.send_answer``). The
     owner takes its task up again when the row reaches it."""
     task = _task(ctx, task_id)
-    written = ctx.work.send_answer(ctx.project_id, task.id, response_id=safe_id(response_id), text=str(text), initiator=ctx.initiator)
+    words = answer_words(ctx, task, response_id)  # B3, the review's G1: the person's own words, never the caller's
+    written = ctx.work.send_answer(ctx.project_id, task.id, response_id=safe_id(response_id), text=str(words if words is not None else text),
+                                   initiator=ctx.initiator)
     if not written.duplicate:
         _send(ctx, written)
     return {"task_id": task.id, "delivery": written.delivery["id"], "duplicate": written.duplicate}
@@ -833,6 +890,86 @@ def _return_report(ctx: TeamTurn, task_id: str, answer: str, outcome: str, revis
             "duplicate": written.duplicate}
 
 
+# ---------------------------------------------------------------------------------------------------------- B3: plan and read
+PLAN_STEP = re.compile(r"^\s*(?:\*\*)?(?:\d+[.)]|[-*•])(?:\*\*)?\s+\S")
+TEXT_SHOWN = 1500  # what a read shows of a question, an answer or a message
+
+
+def plan_steps(plan: str) -> int:
+    """The steps a plan lists: its numbered or bulleted lines (0 when it lists none)."""
+    return sum(1 for line in str(plan or "").splitlines() if PLAN_STEP.match(line))
+
+
+def _plan(ctx: TeamTurn, plan: str) -> Row:
+    """The agent's plan for this turn (B3): written before its first action, kept whole by the agent arm (its turn's
+    journal and the model's exchange). It changes no team work: a plan is an answer, never an action."""
+    from dclab_core.team_brain import PLAN_CHARS
+
+    said = str(plan or "").strip()
+    if not said:
+        raise ValueError("a plan says what this turn will do, in order")
+    if len(said) > PLAN_CHARS:
+        raise ValueError(f"a plan is at most {PLAN_CHARS} characters: write a shorter one")
+    return {"plan": "kept", "chars": len(said), "steps": plan_steps(said)}
+
+
+def _cut(text: Any, chars: int = TEXT_SHOWN) -> str:
+    said = str(text or "")
+    return said if len(said) <= chars else said[:chars] + "…"
+
+
+def _read_task(ctx: TeamTurn, task_id: str) -> Row:
+    """What the acting agent may see of a task it owns or asked for: its brief, its state, its action log, its reports, the
+    tasks it handed out with their reports, and what travelled on it (the person's answers included). The team's records
+    only: never a table, a row or a value."""
+    why = TeamGuard.read_refusal(ctx, task_id=task_id)
+    if why:
+        return {"error": why}
+    view = ctx.work.task_view(ctx.project_id, str(task_id))
+    task = view["task"]
+    out: Row = {"task": {"id": task.id, "status": task.status, "owner": task.owner_team, "requester": task.requester.team,
+                         "parent": task.parent_task_id, "brief_revision": task.brief_revision, "question": _cut(task.question),
+                         "expected_output": task.expected_output, "done_criteria": list(task.done_criteria),
+                         "allowed_inputs": list(task.allowed_inputs), "target": task.target.event if task.target is not None else None},
+                "actions": [{"action_id": a.action_id, "action": a.action, "by": a.actor.id, "status": a.status, "input_revision": a.input_revision,
+                             "ref": a.output_ref or a.failure_ref, "reason": a.reason,
+                             "responded_by": a.responded_by.id if a.responded_by is not None else None} for a in view["actions"]],
+                "reports": [{"id": r.id, "revision": r.revision, "status": r.status, "answer": _cut(r.answer), "limits": list(r.limits),
+                             "next_owner": r.next_task.owner, "unblocks": r.next_task.unblocks, "simulated": r.simulated,
+                             "brief_revision": r.brief_revision, "child_reports": list(r.child_reports)} for r in view["reports"]],
+                "children": [{"id": c.id, "owner": c.owner_team, "status": c.status} for c in view["children"]],
+                "child_reports": [{"id": r.id, "task": r.task_id, "owner": r.owner, "status": r.status, "answer": _cut(r.answer),
+                                   "limits": list(r.limits), "next_owner": r.next_task.owner, "simulated": r.simulated}
+                                  for r in view["child_reports"]],
+                "travelled": [{"kind": d["kind"], "from": d["from_team"], "to": d["to_team"], "status": d["status"], "key": d["key"],
+                               "text": _cut(d.get("text"), 600)} for d in view["deliveries"]]}
+    if view.get("join") is not None:
+        out["outstanding"] = list(view["join"].outstanding)
+    return out
+
+
+def _read_notes(ctx: TeamTurn, team: str, task_id: Optional[str] = None) -> Row:
+    """The acting team's own notes on the task's problem: its team thread's latest messages. Another team's notes stay in
+    that team (refused)."""
+    why = TeamGuard.read_refusal(ctx, team=team, task_id=task_id)
+    if why:
+        return {"error": why}
+    task = ctx.work.task(ctx.project_id, str(task_id or ctx.task_id or ""))
+    if task is None:
+        return {"team": team, "messages": []}
+    found = _threads(ctx.env)
+    if found is None:
+        return {"team": team, "messages": []}
+    from .threads import team_key
+
+    store, teams = found
+    thread = store.find_thread(ctx.project_id, task.problem_id, team_key(teams, ctx.agent)[0])
+    messages = store.messages(thread["id"]) if thread else []
+    return {"team": team, "problem": task.problem_id,
+            "messages": [{"seq": m.get("seq"), "by": (m.get("author") or {}).get("id"), "kind": (m.get("handoff") or {}).get("kind"),
+                          "task": (m.get("handoff") or {}).get("task_id"), "text": _cut(m.get("text"), 600)} for m in messages[-20:]]}
+
+
 # ---------------------------------------------------------------------------------------------------------- registration
 def _errors(exc: Exception) -> Optional[dict[str, Any]]:
     """An expected failure (a rule refused the move, a task is missing, access was denied) as an error the run records."""
@@ -890,7 +1027,21 @@ TOOLS = (
                   "evidence": {"type": "array", "items": {"type": "object"}}, "limits": {"type": "array", "items": _S}},
                  ["task_id", "answer", "outcome", "revision"]), _return_report,
          effect="write", scope=SCOPE, move="return_report", takes_context=True, errors=_errors),
+    # B3 (2026-11-24): what an agent-arm turn adds to the team's tools. Reads and a plan: none changes team work, so none is
+    # a write; each read asks the guard (TeamGuard.read_refusal) before it reads anything
+    Tool("team_plan", "Write your plan for this turn before your first action: the steps in order, the tool each uses, whom "
+                      "you hand work to, and when you stop. It is kept whole. Call it again to say how the plan changed.",
+         _schema({"plan": {"type": "string", "description": "The plan, one numbered step a line."}}, ["plan"]), _plan,
+         scope=SCOPE, takes_context=True, errors=_errors),
+    Tool("team_read_task", "Read a task this team owns or asked for: its brief, state, action log, reports, the tasks it handed "
+                           "out and what travelled on it.",
+         _schema({"task_id": _TASK}, ["task_id"]), _read_task, scope=SCOPE, takes_context=True, errors=_errors),
+    Tool("team_read_notes", "Read this team's own notes on the task's problem (its team thread). Another team's notes stay in "
+                            "that team.",
+         _schema({"team": {"type": "string", "description": "The team whose notes to read: this team's own name."}, "task_id": _TASK},
+                 ["team"]), _read_notes, scope=SCOPE, takes_context=True, errors=_errors),
 )
+AGENT_TOOLS = ("team_plan", "team_read_task", "team_read_notes")  # B3: offered to an agent-arm turn beside its directory's tools
 
 
 def register(registry: Registry) -> None:
@@ -907,6 +1058,6 @@ def is_error(content: Any) -> bool:
     return isinstance(value, dict) and "error" in value
 
 
-__all__ = ["ACTS", "COMMERCIAL_ACTS", "MODEL_TOOLS", "MOVES", "SCOPE", "TOOLS", "TeamGuard", "TeamTurn", "action_id", "case_member",
+__all__ = ["ACTS", "AGENT_TOOLS", "COMMERCIAL_ACTS", "MODEL_TOOLS", "MOVES", "SCOPE", "TOOLS", "TeamGuard", "TeamTurn", "action_id", "case_member",
            "holds_role", "is_error", "own_team_binding", "post_own", "record", "register", "safe_id", "team_thread",
-           "TARGET_ACTION", "confirmed_outcome", "judge_outcome", "sample_of", "save_outcome"]
+           "TARGET_ACTION", "answer_words", "confirmed_outcome", "judge_outcome", "plan_steps", "sample_of", "save_outcome"]

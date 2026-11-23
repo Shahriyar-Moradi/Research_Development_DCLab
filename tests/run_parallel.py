@@ -188,7 +188,8 @@ OWNER_MODEL_CHOICE = ("DCLAB_LLM_PROVIDER", "ANTHROPIC_API_KEY", "ANTHROPIC_MODE
 # 35.0: the owner's spending caps in .env (a workspace cap of a few euros) refused a gateway test's scripted request
 OWNER_SPEND_CAPS = ("DCLAB_WORKSPACE_MONTHLY_EUR", "DCLAB_COLLECTOR_MONTHLY_EUR")
 OWNER_MEMORY_MODEL = ("DCLAB_MEMORY_EMBEDDING_BASE_URL", "DCLAB_MEMORY_EMBEDDING_MODEL", "DCLAB_CASE_THINK_FIRST", "DCLAB_NO_DATA_V2",
-                      "DCLAB_TEAM_BRAIN", "DCLAB_TEAM_HELPER_SEAT_SECONDS")  # B1, B2: the team agents' brain override; a test sets its own  # 35.5: a test sets its own (and stage 4's switch: a test turns it on itself)
+                      "DCLAB_TEAM_BRAIN", "DCLAB_TEAM_HELPER_SEAT_SECONDS", "DCLAB_TEAM_AGENT_STEPS", "DCLAB_TEAM_AGENT_SECONDS",
+                      "DCLAB_TEAM_AGENT_EUR")  # B1, B2: the team agents' brain override; a test sets its own  # 35.5: a test sets its own (and stage 4's switch: a test turns it on itself)
 
 
 def child_env(tmp: str, threads_one: bool = True) -> dict:

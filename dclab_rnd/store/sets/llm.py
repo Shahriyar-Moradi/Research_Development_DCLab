@@ -32,7 +32,7 @@ STAGES = {"home_agent": "understand_problem", "conversation_reader": "understand
           "workspace_chat": "understand_data", "metric_question": "understand_data", "feature_engineer": "design_solution",
           "solution_planner": "design_solution", "decomposer": "design_solution", "map_reviewer": "design_solution", "data_need": "design_solution",
           "solution_router": "design_solution", "solution_challenger": "design_solution", "intern": "plan", "ai_first": "plan",
-          "task_decomposer": "plan", "task_planner": "plan", "team_helper": "plan", "team_agent": "plan",  # B1: a team agent's next step; B2: the helper's seats (reading, routing, wording, explaining)
+          "task_decomposer": "plan", "task_planner": "plan", "team_helper": "plan", "team_agent": "plan",  # B1: a team agent's next step; B2: the helper's seats (reading, routing, wording, explaining); B3: the agent arm's whole turn (its plan, its calls, its report's words)
           "stage_notes": "report", "reporter": "report", "critic": "report", "evidence_answer": "report", "leakage_review": "report",
           "notebook_review": "code", "solver_answer": "code", "debate_judge": "report",
           # the owner (2026-10-28): every agent's data has a home in a set; none falls silently into "plan"

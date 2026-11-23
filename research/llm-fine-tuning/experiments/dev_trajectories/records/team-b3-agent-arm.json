@@ -1,0 +1,350 @@
+{
+  "package": "team-b3-agent-arm",
+  "title": "The agent arm acts: a model runs a team agent's turn inside the strict layer, plan first, numbers from the records",
+  "date": "2026-11-24",
+  "request": "Package B3 of the team workspace plan (Part B, step 7): when a role's brain switch says agent, the model acts instead of the rules, inside the strict layer. A model loop on agents/runtime.py run() with the team tools of scope team from default_registry(); every write through the same guard; the plan first and kept whole; reasoning only from the API's thinking; free choice of actions, questions and hand-overs, the Lead breaking a request into team tasks itself; reports whose numbers come from the records (cited.py) and that claim no action without its terminal record; budgets of steps, seconds and euros; a fallback to the rules only before the first action; retries that never repeat an action (the B1 review's risk); every step recorded; dclab-core 0.173.0; default stays rules. No live model calls (B4 measures).",
+  "spec": "dclab-core 0.173.0: team_brain AGENT_OUTCOMES, AGENT_STOPS, REPORT_REFUSALS, PLAN_CHARS, CLAIMS (active and passive), claimed_actions, unrecorded_claims, NEVER_RECORDED, CLAIM_ACTIONS, promises_action, FALLBACKS + budget/person_entry, SEAT_OUTCOMES written out, AgentTurnRecord (team_agent_turn.v1); ExperienceEvent v23 (team.agent.turn); ledger point team.agent_report with sentences_kept, sentences_refused, report_refusal. dclab_rnd: teamspace/agent_arm.py (new), run_turn wiring, tools team_plan/team_read_task/team_read_notes and TeamGuard.read_refusal, the delivery row lease (store.agent_turn_claim, agent_turn_mark, delivery_failed waits for the lease), delivery.TurnHeld and the agent row's own limit, DCLAB_TEAM_AGENT_STEPS/SECONDS/EUR, prompts/team_agent.md rewritten. Review rounds added: tools.answer_words (a person's answer only from their own words), commercial._from_words (a commercial tool's values only from the member's words), claims for every directory action and a person's confirmation (PERSON), unblocks checked, every fallback marking its row, a write not run when its count is not recorded, and FALLBACKS no_action.",
+  "plan": [
+    "read the plan's B3 row, B1's brains (shadow agent arm), B2's seats (model calls with a time limit, records), the runtime loop, the team tools and guard, the delivery and the store",
+    "write tests/test_team_agent.py first: plan first and whole, the Lead opens team tasks, forbidden actions refused and recorded, a number with no record refused, no claim without a record, each budget, fallback before an action only, re-delivery during and after a turn, thinking kept",
+    "put the portable rules in dclab_core.team_brain (claims, refusals, outcomes, stops, the turn record) and bump to 0.173.0",
+    "build teamspace/agent_arm.py: a client wrapper (budgets, late replies refused), a registry view (plan first, code-owned fields, the report check, writes counted on the row), the lease, the fallback, the journal and the records",
+    "wire run_turn: agent arm acts on delivered rows; a Fallback runs the rules on their own run",
+    "register everything: experience kind, ledger point, coverage, stages, settings, env blanking, harness, model data limits, catalog, schemas, CORE_INTEGRATION",
+    "run the team and core test files on files and PostgreSQL in small groups, agent-eval and harness-eval",
+    "independent review by dclab-reviewer, fix each finding with a test, re-review"
+  ],
+  "decisions": [
+    {
+      "decision": "The plan is a tool call (team_plan, a read-only tool of scope team), and every write before it is refused by code",
+      "why": "runtime.run ends a run on a reply without tool calls, so a plan written as words would end the turn; as a call it is one recorded agent.step, kept whole in the exchange and the turn's journal, and the rule plan-before-action is checked by code, not asked of the model"
+    },
+    {
+      "decision": "The agent arm's rules live in a thin view of the one registry (_Tools) that runtime.run calls; every call still goes to registry.call, its schema check and the TeamGuard",
+      "why": "the tools and the guard stay one; the handlers the rules share are unchanged, so the rules and helper arms cannot change by accident"
+    },
+    {
+      "decision": "Retries are made safe by a lease on the delivery row (agent_turn on the row doc: token, run, state, until, writes) plus writes that are idempotent by state keys (a child is <task>.<team>, a report's revision is code's and the same report again stands in for nothing)",
+      "why": "the row is already the unit of delivery, is transactional on files and PostgreSQL alike (a JSON doc there), and its next_attempt_at already decides whether the relay or a second deliverer may touch it; no migration needed"
+    },
+    {
+      "decision": "Writes are counted on the row before each runs (taken back when the guard refuses); a turn cut off after a write is marked ended and never run again, before any write it runs again",
+      "why": "after a crash nobody knows whether a write in flight landed; counting first makes the safe choice (no second turn, no rules on top) whenever it may have"
+    },
+    {
+      "decision": "A fallback only when no write started: a failing model, a budget, no plan, or (after the review) a plan followed by no write on a task still open (no_action)",
+      "why": "the spec's rule (rules only before an action); a model that did nothing must not leave the work waiting, and the recorded reason lets B4 count it as the agent's failure"
+    },
+    {
+      "decision": "Turns a person's own message starts (Business opening their case, recording their answer) run the rules, recorded as the fallback person_entry",
+      "why": "code writes down exactly what the person gave; there is no judgment to make, and these turns have no delivery row to lease"
+    },
+    {
+      "decision": "Report numbers may come only from records code or a person wrote: the brief, a person's answer, a team's reply, the action log, returned reports; ids' digits never count",
+      "why": "the review found that the model's own words read back (a refused call's id, a question it asked) and hex digests made invented numbers pass"
+    },
+    {
+      "decision": "Code attaches 'From the records' lines (each returned team's answer, each own action's output) and builds the evidence; the model's evidence is ignored",
+      "why": "the plan: the model writes findings and a recommendation, code attaches the numbers; evidence must be from the action log"
+    },
+    {
+      "decision": "B1's one-shot AgentBrain stays (beside, and brains.finish's capped thread) but run_turn no longer uses it for the agent arm",
+      "why": "the shadow is replaced by acting; the capped thread is still used by B2's after-seats and the one-shot ask is still useful as a measurement"
+    }
+  ],
+  "change": "dclab_core: team_brain.py, experience.py (v23), ledger.py, workflow_labels.py, adapters/conformance.py, adapters/main_product_experience.py, __init__.py and pyproject.toml (0.173.0), CHANGELOG.md, schemas (team_agent_turn, experience_event v23, baselines). dclab_rnd: teamspace/agent_arm.py (new), agents.py, brains.py, delivery.py, store.py, tools.py, ledger/capture.py and __init__.py, agents/harness.py, models/settings.py, settings.py, store/coverage.py, store/sets/llm.py, prompts/team_agent.md. Docs: CORE_INTEGRATION.md, DATA_CATALOG (generated). Tests: test_team_agent.py (new), test_team_brains.py (B1's shadow tests rewritten), test_model_data_limits.py, test_agent_harness.py, run_parallel.py, event version strings in five files. .env.example: four DCLAB_TEAM_AGENT_* lines.",
+  "findings": [
+    {
+      "verdict": "confirmed",
+      "id": "B3-1",
+      "source": "test",
+      "severity": "behaviour",
+      "defect": "Every agent turn left its delivery row pending",
+      "scenario": "the first test run: pump() found every agent row still pending",
+      "cause": "the helper _mark(state, **fields) clashed with a field named state, so the call raised TypeError inside the delivery",
+      "fix": "positional-only first parameter (_mark(turn_state, /, **fields))",
+      "test": "every test of test_team_agent.py that pumps a delivery"
+    },
+    {
+      "verdict": "confirmed",
+      "id": "B3-2",
+      "source": "test",
+      "severity": "behaviour",
+      "defect": "The report attached another team's action (Business's delegate_analysis) as this team's finding",
+      "scenario": "a Data Science report listed 'delegate_analysis (succeeded): task:T-renewal'",
+      "cause": "the action log of a task holds every actor's actions, including the hand-over that created it",
+      "fix": "code attaches and builds evidence only from the acting team's own actions, and never from records that only name what was touched (task:, reviewed:, presented:, response:)",
+      "test": "test_a_number_no_record_holds_is_refused_and_code_attaches_the_numbers_from_the_records"
+    },
+    {
+      "verdict": "confirmed",
+      "id": "B3-3",
+      "source": "test",
+      "severity": "gap",
+      "defect": "B1's harness check failed: a tool called outside the recording functions",
+      "scenario": "tests/test_agent_harness.py walked the package and found _Tools.call calling registry.call",
+      "cause": "the agent arm's registry view is a new caller (only runtime._run calls it, which records each step)",
+      "fix": "registered in TOOL_CALLERS with that reason",
+      "test": "test_agent_harness.EnumerationTest"
+    },
+    {
+      "verdict": "confirmed",
+      "id": "B3-4",
+      "source": "test",
+      "severity": "gap",
+      "defect": "A refused call to a tool the agent is not offered was not counted",
+      "scenario": "the runtime refuses an unknown tool before the registry is called, so the registry view never saw it",
+      "cause": "steps were counted in the registry view",
+      "fix": "steps, refusals and the journal are counted in runtime.run's on_step callback; the view only notes what its call was",
+      "test": "test_forbidden_actions_are_refused_by_the_guard_recorded_and_the_turn_goes_on"
+    },
+    {
+      "verdict": "confirmed",
+      "id": "B3-5",
+      "source": "self",
+      "severity": "behaviour",
+      "defect": "The same report again was counted as a write",
+      "scenario": "the model returned the same report twice in a turn; code stood in for the second (nothing written) but writes went up",
+      "cause": "a code stand-in passed through the same counting as a real call",
+      "fix": "writes count only calls the registry ran",
+      "test": "test_the_same_report_again_adds_nothing_and_counts_as_no_write"
+    },
+    {
+      "verdict": "confirmed",
+      "id": "B3-6",
+      "source": "self",
+      "severity": "behaviour",
+      "defect": "The gateway's own euro hold ended a turn as 'refused' instead of 'euros'",
+      "scenario": "with a priced model the gateway refuses a request that could pass the run's cap before our check sees the cap spent",
+      "cause": "BudgetExceeded from the run cap was read as a refusal",
+      "fix": "that refusal ends the turn on its euro budget",
+      "test": "test_the_euro_budget_ends_the_turn_cleanly"
+    },
+    {
+      "verdict": "confirmed",
+      "id": "R-F1",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "(high in the review) A number the model made up could count as a record",
+      "scenario": "the model calls team_read_task(task_id='churn-37%'), refused, then reports 'About 37% of accounts will not renew.'; the sentence was kept",
+      "cause": "every tool result of the turn, refused ones and those that repeat the model's own arguments (a clarify question, a block reason), was a source",
+      "fix": "the sources are only what code or a person wrote: the brief, a person's answer, a team's reply, the action log, returned reports",
+      "test": "test_a_number_the_model_sent_itself_or_an_ids_digits_never_count_as_a_record"
+    },
+    {
+      "verdict": "confirmed",
+      "id": "R-F2",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "(high in the review) Digits inside ids counted as known numbers",
+      "scenario": "a task id T-3f9a20c7b1e4 made '20 accounts are at risk.' pass",
+      "cause": "task ids were added to the sources and cited.numbers reads digits inside them",
+      "fix": "_no_ids removes id-shaped tokens (each joined part needing a letter, so schema:...:8 columns keeps its count) from sources and sentences before counting",
+      "test": "test_a_number_the_model_sent_itself_or_an_ids_digits_never_count_as_a_record"
+    },
+    {
+      "verdict": "confirmed",
+      "id": "R-F3",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "(high in the review) A re-delivery after a fallback started a model turn on top of the rules' work",
+      "scenario": "the model answered without a plan, the rules asked their question, the worker crashed before delivery_done; the same row again ran the model, which asked the person a second question",
+      "cause": "fell_back was claimable again and its lease released",
+      "fix": "agent_turn_claim returns fell_back; act returns the stored fallback without asking the model; the rules re-run idempotently",
+      "test": "test_a_row_handed_over_again_after_a_fallback_is_the_rules_never_a_model_on_top"
+    },
+    {
+      "verdict": "confirmed",
+      "id": "R-F4",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "(medium in the review) Passive claims were not caught",
+      "scenario": "'The customers on the list have been contacted.' and 'All at-risk accounts were called yesterday.' were kept though no tool contacts anyone",
+      "cause": "CLAIMS matched only active verbs",
+      "fix": "a passive form for every claim, and a not/never/no inside the match denies it",
+      "test": "ClaimsTests.test_claims_denials_and_promises and test_a_report_cannot_claim_an_action_without_its_terminal_record"
+    },
+    {
+      "verdict": "confirmed",
+      "id": "R-F5",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "(low in the review) The prompt asked the model why it hands work to a team",
+      "scenario": "prompts/team_agent.md: 'whom you hand work to and why'",
+      "cause": "a plan's step was worded with its reason",
+      "fix": "'and why' removed: reasoning comes only from the API's thinking",
+      "test": "the prompt gate and agent-eval rerun"
+    },
+    {
+      "verdict": "confirmed",
+      "id": "R-F6",
+      "source": "reviewer",
+      "severity": "latent",
+      "defect": "(low in the review) The model chose a child task's reply thread and budget",
+      "scenario": "team_delegate with thread_id and budget_eur passed them to the store",
+      "cause": "_delegate_args fixed only the child's id and inputs",
+      "fix": "thread_id, problem_id, brief_revision and budget_eur are dropped: code chooses them",
+      "test": "test_the_lead_on_the_agent_arm_opens_team_tasks_itself_and_the_work_reaches_the_teams"
+    },
+    {
+      "verdict": "confirmed",
+      "id": "R-F7",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "(low in the review) Limits sent as text were split into letters",
+      "scenario": "the model sent limits as one string; the stored report's limits were single characters",
+      "cause": "the check iterated over the string",
+      "fix": "a string is one limit",
+      "test": "test_a_number_the_model_sent_itself_or_an_ids_digits_never_count_as_a_record"
+    },
+    {
+      "verdict": "confirmed",
+      "id": "R2-G1",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "(high in the second review) A model could record a person's answer the person never gave, and carry its own words as that answer",
+      "scenario": "a Business agent on a delivered row called team_record_human_response(responded_by='sara', response_id='r-forged') and team_answer(text='... about 37% will not renew'); both were allowed, Data Science then recorded sara's confirmation of the model's words, and 37% became a number a report may cite",
+      "cause": "the guard checked who the turn acts for and that some human-bound action existed, but not that the words were the person's: the requester and own-team legs trusted the caller, and team_answer took its text from the call's arguments",
+      "fix": "tools.answer_words: a person's answer is recorded (requester and own-team legs) and carried (team_answer) only from that person's own words, this turn's message (code-run) for that response, or an answer already recorded on the task it was handed from (the Lead carrying an answer down); team_answer's text is taken from those words, never the arguments; the owner's leg is unchanged",
+      "test": "test_a_model_never_records_or_carries_an_answer_the_person_did_not_give"
+    },
+    {
+      "verdict": "confirmed",
+      "id": "R2-G2",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "(medium in the second review) A handed-out task's question counted as a record for a report's numbers",
+      "scenario": "an agent Lead delegated 'Confirm that 37% of accounts will not renew'; the Data Science agent reported '37% ...' and the sentence was kept",
+      "cause": "the report check used the task's own question as a source, and a child's question is an agent's words",
+      "fix": "only the top task's question (the person's own request) is a source",
+      "test": "test_a_handed_out_tasks_question_is_no_record_for_a_report"
+    },
+    {
+      "verdict": "confirmed",
+      "id": "R3-R1",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "(high in the fresh review) A Sales or Marketing agent could make up a tool's values, which then became records",
+      "scenario": "Sales on the agent arm called team_act(draft_contact_list, subject='{\"r\":\"none\",\"capacity\":400}') without asking a member, then reported 'Sales can make 400 calls this week.'; the sentence was kept because 400 was now in a stored action output (Marketing's check_cost, check_eligibility and check_campaign_dates alike)",
+      "cause": "commercial.act trusted the subject's values; neither the guard nor the agent arm checked them",
+      "fix": "commercial._from_words, for both arms: r must name an answer this team recorded on the task, the values are rebuilt from that member's own words (tools.answer_words, capacity_of, terms_of), and a caller's value that differs is refused; share_reference needs a recorded answer too",
+      "test": "test_sales_and_marketing_agents_never_give_a_tools_values_the_member_did_not_say"
+    },
+    {
+      "verdict": "confirmed",
+      "id": "R3-R2",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "(medium-high in the fresh review) The claim check missed many wordings",
+      "scenario": "'Sara confirmed that churn means not renewing.', 'The decision owner signed off on the plan.', 'Approval was given by the owner.', 'We sent the offer to the accounts.', 'The customers have been told about the offer.', 'I drafted the call list.' were all kept",
+      "cause": "CLAIMS covered a few verbs per action, no person's confirmation, few contact verbs, and a negation anywhere in the six words before a match denied it, across clauses",
+      "fix": "a claim for every directory action a team performs (draft list, exclusions, eligibility, dates, cost, prerequisites, presented, recorded, evaluated, registered, compared), a person's confirmed/agreed/said needing a recorded human answer (PERSON), sign-off and approval given as approval, sent/told/notified/offered/rang to customers or accounts as contact, and a denial read only in its own clause (split on ; , : and but)",
+      "test": "test_more_wordings_of_a_claim_and_the_unblocks_text_are_checked"
+    },
+    {
+      "verdict": "confirmed",
+      "id": "R3-R3",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "(medium in the fresh review) The report's unblocks text was never checked",
+      "scenario": "team_return_report(unblocks='About 37% of accounts will not renew; Sara confirmed it.') was stored and shown to the requester as written",
+      "cause": "only the answer and limits went through check_sentence",
+      "fix": "unblocks goes through check_sentence; refused, it is code's default words and counted as a refused sentence",
+      "test": "test_more_wordings_of_a_claim_and_the_unblocks_text_are_checked"
+    },
+    {
+      "verdict": "confirmed",
+      "id": "R3-R4",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "(medium in the fresh review) Some fallbacks never marked the row, so a re-delivery could run a model on top of the rules' writes",
+      "scenario": "no model at first: the rules wrote on the row, the worker crashed before delivery_done, the model came back and the re-delivery ran the agent; the same when the role was switched to agent between two attempts",
+      "cause": "the no_model, no_live_models and client error fallbacks returned before the lease was claimed, and a row with earlier attempts but no agent turn was claimable",
+      "fix": "the lease is claimed before the client; every fallback with a row marks it fell_back; a pending row with attempts and no agent turn is fell_back (the rules' since their earlier attempt)",
+      "test": "test_every_fallback_marks_its_row_so_a_redelivery_never_runs_a_model_on_the_rules_work"
+    },
+    {
+      "verdict": "confirmed",
+      "id": "R3-R5",
+      "source": "reviewer",
+      "severity": "latent",
+      "defect": "(low in the fresh review) A write still ran when counting it on the row failed",
+      "scenario": "agent_turn_mark returned None (a conflict, the row no longer held) and the write ran anyway, so after a crash it could read as a turn that did nothing",
+      "cause": "_mark swallowed the failure",
+      "fix": "_mark returns whether it was written; a write whose count is not recorded does not run ('Not run: this turn's hold ... could not be recorded')",
+      "test": "test_a_write_whose_count_cannot_be_recorded_on_the_row_does_not_run"
+    },
+    {
+      "verdict": "confirmed",
+      "id": "R3-N1",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "(the reviewer's note, at the coordinator's request) A turn that planned and then wrote nothing ended as acted, leaving the task waiting",
+      "scenario": "the G1 forge: every write of the Business agent was refused; the turn ended acted with 0 writes and the person was never asked the real question",
+      "cause": "a plan followed by the model's own end counted as the agent's choice, whatever the task's state",
+      "fix": "a plan followed by no write on a task still open falls back to the rules with the new reason no_action (dclab_core FALLBACKS); nothing was written, so the rules repeat nothing, and B4 counts it as the agent arm's failure",
+      "test": "test_a_model_never_records_or_carries_an_answer_the_person_did_not_give"
+    },
+    {
+      "verdict": "confirmed",
+      "id": "R4-H1",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "A 'not' or 'no' anywhere inside a claim's matched words cancelled the claim, so a widened contact claim passed",
+      "scenario": "'We emailed not just the top accounts but all customers.' and 'We called not only the at-risk accounts but every customer on the list.' gave no unrecorded claim, though no tool ever contacts customers",
+      "cause": "the R2 fix read any denial word inside the match as a denial; the contact pattern allows words between the verb and its object, where 'not just', 'not only' and 'no fewer than' widen the claim",
+      "fix": "_INNER_DENIAL in dclab_core/team_brain.py: a denial inside the match counts unless it is followed by just, only, merely, simply, fewer, less, more or later; 'We called no customers' stays a denial",
+      "test": "ClaimsTests.test_claims_denials_and_promises"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "the B3 agent arm",
+      "gate": "plan first and whole, the Lead's own hand-overs, guard refusals recorded, report numbers and claims, each budget, fallback before an action only, re-delivery during/after a turn and after a fallback, crash after/before a write, thinking stored, the agent row's own limit; on files and PostgreSQL",
+      "fixed_before_run": true,
+      "result": "tests/test_team_agent.py 53 tests pass on files and on PostgreSQL (after three review rounds)",
+      "verdict": "pass",
+      "cost_eur": 0.0,
+      "limits": [
+        "scripted transports only: no live model; B4 measures the arm against the rules and the helper"
+      ]
+    },
+    {
+      "name": "the team suites and registries",
+      "gate": "teamspace agents/delivery/store/threads/routes, team acceptance/screens/commercial/target/helper/brains, lead workspace, harness, model data limits, core contracts/experience/adapters/conformance/team work, data catalog, ledger, decision capture, store coverage and LLM sets, experience log, phase-2 capture, lineage, team analysis, memory corrections, workflow models, thinking capture, runtime",
+      "fixed_before_run": true,
+      "result": "377 + 487 tests pass on files; 425 pass on PostgreSQL",
+      "verdict": "pass",
+      "cost_eur": 0.0
+    },
+    {
+      "name": "scripted evaluations",
+      "gate": "make agent-eval and make harness-eval after the prompt and tool scope change",
+      "fixed_before_run": true,
+      "result": "agent-eval: a new AEV result with the new prompt and tool hashes; harness-eval 17 of 17",
+      "verdict": "pass",
+      "cost_eur": 0.0
+    }
+  ],
+  "outcome": "A role switched to agent now acts on its delivered rows: its model writes a plan (kept whole), reads its tasks and its own team's notes, and makes its own calls through the same tools and guard as the rules; the Lead breaks a request into team tasks itself. Its reports keep only sentences whose numbers are in the records and that claim no unrecorded action; code attaches the numbers. Budgets end a turn cleanly; before its first write a model that cannot act leaves the turn to the rules, after it never. One turn per delivery row (a lease), so a retry never repeats an action. Every role still defaults to rules.",
+  "lessons": [
+    "A check that compares a model's words with 'the records' must define the records as what code or a person wrote; the model's own words read back through a tool are not evidence.",
+    "Digits inside identifiers look like numbers to a number reader: strip ids on both sides before comparing.",
+    "A fallback is a state of its own: once the rules own a turn, a retry must stay theirs, or a model runs on top of their work.",
+    "Count a write before it runs, not after: after a crash the safe reading is that it may have landed.",
+    "A word list for claims needs the passive voice as well as the active one.",
+    "A person's answer is a record only when code can show the person gave those words; a tool that takes the words as an argument lets a model speak for the person.",
+    "A question one agent writes for another is that agent's words: only the person's own request is a source of numbers.",
+    "A tool that takes the values it records as arguments lets a model write its own evidence: rebuild the values from the source the record names.",
+    "Claim the row before anything can fail: a fallback that happens before the lease leaves the row claimable by a model on top of the rules.",
+    "A model that did nothing is a fallback, not a success: the work must not wait on it, and the reason must be recorded so it is counted."
+  ],
+  "risks": [
+    "The report check reads claims and numbers by word patterns: other wordings ('Sales rang the 30 accounts', 'The leakage audit is complete') and numbers glued to words ('top20', 'Q3') are not caught; B4 must score invented numbers and claimed actions from the action log as hard zeros.",
+    "Claims are read by word patterns: a claim in unusual words can still pass; B4's judge and hard-zero check are the second line.",
+    "A turn stuck in a tool beyond its lease (S+150 s) cannot be stopped in-process; a retry then marks it interrupted.",
+    "Sales and Marketing turns that a member's answer starts run the rules (person_entry): those roles are mostly rules until B5.",
+    "One child task per team per parent: the agent cannot ask the same team twice under one request."
+  ],
+  "commits": []
+}

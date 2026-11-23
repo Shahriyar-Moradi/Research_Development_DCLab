@@ -59,7 +59,8 @@ TOOL_CALLERS = {("dclab_rnd/agents/runtime.py", "_run"), ("dclab_rnd/agents/regi
                 ("dclab_rnd/draft/orchestrator.py", "Orchestrator.rules_turn"), ("dclab_rnd/mcp_server.py", "build_server.call_tool"),
                 ("dclab_rnd/agentic/engine.py", "build_graph.execute"),
                 ("dclab_rnd/orchestra/solution.py", "SolutionTeam.compose"), ("dclab_rnd/orchestra/solution.py", "SolutionTeam.stage"),
-                ("dclab_rnd/orchestra/solution.py", "SolutionTeam._compose_single")}  # 28.5, 30.1: the team's steps record the tool calls they make
+                ("dclab_rnd/orchestra/solution.py", "SolutionTeam._compose_single"),  # 28.5, 30.1: the team's steps record the tool calls they make
+                ("dclab_rnd/teamspace/agent_arm.py", "_Tools.call")}  # B3: the registry as the agent arm's loop reads it; only runtime._run calls it, which records each step
 SKIP = ("dclab_rnd/agent_eval/", "dclab_rnd/real_problems.py", "dclab_rnd/learning/refusal.py")  # measurement harnesses: they drive the agents (the real problems' runner plays the person, 30.2 to 30.4) or test the guards (the refusal test, H1), they are not entry points
 
 

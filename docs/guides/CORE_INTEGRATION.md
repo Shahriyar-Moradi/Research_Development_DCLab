@@ -1759,8 +1759,8 @@ In the R&D studio (`dclab_rnd/teamspace/brains.py`) the switch lives in the work
 `DCLAB_TEAM_BRAIN` is the override. In B1 a model arm answers in shadow only: asked once per turn beside the rules on the
 same state (which tool next), checked, recorded, never acted on. Its request is built before the rules act and sent
 after their run ends, outside the delivery and its time limit, so a slow model never holds, fails or repeats a
-delivery; a turn that raised is recorded as `stopped` and asks no model. Its seats (B2) and its loop (B3) come next;
-B3's acting agent arm takes its own delivery deadline, the rules keeping theirs.
+delivery; a turn that raised is recorded as `stopped` and asks no model. Its seats (B2) and its loop (B3) followed: B3's
+acting agent arm replaced the shadow and takes its own delivery deadline, the rules keeping theirs (below).
 
 ## The helper arm's seats (2026-11-23, dclab-core 0.172.0)
 
@@ -1794,3 +1794,55 @@ In the R&D studio (`dclab_rnd/teamspace/seats.py`) the before-seats share `DCLAB
 passes is posted in the thread where the report is read, marked as the helper's. `critic_gate.py` is not used for the
 risks: it recomputes a campaign stage's selection rule, and a team report has none.
 
+
+## The agent arm acts (2026-11-24, dclab-core 0.173.0)
+
+In the `agent` arm a model runs a team agent's turn inside the strict layer: the same tools, guard, task store and report
+builder as the rules. Only the brain changes; the rules stay the default for every role.
+
+What the host owes:
+
+1. **Plan first.** No write runs before the model's plan. The plan is an answer (its steps in order), never its reasoning:
+   the reasoning is the API's thinking summary, kept with the exchange. Keep the plan's words whole with the host; record
+   its length, steps and SHA-256 (`AgentTurnRecord`).
+2. **The same guard.** Every write passes the guard the rules pass (the action directory, permissions, the task state
+   machine, only the owner approves, nobody contacts customers); every read asks it too (a team's notes stay in that
+   team). A refused call changes nothing and the turn goes on. Code fixes what must not depend on a model's words: a child
+   task's name (one per team per task), what it may read (never more than its parent), who opens a new case (its person),
+   a report's revision.
+3. **Reports.** The model writes findings and a recommendation. Keep a sentence only when every number in it is a number
+   of a record (an action's output, a tool result, a returned report, the brief), it claims no action without its terminal
+   record (`claimed_actions`, `unrecorded_claims`; `NEVER_RECORDED` actions are always refused), and it neither overclaims
+   nor promises an action (`promises_action`). Attach the numbers from the records yourself and build the evidence from the
+   action log and the returned reports. Record each report's kept and refused counts and reasons (`REPORT_REFUSALS`; the
+   ledger point `team.agent_report`).
+4. **Budgets** (steps, seconds, euros per turn), checked by code: when one ends, end the turn with what was done recorded
+   (`AGENT_STOPS`).
+5. **Fallback before the first write only.** A missing, refused, late, invalid or failing model, or a budget that ends
+   before any write, or a plan followed by no write on a task still open: the rules run the turn and the reason is
+   recorded (`FALLBACKS`, now with `budget`, `no_action`, and `person_entry` for a turn a person's own message starts).
+   Mark the delivery as the rules' whenever they take a turn (and when an earlier attempt ran without the agent arm), so a
+   retry never runs a model on top of their writes. Refuse a write whose count could not be recorded. After a write never run the rules on top: end the turn
+   (`ended`) and record its partial state.
+6. **One turn per delivery.** A retry must not repeat actions. Hold a lease on the delivery while the turn runs (no retry
+   starts, a failed attempt waits for the lease's end), count each write on the delivery before it runs, never run again a
+   turn cut off after a write, and start nothing for a delivery handed over after its turn ended (`repeat`). Give the
+   agent arm's delivery its own time limit (its seconds and a margin); the rules keep theirs.
+7. **Records.** One `AgentTurnRecord` per turn (the experience kind `team.agent.turn`), every step an `agent.step`, and
+   `team.brain.answered` with `acted: agent` (or the fallback). Codes, ids and measures only.
+
+In the R&D studio (`dclab_rnd/teamspace/agent_arm.py`): the loop is `agents.runtime.run` with the team scope of the one
+registry plus `team_plan`, `team_read_task` and `team_read_notes`; the budgets are `DCLAB_TEAM_AGENT_STEPS` (16),
+`DCLAB_TEAM_AGENT_SECONDS` (180) and `DCLAB_TEAM_AGENT_EUR` (0.10); the lease is the delivery row's `agent_turn`
+(`store.agent_turn_claim`, `agent_turn_mark`); the turn's journal (its plan whole, its steps, its reports' kept and refused
+sentences) is `<workspace>/teamspace/agent_turns/<run>.json`. A turn a person's own message starts runs the rules. A
+person's answer is recorded and carried only from that person's own words (`tools.answer_words`: the turn's message, or an
+answer already recorded on the task it was handed from), and a report's numbers may come from the person's own request
+(the top task's question), never from a handed-out task's question, which an agent wrote. A Sales or Marketing tool's
+values (a call capacity, an offer's terms) are rebuilt from the member's recorded words (`commercial._from_words`), never
+taken from a caller, on both arms. The report's `unblocks` text is checked like its sentences.
+
+Limits of the report check, said plainly: claims and numbers are read by word patterns. Other wordings of a claim are not
+caught ("Sales rang the 30 accounts", "The leakage audit is complete"), nor a number glued to a word ("top20", "Q3": read
+as an identifier). The check lowers the risk; it does not remove it. The arms' comparison (B4) must score invented numbers
+and claimed actions against the action log itself, as hard zeros.

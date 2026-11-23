@@ -55,10 +55,13 @@ PURPOSES: dict[str, Purpose] = {
                                            "records), the request with its kind of help and the teams chosen, the rules' question to "
                                            "reword, or one report the team returned (its answer, limits, assumptions and next owner, as "
                                            "the team wrote them); never a table, a row or a cell value", cell_values=0),
-    "team_agent": Purpose("standard", 120, "B1: one team agent's turn as the agent arm sees it: the agent's role and job, the task's "
-                                           "status, kind and brief revision, the brief's words (the person's question), the turn's "
-                                           "reason and the schemas of the tools the agent may call; never a table, a row or a cell value",
-                          cell_values=0),
+    "team_agent": Purpose("standard", 120, "B3: one team agent's turn on the agent arm, a loop of requests: the agent's role, job and "
+                                           "action directory, the task's status and brief revision, the brief's words (the person's "
+                                           "question), what arrived on the turn (a question, a person's answer or a team's reply, in "
+                                           "words), the tools' schemas and its budget, then its own tool calls' results: the team's "
+                                           "records of the tasks it owns or asked for (actions with their outputs as references and "
+                                           "counts, reports' words) and its own team's thread messages; never a table, a row or a cell "
+                                           "value", cell_values=0),
     "home_intent": Purpose("standard", 60, "H2: the person's request and their replies to Home's questions, to read which kind of help they need; "
                                            "never data, column names or cell values", cell_values=0),
     "home_query": Purpose("standard", 60, "H6: the person's question, what Home understood (the brief) and each column's name, kind, "
