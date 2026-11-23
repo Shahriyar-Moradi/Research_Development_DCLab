@@ -333,9 +333,13 @@ class TeamThreadOpen(Doc):
 class TeamMessagePost(Doc):
     """W3: a message to a team's thread, kept whole. W5: ``ask`` (a team agent's name, ``data_science``) makes the message a
     question for that team, opened by this thread's agent; a message that answers an open question asked of the poster
-    in this thread is their answer, without ``ask``."""
+    in this thread is their answer, without ``ask``. T3: ``task_id`` (a reply button's) names the task the message answers,
+    in a Business, Sales or Marketing thread; ``response_id`` is the answer's own identity, so the same answer sent again is
+    the same message and is recorded once."""
     text: Any = ""
     ask: Optional[str] = None
+    task_id: Optional[str] = None
+    response_id: Optional[str] = None
 
 
 class TeamThreadDoc(Doc):

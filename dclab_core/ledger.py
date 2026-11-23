@@ -100,6 +100,10 @@ STATE_FIELDS: dict[str, tuple[str, tuple[str, ...]]] = {
     # whether it replaces an earlier decision), and the two revisions a correction of a team's answer is judged on
     "evidence_reports": (COUNT, ()), "constraints": (COUNT, ()), "replaces_earlier": (FLAG, ()),
     "base_revision": (COUNT, ()), "current_revision": (COUNT, ()),
+    # 0.170.0 (T1): a confirmed outcome against what the table records: the event meant (a code), how many label columns
+    # the table declares, whether one records that event, whether its outcomes are known, whether the answer replaced an earlier one
+    "target_event": (CODE, ()), "label_columns": (COUNT, ()), "event_recorded": (FLAG, ()), "outcomes_mature": (FLAG, ()),
+    "answer_changed": (FLAG, ()),
     "verdict": (CODE, ()), "agreed": (FLAG, ()),  # 28.6: the second opinion's judge, and whether its two readers agreed
     # 30.11: the modifiers' evidence, as aggregates of the training rows
     "rows_per_key": (MEASURE, ()), "rate_change": (MEASURE, ()), "class_shift": (MEASURE, ()), "level_shift": (MEASURE, ()),
@@ -267,6 +271,11 @@ POINTS: dict[str, Point] = {p.key: p for p in (
     _p("team.decision_approve", W, "project", "noul", "Does the decision owner approve the team's decision?"),
     _p("team.correction_accept", W, "project", "choice", "Is a correction of a team's answer applied?",
        choices=("apply", "duplicate", "stale_base")),
+    # 0.170.0 (T1, 2026-11-23): does the table record the outcome the person confirmed? The rule's answer
+    # (dclab_core.target_contract.agreement), recorded where Data Science decides feasibility and where ML Engineering
+    # checks the experiment's contract
+    _p("team.target_agreement", W, "project", "choice", "Does the table record the outcome the person confirmed?",
+       choices=("agrees", "no_target", "no_label", "event_mismatch", "immature")),
     # H2 (2026-10-28): the kind of help a request needs, read before anything else on Home; labelled by the person's choice
     _p("request.intent", W, "draft", "choice", "Which kind of help does the request need?",
        choices=("prediction", "analysis", "preparation", "reporting", "business", "advice")),

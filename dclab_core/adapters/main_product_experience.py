@@ -96,6 +96,9 @@ KINDS_MISSING = {
           "answer applied or refused, are recorded when it adopts dclab_core.team_work (decision_write)"
        for k in ("team.decision.recorded", "team.decision.approved", "team.decision.refused", "team.correction.applied",
                  "team.correction.refused")},
+    **{k: "no team workspace there yet (0.170.0): the outcome a person confirmed for a team's task, and its mismatch with what "
+          "the table records, are recorded when it adopts dclab_core.target_contract (agreement)"
+       for k in ("team.target.confirmed", "team.target.mismatch")},
     "track.outcome": "no Home front door with kinds of help there yet (36.2): what a person did with an answer, table, brief or dashboard is recorded when it adopts dclab_core.track_outcome",
     "team.handoff": "no team of agents there yet (28.2): its agent runs are one loop; a hand-off is recorded when it adopts the board",
     "team.interrupt": "no team of agents there yet (28.2): its pauses for a person are rows of their own pages, not a team's",

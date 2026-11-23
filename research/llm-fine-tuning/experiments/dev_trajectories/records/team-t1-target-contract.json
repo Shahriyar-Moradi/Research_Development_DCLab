@@ -1,0 +1,136 @@
+{
+  "package": "team-t1-target-contract",
+  "title": "A feasibility claim means the outcome Business confirmed, never what a column happens to be called",
+  "date": "2026-11-23",
+  "request": "Package T1 of the team workspace plan (Part A, item 3; the owner's W1): persist the confirmed target (event, entity, prediction time, horizon, label source, maturity rule, brief revision); have Data Science compare it with what the table's label column records and block with the missing event, why it matters, who supplies it and which task resumes; pass the same confirmed revision to ML Engineering; when Business changes the target after feasibility, mark dependent results stale and revalidate. Regression pair: on one renewal table 'failure to renew by the contractual date' passes, 'explicit cancellation only' blocks; plus paraphrases, conflicting answers, immature outcomes and a late feature. The keyword reader returns 'unsure' instead of guessing (the seat where the helper and agent arms will later let a model read).",
+  "spec": "dclab-core 0.170.0: new target_contract.py (TargetContract v1, LabelDeclaration v1, TargetVerdict, agreement, read_event, EVENTS, event_label, changed); team_work TeamTask v2 (target; reads v1), TeamWork v3, REVISABLE, target_revision, confirm_target, delegate(target=), join_status counts a revised child as outstanding; meet ProblemDataCheck v2 with the blocking mismatch target_event (check(labels=, target=)); ExperienceEvent v20 (team.target.confirmed, team.target.mismatch); ledger point team.target_agreement with five state fields; conformance and main_product_experience reasons. dclab_rnd: teamspace/fixtures.py (labels, offered, terms, feasibility(ref, target), samples renewal_with_cancellations and renewal_recent), store.py (Written.changed/revised/stale/rows, confirm_target revising every task carrying the earlier answer in one transaction, delegate(target_from=)), tools.py (confirmed_outcome, save_outcome, judge_outcome; the confirm_target answer becomes the task's contract; inspect_schema, leakage_check and validate_contract judge against it; team_delegate target_from), agents.py (_needs_outcome, _check, _answered, _next_revision, blocker reports, ML Engineering reading the target as a field, the Lead passing target_from, confirm_outcome), ledger/capture.py team_target_agreement. No migration.",
+  "plan": [
+    "write the core contract and the reader first, with the regression pair and the negation cases as tests",
+    "add target to TeamTask as v2 with a v1 reader, and confirm_target as the one way an answered task works again",
+    "declare what each fixture sample's label column records (never inferred from the column's name)",
+    "wire Data Science: the answer to confirm_target becomes the target; inspect_schema judges the table against it; blockers name the missing record, why, who and which task resumes",
+    "carry the target to ML Engineering as a field (target_from) and revise every copy in one transaction when it changes",
+    "record team.target.confirmed / mismatch and the ledger point; CHANGELOG and CORE_INTEGRATION; tests on files and PostgreSQL; independent review and fixes"
+  ],
+  "decisions": [
+    {
+      "decision": "read_event returns None (an open question) for two events, none, an event said both ways, or a hedge, never the likeliest reading",
+      "why": "a wrong event silently changes what 'feasible' means; an open question costs one more message, a wrong guess costs a model built on another outcome. None is also exactly the seat where the helper and agent arms may let a model read the words; whatever a model answers is still only an event code that agreement checks"
+    },
+    {
+      "decision": "the label column's event is declared (LabelDeclaration), never read from its name",
+      "why": "the owner's W1: 'a column called churn is insufficient'; renewed_by_date records a failure to renew, never a cancellation"
+    },
+    {
+      "decision": "a changed outcome raises the brief revision and revises every task that carried the earlier answer (same response) in one store transaction; the earlier report stays as delivered until the new one supersedes it",
+      "why": "revalidation needs the existing revision machinery (accept_reply refuses older revisions); editing a delivered report would rewrite what Business already read"
+    },
+    {
+      "decision": "an answer that does not settle the outcome blocks with the requester as next owner, instead of asking again in the same round",
+      "why": "a second question on the same brief revision would reuse the requester's claimed confirm action; the blocker is precise and agents.confirm_outcome resumes it"
+    },
+    {
+      "decision": "keep the feasibility answer text unchanged for the sample's own outcome column; the confirmed outcome is in the report's evidence and limits",
+      "why": "the round-trip walkthroughs and the UI pin that sentence; the report still states which outcome was checked and by which column"
+    }
+  ],
+  "change": "dclab_core/target_contract.py (new), team_work.py, meet.py, experience.py, ledger.py, workflow_labels.py, schemas.py, __init__.py, pyproject.toml, adapters/conformance.py, adapters/main_product_experience.py, schemas (target_contract, label_declaration, team_task, team_work, problem_data_check, experience_event) and six baselines, CHANGELOG 0.170.0; dclab_rnd/teamspace/fixtures.py, store.py, tools.py, agents.py; dclab_rnd/ledger/capture.py and ledger/__init__.py; docs/guides/CORE_INTEGRATION.md; tests/test_core_target_contract.py (new), tests/test_team_target.py (new), tests/test_lead_workspace.py.",
+  "findings": [
+    {
+      "id": "T1-1",
+      "source": "owner",
+      "severity": "behaviour",
+      "defect": "Data Science said the data could answer 'churn = explicit cancellation' on a renewal-only table",
+      "scenario": "renewal_v1, the person answers 'Cancellation of the subscription.': the report says 'We can score seven days before renewal' and ML Engineering states the outcome as the cancellation while training on renewed_by_date",
+      "cause": "feasibility checked only that the sample had renewal dates and an outcome column; the person's answer was a sentence carried in the question text",
+      "fix": "TargetContract on the task, LabelDeclaration per sample column, agreement() in inspect_schema and validate_contract; blocker naming the missing record, why, who supplies it (the CRM's cancellation log) and which task resumes",
+      "test": "tests/test_team_target.py test_explicit_cancellation_on_the_renewal_table_blocks_with_what_is_missing_who_supplies_it_and_what_resumes; test_failure_to_renew_passes_on_mature_outcomes_and_is_kept_as_the_tasks_contract"
+    },
+    {
+      "id": "T1-2",
+      "source": "test",
+      "severity": "behaviour",
+      "defect": "two Lead tests encoded the old behaviour: ML Engineering planned a cancellation model on a table with no cancellation record",
+      "scenario": "test_lead_workspace cancellation tests on sample:renewal_v1",
+      "cause": "the tests pinned the pre-T1 answer",
+      "fix": "they now use sample:renewal_with_cancellations, and assert the target carried as a field with its column cancelled_at",
+      "test": "tests/test_lead_workspace.py test_ml_engineering_reads_the_outcome_the_person_confirmed_to_data_science, test_r22_7_..."
+    },
+    {
+      "id": "T1-R1",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "common negations were read as yes: 'we don't mean cancellation' -> explicit_cancellation",
+      "scenario": "renewal_with_cancellations, the person says 'We don't mean cancellations.': the task completes with cancelled_at as the outcome, the opposite of what was said",
+      "cause": "_BEFORE knew not/no/never and a few contractions; _AFTER needed a verb before a bare not",
+      "fix": "one negation vocabulary (any n't, apostrophe-less spellings, cannot, forget, irrelevant, leave out, apart from, aside); a clause with one event and any negation never affirms it; between two events only a verb's negation sets the first aside; a clause that only says no, 'too', 'also', 'as well' and a cancelled renewal leave the question open",
+      "test": "tests/test_core_target_contract.py test_every_spelling_of_a_negation_sets_its_event_aside_never_affirms_it"
+    },
+    {
+      "id": "T1-R2",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "after a changed outcome the Lead could join Data Science's new report with ML Engineering's report on the old outcome and call it complete",
+      "scenario": "deliver the Data Science and Lead lanes before ML Engineering's row after confirm_outcome",
+      "cause": "join_status counted a child as returned from its current report's status alone",
+      "fix": "a child whose current report's brief revision is below its own is outstanding",
+      "test": "tests/test_lead_workspace.py test_t1_a_changed_outcome_revises_data_science_and_ml_engineering_and_the_lead_joins_the_new_answers (ML Engineering's row held back)"
+    },
+    {
+      "id": "T1-R3",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "a brief that names the outcome ('Which accounts will cancel their subscription?') skipped the question and passed on renewed_by_date",
+      "scenario": "renewal_v1 with a brief that has no vague word",
+      "cause": "confirm_target was asked only when the brief said churn or leaving without a definition",
+      "fix": "_needs_outcome: ask whenever no outcome is confirmed and the brief blurs one or names one while the task reads a sample; a brief's sentence is never taken as the confirmed outcome",
+      "test": "tests/test_team_target.py test_a_brief_that_names_the_outcome_still_has_it_confirmed_and_judged"
+    },
+    {
+      "id": "T1-R4",
+      "source": "reviewer",
+      "severity": "latent",
+      "defect": "a crash between recording the answer and saving its outcome turned clear words into a false 'unsure' blocker",
+      "scenario": "the outcome save lost after confirm_target was claimed; the redelivered answer row only accepted the task",
+      "cause": "the claimed question was read as answered-without-an-outcome",
+      "fix": "in waiting_for_person, a claimed question with no target and clear words records the same response again (which saves the outcome; the same event again changes nothing)",
+      "test": "tests/test_team_target.py test_a_crash_between_the_answer_and_its_outcome_saves_the_clear_words_on_the_retry"
+    },
+    {
+      "id": "T1-R5",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "confirm_outcome trusted its person argument",
+      "scenario": "initiator omar, person sara: accepted",
+      "cause": "only holds_role was checked",
+      "fix": "refused when the initiator is not the person, when membership no longer holds (delivery.authorize), and while the task's question is open (answer it in the thread)",
+      "test": "tests/test_team_target.py test_a_person_other_than_the_cases_member_cannot_confirm_the_outcome; test_while_the_question_is_open_the_outcome_is_answered_in_the_thread_not_set_aside"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "the regression pair on sample:renewal_v1",
+      "gate": "lapse passes, explicit cancellation blocks with the missing record named",
+      "fixed_before_run": true,
+      "result": "complete with renewed_by_date / blocked with 'a record of an explicit cancellation', Business, CRM cancellation log",
+      "verdict": "pass"
+    },
+    {
+      "name": "reviewer's negation inputs",
+      "gate": "none read as the event they negate",
+      "fixed_before_run": true,
+      "result": "17 of 17 now open (None); before the fix the reviewer reproduced each as one event (13 the negated one, 4 a doubtful single reading)",
+      "verdict": "pass"
+    }
+  ],
+  "outcome": "The task carries the outcome a person confirmed as a contract; Data Science and ML Engineering judge the table against it and block precisely when the table records another event or its outcomes are not known; a changed outcome revises every task that carried it and the Lead waits for their new answers. Not done: no route yet lets the person change the outcome from their thread (agents.confirm_outcome is the entry point for T3/T5b); a stale report is marked only by its brief revision (reads compare it), not by a stored flag; no live model run (no model is called).",
+  "lessons": [
+    "A keyword reader must treat any negation in a one-event clause as 'not that event': listing negation words one by one always misses a spelling.",
+    "When a revision makes a result stale, every reader that joins results must compare revisions, not only the writer that revises."
+  ],
+  "risks": [
+    "read_event is a rule: phrasing outside its vocabulary returns None and costs a question; the helper arm (B2) is where a model reads those words.",
+    "Asking whenever a brief names an outcome adds one question where the brief was already clear; it is the price of never taking a sentence as the confirmed outcome."
+  ],
+  "commits": []
+}

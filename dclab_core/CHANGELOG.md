@@ -4,6 +4,51 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.170.0 (2026-11-23)
+
+- New `target_contract` (T1 of the team workspace): a feasibility claim means the outcome the person confirmed.
+  `TargetContract` (`dclab_core.target_contract.v1`): the event the outcome means as a code (`non_renewal_by_date`,
+  `explicit_cancellation`), the person's own words whole, the entity, the prediction time, the horizon, the label
+  source (by reference), the maturity rule, the brief revision it stands on, who confirmed it and the response that
+  carried it. `LabelDeclaration` (`dclab_core.label_declaration.v1`): which event a table's column records, declared
+  (never read from a column's name), by whom, and whether its outcomes are known. `agreement(contract, declarations)
+  -> TargetVerdict` (`agrees`, `no_target`, `no_label`, `event_mismatch`, `immature`; the missing event, the events
+  recorded, codes and columns only). `read_event(words, offered)` reads a person's words as one event by a keyword rule
+  that reads negation ("explicit cancellation only, not non-renewal"); words that name two events, none, one both ways,
+  or hedge return `None`: the question stays open, never a guess. `EVENTS`, `event_label`, `changed`.
+- `team_work`: `TeamTask` v2 (`dclab_core.team_task.v2`; a v1 task reads unchanged, with no target) adds `target`, the
+  outcome confirmed for the task (never on a later brief revision than its task). `TeamWork` v3 carries it and reads v1
+  and v2; `CONTRACT` is `dclab_core.team_work.v3`. New `confirm_target(task, target, by) -> (task, revised)`: a first
+  target given while the task works stands on its brief revision; the same event in other words changes nothing;
+  another event, or a first one after the task answered without one, raises the brief revision by one and an answered
+  task (`REVISABLE`: complete, partial, blocked) works again (accepted), its delivered report kept until the next one
+  supersedes it. Only the task's owner or requester records it; a cancelled, superseded or failed task takes none.
+  `target_revision(task, event)` says which revision a target stands on. `delegate(..., target=)` carries a target
+  to a child as a field, on the child's revision. `join_status` counts a child revised since its current report as
+  outstanding, so a parent never joins an answer to an outcome nobody asks any more.
+- `meet`: `ProblemDataCheck` v2 (reads v1) adds the blocking mismatch `target_event`: with `check(card, data,
+  labels=, target=)` given what the label columns record, an outcome that means another event than the one recorded
+  is a question with its evidence (the missing event, the events recorded, the columns).
+- `experience`: `ExperienceEvent` v20 adds `team.target.confirmed` (the event code, who, the brief revision, whether
+  it replaced an earlier answer and how many reports that made stale) and `team.target.mismatch` (the verdict, the
+  missing event, the events recorded, the team that can supply the record). Codes, ids and counts: never the person's
+  words. v19 reads unchanged.
+- `ledger`: the workflow point `team.target_agreement` (does the table record the outcome the person confirmed: the
+  rule's answer, `agrees`, `no_target`, `no_label`, `event_mismatch`, `immature`), with the state fields
+  `target_event`, `label_columns`, `event_recorded`, `outcomes_mature`, `answer_changed`.
+- `team_work` (T2 of the team workspace; pure functions, no contract changes): a correction of a team's answer names
+  the report revision it is based on. `correction_revision(snapshot, field, value, base_revision)` is the corrected
+  input revision (`dispatch:1042@18:00;kitchen_minutes=8@r1`): an explicit zero (a delay withdrawn) is a correction of
+  its own, never the uncorrected snapshot, and the same value on another base is another correction.
+  `read_correction(revision)` reads one back (None when uncorrected). `accept_correction(current, base, *,
+  already_applied=False)` is the rule, one of `CORRECTION_VERDICTS`: `apply` (based on the current revision),
+  `duplicate` (already applied), `stale_base` (an older base: refused, so the last correction to arrive never wins
+  because it arrived last); a base after the current revision, or before the first, raises.
+- `team_work` (T3 of the team workspace; no shape change, the schemas are unchanged): Marketing's `confirm_terms` is
+  bound to `human:marketing_team` (was `human:marketing_owner`, a role nobody held): like Sales's `ask_capacity`
+  (`human:sales_team`), it asks a member of the agent's own team, who must be in that team. The two descriptions say
+  what is asked (Sales: a capacity from 0 to 30; Marketing: the offer's dated terms and cost).
+
 ## 0.169.0 (2026-11-23)
 
 - `team_work` (T5a of the team workspace): only the decision owner approves, and an approved decision is never edited.

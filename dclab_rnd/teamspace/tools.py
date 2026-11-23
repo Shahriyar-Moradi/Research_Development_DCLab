@@ -45,6 +45,17 @@ Row = dict[str, Any]
 # The bound tools this release provides (the rest of the directory is bound to tools of later releases: R2, R3).
 ACTS = ("inspect_schema", "leakage_check", "define_baseline", "explain_uncertainty", "review_evidence", "join_replies",
         "present_options", "check_prerequisites", "validate_contract", "check_exclusions")
+# T3 (2026-11-23): the Sales and Marketing tools, computed in ``teamspace/commercial.py`` (check_exclusions moved there too)
+COMMERCIAL_ACTS = ("check_exclusions", "draft_list", "share_reference", "offer_rules", "campaign_calendar", "offer_cost")
+ACTS = ACTS + tuple(a for a in COMMERCIAL_ACTS if a not in ACTS)
+
+
+def own_team_binding(binding: str) -> bool:
+    """T3: whether a human-bound action asks a member of the acting agent's own team (``human:sales_team``), not the person
+    who asked (``human:requester``) or the decision's owner: that question is posted in the agent's own thread and answered
+    there by its team, and the task does not wait on its requester."""
+    role = binding.split(":", 1)[1] if binding.startswith("human:") else ""
+    return bool(role) and role not in ("requester", "decision_owner")
 MODEL_TOOLS = ("model_score", "model_contract", "model_evaluation")
 ACTION_MOVES = ("delegate", "clarify", "record_human_response", "act", "model_call")
 MOVES = ("accept", "block", "answer", "return_report") + ACTION_MOVES  # every write of the team scope, as its guard reads it
@@ -96,15 +107,15 @@ def team_thread(env: Any, team: str, project_id: str, problem_id: str) -> str:
     return thread["id"]
 
 
-def post_own(ctx: TeamTurn, task: tw.TeamTask, text: str, *, key: str, kind: str) -> Optional[Row]:
+def post_own(ctx: TeamTurn, task: tw.TeamTask, text: str, *, key: str, kind: str, to_team: Optional[str] = None) -> Optional[Row]:
     """A message by the acting agent in its own team's thread on the task's problem, once per ``key`` (W3's post): what the
-    agent did for the team that reads it (a question it sent another team)."""
+    agent did for the team that reads it (a question it sent another team; T3: ``to_team`` its own, a question for its team)."""
     found = _threads(ctx.env)
     if found is None:
         return None
     store = found[0]
     thread_id = team_thread(ctx.env, ctx.agent, ctx.project_id, task.problem_id)
-    handoff = {"kind": kind, "task_id": task.id, "item_id": task.id, "from_team": ctx.agent, "to_team": task.requester.team}
+    handoff = {"kind": kind, "task_id": task.id, "item_id": task.id, "from_team": ctx.agent, "to_team": to_team or task.requester.team}
     message, _ = store.post(thread_id, {"kind": "agent", "id": ctx.agent, "team": ctx.agent}, text, handoff=handoff, key=key)
     return message
 
@@ -250,6 +261,8 @@ def _responder(ctx: TeamTurn, task: tw.TeamTask, action: str, person: str, respo
         return f"Refused: this turn acts for {who}; it cannot record an answer by {person}."
     if ctx.person is not None and ctx.person != person:
         return f"Refused: this turn carries {ctx.person}'s words; it cannot record an answer by {person}."
+    if own_team_binding(ctx.config.binding(action) or ""):
+        return None  # T3: the owner asked its own team, in its own thread: this turn carries that member's words (holds_role checks the team)
     if task.owner_team == ctx.agent and task.requester.team != ctx.agent:
         given = [a for a in _actions(ctx, task.id) if a.actor.id == task.requester.team and a.source.startswith("human:")
                  and a.status in tw.DONE_ACTIONS and a.responded_by is not None and a.responded_by.id == person
@@ -428,6 +441,11 @@ def _clarify(ctx: TeamTurn, task_id: str, action: str, question: str) -> Row:
     held, duplicate = record(ctx, task, action, input_revision=f"brief-{task.brief_revision}")
     if tw.can_claim(held):
         return {"task_id": task.id, "action": _line(held), "duplicate": True}
+    if task.owner_team == ctx.agent and own_team_binding(ctx.config.binding(action) or ""):
+        # T3: a question for the agent's own team (Sales asks its members for their capacity): asked in its own thread, the
+        # task stays with it (accepted) and nothing travels to the requester; a member's answer there is recorded as theirs
+        post_own(ctx, task, question, key=f"asked:{held.action_id}:{task.id}", kind="clarification", to_team=ctx.agent)
+        return {"task_id": task.id, "asked": question, "of": "own_team", "action": _line(held), "duplicate": duplicate}
     if task.owner_team == ctx.agent and task.status != "waiting_for_person":
         _send(ctx, _move(ctx, task.id, "waiting_for_person", note=question))
     if task.owner_team == ctx.agent:  # the owner's own thread keeps the question it sent (the delivery posts it to the requester's)
@@ -440,7 +458,93 @@ def _record_human_response(ctx: TeamTurn, task_id: str, action: str, response_id
     ended, duplicate = record(ctx, task, action, input_revision=f"brief-{task.brief_revision}", status="succeeded",
                               output_ref=f"response:{response_id}", responded_by=responded_by,
                               source=f"human:{safe_id(response_id)}")
-    return {"task_id": task.id, "action": _line(ended), "responded_by": responded_by, "duplicate": duplicate}
+    out = {"task_id": task.id, "action": _line(ended), "responded_by": responded_by, "duplicate": duplicate}
+    if action == TARGET_ACTION and task.owner_team == ctx.agent and responded_by:
+        # T1: the person's answer to "what does the outcome mean?" is the task's confirmed outcome when its words are clear
+        key = f"answer:{task.id}:r-{safe_id(response_id)}"
+        words = next((d["text"] for d in ctx.work.task_view(ctx.project_id, task.id)["deliveries"] if d["key"] == key), None)
+        target = confirmed_outcome(task, words, responded_by, response_id)
+        out["outcome"] = target.event if target is not None else "unsure"
+        if target is not None:
+            save_outcome(ctx.env, ctx.work, ctx.project_id, task, target, by=ctx.actor, initiator=ctx.initiator)
+    return out
+
+
+# ---------------------------------------------------------------------------------------------------------- T1: the outcome confirmed
+TARGET_ACTION = "confirm_target"  # Data Science's human-bound action: the person says what the outcome means
+
+
+def sample_of(task: tw.TeamTask) -> Optional[str]:
+    return next((i for i in task.allowed_inputs if i.startswith("sample:")), None)
+
+
+def confirmed_outcome(task: tw.TeamTask, words: Optional[str], person: str, response_id: str) -> Optional[Any]:
+    """The person's words as the task's confirmed outcome (``target_contract.TargetContract``), or None when they do not
+    settle it (``target_contract.read_event``: two events, none, one both ways, a hedge). The event is read from the events
+    the task's table records and the others DCLab reads, so a person can name one the table lacks (that is then a
+    blocker, never a silent swap). The rest of the contract is the sample's (``fixtures.terms``), on the brief revision
+    ``team_work.target_revision`` gives."""
+    from dclab_core import target_contract as tc
+
+    sample = sample_of(task)
+    event = tc.read_event(words, fixtures.offered(sample))
+    if event is None:
+        return None
+    terms = {k: v for k, v in fixtures.terms(sample, task.question).items() if v}
+    return tc.TargetContract(event=event, words=str(words)[:tc.TEXT], brief_revision=tw.target_revision(task, event),
+                             confirmed_by=str(person)[:120], response=safe_id(response_id), **terms)
+
+
+def save_outcome(env: Any, work: Any, project_id: str, task: tw.TeamTask, target: Any, *, by: tw.Actor, initiator: Any = None) -> Any:
+    """Save a confirmed outcome (``store.confirm_target``), queue the answer rows it sent (one per task that works again on
+    the new revision), and record it (``team.target.confirmed``: codes, ids and counts, never the person's words)."""
+    before = task.target
+    written = work.confirm_target(project_id, task.id, target, by=by, initiator=initiator)
+    if written.duplicate:
+        return written
+    from . import delivery
+
+    for row in written.rows:
+        try:
+            delivery.enqueue(env, row)
+        except Exception:  # noqa: BLE001 — as in _queue: the row is saved, and the relay queues it on its next tick
+            pass
+    try:
+        from .. import experience
+
+        payload = {"task": task.id, "problem": task.problem_id, "event": target.event, "by": target.confirmed_by,
+                   "brief_revision": written.item.brief_revision, "source": target.label_source, "changed": bool(written.changed),
+                   "previous": before.event if before is not None else None, "stale": len(written.stale), "response": target.response}
+        experience.record("team.target.confirmed", "person", {k: v for k, v in payload.items() if v is not None}, project=project_id)
+    except Exception:  # noqa: BLE001 — the record is best effort: the outcome stands
+        pass
+    return written
+
+
+def judge_outcome(ctx: TeamTurn, task: tw.TeamTask, check: Row) -> None:
+    """Record where a team judged its table against the confirmed outcome (``inspect_schema``, ``validate_contract``): the
+    ledger point ``team.target_agreement`` and, on a mismatch, ``team.target.mismatch`` (codes and counts only)."""
+    verdict = check.get("verdict")
+    if task.target is None or verdict is None:
+        return
+    from ..ledger import capture
+
+    try:
+        capture.team_target_agreement(ctx.project_id, task.id, verdict.kind, event=verdict.event, label_columns=len(verdict.columns),
+                                      brief_revision=task.brief_revision, changed=task.brief_revision > 1, by=ctx.agent)
+    except Exception:  # noqa: BLE001 — the ledger is best effort here: the check stands
+        pass
+    if verdict.ok:
+        return
+    try:
+        from .. import experience
+
+        payload = {"task": task.id, "problem": task.problem_id, "event": verdict.event, "verdict": verdict.kind, "missing": check.get("field"),
+                   "recorded": list(verdict.recorded), "columns": len(verdict.columns), "source": sample_of(task),
+                   "supplier": check.get("supplier"), "by": ctx.agent, "brief_revision": task.brief_revision}
+        experience.record("team.target.mismatch", "agent", {k: v for k, v in payload.items() if v is not None}, project=ctx.project_id)
+    except Exception:  # noqa: BLE001
+        pass
 
 
 def _answer(ctx: TeamTurn, task_id: str, response_id: str, text: str) -> Row:
@@ -456,10 +560,11 @@ def _answer(ctx: TeamTurn, task_id: str, response_id: str, text: str) -> Row:
 def _delegate(ctx: TeamTurn, action: str, new_task_id: str, owner_team: str, question: str, expected_output: str,
               done_criteria: list[str], task_id: Optional[str] = None, problem_id: Optional[str] = None,
               thread_id: Optional[str] = None, allowed_inputs: Optional[list[str]] = None, budget_eur: float = 0.0,
-              brief_revision: int = 1) -> Row:
+              brief_revision: int = 1, target_from: Optional[str] = None) -> Row:
     """A task for another team: a new top-level task (``task_id`` omitted: the requesting team agent asks for its person,
     who is the case's member) or a child of the acting agent's task (``team_work.delegate``). Saved with its delivery;
-    the delegation is the acting agent's action, recorded on the task it was made from."""
+    the delegation is the acting agent's action, recorded on the task it was made from. ``target_from`` (T1): a child
+    carries the outcome confirmed on that task (the parent or a sibling), copied by the store as stored."""
     work = ctx.work
     if task_id is None:
         if not problem_id or not thread_id:
@@ -478,7 +583,7 @@ def _delegate(ctx: TeamTurn, action: str, new_task_id: str, owner_team: str, que
                              expected_output=expected_output, done_criteria=done_criteria, by=ctx.actor,
                              thread_id=thread_id or team_thread(ctx.env, ctx.agent, ctx.project_id, parent.problem_id), created_at=now(),
                              allowed_inputs=list(allowed_inputs or []), budget_eur=budget_eur, initiator=ctx.initiator,
-                             parent_waits=True)
+                             parent_waits=True, target_from=target_from)
         _send(ctx, made)
         on = parent
     done, _ = record(ctx, on, action, input_revision=new_task_id, status="succeeded", output_ref=f"task:{new_task_id}")
@@ -489,6 +594,10 @@ def _act(ctx: TeamTurn, task_id: str, action: str, subject: Optional[str] = None
     """A directory action bound to a tool this release provides, computed by code from what the task may read."""
     task = _task(ctx, task_id)
     tool = (ctx.config.binding(action) or "")[5:]
+    if tool in COMMERCIAL_ACTS:  # T3: Sales and Marketing compute their own (teamspace/commercial.py), recorded the same way
+        from . import commercial
+
+        return commercial.act(ctx, task, action, tool, subject)
     status, ref, revision = "succeeded", None, f"brief-{task.brief_revision}"
     sample_ref = next((i for i in task.allowed_inputs if i.startswith("sample:")), None)
     if tool == "inspect_schema":
@@ -496,10 +605,11 @@ def _act(ctx: TeamTurn, task_id: str, action: str, subject: Optional[str] = None
         if found is None:
             status, ref = "failed", f"no permitted sample for {task.id}"
         else:
-            check = fixtures.feasibility(sample_ref)
+            check = fixtures.feasibility(sample_ref, task.target)  # T1: against the outcome the person confirmed, when one is
             ref = f"schema:{sample_ref}:{len(found['columns'])} columns" + ("" if check["ok"] else f"; missing {check['missing']}")
+            judge_outcome(ctx, task, check)
     elif tool == "leakage_check":
-        check = fixtures.feasibility(sample_ref or "")
+        check = fixtures.feasibility(sample_ref or "", task.target)
         ref = "excluded:" + (",".join(check.get("excluded") or ()) or "none") + " (known only after renewal)"
     elif tool == "define_baseline":
         ref = "baseline:rank by days since last login (the simple rule a model must beat)"
@@ -513,18 +623,13 @@ def _act(ctx: TeamTurn, task_id: str, action: str, subject: Optional[str] = None
         else:
             ref = f"prerequisites:{len(readable)} permitted inputs; question of {len(task.question)} characters"
     elif tool == "validate_contract":  # ML Engineering (0.168.0): the experiment's contract from the sample's columns, never a run
-        check = fixtures.feasibility(sample_ref or "")
+        check = fixtures.feasibility(sample_ref or "", task.target)  # T1: the outcome Data Science confirmed, carried as a field
+        judge_outcome(ctx, task, check)
         if not check["ok"]:
             status, ref = "failed", f"contract incomplete: {check['why']}"
         else:
             ref = (f"contract:{sample_ref}: cutoff from {check['renewal_date']}; outcome {check['outcome']}; time-ordered holdout; "
                    f"excluded {','.join(check['excluded']) or 'none'}")
-    elif tool == "check_exclusions":  # Sales (0.168.0): the do-not-contact list, removed before any plan
-        found = fixtures.sample(sample_ref) if sample_ref else None
-        if found is None or found.get("do_not_contact") is None:
-            status, ref = "failed", f"no do-not-contact list for {sample_ref or task.id}"
-        else:
-            ref = f"exclusions:{sample_ref}: {found['do_not_contact']} of {found.get('accounts', '?')} accounts on the do-not-contact list"
     elif tool in ("review_evidence", "join_replies", "present_options"):
         if not subject:
             raise ValueError(f"{action} names the report it reads (subject)")
@@ -537,8 +642,7 @@ def _act(ctx: TeamTurn, task_id: str, action: str, subject: Optional[str] = None
         revision, ref = subject, f"{'reviewed' if tool == 'review_evidence' else 'presented'}:{subject}"
     else:
         raise ValueError(f"{tool} is not a tool this release provides")
-    if status == "succeeded" and tool in ("inspect_schema", "leakage_check", "define_baseline", "explain_uncertainty", "validate_contract",
-                                          "check_exclusions") \
+    if status == "succeeded" and tool in ("inspect_schema", "leakage_check", "define_baseline", "explain_uncertainty", "validate_contract") \
             and sample_ref in fixtures.SAMPLES:
         status = "simulated"  # a check on an invented sample is labelled as such, so the report says it is simulated
     ended, duplicate = record(ctx, task, action, input_revision=revision, status=status,
@@ -547,13 +651,109 @@ def _act(ctx: TeamTurn, task_id: str, action: str, subject: Optional[str] = None
     return {"task_id": task.id, "action": _line(ended), "duplicate": duplicate}
 
 
-def _model_call(ctx: TeamTurn, task_id: str, action: str, correction_minutes: Optional[int] = None) -> Row:
+CORRECTED = "kitchen_minutes"  # T2: the field a correction of the arrival estimate changes (the kitchen's minutes, 0: none)
+MAX_MINUTES = 240  # a kitchen's delay is 0 to four hours: beyond, the fixed-route estimate means nothing (and wraps past midnight)
+
+
+def _tag(correction_id: Optional[str]) -> Optional[str]:
+    return f"correction {safe_id(correction_id)}" if correction_id else None
+
+
+def _tagged(action: tw.TeamAction, tag: Optional[str]) -> bool:
+    # ": " ends the tag (a safe id has no space; it may have ':', so id "k" must not match the reason of id "k:2")
+    return bool(tag) and bool(action.reason) and (action.reason == tag or action.reason.startswith(tag + ": "))
+
+
+def judge_correction(work: Any, project_id: str, task: tw.TeamTask, minutes: int, base_revision: Optional[int] = None,
+                     correction_id: Optional[str] = None) -> Row:
+    """T2: what a correction of the specialist's answer is, judged on the stored task (``team_work.accept_correction``).
+
+    The correction is based on ``base_revision`` (default: the current report's revision) and becomes the score's input
+    revision ``team_work.correction_revision(snapshot, kitchen_minutes, minutes, base)``. It is a ``duplicate`` when a
+    report already carries that revision, when its ``correction_id`` was already applied (the same correction delivered
+    again, whatever base it now names), or when it would not change the current answer (the same minutes on the current
+    report: a zero with no delay to withdraw); ``stale_base`` when it names an older report than the current one; else
+    ``apply``. A score of it left running by a crash is not an application: it is finished, never scored twice. Refused
+    (ValueError): no report to correct, minutes outside 0 to :data:`MAX_MINUTES`, a base that names no report, no base
+    (and no known correction id) once the report has been revised (a late resend would otherwise land on the newest
+    answer it never saw), a correction id reused for another correction."""
+    view = work.task_view(project_id, task.id)
+    snapshot = next((i for i in task.allowed_inputs if i.startswith("dispatch:")), "")
+    if not snapshot:
+        raise ValueError(f"{task.id} reads no dispatch snapshot: there is no estimate to correct")
+    current = max((r for r in view["reports"] if r.status != "superseded"), key=lambda r: r.revision, default=None)
+    if current is None:
+        raise ValueError(f"{task.id} has no report to correct yet")
+    minutes = int(minutes)
+    if not 0 <= minutes <= MAX_MINUTES:
+        raise ValueError(f"the kitchen's minutes are between 0 and {MAX_MINUTES}, not {minutes}")
+    tag = _tag(correction_id)
+    earlier = next((a for a in view["actions"] if a.action == "score" and _tagged(a, tag)), None)
+    if earlier is not None:  # the same correction id: the correction it named then, never a new one
+        read = tw.read_correction(earlier.input_revision)
+        if read is None or int(read[1]) != minutes or (base_revision is not None and int(base_revision) != read[2]):
+            raise ValueError(f"correction {correction_id} was already given for another correction of {task.id}")
+        base, revision = read[2], earlier.input_revision
+    else:
+        if base_revision is None and current.revision > 1:
+            raise ValueError(f"{task.id} was revised (now {task.id}@r{current.revision}): a correction names the revision "
+                             "it is based on")
+        base = current.revision if base_revision is None else int(base_revision)
+        tw.accept_correction(current.revision, base)  # a base that names no report: refused before anything is built
+        revision = tw.correction_revision(snapshot, CORRECTED, minutes, base)
+    carried = {e.input_revision for r in view["reports"] for e in r.evidence}
+    now = tw.read_correction(current.evidence[0].input_revision) if current.evidence else None
+    unchanged = earlier is None and base == current.revision and minutes == (int(now[1]) if now else 0)
+    verdict = tw.accept_correction(current.revision, base, already_applied=revision in carried or unchanged)
+    return {"verdict": verdict, "revision": revision, "base": base, "current": current.revision, "minutes": minutes,
+            "id": safe_id(correction_id) if correction_id else None, "tag": tag, "report": current.id,
+            "unchanged": unchanged and revision not in carried}
+
+
+def _reconcile(ctx: TeamTurn, task: tw.TeamTask, judged: Row, action: tw.TeamAction) -> Optional[Row]:
+    """A correction on an older report: the requester reads, in its thread, that nothing changed and what to reconcile
+    against (once per refused attempt)."""
+    found = _threads(ctx.env)
+    if found is None:
+        return None
+    store = found[0]
+    current = f"{task.id}@r{judged['current']}"
+    text = (f"Please reconcile: a correction of {task.id} (the kitchen's {judged['minutes']} minutes) is based on "
+            f"{task.id}@r{judged['base']}, but the current report is {current}. Nothing was changed; if it still applies, "
+            f"send it again against {current} as a new correction (with a new correction id).")
+    author = {"kind": "agent", "id": ctx.agent, "team": ctx.agent}
+    handoff = {"kind": "reconcile", "task_id": task.id, "item_id": current, "from_team": ctx.agent, "to_team": task.requester.team}
+    key = f"reconcile:{task.id}:{action.action_id}"
+    try:
+        message, _ = store.post(task.requester.thread_id, author, text, handoff=handoff, key=key)
+    except KeyError:  # the requester's thread is not held here: its team's thread on the problem (opened the first time)
+        thread_id = team_thread(ctx.env, task.requester.team, ctx.project_id, task.problem_id)
+        message, _ = store.post(thread_id, author, text, handoff=handoff, key=key)
+    return message
+
+
+def _model_call(ctx: TeamTurn, task_id: str, action: str, correction_minutes: Optional[int] = None,
+                base_revision: Optional[int] = None, correction_id: Optional[str] = None) -> Row:
     """The fixture model specialist: a version's estimate for the task's dispatch snapshot, labelled simulated. A
-    correction (the kitchen's added minutes) is a new attempt on a new input revision; a missing version is a denial."""
+    correction (the kitchen's minutes, 0 included: the delay withdrawn) is a new attempt on the input revision that names
+    its base report (:func:`judge_correction`); one already applied writes nothing; one on an older report than the
+    current one is a skipped attempt and a "please reconcile" reply to the requester. A missing version is a denial."""
     task = _task(ctx, task_id)
     kind = ctx.agent.split(":", 1)[1] if ":" in ctx.agent else ""
     snapshot = next((i for i in task.allowed_inputs if i.startswith("dispatch:")), "")
-    revision = snapshot + (f";kitchen+{int(correction_minutes)}m" if correction_minutes else "")
+    revision, tag = snapshot, None
+    if correction_minutes is not None and action == "score":
+        judged = judge_correction(ctx.work, ctx.project_id, task, correction_minutes, base_revision, correction_id)
+        revision, tag = judged["revision"], judged["tag"]
+        if judged["verdict"] == "duplicate":
+            return {"task_id": task.id, "verdict": "duplicate", "revision": revision, "duplicate": True}
+        if judged["verdict"] == "stale_base":
+            why = (f"based on {task.id}@r{judged['base']}; the current report is {task.id}@r{judged['current']}: "
+                   "please reconcile")
+            ended, duplicate = record(ctx, task, action, input_revision=revision, status="skipped",
+                                      reason=f"{tag}: {why}" if tag else why)
+            _reconcile(ctx, task, judged, ended)
+            return {"task_id": task.id, "verdict": "stale_base", "action": _line(ended), "duplicate": duplicate}
     found = fixtures.model_fixture(kind, snapshot) if snapshot else None
     if action != "score":
         ended, duplicate = record(ctx, task, action, input_revision=revision or "none", status="simulated" if found else "denied",
@@ -565,11 +765,11 @@ def _model_call(ctx: TeamTurn, task_id: str, action: str, correction_minutes: Op
                                   failure_ref=f"no permitted {kind or 'model'} version for {snapshot or 'this task'}")
         return {"task_id": task.id, "action": _line(ended), "denied": True, "duplicate": duplicate}
     if kind == "eta":
-        value = fixtures.eta_after(found["arrival"], correction_minutes or 0)
+        value = fixtures.eta_after(found["arrival"], int(correction_minutes) if correction_minutes is not None else 0)
     else:
         value = f"{round(float(found['probability']) * 100)}%"
     ended, duplicate = record(ctx, task, action, input_revision=revision, status="simulated",
-                              output_ref=f"fixture:{found['id']}={value}")
+                              output_ref=f"fixture:{found['id']}={value}", reason=tag)  # tag: the correction's id, if any
     return {"task_id": task.id, "fixture": found["id"], "value": value, "simulated": True, "action": _line(ended),
             "duplicate": duplicate}
 
@@ -647,7 +847,8 @@ TOOLS = (
          _schema({"action": _ACTION, "new_task_id": _S, "owner_team": _S, "question": _S, "expected_output": _S,
                   "done_criteria": {"type": "array", "items": _S, "minItems": 1}, "task_id": _TASK, "problem_id": _S,
                   "thread_id": _S, "allowed_inputs": {"type": "array", "items": _S}, "budget_eur": {"type": "number", "minimum": 0},
-                  "brief_revision": {"type": "integer", "minimum": 1}},
+                  "brief_revision": {"type": "integer", "minimum": 1},
+                  "target_from": {"type": "string", "description": "A task whose confirmed outcome the child carries."}},
                  ["action", "new_task_id", "owner_team", "question", "expected_output", "done_criteria"]), _delegate,
          effect="write", scope=SCOPE, move="delegate", takes_context=True, errors=_errors),
     Tool("team_act", "Perform a directory action bound to a tool this workspace provides.",
@@ -655,7 +856,10 @@ TOOLS = (
                  ["task_id", "action"]), _act,
          effect="write", scope=SCOPE, move="act", takes_context=True, errors=_errors),
     Tool("team_model_call", "Ask one model version (a fixture in this release, labelled simulated) for its estimate.",
-         _schema({"task_id": _TASK, "action": _ACTION, "correction_minutes": {"type": "integer"}}, ["task_id", "action"]),
+         _schema({"task_id": _TASK, "action": _ACTION, "correction_minutes": {"type": "integer", "minimum": 0, "maximum": MAX_MINUTES},
+                  "base_revision": {"type": "integer", "minimum": 1, "description": "The report revision a correction is based on."},
+                  "correction_id": {"type": "string", "description": "The correction's own id: the same correction again adds nothing."}},
+                 ["task_id", "action"]),
          _model_call, effect="write", scope=SCOPE, move="model_call", takes_context=True, errors=_errors),
     Tool("team_return_report", "Return the task's report, built from its action log and its children's reports.",
          _schema({"task_id": _TASK, "answer": _S, "outcome": {"type": "string", "enum": ["complete", "partial", "blocked"]},
@@ -680,5 +884,6 @@ def is_error(content: Any) -> bool:
     return isinstance(value, dict) and "error" in value
 
 
-__all__ = ["ACTS", "MODEL_TOOLS", "MOVES", "SCOPE", "TOOLS", "TeamGuard", "TeamTurn", "action_id", "case_member", "holds_role", "is_error",
-           "post_own", "record", "register", "safe_id", "team_thread"]
+__all__ = ["ACTS", "COMMERCIAL_ACTS", "MODEL_TOOLS", "MOVES", "SCOPE", "TOOLS", "TeamGuard", "TeamTurn", "action_id", "case_member",
+           "holds_role", "is_error", "own_team_binding", "post_own", "record", "register", "safe_id", "team_thread",
+           "TARGET_ACTION", "confirmed_outcome", "judge_outcome", "sample_of", "save_outcome"]

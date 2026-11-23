@@ -34,11 +34,142 @@
       ],
       "title": "Requester",
       "type": "object"
+    },
+    "TargetContract": {
+      "additionalProperties": false,
+      "description": "What the outcome means, as a person confirmed it.",
+      "properties": {
+        "brief_revision": {
+          "description": "The brief revision this answer made or was given on.",
+          "minimum": 1,
+          "title": "Brief Revision",
+          "type": "integer"
+        },
+        "confirmed_by": {
+          "description": "The person who confirmed it, by their id.",
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Confirmed By",
+          "type": "string"
+        },
+        "entity": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "What one prediction is for (an account).",
+          "title": "Entity"
+        },
+        "event": {
+          "description": "The event the outcome means, as a code (non_renewal_by_date).",
+          "pattern": "^[a-z][a-z0-9_]{0,59}$",
+          "title": "Event",
+          "type": "string"
+        },
+        "horizon": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "By when the event must happen to count.",
+          "title": "Horizon"
+        },
+        "label_source": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@/-]{0,119}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The table the label comes from, by reference.",
+          "title": "Label Source"
+        },
+        "maturity_rule": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "When a row's outcome is known.",
+          "title": "Maturity Rule"
+        },
+        "prediction_time": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "When each prediction is made.",
+          "title": "Prediction Time"
+        },
+        "response": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@/-]{0,119}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The recorded response that carried the answer.",
+          "title": "Response"
+        },
+        "schema_version": {
+          "const": "dclab_core.target_contract.v1",
+          "default": "dclab_core.target_contract.v1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "words": {
+          "description": "The person's own words, whole.",
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Words",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "event",
+        "words",
+        "brief_revision",
+        "confirmed_by"
+      ],
+      "title": "TargetContract",
+      "type": "object"
     }
   },
-  "$id": "https://dclab.dev/schemas/dclab_core.team_task.v1.json",
+  "$id": "https://dclab.dev/schemas/dclab_core.team_task.v2.json",
   "additionalProperties": false,
-  "description": "One assignment: a question, one accountable owner, what counts as done, what it may use.",
+  "description": "One assignment: a question, one accountable owner, what counts as done, what it may use.\n\nv2 (0.170.0) adds ``target``: the outcome a person confirmed for this task, as a contract (the event as a code, with\ntheir words), so the owner checks the data against what was asked and the next team reads it as a field, never out\nof a sentence. A v1 task reads as one with no confirmed target.",
   "properties": {
     "allowed_inputs": {
       "items": {
@@ -131,8 +262,8 @@
       "$ref": "#/$defs/Requester"
     },
     "schema_version": {
-      "const": "dclab_core.team_task.v1",
-      "default": "dclab_core.team_task.v1",
+      "const": "dclab_core.team_task.v2",
+      "default": "dclab_core.team_task.v2",
       "title": "Schema Version",
       "type": "string"
     },
@@ -165,6 +296,18 @@
       ],
       "default": null,
       "title": "Superseded By"
+    },
+    "target": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/TargetContract"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "v2: the outcome a person confirmed for this task."
     },
     "workspace_id": {
       "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$",

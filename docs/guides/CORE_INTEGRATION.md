@@ -1644,6 +1644,16 @@ v19 also declares `team.correction.applied` and `team.correction.refused`, and t
 revision it is based on. Every field of the five kinds is an id, a state or a count: never the option's words, an
 outcome, a table's value or a team's private note.
 
+The rule for such a correction is in `team_work` since 0.170.0 (T2): `correction_revision(snapshot, field, value,
+base_revision)` is the corrected input's revision (an explicit zero is a correction, never the base snapshot again),
+`read_correction` reads it back, and `accept_correction(current, base, already_applied=)` answers `apply`, `duplicate`
+or `stale_base`. A host judges a correction before scoring it: `apply` scores on the new revision and supersedes the
+current report; `duplicate` writes nothing; `stale_base` writes no new revision and tells the requester to reconcile
+against the current report. The rule can only refuse a late correction that says its base, so a host requires the base
+once the first report has been superseded, and re-judges an `apply` whose score another correction on the same base
+overtook (it is refused as `stale_base`, never reported as applied). The R&D host: `dclab_rnd/teamspace/tools.py` `judge_correction` and `agents.correct`;
+`tests/test_core_team_corrections.py` and `tests/test_teamspace_agents.py`.
+
 The R&D host is the reference: `dclab_rnd/teamspace/store.py` `record_decision(home, scope, decision, *, actor,
 expected_revision=None, request_id=None)` and `DecisionRefused`; `dclab_rnd/memory/bases.py` `link_dependents(...,
 guard=)` (the rule runs inside the problem base's change, on files and on PostgreSQL, so two approvals at once leave
@@ -1656,3 +1666,63 @@ approval rows already name an approver, and `decision_write` is the check that t
 that an approved record is replaced, never edited. Until then `adapters/main_product_experience.KINDS_MISSING` lists
 the five kinds and `conformance.POINTS_NOT_MAPPED` the two points, each with its reason; no main-product field is
 mapped, since the pinned inventory has no team tables.
+
+## What the outcome means, before "the data can answer it" (2026-11-23, dclab-core 0.170.0)
+
+"Can the data rank accounts by churn risk?" was answered yes whenever the table had a column called an outcome. That
+yes was only true when the person meant what the column records. A renewal table records whether each account renewed
+by its contractual date; when Business says only an explicit cancellation counts, the same table cannot answer, because
+it holds no cancellation record. 0.170.0 makes both sides records and compares them.
+
+| Record | What it holds |
+|---|---|
+| `TargetContract` (`target_contract.v1`) | The event the outcome means, as a code, with the person's own words; the entity, prediction time, horizon, label source (by reference) and maturity rule; the brief revision it stands on; who confirmed it and the response that carried it. |
+| `LabelDeclaration` (`label_declaration.v1`) | Which event a table's column records, who declared it, and whether its outcomes are known. Declared by whoever knows the table, never read from a column's name ("churn" says nothing). |
+| `TeamTask.target` (`team_task.v2`) | The confirmed outcome of a task. A child gets it as a field (`delegate(target=)`), never re-read from a sentence. |
+
+`agreement(contract, declarations)` gives the verdict: `agrees` (a mature column records the event, named in
+`column`), `event_mismatch` (only other events are recorded; `missing` is the event that needs a record), `immature`
+(the event is recorded but its outcomes are not known yet), `no_label`, `no_target`. `read_event(words, offered)` turns
+the person's words into one event code, reading negation; when the words name both events, neither, one both ways, or
+hedge, it returns `None` and the outcome stays an open question. That `None` is the one place a host may let a model
+read the words; a model's reading is still only an event code that `agreement` checks.
+
+`confirm_target(task, target, by)` is how a task takes its outcome:
+
+1. A first outcome given while the task works stands on the task's brief revision.
+2. The same event in other words changes nothing: the work that rested on it stands.
+3. Another event, or a first one given after the task answered (or blocked) without one, is a new question: the brief
+   revision rises by one (`target_revision` says which), an answered task works again, and its delivered report stays
+   until the new one supersedes it. A parent already refuses a child's reply on an older brief revision
+   (`accept_reply`).
+
+What the host owes:
+
+1. Keep the person's words whole in the contract, and record only codes, ids and counts elsewhere (`team.target.confirmed`,
+   `team.target.mismatch`, `dclab_core.experience_event.v20`; the ledger point `team.target_agreement`).
+2. Declare what each label column records from the table's own documentation or its owner; a table with no
+   declaration is `no_label`, never a pass.
+3. Revise in one transaction every task that carried the earlier answer, and tell each owner (it checks again on the
+   new revision); list the reports that rested on it as stale.
+4. Block with what is missing, why it matters, who can supply it and which task resumes, never answer with another
+   outcome than the one confirmed. `meet.check(card, data, labels=, target=)` raises the same mismatch as the blocking
+   question `target_event` before a build.
+5. Join a revised child only once it has answered its new revision (`join_status` counts it as outstanding until then),
+   and never take a brief's own sentence as the confirmed outcome: ask the person once, whenever the brief blurs the
+   outcome or names one.
+
+The R&D host is the reference: `dclab_rnd/teamspace/fixtures.py` (`labels`, `offered`, `terms`, `feasibility(ref,
+target)`; the renewal samples declare their outcome columns, one with the CRM's cancellation log and a late feature,
+one with outcomes still ahead), `teamspace/tools.py` (`confirmed_outcome`, `save_outcome`, `judge_outcome`: Data
+Science's `confirm_target` answer becomes the task's contract, `inspect_schema` and ML Engineering's
+`validate_contract` judge the table against it), `teamspace/store.py` `confirm_target` (the revision of every task that
+carried the earlier answer, its answer rows and the stale reports in one transaction; `delegate(target_from=)`),
+`teamspace/agents.py` (`confirm_outcome`, the person changing the outcome; the blocker reports; the Lead passing the
+outcome to ML Engineering), `ledger/capture.py` `team_target_agreement`; `tests/test_core_target_contract.py`,
+`tests/test_team_target.py` and `tests/test_lead_workspace.py`. No migration: a task's target lives in its stored row.
+
+In the main product the contract belongs where its semantic decisions confirm a target definition: the confirmed
+definition is a `TargetContract`, and a dataset's label column declares its `LabelDeclaration` before any training run
+is offered. Until it has a team workspace, `adapters/main_product_experience.KINDS_MISSING` lists the two kinds and
+`conformance.POINTS_NOT_MAPPED` the point, each with its reason; no main-product field is mapped, since the pinned
+inventory has no team tables.

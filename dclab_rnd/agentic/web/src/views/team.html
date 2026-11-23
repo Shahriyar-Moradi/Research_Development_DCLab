@@ -94,12 +94,17 @@ DC.view('team', {
       this.paintInbox(el);
     }));
     $('#tm-compose', el).addEventListener('submit', e => { e.preventDefault(); this.send(el); });
-    $('#tm-text', el).addEventListener('keydown', e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); this.send(el); } });
+    $('#tm-text', el).addEventListener('keydown', e => {
+      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); this.send(el); }
+      else if (e.key === 'Escape' && T.replyTo) { e.preventDefault(); this.replyTo(el, null); }
+    });
     $('#tm-open', el).addEventListener('submit', e => { e.preventDefault(); this.openThread(el); });
     $('#tm-open-problem', el).addEventListener('change', () => { $('#tm-open-name-field', el).hidden = $('#tm-open-problem', el).value !== '__new'; });
     el.addEventListener('click', e => {
       const open = e.target.closest('[data-tm-task]');
       if (open) { e.preventDefault(); this.openTask(el, open.dataset.tmTask, { focus: true }); return; }
+      const reply = e.target.closest('[data-tm-reply]');
+      if (reply) { e.preventDefault(); this.replyTo(el, reply.dataset.tmReply); return; }
       const jump = e.target.closest('[data-tm-report]');
       if (jump) { e.preventDefault(); this.jumpToReport(el, jump.dataset.tmReport); return; }
       const job = e.target.closest('[data-tm-job]');
@@ -137,7 +142,7 @@ DC.view('team', {
   REPORT: { complete: ['ok', 'Complete'], partial: ['warn', 'Partial'], blocked: ['warn', 'Blocked'], failed: ['bad', 'Failed'], superseded: ['outline', 'Superseded'] },
   TASK: { open: ['info', 'Open'], accepted: ['info', 'Accepted'], waiting_for_person: ['warn', 'Waiting for a person'], waiting_for_team: ['warn', 'Waiting for a team'],
     partial: ['warn', 'Partial'], complete: ['ok', 'Complete'], blocked: ['warn', 'Blocked'], failed: ['bad', 'Failed'], cancelled: ['outline', 'Cancelled'], superseded: ['outline', 'Superseded'] },
-  HANDOFF: { task: 'Question', clarification: 'Clarifying question', answer: 'Answer', reply: 'Reply with report' },
+  HANDOFF: { task: 'Question', clarification: 'Clarifying question', answer: 'Answer', reply: 'Reply with report', hint: 'What it needs', which_task: 'Which task?' },
   pill(map, status) { const [cls, words] = map[status] || ['outline', String(status || '').replace(/_/g, ' ')]; return `<span class="pill ${cls}" data-status="${DC.esc(status || '')}">${DC.esc(words)}</span>`; },
   simulatedPill: '<span class="pill proof tm-sim" title="A fixture result that illustrates the handoff: no real model ran">Simulated</span>',
   words(name) { return String(name || '').replace(/_/g, ' '); },
@@ -295,6 +300,7 @@ DC.view('team', {
     }
     if (gen !== T.gen || T.thread !== thread) return;
     stream.innerHTML = '';
+    T.replyTo = null; T.pending = null;  // a reply target belongs to the thread it was chosen in
     (view.messages || []).forEach(m => this.addMessage(el, m));
     if (!T.seen.size) DC.states.empty(stream, 'Nothing has been said here yet. Write to your agent below.');
     const can = view.access || thread.access;
@@ -347,7 +353,12 @@ DC.view('team', {
       body = `<p class="tm-text tm-found">${esc(lines[0])}</p><dl class="tm-four">${four.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>`;
     } else body = `<p class="tm-text">${esc(m.text || '')}</p>`;
     const route = h ? `<span class="tm-route">${esc(this.label(h.from_team))} → ${esc(this.label(h.to_team))}</span>` : '';
-    const open = h && h.task_id ? `<button type="button" class="link-btn small" data-tm-task="${esc(h.task_id)}">${h.kind === 'reply' ? 'Open the task and its report' : 'Open the task'}</button>` : '';
+    // T3: a question an agent asked here (or "which task do you mean?") carries a reply button: the answer names its task
+    // only where the question is for this thread's team: never on an agent's own copy of a question it sent elsewhere
+    const here = h && (h.from_team === h.to_team || String(h.to_team || '').split(':')[0] === this.kindOf(T.thread && T.thread.team));
+    const replyIds = h && agent && here ? (h.kind === 'which_task' ? (h.task_ids || []) : ['clarification', 'hint'].includes(h.kind) && h.task_id ? [h.task_id] : []) : [];
+    const replies = replyIds.map(id => `<button type="button" class="link-btn small" data-tm-reply="${esc(id)}">${replyIds.length > 1 ? `Answer ${esc(id)}` : 'Answer this'}</button>`).join('');
+    const open = (h && h.task_id ? `<button type="button" class="link-btn small" data-tm-task="${esc(h.task_id)}">${h.kind === 'reply' ? 'Open the task and its report' : 'Open the task'}</button>` : '') + replies;
     const row = document.createElement('article');
     row.className = 'tm-msg' + (agent ? ' tm-agent' : ' tm-person');
     row.dataset.seq = String(seq);
@@ -366,9 +377,16 @@ DC.view('team', {
     const msgs = [...$('#tm-stream', el).querySelectorAll('.tm-msg')];
     const last = msgs.reverse().find(m => m.dataset.handoff);
     const note = $('#tm-compose-note', el);
-    note.textContent = last && last.dataset.handoff === 'clarification'
-      ? 'An agent asked you a question: your next message (a message in this thread) is your answer, and your agent carries it back.'
+    if (this.T.replyTo) { note.textContent = `Your next message answers ${this.T.replyTo}. Press Escape in the box to write a plain message instead.`; return; }
+    note.textContent = last && ['clarification', 'which_task', 'hint'].includes(last.dataset.handoff)
+      ? 'An agent asked a question: press "Answer this" on it (or just write, when only one question is open), and your agent takes it.'
       : 'Choose "A question for …" to ask another team; the answer comes back here. Ctrl or ⌘ + Enter sends.';
+  },
+
+  replyTo(el, taskId) {
+    this.T.replyTo = taskId || null;
+    this.composeNote(el);
+    if (taskId) DC.$('#tm-text', el).focus();
   },
 
   async send(el) {
@@ -380,9 +398,14 @@ DC.view('team', {
     const askSel = $('#tm-ask', el);
     const ask = $('#tm-ask-wrap', el).hidden ? '' : askSel.value;
     btn.disabled = true;
+    const body = ask ? { text, ask } : { text };
+    if (!ask && T.replyTo) body.task_id = T.replyTo;
+    // the answer's identity, kept until it is sent: a resend after a failure is the same answer, recorded once
+    if (!T.pending || T.pending.text !== text || T.pending.task !== (body.task_id || '') || T.pending.ask !== ask) T.pending = { text, ask, task: body.task_id || '', id: 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8) };
+    body.response_id = T.pending.id;
     try {
-      const m = await DC.client.postTeamMessage(T.pid, T.thread.id, { body: ask ? { text, ask } : { text } });
-      box.value = ''; askSel.value = '';
+      const m = await DC.client.postTeamMessage(T.pid, T.thread.id, { body });
+      box.value = ''; askSel.value = ''; T.pending = null; T.replyTo = null;
       this.addMessage(el, m);
       this.composeNote(el);
       T.thread.messages = Math.max(Number(T.thread.messages) || 0, Number(m.seq) || 0);

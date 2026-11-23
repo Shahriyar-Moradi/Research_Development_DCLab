@@ -1,0 +1,47 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "column": {
+      "maxLength": 120,
+      "minLength": 1,
+      "type": "string"
+    },
+    "declared_by": {
+      "maxLength": 120,
+      "minLength": 1,
+      "type": "string"
+    },
+    "event": {
+      "pattern": "^[a-z][a-z0-9_]{0,59}$",
+      "type": "string"
+    },
+    "mature": {
+      "default": true,
+      "type": "boolean"
+    },
+    "schema_version": {
+      "const": "dclab_core.label_declaration.v1",
+      "default": "dclab_core.label_declaration.v1",
+      "type": "string"
+    },
+    "source": {
+      "anyOf": [
+        {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@/-]{0,119}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "required": [
+    "schema_version",
+    "column",
+    "event",
+    "declared_by"
+  ],
+  "type": "object"
+}

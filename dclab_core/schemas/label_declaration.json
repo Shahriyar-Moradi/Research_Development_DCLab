@@ -1,0 +1,59 @@
+{
+  "$id": "https://dclab.dev/schemas/dclab_core.label_declaration.v1.json",
+  "additionalProperties": false,
+  "description": "Which event a table's column records. Declared, never inferred from the column's name.",
+  "properties": {
+    "column": {
+      "maxLength": 120,
+      "minLength": 1,
+      "title": "Column",
+      "type": "string"
+    },
+    "declared_by": {
+      "description": "Who says so: a person's id, a team, or 'fixture'.",
+      "maxLength": 120,
+      "minLength": 1,
+      "title": "Declared By",
+      "type": "string"
+    },
+    "event": {
+      "pattern": "^[a-z][a-z0-9_]{0,59}$",
+      "title": "Event",
+      "type": "string"
+    },
+    "mature": {
+      "default": true,
+      "description": "Whether the outcomes are known for the rows it would be judged on.",
+      "title": "Mature",
+      "type": "boolean"
+    },
+    "schema_version": {
+      "const": "dclab_core.label_declaration.v1",
+      "default": "dclab_core.label_declaration.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "source": {
+      "anyOf": [
+        {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@/-]{0,119}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "The table, by reference.",
+      "title": "Source"
+    }
+  },
+  "required": [
+    "schema_version",
+    "column",
+    "event",
+    "declared_by"
+  ],
+  "title": "LabelDeclaration",
+  "type": "object"
+}

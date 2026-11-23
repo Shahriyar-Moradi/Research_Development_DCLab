@@ -1,0 +1,108 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "brief_revision": {
+      "minimum": 1,
+      "type": "integer"
+    },
+    "confirmed_by": {
+      "maxLength": 120,
+      "minLength": 1,
+      "type": "string"
+    },
+    "entity": {
+      "anyOf": [
+        {
+          "maxLength": 300,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "event": {
+      "pattern": "^[a-z][a-z0-9_]{0,59}$",
+      "type": "string"
+    },
+    "horizon": {
+      "anyOf": [
+        {
+          "maxLength": 300,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "label_source": {
+      "anyOf": [
+        {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@/-]{0,119}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "maturity_rule": {
+      "anyOf": [
+        {
+          "maxLength": 300,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "prediction_time": {
+      "anyOf": [
+        {
+          "maxLength": 300,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "response": {
+      "anyOf": [
+        {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@/-]{0,119}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "schema_version": {
+      "const": "dclab_core.target_contract.v1",
+      "default": "dclab_core.target_contract.v1",
+      "type": "string"
+    },
+    "words": {
+      "maxLength": 2000,
+      "minLength": 1,
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "event",
+    "words",
+    "brief_revision",
+    "confirmed_by"
+  ],
+  "type": "object"
+}

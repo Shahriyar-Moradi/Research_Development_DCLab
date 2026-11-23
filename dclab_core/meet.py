@@ -15,7 +15,11 @@ with its evidence (column names and counts, never a value), blocking when buildi
   the time column named is not in the table;
 * ``labels_not_joined``: the cases are in a file that is not joined to the table yet;
 * ``labels_contradict``: the words say nothing is labelled, while the table has a column that looks like the outcome; or
-  the person said anomaly detection while known cases are here (a joined file, a named outcome column).
+  the person said anomaly detection while known cases are here (a joined file, a named outcome column);
+* ``target_event`` (0.170.0): the outcome means one event (an explicit cancellation) and the table's label columns are
+  declared to record another (renewal by the contractual date). Raised only when the host passes what the columns record
+  (``labels``: ``target_contract.LabelDeclaration``); the event is the confirmed ``target`` when given, else the card's
+  target definition when its words are clear (``target_contract.read_event``: unclear words raise nothing here).
 
 A pair that agrees raises nothing. The rules are code; a host may ask a model to phrase the questions, never to decide them.
 
@@ -23,20 +27,21 @@ A pair that agrees raises nothing. The rules are code; a host may ask a model to
 **fits with changes** (each change a proposed edit of the problem card, with why, for a person to accept: the outcome is
 another column, the unit is the table's grain, the family is the column's, the model is judged on confirmed labels
 only), **does not fit** (stop, and name the data that is missing: the file of known cases, a column of dates, a column
-that records the outcome).
+that records the outcome, a record of the event the outcome means).
 """
 
 from __future__ import annotations
 
 import sys
-from typing import Any, Literal, Optional
+from collections.abc import Mapping
+from typing import Any, ClassVar, Literal, Optional, Sequence
 
-from pydantic import Field
+from pydantic import Field, model_validator
 
 from dclab_core.contracts import CONTRACTS, Contract, Versioned, _version
 
 Code = Literal["target_absent", "target_refused", "target_family", "unit_grain", "time_absent", "labels_not_joined", "labels_contradict",
-               "not_checked"]
+               "not_checked", "target_event"]
 KEY_WORDS = frozenset({"id", "ids", "key", "ref", "nr", "number", "code", "uuid", "guid"})
 UNIT_STOP = frozenset({"a", "an", "the", "one", "each", "per", "single", "row", "rows", "every", "is", "of"})
 CLASSES = frozenset({"classification", "rare_event"})
@@ -59,9 +64,18 @@ def _m(code: str, blocking: bool, question: str, evidence: dict[str, Any]) -> Mi
 
 
 class ProblemDataCheck(Versioned):
-    """What the problem and the data disagree on; ``ready`` when nothing blocks."""
+    """What the problem and the data disagree on; ``ready`` when nothing blocks. v2 (0.170.0) adds the mismatch
+    ``target_event``; a v1 check reads unchanged."""
 
-    schema_version: Literal["dclab_core.problem_data_check.v1"] = _version("problem_data_check")
+    schema_version: Literal["dclab_core.problem_data_check.v2"] = _version("problem_data_check", 2)
+    READS: ClassVar[frozenset[str]] = frozenset({"dclab_core.problem_data_check.v1"})
+
+    @model_validator(mode="before")
+    @classmethod
+    def _v1(cls, data: Any) -> Any:
+        if isinstance(data, Mapping) and data.get("schema_version") in cls.READS:
+            return {**data, "schema_version": cls.model_fields["schema_version"].default}
+        return data
     mismatches: list[Mismatch] = Field(default_factory=list, max_length=20)
     ready: bool = True
 
@@ -80,9 +94,14 @@ def _tokens(text: Optional[str]) -> set[str]:
     return words | {w[:-1] for w in words if w.endswith("s") and len(w) > 3}  # orders → order
 
 
-def check(card: Any, data: Any, joined: Optional[bool] = None) -> ProblemDataCheck:
+def check(card: Any, data: Any, joined: Optional[bool] = None, *, labels: Optional[Sequence[Any]] = None,
+          target: Any = None) -> ProblemDataCheck:
     """Every mismatch between the problem card and the data card of its tables. ``joined``: what the host's own label
-    review says (a file of cases joined on a key), when it has one: it wins over the data card's guess."""
+    review says (a file of cases joined on a key), when it has one: it wins over the data card's guess. ``labels``: what
+    the table's outcome columns are declared to record (``target_contract.LabelDeclaration``), when the host knows;
+    ``target``: the outcome a person confirmed (``target_contract.TargetContract``). With ``labels``, an outcome that
+    means another event than the one recorded is the blocking mismatch ``target_event``."""
+    confirmed, declared = target, labels  # kept under their own names: below, ``target`` is the outcome column and ``labels`` the card's
     table = _main(data)
     columns = {c.name: c for c in table.columns}
     family = card.family.value or (card.in_play[0] if len(card.in_play) == 1 else None)
@@ -167,6 +186,19 @@ def check(card: Any, data: Any, joined: Optional[bool] = None) -> ProblemDataChe
                       question=f"You said anomaly detection, which looks for unusual rows when nothing is labelled, but {found}. "
                                "Learn from the known cases (a rare event), or say nothing is labelled to look for unusual rows anyway?",
                       evidence={"labels": "file" if label_tables and is_joined else "column", "family": "anomaly"}))
+    if declared is not None:
+        from dclab_core import target_contract as tc
+
+        event = confirmed.event if confirmed is not None else tc.read_event(card.brief.target_definition.value, tuple(tc.EVENTS))
+        if event is not None:  # unclear words are a question for the conversation, not a mismatch found here
+            verdict = tc.agreement(confirmed if confirmed is not None else tc.TargetContract(
+                event=event, words=tc.event_label(event), brief_revision=1, confirmed_by="card"), list(declared))
+            if verdict.kind in ("event_mismatch", "no_label"):
+                held = ", ".join(tc.event_label(e) for e in verdict.recorded) or "no declared outcome"
+                out.append(_m("target_event", blocking=True,
+                              question=f"The outcome means {tc.event_label(event)}, but the table records {held}. Which table or column "
+                                       f"records {tc.event_label(event)}, or should the outcome be what the table records?",
+                              evidence={"missing": verdict.missing, "recorded": verdict.recorded, "columns": verdict.columns}))
     return ProblemDataCheck(mismatches=out[:20], ready=not any(m.blocking for m in out))
 
 
@@ -245,6 +277,8 @@ def fit(card: Any, data: Any, checked: Optional[ProblemDataCheck] = None, joined
                 missing.append("a column that says when each row happened")
         elif m.code == "labels_not_joined":
             missing.append("the file of known cases, with the table it belongs to")
+        elif m.code == "target_event":  # 0.170.0: the event meant has no record here: the data is missing, not the card wrong
+            missing.append(f"a record of {str(ev.get('missing') or 'the outcome').replace('_', ' ')}")
         elif m.code == "labels_contradict" and ev.get("family") == "anomaly":  # known cases are here: learn from them
             edit("family", "rare_event", m.question, m.code)
     said = str(card.brief.target_definition.value or "").lower()

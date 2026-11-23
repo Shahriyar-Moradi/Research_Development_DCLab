@@ -197,20 +197,29 @@ async def post_team_message(project_id: str, thread_id: str, payload: TeamMessag
     if len(text) > th.TEXT_MAX:
         raise HTTPException(422, f"A message is at most {th.TEXT_MAX} characters: nothing was cut or saved")
 
+    task_id = str(payload.task_id).strip() if isinstance(payload.task_id, str) and payload.task_id.strip() else None
+    response_id = str(payload.response_id).strip()[:80] if isinstance(payload.response_id, str) and payload.response_id.strip() else None
+
     def run() -> dict[str, Any]:
+        from ...teamspace.tools import safe_id
+
         store, thread, _ = _thread(s, project_id, thread_id, write=True)
         author = {**_author(), "team": thread["team"]}
-        message, made = store.post(thread_id, author, text)
-        if made:
-            _to_agent(s, thread, message, text, ask=(str(payload.ask).strip() or None) if payload.ask else None)
+        key = f"person:{thread_id}:{author.get('id') or 'owner'}:{safe_id(response_id)}" if response_id else None
+        message, made = store.post(thread_id, author, text, key=key)
+        if made or response_id:  # the same answer again: the agent's turn is idempotent on it and resumes where it stopped
+            _to_agent(s, thread, message, str(message["text"]), ask=(str(payload.ask).strip() or None) if payload.ask else None,
+                      task_id=task_id, response_id=response_id, resend=not made)  # the words as saved, never a resend's
         return message
     return await asyncio.to_thread(run)
 
 
-def _to_agent(s: Services, thread: dict[str, Any], message: dict[str, Any], text: str, ask: Optional[str] = None) -> None:
+def _to_agent(s: Services, thread: dict[str, Any], message: dict[str, Any], text: str, ask: Optional[str] = None,
+              task_id: Optional[str] = None, response_id: Optional[str] = None, resend: bool = False) -> None:
     """W5: the thread's team agent takes the person's message: in a Business thread, their answer to an open question asked
-    of them there, or (with ``ask``) a new question for that team. The message is saved first and stays whatever the agent
-    does; a refusal is the agent's record (its run), never this route's error."""
+    of them there, or (with ``ask``) a new question for that team; T3: in a Sales or Marketing thread, a member's answer to
+    the question its agent asked the team. The message is saved first and stays whatever the agent does; a refusal is the
+    agent's record (its run), never this route's error."""
     from ...teamspace import agents
 
     who = _who()
@@ -220,7 +229,7 @@ def _to_agent(s: Services, thread: dict[str, Any], message: dict[str, Any], text
     initiator = {"user_id": str(who.user_id), "role": str(who.role), "workspace_id": str(who.workspace_id or mem_scope.workspace_of(s.projects))} \
         if who.user_id else None
     agents.from_thread(s, thread, person=str(who.user_id or "owner"), text=text, initiator=initiator, message_id=str(message["id"]),
-                       team_kind=kind, ask=ask)
+                       team_kind=kind, ask=ask, task_id=task_id, response_id=response_id, resend=resend)
 
 
 @router.get("/api/projects/{project_id}/team-threads/{thread_id}/events", response_class=StreamingResponse,

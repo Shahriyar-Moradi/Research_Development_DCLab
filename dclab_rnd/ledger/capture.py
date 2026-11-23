@@ -1355,3 +1355,29 @@ def team_correction_accepted(project_id: str, task_id: str, verdict: str, *, bas
                   [answer("rule", f"rule:{_code(rule) or 'correction_write'}", verdict)], verdict, "rule",
                   state={"base_revision": base, "current_revision": current}, options=list(CORRECTION_VERDICTS), project=project_id)
     return getattr(record, "id", None)
+
+
+# ---------------------------------------------------------------------- 0.170.0: a confirmed outcome against what the table records
+
+TARGET_VERDICTS = ("agrees", "no_target", "no_label", "event_mismatch", "immature")
+
+
+@_quiet
+def team_target_agreement(project_id: str, task_id: str, verdict: str, *, event: Optional[str], label_columns: int = 0,
+                          brief_revision: int = 1, changed: bool = False, by: str = "data_science") -> Optional[str]:
+    """T1: whether the task's table records the outcome the person confirmed, recorded where it is judged
+    (``teamspace/tools.py``: Data Science's ``inspect_schema``, ML Engineering's ``validate_contract``). ``verdict`` is the
+    rule's answer (``dclab_core.target_contract.agreement``), one of :data:`TARGET_VERDICTS`. The state holds codes and
+    flags only: the event meant, how many label columns the table declares, whether one records the event, whether its
+    outcomes are known, whether the answer replaced an earlier one. Never the person's words or a table's value. One
+    record per (task, judging team, brief revision): a retried check is the same judgment."""
+    if verdict not in TARGET_VERDICTS:
+        raise ValueError(f"a target agreement's verdict is one of {TARGET_VERDICTS}, not {verdict!r}")
+    state: dict[str, Any] = {"label_columns": max(0, int(label_columns)), "event_recorded": verdict in ("agrees", "immature"),
+                             "outcomes_mature": verdict == "agrees", "answer_changed": bool(changed)}
+    if _code(event):
+        state["target_event"] = _code(event)
+    record = _put("team.target_agreement", ("project", f"{project_id}:{task_id}:{_code(by) or 'team'}@b{max(1, int(brief_revision))}"[:200]),
+                  [answer("rule", "rule:target_contract.agreement", verdict)], verdict, "rule", state=state,
+                  options=list(TARGET_VERDICTS), project=project_id)
+    return getattr(record, "id", None)

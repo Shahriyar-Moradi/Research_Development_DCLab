@@ -58,6 +58,8 @@ NOT_LEARNED = {
                              "owner yet, and an approval is never handed to a model",
     "team.correction_accept": "0.169.0 (T2): the rule's answer on two revisions, recorded where the correction arrives; a "
                               "classifier on it can only copy the rule",
+    "team.target_agreement": "0.170.0 (T1): the rule's answer on two codes (the event confirmed, the events recorded), recorded "
+                             "where feasibility is decided; a classifier on it can only copy the rule",
     "command.intent_route": "not decided by the studio yet",
     "proposal.completeness": "not decided by the studio yet",
     "department.proposal": "labelled where it is judged: a person's judgment of each proposal, not a journey (30.22)",

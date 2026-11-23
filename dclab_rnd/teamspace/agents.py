@@ -180,6 +180,22 @@ def _ambiguous_target(question: str) -> bool:
     return bool(vague) and not defined
 
 
+def _needs_outcome(task: tw.TeamTask) -> bool:
+    """T1: whether Data Science asks what the outcome means before it judges a table: no outcome is confirmed yet, the
+    task reads a table, and its question leaves the outcome vague ("churn") or names one in its own words ("churn means an
+    explicit cancellation", "who will cancel"). A brief's sentence is never taken as the confirmed outcome: the person
+    confirms it once, and what they confirm is the contract the table is judged against."""
+    from dclab_core import target_contract as tc
+
+    if task.target is not None:
+        return False
+    if _ambiguous_target(task.question):
+        return True
+    said = task.question.lower()
+    return any(i.startswith("sample:") for i in task.allowed_inputs) and any(re.search(rf"\b(?:{e.names})\b", said)
+                                                                            for e in tc.EVENTS.values())
+
+
 def _specialists(task: tw.TeamTask) -> list[str]:
     """The model specialists a dispatch question needs: one for the arrival, one for first-offer acceptance."""
     if not any(i.startswith("dispatch:") for i in task.allowed_inputs):
@@ -212,7 +228,7 @@ def _requester(open_action: str, confirm_action: str, present_action: str) -> Ca
             if turn.work.task(turn.project_id, turn.task_id) is not None:
                 return None
             x = turn.extra
-            return ("team_delegate", {"action": open_action, "new_task_id": turn.task_id, "owner_team": x["owner"],
+            return ("team_delegate", {"action": x.get("action") or open_action, "new_task_id": turn.task_id, "owner_team": x["owner"],
                                       "question": x["question"], "expected_output": x["expected_output"],
                                       "done_criteria": list(x["done_criteria"]), "problem_id": x["problem_id"],
                                       "thread_id": x["thread_id"], "allowed_inputs": list(x.get("inputs") or [])})
@@ -278,6 +294,15 @@ def _data_science(turn: TeamTurn) -> Optional[Call]:
             return ("team_record_human_response", {"task_id": task.id, "action": "confirm_target", "response_id": response,
                                                    "responded_by": said.responded_by.id})
         if asked is not None and tw.can_claim(asked):
+            if task.target is None and said is not None and asked.output_ref and asked.responded_by is not None:
+                # T1, the review: a crash between recording the answer and saving its outcome leaves clear words unsaved;
+                # recording the same response again saves them (the same outcome again changes nothing)
+                from .tools import confirmed_outcome
+
+                response = asked.output_ref.split(":", 1)[1]
+                if confirmed_outcome(task, _answer_text(view), asked.responded_by.id, response) is not None:
+                    return ("team_record_human_response", {"task_id": task.id, "action": "confirm_target", "response_id": response,
+                                                           "responded_by": asked.responded_by.id})
             return ("team_accept", {"task_id": task.id})
         return None
     kinds = _specialists(task)
@@ -295,12 +320,12 @@ def _data_science(turn: TeamTurn) -> Optional[Call]:
     if status == "accepted":
         if kinds:
             return None
-        if _ambiguous_target(task.question) and asked is None:
+        if _needs_outcome(task) and asked is None:
             return ("team_clarify", {"task_id": task.id, "action": "confirm_target", "question": CLARIFY_TARGET})
         return _feasibility(turn, view)
     if status == "blocked":
-        return None if _current_report(view) else _blocker_report(turn, view)
-    if status in ("complete", "partial") and not view["children"] and _current_report(view) is None:
+        return None if _answered(view) else _blocker_report(turn, view)
+    if status in ("complete", "partial") and not view["children"] and not _answered(view):
         return _feasibility(turn, view)  # completed without its report (an older crash): report again
     if status in ("waiting_for_team", "partial", "complete") and view["children"]:
         return _join(turn, view)
@@ -311,42 +336,98 @@ def _sample(task: tw.TeamTask) -> Optional[str]:
     return next((i for i in task.allowed_inputs if i.startswith("sample:")), None)
 
 
+def _answered(view: Row) -> bool:
+    """T1: whether the task's current report answers its current brief revision (a changed outcome raises the revision,
+    so the earlier report stands until the new one supersedes it)."""
+    current = _current_report(view)
+    return current is not None and current.brief_revision >= view["task"].brief_revision
+
+
+def _next_revision(view: Row) -> int:
+    current = _current_report(view)
+    return 1 if current is None else current.revision + 1
+
+
+def _check(turn: TeamTurn, view: Row) -> Row:
+    """What the task's sample can answer for the outcome confirmed (``fixtures.feasibility`` with the task's ``target``).
+    T1: when the outcome needed a definition, the person answered, and their words did not settle it (both events, none,
+    a hedge), the outcome stays open: a blocker naming who confirms it, never a guess."""
+    task = view["task"]
+    if task.target is None and _claimed(_mine(turn, view, "confirm_target")):
+        return {"ok": False, "unsure": True, "missing": "a confirmed outcome", "field": "target", "supplier": task.requester.team,
+                "why": "the answer does not settle what the outcome means (it names both events, neither, or one both ways)",
+                "matters": "a ranking built on the wrong event answers another question than the one asked"}
+    return fixtures.feasibility(_sample(task) or "", task.target)
+
+
+def _outcome_lines(task: tw.TeamTask, check: Row) -> tuple[list[str], list[str]]:
+    """The assumption and the limit that say which outcome was checked, as confirmed (T1): the person's words with who
+    confirmed them, and the event with the column that records it, so a Business member reads it in the report."""
+    from dclab_core import target_contract as tc
+
+    t = task.target
+    if t is None:
+        return [], []
+    return ([f"The outcome is: {t.words} (confirmed by {t.confirmed_by})."],
+            [f"The outcome checked is {tc.event_label(t.event)}, as {t.confirmed_by} confirmed (brief revision {t.brief_revision}): "
+             f"{check.get('outcome')} records it, with known outcomes."])
+
+
 def _feasibility(turn: TeamTurn, view: Row) -> Optional[Call]:
-    """Inspect the sample; block on what is missing, or check leakage, name the baseline and the uncertainty, and report."""
+    """Inspect the sample; block on what is missing (T1: a record of the outcome the person confirmed included), or check
+    leakage, name the baseline and the uncertainty, and report."""
     task = view["task"]
     if not _claimed(_mine(turn, view, "inspect_schema", _brief(task))):  # review F1: running after a crash is run again
         return ("team_act", {"task_id": task.id, "action": "inspect_schema"})
     sample = _sample(task) or ""
-    check = fixtures.feasibility(sample)
+    check = _check(turn, view)
     if not check["ok"]:
         return ("team_block", {"task_id": task.id, "reason": check["why"]})
     for action in ("check_leakage", "define_baseline", "explain_uncertainty"):
         if not _claimed(_mine(turn, view, action, _brief(task))):
             return ("team_act", {"task_id": task.id, "action": action})
-    if _current_report(view) is not None:
+    if _answered(view):
         return None
-    said = _answer_text(view)
-    confirmed = _confirmed_by(turn, view)
-    assumptions = [f"The outcome is: {said}" + (f" (confirmed by {confirmed.responded_by.id})." if confirmed else ".")] if said else []
+    assumptions, checked = _outcome_lines(task, check)
+    if task.target is None:
+        said = _answer_text(view)
+        confirmed = _confirmed_by(turn, view)
+        assumptions = [f"The outcome is: {said}" + (f" (confirmed by {confirmed.responded_by.id})." if confirmed else ".")] if said else []
     evidence = [{"source": sample, "ref": f"schema:{sample}", "input_revision": _brief(task), "assumptions": assumptions,
                  "uncertainty": "the sample's columns and dates only; no account was scored"}]
+    excluded, outcome = tuple(check["excluded"]), check["outcome"]
+    late = [c for c in excluded if c != outcome]
     limits = ["Checked on the sample's columns and dates only: no model was trained and no account was scored.",
-              f"Excluded as inputs: {', '.join(check['excluded'])}, known only after renewal (it is the outcome)."]
-    return ("team_return_report", {"task_id": task.id, "outcome": "complete", "revision": 1, "evidence": evidence, "limits": limits,
-                                   "answer": "The sample has renewal dates and mature outcomes. We can score seven days before renewal."})
+              f"Excluded as inputs: {', '.join(excluded)}, known only after renewal (it is the outcome)." if not late else
+              f"Excluded as inputs: {', '.join(excluded)}, each known only after renewal ({outcome} is the outcome; "
+              f"{', '.join(late)} is written after it, a late feature).", *checked]
+    usual = (fixtures.sample(sample) or {}).get("outcome")
+    answer = ("The sample has renewal dates and mature outcomes. We can score seven days before renewal." if outcome == usual else
+              f"The sample has renewal dates and mature outcomes for the outcome confirmed ({outcome}). We can score seven days before renewal.")
+    return ("team_return_report", {"task_id": task.id, "outcome": "complete", "revision": _next_revision(view), "evidence": evidence,
+                                   "limits": limits, "answer": answer})
 
 
 def _blocker_report(turn: TeamTurn, view: Row) -> Call:
+    """The blocked report: what is missing, why it matters, who can supply it (and from where), and which task resumes."""
     task = view["task"]
     sample = _sample(task) or "the sample"
-    check = fixtures.feasibility(sample)
+    check = _check(turn, view)
     from .store import team_label
 
     supplier = check.get("supplier") or task.requester.team
-    answer = (f"Blocked: {check.get('why', 'a needed input is missing')} (missing field: {check.get('missing')}). "
-              f"The {team_label(supplier)} team can supply it; work resumes when it is attached to {sample}.")
-    return ("team_return_report", {"task_id": task.id, "outcome": "blocked", "revision": 1, "answer": answer,
-                                   "next_owner": supplier, "unblocks": f"attach {check.get('missing')} to {sample}"})
+    matters = f" Why it matters: {check['matters']}." if check.get("matters") else ""
+    if check.get("unsure"):
+        answer = (f"Blocked: {check['why']}.{matters} The {team_label(supplier)} team confirms with its person whether the outcome is "
+                  f"a cancellation or a failure to renew by the contractual renewal date; work resumes on {task.id} when they do.")
+        unblocks = "confirm what the outcome means: a cancellation, or a failure to renew by the contractual renewal date"
+    else:
+        source = f" ({check['source']})" if check.get("source") else ""
+        answer = (f"Blocked: {check.get('why', 'a needed input is missing')} (missing field: {check.get('missing')}).{matters} "
+                  f"The {team_label(supplier)} team can supply it{source}; work resumes on {task.id} when it is attached to {sample}.")
+        unblocks = f"attach {check.get('missing')} to {sample}"
+    return ("team_return_report", {"task_id": task.id, "outcome": "blocked", "revision": _next_revision(view), "answer": answer,
+                                   "next_owner": supplier, "unblocks": unblocks})
 
 
 def _join(turn: TeamTurn, view: Row, *, attribute: bool = False, order: Optional[list[str]] = None) -> Optional[Call]:
@@ -363,7 +444,12 @@ def _join(turn: TeamTurn, view: Row, *, attribute: bool = False, order: Optional
         return None
     joined = {r.id: r for r in view["child_reports"]}
     order = [o for o in (order or []) if any(c.id == o for c in view["children"])] + [c.id for c in view["children"] if c.id not in (order or [])]
-    returned = sorted((joined[rid] for rid in join.reports), key=lambda r: order.index(r.task_id))
+    # T3: a Sales or Marketing report resting on a member no longer in the team is not joined (its reply was refused at
+    # delivery too): the parent is partial and names that team, which asks a member again
+    from .commercial import answer_withdrawn
+
+    withdrawn = {rid: why for rid in join.reports if (why := answer_withdrawn(turn.env, turn.project_id, joined[rid].task_id))}
+    returned = sorted((joined[rid] for rid in join.reports if rid not in withdrawn), key=lambda r: order.index(r.task_id))
     if attribute:  # the Lead says which team answered what
         from .store import team_label
 
@@ -376,11 +462,21 @@ def _join(turn: TeamTurn, view: Row, *, attribute: bool = False, order: Optional
         fixtures_used = sorted({e.ref for r in returned for e in r.evidence})
         limits.append(f"Simulated: the figures come from fixtures ({', '.join(fixtures_used) or 'none'}); they illustrate the "
                       "handoff and are not measured.")
-    unresolved = [joined[rid] for rid in join.reports if joined[rid].task_id in join.unresolved]
+    unresolved = [joined[rid] for rid in join.reports if joined[rid].task_id in join.unresolved and rid not in withdrawn]
+    if withdrawn:
+        from .store import team_label
+
+        gone = [joined[rid] for rid in withdrawn]
+        # the standing replies first, then what no longer stands
+        answer = "\n".join(([answer] if answer else []) + [f"{team_label(r.owner)}: not joined: {withdrawn[r.id]}." for r in gone])
+        limits.append("A reply was withdrawn: the member whose answer it rests on is no longer in that team.")
     call: dict[str, Any] = {"task_id": task.id, "answer": answer, "evidence": evidence, "limits": limits,
                             "revision": 1 if current is None else current.revision + 1,
-                            "outcome": "partial" if unresolved else "complete"}
-    if unresolved:
+                            "outcome": "partial" if unresolved or withdrawn else "complete"}
+    if withdrawn:
+        first = joined[next(iter(withdrawn))]
+        call.update(next_owner=first.owner, unblocks=f"a member of the {first.owner} team answers again")
+    elif unresolved:
         first = unresolved[0]
         call.update(next_owner=first.next_task.owner or first.owner, unblocks=first.next_task.unblocks or "its blocker")
     return ("team_return_report", call)
@@ -398,8 +494,8 @@ def _model(turn: TeamTurn) -> Optional[Call]:
     snapshot = next((i for i in task.allowed_inputs if i.startswith("dispatch:")), "")
     first = _mine(turn, view, "score", snapshot or "none")
     if status == "accepted":
-        if first is None:
-            return ("team_model_call", {"task_id": task.id, "action": "score"})
+        if first is None or not tw.can_claim(first):  # T2: a crash between its two writes leaves it running: the same call
+            return ("team_model_call", {"task_id": task.id, "action": "score"})  # finishes that attempt, never a second score
         if first.status in tw.FAILED_ACTIONS:
             return ("team_block", {"task_id": task.id, "reason": first.failure_ref or "the score was refused"})
         return _estimate_report(task, kind, snapshot, first, None, 1)
@@ -411,15 +507,21 @@ def _model(turn: TeamTurn) -> Optional[Call]:
                       "No estimate is given."})
     if status == "complete" and _current_report(view) is None and first is not None and first.status in tw.DONE_ACTIONS:
         return _estimate_report(task, kind, snapshot, first, None, 1)  # completed without its report: report again
-    minutes = turn.extra.get("correction_minutes")
-    if status == "complete" and minutes:
-        revision = f"{snapshot};kitchen+{int(minutes)}m"
+    correction = turn.extra.get("correction")  # T2: judged by correct() (tools.judge_correction) before the turn
+    if status == "complete" and correction is not None:
+        revision, base, minutes = correction["revision"], int(correction["base"]), int(correction["minutes"])
         again = _mine(turn, view, "score", revision)
-        if again is None:
-            return ("team_model_call", {"task_id": task.id, "action": "score", "correction_minutes": int(minutes)})
+        if again is None or not tw.can_claim(again):  # a crash between its two writes: the same call finishes that attempt
+            args = {"task_id": task.id, "action": "score", "correction_minutes": minutes, "base_revision": base}
+            return ("team_model_call", {**args, **({"correction_id": correction["id"]} if correction.get("id") else {})})
+        if correction["verdict"] != "apply" or again.status not in tw.DONE_ACTIONS:
+            return None  # refused on an older base (a skipped attempt and a reconcile reply), or not scored: no new revision
         current = _current_report(view)
-        if current is not None and all(e.input_revision != revision for e in current.evidence):
-            return _estimate_report(task, kind, snapshot, again, (int(minutes), first), current.revision + 1)
+        if current is None or current.revision != base or any(e.input_revision == revision for e in current.evidence):
+            return None  # reported already, or another correction moved the report on meanwhile
+        shown = {e.input_revision for e in current.evidence}  # "was": the value of the report this one supersedes
+        before = next((a for a in view["actions"] if a.action == "score" and a.status in tw.DONE_ACTIONS and a.input_revision in shown), None)
+        return _estimate_report(task, kind, snapshot, again, (minutes, before), current.revision + 1)
     return None
 
 
@@ -439,8 +541,13 @@ def _estimate_report(task: tw.TeamTask, kind: str, snapshot: str, score: tw.Team
             answer = f"At {at} the estimated arrival was {_value(score)}."
         else:
             minutes, before = correction
-            answer = (f"Revised: the estimated arrival is {_value(score)} (was {_value(before) if before else 'unknown'} at {at}; "
-                      f"the kitchen added {minutes} minutes, fixed route).")
+            was = _value(before) if before else "unknown"  # the superseded report's value, not the first score's
+            if minutes == 0:  # T2: the kitchen withdrew its delay: the dispatch estimate again, never "added 0 minutes"
+                answer = (f"Revised: the estimated arrival is {_value(score)} (was {was} in the previous report; the kitchen's "
+                          f"delay was withdrawn, so this is the {at} estimate again, fixed route).")
+            else:
+                answer = (f"Revised: the estimated arrival is {_value(score)} (was {was} in the previous report; the kitchen "
+                          f"added {minutes} minutes to the {at} estimate, fixed route).")
         assumptions = ["fixed route"]
     else:
         answer = f"The first-offer acceptance estimate was {_value(score)}."
@@ -476,16 +583,17 @@ def _worker(first: str, report: Callable[[TeamTurn, Row, tw.TeamAction], Call],
                 return ("team_act", {"task_id": task.id, "action": first})
             if done.status in tw.FAILED_ACTIONS:
                 return ("team_block", {"task_id": task.id, "reason": done.failure_ref or f"{first} failed"})
-            return None if _current_report(view) else report(turn, view, done)
-        if status == "blocked" and _current_report(view) is None:
+            return None if _answered(view) else report(turn, view, done)
+        if status == "blocked" and not _answered(view):
             if blocked is not None and done is not None and done.status in tw.DONE_ACTIONS:
                 return blocked(turn, view, done)  # its own check passed: it blocked on what its team must give
-            if first == "validate_contract" and not fixtures.feasibility(_sample(task) or "")["ok"]:  # review F5: its own reason
-                return _blocker_report(turn, view)  # the sample itself lacks what is needed: name who supplies it
+            if first == "validate_contract" and not fixtures.feasibility(_sample(task) or "", task.target)["ok"]:  # review F5: its own reason
+                return _blocker_report(turn, view)  # the sample itself lacks what is needed (T1: a record of the outcome confirmed)
             why = (done.failure_ref if done else None) or f"{first} could not run"
-            return ("team_return_report", {"task_id": task.id, "outcome": "blocked", "revision": 1, "answer": f"Blocked: {why}.",
-                                           "next_owner": task.requester.team, "unblocks": f"give the {first.replace('_', ' ')} what it reads"})
-        if status in ("complete", "partial") and _current_report(view) is None and done is not None and done.status in tw.DONE_ACTIONS:
+            return ("team_return_report", {"task_id": task.id, "outcome": "blocked", "revision": _next_revision(view),
+                                           "answer": f"Blocked: {why}.", "next_owner": task.requester.team,
+                                           "unblocks": f"give the {first.replace('_', ' ')} what it reads"})
+        if status in ("complete", "partial") and not _answered(view) and done is not None and done.status in tw.DONE_ACTIONS:
             return report(turn, view, done)  # moved without its report (an older crash): report again
         return None
 
@@ -497,51 +605,38 @@ def _contract_report(turn: TeamTurn, view: Row, done: tw.TeamAction) -> Call:
     no training tool, and a run needs the owner's approval and a budget)."""
     task = view["task"]
     sample = _sample(task) or ""
-    check = fixtures.feasibility(sample)
+    check = fixtures.feasibility(sample, task.target)
     when = _WHEN.search(task.question)
     moment = when.group(1) if when else "at the prediction moment Data Science confirms"
     # review F4: the outcome as the person confirmed it to Data Science, not assumed; the review of 2026-11-22: read only what
-    # the Lead added after the person's words ("Data Science found: …"), never a "The outcome is:" the person wrote first
+    # the Lead added after the person's words ("Data Science found: …"), never a "The outcome is:" the person wrote first.
+    # T1: the outcome confirmed travels as a field (``task.target``, carried from Data Science's task); the sentence is
+    # read only for a task that carries none
     found = task.question.rpartition(FOUND)[2] if FOUND in task.question else ""
     confirmed = _CONFIRMED.search(found)
-    column = ", ".join(check.get("excluded") or ()) or "the outcome column"
-    outcome = (f"the outcome is \"{confirmed.group(1).strip().rstrip('.')}\", as confirmed with Data Science (in the sample: {column}, never an input)"
-               if confirmed else f"the outcome is the one Data Science confirms (in the sample: {column}, never an input)")
+    said = task.target.words if task.target is not None else (confirmed.group(1) if confirmed else None)
+    excluded = ", ".join(check.get("excluded") or ())
+    column = (check.get("outcome") if task.target is not None else excluded) or "the outcome column"
+    outcome = (f"the outcome is \"{said.strip().rstrip('.')}\", as confirmed with Data Science (in the sample: {column}, never an input)"
+               if said else f"the outcome is the one Data Science confirms (in the sample: {column}, never an input)")
     answer = (f"The experiment can be set up: score each account {moment}, train on earlier renewals and hold out the latest "
               f"renewals by time; {outcome}. Nothing was trained: a training run needs the owner's approval and a budget.")
+    assumptions, checked = _outcome_lines(task, check)
     evidence = [{"source": sample, "ref": done.output_ref or f"contract:{sample}", "input_revision": _brief(task),
-                 "uncertainty": "the sample's columns only; no run, no score", "assumptions": [f"the prediction moment: {moment}"]}]
-    return ("team_return_report", {"task_id": task.id, "outcome": "complete", "revision": 1, "answer": answer, "evidence": evidence,
-                                   "limits": ["Checked against the sample's columns only: no model was trained, evaluated or registered."]})
-
-
-CAPACITY = "the Sales team confirms how many calls it can make in the week before a renewal"
-
-
-def _outreach_block(turn: TeamTurn, view: Row, done: tw.TeamAction) -> Call:
-    """Sales checked the do-not-contact list; the list itself waits for the Sales team's capacity, which no record holds."""
-    return ("team_block", {"task_id": view["task"].id, "reason": "the call capacity is not on record: " + CAPACITY})
-
-
-def _outreach_report(turn: TeamTurn, view: Row, done: tw.TeamAction) -> Call:
-    """Sales: the calls planned from the ranking Data Science makes, the do-not-contact list removed first; blocked on the
-    capacity, which is the Sales team's own number (a child's partial report is not a result: the Lead would wait for
-    ever). Nobody is contacted."""
-    task = view["task"]
-    sample = _sample(task) or ""
-    found = fixtures.sample(sample) or {}
-    answer = (f"The calls can be planned from Data Science's ranking: the {found.get('do_not_contact', 'listed')} accounts on the "
-              "do-not-contact list are removed first, and nobody is contacted before the owner approves the list. The list "
-              "waits for the call capacity, which is not on record yet.")
-    evidence = [{"source": sample, "ref": done.output_ref or f"exclusions:{sample}", "input_revision": _brief(task),
-                 "uncertainty": "the fixture's do-not-contact count; no list was drafted"}]
-    return ("team_return_report", {"task_id": task.id, "outcome": "blocked", "revision": 1, "answer": answer, "evidence": evidence,
-                                   "next_owner": "sales", "unblocks": CAPACITY,
-                                   "limits": ["No contact list was drafted: it needs Data Science's ranking and the Sales team's capacity."]})
+                 "uncertainty": "the sample's columns only; no run, no score",
+                 "assumptions": [f"the prediction moment: {moment}", *assumptions]}]
+    limits = ["Checked against the sample's columns only: no model was trained, evaluated or registered.", *checked]
+    if task.target is not None and excluded:
+        limits.append(f"Excluded as inputs: {excluded} (known only after renewal).")
+    return ("team_return_report", {"task_id": task.id, "outcome": "complete", "revision": _next_revision(view), "answer": answer,
+                                   "evidence": evidence, "limits": limits})
 
 
 _ml_engineering = _worker("validate_contract", _contract_report)
-_sales = _worker("check_exclusions", _outreach_block, _outreach_report)
+# T3 (2026-11-23): Sales and Marketing are teamspace/commercial.py: each asks its own team's member (Sales its call capacity,
+# Marketing the offer's terms) in its own thread, and returns a capped, restricted call list or the confirmed terms, or a
+# blocker. With no team of its kind to ask, Sales blocks on the capacity as before (CAPACITY: who supplies it).
+from .commercial import CAPACITY, marketing as _marketing, sales as _sales  # noqa: E402
 
 
 # ---------------------------------------------------------------------------------------------------------- the Lead
@@ -587,10 +682,14 @@ def _lead(turn: TeamTurn) -> Optional[Call]:
             delegated = _mine(turn, view, "delegate", child)
             # missing, or its delegation not recorded or not finished (a crash between the two writes resumes here, review F1)
             if turn.work.task(turn.project_id, child) is None or delegated is None or not tw.can_claim(delegated):
-                return ("team_delegate", {"action": "delegate", "task_id": task.id, "new_task_id": child, "owner_team": team,
-                                          "question": question, "expected_output": "a feasibility answer or a precise blocker",
-                                          "done_criteria": ["says whether the data can answer the question, or what blocks it"],
-                                          "allowed_inputs": inputs})
+                call = {"action": "delegate", "task_id": task.id, "new_task_id": child, "owner_team": team,
+                        "question": question, "expected_output": "a feasibility answer or a precise blocker",
+                        "done_criteria": ["says whether the data can answer the question, or what blocks it"],
+                        "allowed_inputs": inputs}
+                science = turn.work.task(turn.project_id, f"{task.id}.data_science") if team == "ml_engineering" else None
+                if science is not None and science.target is not None:  # T1: the confirmed outcome travels as a field
+                    call["target_from"] = science.id
+                return ("team_delegate", call)
     if status == "blocked":
         if _current_report(view) is not None:
             return None
@@ -648,7 +747,37 @@ def _carry_down(turn: TeamTurn, view: Row) -> Optional[Call]:
 
 BRAINS: dict[str, Callable[[TeamTurn], Optional[Call]]] = {"business": _business, "data_science": _data_science, "model": _model,
                                                            "lead": _lead, "home": _home, "ml_engineering": _ml_engineering,
-                                                           "sales": _sales}
+                                                           "sales": _sales, "marketing": _marketing}
+
+
+def _unsupported(turn: TeamTurn) -> Optional[Call]:
+    """T3: the turn of a directory agent with no rules in this release, on a task it was asked: it says so at once (accept,
+    block, a blocked report naming who acts next), so the requester sees an answer instead of a task open for ever."""
+    from .store import team_label
+
+    view = _view(turn)
+    if view is None or view["task"].owner_team != turn.agent:
+        return None
+    task, status = view["task"], view["task"].status
+    if status == "open":
+        return ("team_accept", {"task_id": task.id})
+    if status == "accepted":
+        return ("team_block", {"task_id": task.id, "reason": f"no {team_label(turn.agent)} agent answers in this release"})
+    if status == "blocked" and _current_report(view) is None:
+        return ("team_return_report", {"task_id": task.id, "outcome": "blocked", "revision": 1, "next_owner": task.requester.team,
+                                       "unblocks": "ask a team whose agent can answer (the recipients the thread lists)",
+                                       "answer": f"Unsupported: no {team_label(turn.agent)} agent answers in this release, so "
+                                                 "nothing was done on this task. Ask a team that can answer."})
+    return None
+
+
+def askable() -> list[dict[str, Any]]:
+    """T3: the teams a Business thread can ask, those whose agent really answers in this release (a team agent of the
+    directory with its rules), in the directory's order."""
+    from .store import team_label
+
+    return [{"name": name, "label": team_label(name), "asks_its_team": name in ("sales", "marketing")}
+            for name, c in tw.DIRECTORY.items() if c.kind == "team_agent" and name != "business" and name in BRAINS]
 
 
 # ---------------------------------------------------------------------------------------------------------- the loop
@@ -713,7 +842,7 @@ def run_turn(turn: TeamTurn, registry: Any = None) -> dict[str, Any]:
     from ..agents.runtime import Policy, run as run_policy
 
     base = turn.agent.split(":")[0]
-    brain = BRAINS.get(base)
+    brain = BRAINS.get(base) or (_unsupported if turn.extra.get("unsupported") and base in CONFIGS else None)
     if brain is None:
         raise KeyError(f"{turn.agent} has no deterministic agent in this release")
     first = brain(turn)
@@ -745,9 +874,12 @@ def open_case(env: Any, project_id: str, problem_id: str, *, task_id: str, quest
               expected_output: str = "a feasibility answer or a precise blocker",
               done_criteria: tuple[str, ...] = ("says whether the data can answer the question, or what blocks it",),
               registry: Any = None) -> dict[str, Any]:
-    """Business opens the case's task for ``owner`` with the brief, for its person ``member`` in their thread."""
+    """Business opens the case's task for ``owner`` with the brief, for its person ``member`` in their thread (T3: through
+    the directory action that names that team: ``request_sales_input``, ``request_marketing_input``, else
+    ``delegate_analysis``)."""
     turn = TeamTurn(env, _work(env), project_id, "business", task_id=task_id, initiator=initiator, person=member,
-                    extra={"mode": "open", "owner": owner, "question": question, "problem_id": problem_id, "thread_id": thread_id,
+                    extra={"mode": "open", "owner": owner, "action": OPEN_ACTIONS.get(owner, "delegate_analysis"),
+                           "question": question, "problem_id": problem_id, "thread_id": thread_id,
                            "inputs": list(inputs), "expected_output": expected_output, "done_criteria": list(done_criteria)})
     return run_turn(turn, registry)
 
@@ -764,62 +896,259 @@ def person_replies(env: Any, project_id: str, task_id: str, *, person: str, text
     return run_turn(turn, registry)
 
 
-def correct(env: Any, project_id: str, task_id: str, *, kitchen_minutes: int, initiator: Optional[Row] = None,
-            registry: Any = None) -> dict[str, Any]:
-    """A correction after completion (the kitchen adds minutes): the specialist that owns ``task_id`` estimates again on the
-    corrected input and supersedes its report; every other task keeps its own snapshot."""
+def confirm_outcome(env: Any, project_id: str, task_id: str, *, person: str, text: str, initiator: Optional[Row] = None,
+                    response_id: Optional[str] = None) -> dict[str, Any]:
+    """T1 (0.170.0): the person says (again) what the outcome means, after the task was asked or answered: their words as
+    the task's confirmed outcome (``tools.confirmed_outcome``), saved by ``store.confirm_target``.
+
+    - Words that do not settle it (both events, none, a hedge) change nothing: ``{"outcome": "unsure"}``.
+    - The same event in other words changes nothing (the work that rested on it stands): ``changed`` False.
+    - Another event, or a first one on a task that answered (or blocked) without one, raises the task's brief revision;
+      every task that carried the earlier answer (ML Engineering's copy) is revised with it; each works again on its new
+      revision and its earlier report stays as it was until the new one supersedes it (``stale`` lists them).
+
+    Only the case's member (the person who asked) confirms it, as the member the call acts for (``initiator``), while
+    they may still change work in the project (``delivery.authorize``). No route calls this yet: the person's own route
+    (their thread, beside ``from_thread``) is the next package's (T3/T5b) wiring. Returns ``outcome``, ``changed``,
+    ``revised`` (task ids), ``stale`` (report ids) and ``refused``."""
+    from .tools import _digest, confirmed_outcome, holds_role, save_outcome
+
     work = _work(env)
     task = work.task(project_id, task_id)
     if task is None:
         raise KeyError(f"no task {task_id} in project {project_id}")
-    turn = TeamTurn(env, work, project_id, task.owner_team, task_id=task_id, initiator=initiator,
-                    extra={"mode": "correction", "correction_minutes": int(kitchen_minutes)})
-    return run_turn(turn, registry)
+    out: dict[str, Any] = {"task_id": task_id, "outcome": None, "changed": False, "revised": [], "stale": [], "refused": []}
+    ctx = TeamTurn(env, work, project_id, task.owner_team, task_id=task_id, initiator=initiator, person=person, text=text)
+    who = (initiator or {}).get("user_id")
+    why = (f"this call acts for {who}; it cannot confirm an outcome for {person}" if who is not None and str(who) != person
+           else holds_role(ctx, task, "human:requester", person))
+    if why is None and task.status == "waiting_for_person":  # the review: its question is open; the answer goes there
+        why = f"{task_id} is asking its question: answer it in the thread, where it is recorded as the person's answer"
+    if why is None and initiator:
+        from ..memory.scope import AccessDenied
+        from .delivery import authorize
+
+        try:
+            authorize(env, {"initiator": initiator, "project_id": project_id})  # a member who lost access changes nothing
+        except AccessDenied as exc:
+            why = str(exc) or "access denied"
+    if why is not None:
+        out["refused"].append(why)
+        return out
+    target = confirmed_outcome(task, text, person, response_id or f"r-{_digest(task_id, person, text)}")
+    if target is None:
+        out["outcome"] = "unsure"
+        return out
+    try:
+        written = save_outcome(env, work, project_id, task, target, by=tw.Actor(kind="agent", id=task.owner_team, team=task.owner_team),
+                               initiator=initiator)
+    except ValueError as exc:  # a cancelled, superseded or failed task takes no outcome
+        out["refused"].append(str(exc))
+        return out
+    out.update(outcome=target.event, changed=written.changed, revised=[t.id for t in written.revised], stale=list(written.stale))
+    return out
+
+
+def correct(env: Any, project_id: str, task_id: str, *, kitchen_minutes: int, base_revision: Optional[int] = None,
+            correction_id: Optional[str] = None, initiator: Optional[Row] = None, registry: Any = None) -> dict[str, Any]:
+    """A correction after completion (the kitchen's minutes; 0 withdraws a delay): the specialist that owns ``task_id``
+    estimates again on the corrected input and supersedes its report; every other task keeps its own snapshot.
+
+    T2 (2026-11-23): the correction is applied against the report revision it names (``base_revision``; it may be left
+    out only while the first report is current) and judged by ``team_work.accept_correction``
+    (``tools.judge_correction``): ``apply`` makes the next revision; ``duplicate`` (already applied, the same
+    ``correction_id`` again, or no change) adds nothing; ``stale_base`` (an older report than the current one) writes a
+    skipped attempt and a "please reconcile" reply to the requester, never a new revision. One judged ``apply`` whose
+    score another correction on the same base overtook is refused the same way. A resend after a crash finishes the
+    unfinished attempt: one score, one report. Each judgment is recorded (``team.correction.applied`` or ``.refused``,
+    and the ledger point ``team.correction_accept``). Returns the turn with its ``verdict`` (None when refused: no report
+    yet, minutes outside 0-240, a base that names no report or none on a revised report, a reused correction id)."""
+    from ..ledger import capture
+    from . import tools
+
+    work = _work(env)
+    task = work.task(project_id, task_id)
+    if task is None:
+        raise KeyError(f"no task {task_id} in project {project_id}")
+    try:
+        judged = tools.judge_correction(work, project_id, task, int(kitchen_minutes), base_revision, correction_id)
+    except ValueError as exc:
+        return {"agent": task.owner_team, "task_id": task_id, "skipped": True, "steps": [], "refused": [str(exc)], "verdict": None}
+    out: dict[str, Any] = {"agent": task.owner_team, "task_id": task_id, "skipped": True, "steps": [], "refused": []}
+    turn = None
+    if judged["verdict"] != "duplicate":
+        turn = TeamTurn(env, work, project_id, task.owner_team, task_id=task_id, initiator=initiator,
+                        extra={"mode": "correction", "correction": {k: judged[k] for k in ("verdict", "revision", "base", "minutes", "id")}})
+        out = run_turn(turn, registry)
+    out["verdict"] = judged["verdict"]
+    if out["refused"]:
+        return out
+    view = work.task_view(project_id, task_id)
+    made = next((r for r in view["reports"] if any(e.input_revision == judged["revision"] for e in r.evidence)), None)
+    scored = next((a for a in view["actions"] if a.action == "score" and a.input_revision == judged["revision"]
+                   and a.status in tw.DONE_ACTIONS), None)
+    if judged["verdict"] == "apply" and made is None:
+        now = max((r.revision for r in view["reports"] if r.status != "superseded"), default=judged["current"])
+        if scored is None or now == judged["base"]:
+            return out  # not scored (refused or left running): nothing applied, nothing to record yet
+        # scored, but another correction on the same base reported first: it supersedes nothing, so it is refused as
+        # late (never said to be applied) and the requester is told to reconcile
+        judged = {**judged, "verdict": "stale_base", "current": now}
+        out["verdict"] = "stale_base"
+    if judged["verdict"] == "stale_base" and turn is not None:
+        attempt = scored or next((a for a in view["actions"] if a.action == "score" and a.input_revision == judged["revision"]), None)
+        if attempt is not None:  # once per attempt (the reply's key): the skipped attempt's reply is already there
+            tools._reconcile(turn, task, judged, attempt)
+    who = (initiator or {}).get("user_id")
+    facts = {"task": task_id, "problem": task.problem_id, "by": str(who) if who else task.owner_team,
+             "by_kind": "person" if who else "agent", "verdict": judged["verdict"], "base_revision": judged["base"],
+             "request": judged["id"]}
+    if judged["verdict"] == "apply":
+        _correction_event("team.correction.applied", project_id, {**facts, "revision": made.revision, "report": made.id})
+    else:
+        _correction_event("team.correction.refused", project_id,
+                          {**facts, "revision": judged["current"],
+                           "reason": ("older_base" if judged["verdict"] == "stale_base"
+                                      else "unchanged" if judged.get("unchanged") else "already_applied")})
+    capture.team_correction_accepted(project_id, task_id, judged["verdict"], base_revision=judged["base"],
+                                     current_revision=judged["current"])
+    return out
+
+
+def _correction_event(kind: str, project_id: str, payload: Row) -> None:
+    """A correction's judgment in the workspace's record (best effort: the correction stands). Ids, revisions and codes only."""
+    try:
+        from .. import experience
+
+        experience.record(kind, "person" if payload.get("by_kind") == "person" else "agent",
+                          {k: v for k, v in payload.items() if v is not None}, project=project_id)
+    except Exception:  # noqa: BLE001
+        pass
+
+
+OPEN_ACTIONS = {"sales": "request_sales_input", "marketing": "request_marketing_input"}  # Business's directory action per team
+
+
+def _which(env: Any, thread: Mapping[str, Any], agent: str, tasks: list[tw.TeamTask], key: str) -> dict[str, Any]:
+    """T3: words that could answer several open tasks answer none: the thread's agent asks which one is meant (once per
+    message), naming each task, and the person answers with that task's reply button (``task_id``)."""
+    from .store import team_label
+    from .threads import threads_for
+
+    lines = [f"- {t.id} ({team_label(t.owner_team)}): {str(t.question).strip().splitlines()[0][:140]}" for t in tasks]
+    text = ("Your message could answer more than one open task, so I have not taken it as an answer to any. Which task do you "
+            "mean? Answer with that task's reply button.\n" + "\n".join(lines))
+    try:
+        threads_for(env).post(str(thread["id"]), {"kind": "agent", "id": agent, "team": agent}, text,
+                              handoff={"kind": "which_task", "task_ids": [t.id for t in tasks], "from_team": agent, "to_team": agent},
+                              key=f"which:{key}")
+    except LookupError:
+        pass
+    return {"agent": agent, "did": "which", "which": [t.id for t in tasks], "skipped": True, "steps": [], "refused": []}
+
+
+def _pick(env: Any, thread: Mapping[str, Any], agent: str, candidates: list[tw.TeamTask], task_id: Optional[str],
+          key: str) -> tuple[Optional[tw.TeamTask], Optional[dict[str, Any]]]:
+    """The task a person's words answer: the one named (``task_id``: a reply button), else the only candidate; with several
+    and none named, the agent asks which (and nothing is answered); a named task that does not wait here is refused."""
+    if task_id:
+        found = next((t for t in candidates if t.id == task_id), None)
+        if found is None:
+            return None, {"agent": agent, "did": "refused", "skipped": True, "steps": [],
+                          "refused": [f"{task_id} does not wait for your answer in this thread"]}
+        return found, None
+    if len(candidates) > 1:
+        return None, _which(env, thread, agent, candidates, key)
+    return (candidates[0], None) if candidates else (None, None)
+
+
+def _answered_with(work: Any, task: tw.TeamTask, person: str, response: str, agent: Optional[str] = None) -> bool:
+    """Whether ``agent`` (default: the task's owner) already recorded the response ``response`` by ``person`` on it."""
+    actor = agent or task.owner_team
+    view = work.task_view(task.project_id, task.id)
+    return view is not None and any(a.actor.id == actor and a.output_ref == f"response:{response}" and a.responded_by is not None
+                                    and a.responded_by.id == person for a in view["actions"])
 
 
 def from_thread(env: Any, thread: Mapping[str, Any], *, person: str, text: str, initiator: Optional[Row] = None,
                 message_id: str = "", team_kind: Optional[str] = None, ask: Optional[str] = None,
+                task_id: Optional[str] = None, response_id: Optional[str] = None, resend: bool = False,
                 registry: Any = None) -> Optional[dict[str, Any]]:
     """A person posted in their team thread (the route calls this after saving the message): the team's agent takes it.
 
     In a Business thread (``team_kind`` the thread's team kind): with ``ask`` (a team agent's name), the message opens a
-    case for that team (``open_case``) unless one is already open from this thread, reading the inputs the project declares
-    for its teams (``team_inputs``; R3 reads the project's own tables). Without it, a message that answers an open
-    clarification asked of this person in this thread is their answer (``person_replies``). Anything else is a message in
-    the thread and nothing more. Returns the agent's turn, or None."""
+    case for that team (``open_case``; T3: each ask its own task, while another case from the thread is open too), reading
+    the inputs the project declares for its teams (``team_inputs``). Without it, a message that answers an open
+    clarification asked of this person in this thread is their answer (``person_replies``). In a Sales or Marketing thread
+    (T3), a member's message answers the question its agent asked the team (``commercial.answer``). In both, ``task_id``
+    (the reply button's) names the task answered; words that could answer several tasks answer none and the agent asks
+    which; ``response_id`` is the answer's identity, so the same answer sent twice is recorded once (``resend``: the route
+    saved no new message, so the words only resume the task that already recorded this response by this person, never
+    another task opened since). Anything else is a
+    message in the thread and nothing more. Returns the agent's turn (``did``: opened, answered, which, hint, refused),
+    or None."""
     from .threads import is_home
 
+    project_id, problem_id, thread_id = str(thread["project_id"]), str(thread["problem_id"]), str(thread["id"])
+    key = safe_id(f"{thread_id}:{response_id or message_id or _digest_text(person, text)}")
     if is_home(thread):  # a person's Home conversation with the Lead: a message there answers the Lead's open question, if any
         from . import lead
 
-        work = _work(env)
-        waiting = [t for t in lead.lead_tasks(env, str(thread["project_id"])) if t.requester.thread_id == thread["id"]
+        waiting = [t for t in lead.lead_tasks(env, project_id) if t.requester.thread_id == thread["id"]
                    and t.status == "waiting_for_person" and t.requester.member == person]
+        if task_id:
+            waiting = [t for t in waiting if t.id == task_id]
         if not waiting:
             return None
-        return lead.answer(env, str(thread["project_id"]), waiting[0].id, person=person, text=text, initiator=initiator, registry=registry)
-    if (team_kind or thread.get("team")) != "business":
-        return None
+        return lead.answer(env, project_id, waiting[0].id, person=person, text=text, initiator=initiator, registry=registry)
+    kind = str(team_kind or thread.get("team") or "")
     work = _work(env)
-    project_id, problem_id, thread_id = str(thread["project_id"]), str(thread["problem_id"]), str(thread["id"])
+    if kind in ("sales", "marketing") and not ask:  # T3: a member answers the question its team's agent asked the team
+        from . import commercial
+
+        candidates = commercial.open_asks(env, thread, kind)
+        if resend:
+            candidates = [t for t in candidates if _answered_with(work, t, person, safe_id(response_id or ""))]
+            if not candidates:
+                return None
+        found, said = _pick(env, thread, kind, candidates, task_id, key)
+        if found is None:
+            return said
+        response = safe_id(response_id or f"m-{message_id}" if (response_id or message_id) else f"r-{_digest_text(found.id, person, text)}")
+        return commercial.answer(env, thread, found, person=person, text=text, initiator=initiator, response_id=response,
+                                 registry=registry)
+    if kind != "business":
+        return None
     rows = work.deliveries(project_id=project_id)
-    asked = [r for r in rows if r["kind"] == "clarification" and r.get("thread_id") == thread_id and r["problem_id"] == problem_id]
-    for row in ([] if ask else reversed(asked)):
-        task = work.task(project_id, row["task_id"])
-        if task is not None and task.status == "waiting_for_person" and case_member(
-                TeamTurn(env, work, project_id, "business"), task)[0] == person:
-            return person_replies(env, project_id, task.id, person=person, text=text, initiator=initiator, registry=registry)
     if not ask:
-        return None
+        asked = [r for r in rows if r["kind"] == "clarification" and r.get("thread_id") == thread_id and r["problem_id"] == problem_id]
+        candidates: list[tw.TeamTask] = []
+        for row in reversed(asked):
+            task = work.task(project_id, row["task_id"])
+            if task is not None and task.status == "waiting_for_person" and all(c.id != task.id for c in candidates) and case_member(
+                    TeamTurn(env, work, project_id, "business"), task)[0] == person:
+                candidates.append(task)
+        if resend:  # only the task that already took this answer from this person resumes (its records are idempotent)
+            candidates = [t for t in (work.task(project_id, r["task_id"]) for r in asked) if t is not None
+                          and _answered_with(work, t, person, safe_id(response_id or ""), agent="business")][:1]
+            if not candidates:
+                return None
+        found, said = _pick(env, thread, "business", candidates, task_id, key)
+        if found is None:
+            return said
+        out = person_replies(env, project_id, found.id, person=person, text=text, initiator=initiator,
+                             response_id=safe_id(response_id) if response_id else None, registry=registry)
+        return {**out, "did": "answered"}
     if ask not in tw.DIRECTORY or tw.DIRECTORY[ask].kind != "team_agent" or ask == "business":
-        return {"agent": "business", "refused": [f"{ask} is not a team the Business agent asks"], "steps": [], "skipped": False}
-    opened = [work.task(project_id, r["task_id"]) for r in rows if r["kind"] == "task" and r["problem_id"] == problem_id]
-    if any(t is not None and t.parent_task_id is None and t.requester.thread_id == thread_id and tw.is_open(t) for t in opened):
-        return None
+        return {"agent": "business", "did": "refused", "refused": [f"{ask} is not a team the Business agent asks"], "steps": [],
+                "skipped": False}
     project = getattr(env, "projects", None)
     inputs = tuple((project.get(project_id) or {}).get("team_inputs") or ()) if project is not None else ()
-    return open_case(env, project_id, problem_id, task_id=safe_id(f"T-{message_id or _digest_text(thread_id, text)}"), question=text,
-                     thread_id=thread_id, member=person, initiator=initiator, inputs=inputs, owner=ask, registry=registry)
+    # a client's response id names the ask only together with its thread and its person: never another person's task
+    new = safe_id(f"T-{_digest_text(thread_id, person, response_id)}" if response_id else f"T-{message_id or _digest_text(thread_id, text)}")
+    out = open_case(env, project_id, problem_id, task_id=new, question=text, thread_id=thread_id, member=person,
+                    initiator=initiator, inputs=inputs, owner=ask, registry=registry)
+    return {**out, "did": "opened", "task_id": new}
 
 
 def _digest_text(*parts: str) -> str:
@@ -866,19 +1195,22 @@ def deliver(env: Any, row: Row) -> Row:
     row into its team thread first, then calls this).
 
     Idempotent on the row id: the agent's rules read the task as stored, so a row handed over again finds its work done
-    and runs no step. A recipient without a deterministic agent in this release (Sales, Marketing, ML Engineering...)
-    only receives it: the row is its inbox. A refused step blocks the row (the requester sees that it could not be taken,
-    never the refusal's words)."""
+    and runs no step. T3: a task for a directory agent with no rules in this release is answered at once with an
+    "unsupported" blocker naming who acts next (``_unsupported``), never left open looking delivered; any other row for it
+    is its inbox. A refused step blocks the row (the requester sees that it could not be taken, never the refusal's words)."""
     from .delivery import PermanentFailure
 
     receipt: Row = {"row": row["id"], "agent": None, "skipped": True, "steps": []}
-    if row["to_team"].split(":")[0] not in BRAINS:
+    base = row["to_team"].split(":")[0]
+    unsupported = base not in BRAINS
+    if unsupported and not (base in CONFIGS and row.get("kind") == "task"):
         return receipt
     work = _work(env)
     focus = _focus(work, row)
     if focus is None:
         raise PermanentFailure(f"no task {row['task_id']} in project {row['project_id']}")
-    turn = TeamTurn(env, work, row["project_id"], row["to_team"], task_id=focus, initiator=row.get("initiator"), row=dict(row))
+    turn = TeamTurn(env, work, row["project_id"], row["to_team"], task_id=focus, initiator=row.get("initiator"), row=dict(row),
+                    extra={"unsupported": True} if unsupported else {})
     out = run_turn(turn)
     if out["refused"]:
         raise PermanentFailure(f"{row['to_team']} refused a step: {out['refused'][0]}")
@@ -889,5 +1221,5 @@ def deliver(env: Any, row: Row) -> Row:
     return {**receipt, "agent": row["to_team"], "task_id": focus, "skipped": out["skipped"], "steps": [s["tool"] for s in out["steps"]]}
 
 
-__all__ = ["AGENT", "BRAINS", "CONFIGS", "CLARIFY_TARGET", "ScriptedChoices", "TeamAgentConfig", "config_of", "correct", "deliver",
-           "from_thread", "job_description", "open_case", "person_replies", "preview_report", "run_turn"]
+__all__ = ["AGENT", "BRAINS", "CAPACITY", "CONFIGS", "CLARIFY_TARGET", "OPEN_ACTIONS", "ScriptedChoices", "TeamAgentConfig", "askable",
+           "config_of", "confirm_outcome", "correct", "deliver", "from_thread", "job_description", "open_case", "person_replies", "preview_report", "run_turn"]

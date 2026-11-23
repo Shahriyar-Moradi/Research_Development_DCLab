@@ -109,6 +109,9 @@ CAPTURED = {
     "team.correction_accept": "ledger/capture.py team_correction_accepted, called where a correction of a team's answer arrives "
                               "(teamspace, T2): applied, the same one again, or based on a revision that moved on (the rule's "
                               "answer on the two revisions)",
+    "team.target_agreement": "ledger/capture.py team_target_agreement, called from teamspace/tools.py where Data Science inspects "
+                             "the table and ML Engineering validates the contract (T1): whether a label column records the event "
+                             "the person confirmed, and is mature",
     "critic.send_back": "orchestra/walk.py critic: each concern the critic weighed, sent back to the person or not (29.6); labelled measured when the person's answer changed the field",
     "workflow.revisit": "studio/graph.py: a completed stage run again",
     "image.near_copy": "kinds/embedded.py leakage (an image table): pairs of training images of different sources, by their pictures' cosine",

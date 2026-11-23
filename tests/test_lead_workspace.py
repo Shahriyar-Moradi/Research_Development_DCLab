@@ -149,15 +149,19 @@ class _Lead(_Contract):
         self.assertNotIn("renewal date", said.answer)
 
     def test_ml_engineering_reads_the_outcome_the_person_confirmed_to_data_science(self):
-        """Review F4: it stated renewed_by_date as the outcome even when the person said churn meant a cancellation."""
-        out = self.ask(question=self.RANK, track="model")
+        """Review F4: it stated renewed_by_date as the outcome even when the person said churn meant a cancellation. T1
+        (2026-11-23): a cancellation is answerable only on a table that records one (the CRM's cancellation log), and ML
+        Engineering carries the outcome as a field, with its column."""
+        out = self.ask(question=self.RANK, track="model", inputs=("sample:renewal_with_cancellations",))
         self.pump()
         lead.answer(self.services, self.pid, out["task_id"], person="sara", text="Cancellation of the subscription.", initiator=self.sara)
         self.pump()
         ml = self.view(f"{out['task_id']}.ml_engineering")
         self.assertIn("Data Science found:", ml["task"].question)
+        self.assertEqual((ml["task"].target.event, ml["task"].target.confirmed_by), ("explicit_cancellation", "sara"))
         [said] = ml["reports"]
-        self.assertIn('the outcome is "Cancellation of the subscription", as confirmed with Data Science', said.answer)
+        self.assertIn('the outcome is "Cancellation of the subscription", as confirmed with Data Science (in the sample: cancelled_at',
+                      said.answer)
 
     def test_a_crash_between_ml_engineerings_two_writes_resumes_and_the_lead_finishes(self):
         """Review F1: the action written running, the process gone before it finished: the redelivery runs it again."""
@@ -568,13 +572,50 @@ class _Lead(_Contract):
 
     def test_r22_7_ml_engineering_takes_the_outcome_data_science_confirmed_not_the_persons_first_words(self):
         """The person's own words come first in the question: "The outcome is: …" there is not what Data Science confirmed."""
-        out = self.ask(question=self.RANK + "\nThe outcome is: a late payment.", track="model")
+        out = self.ask(question=self.RANK + "\nThe outcome is: a late payment.", track="model",
+                       inputs=("sample:renewal_with_cancellations",))  # T1: a table that records a cancellation
         self.pump()
         lead.answer(self.services, self.pid, out["task_id"], person="sara", text="Cancellation of the subscription.", initiator=self.sara)
         self.pump()
         [said] = self.view(f"{out['task_id']}.ml_engineering")["reports"]
         self.assertIn('the outcome is "Cancellation of the subscription", as confirmed with Data Science', said.answer)
         self.assertNotIn("late payment", said.answer)
+
+    def test_t1_a_changed_outcome_revises_data_science_and_ml_engineering_and_the_lead_joins_the_new_answers(self):
+        """T1 (2026-11-23): ML Engineering carries Data Science's confirmed outcome as a field; when the person changes it
+        after feasibility, both tasks work again on their next brief revision and the Lead's report is joined anew."""
+        out = self.ask(question=self.RANK, track="model", inputs=("sample:renewal_with_cancellations",))
+        self.pump()
+        lead.answer(self.services, self.pid, out["task_id"], person="sara", text=ANSWER, initiator=self.sara)
+        self.pump()
+        science, ml = f"{out['task_id']}.data_science", f"{out['task_id']}.ml_engineering"
+        carried = self.work.task(self.pid, ml).target
+        held = self.work.task(self.pid, science).target
+        self.assertEqual((carried.event, carried.response, carried.words), (held.event, held.response, held.words))
+        self.assertEqual(carried.event, "non_renewal_by_date")
+        [first] = self.view(ml)["reports"]
+        self.assertIn("(in the sample: renewed_by_date, never an input)", first.answer)
+
+        changed = agents.confirm_outcome(self.services, self.pid, science, person="sara", text="Explicit cancellation only.",
+                                         initiator=self.sara)
+        self.assertEqual((changed["changed"], sorted(changed["revised"])), (True, sorted([science, ml])))
+        self.assertIn(first.id, changed["stale"])
+        self.assertTrue(any(s.startswith(out["task_id"] + "@") for s in changed["stale"]))  # the Lead's joined report rested on it
+        before = [r.id for r in self.view(out["task_id"])["reports"]]
+        self.pump(only={science, out["task_id"]})  # the review: ML Engineering's row held back (a retry, a backoff)
+        lead_view = self.view(out["task_id"])
+        self.assertIn(ml, lead_view["join"].outstanding)  # its report on the earlier outcome is never joined as its result
+        self.assertEqual([r.id for r in lead_view["reports"]], before)  # no report joins science@r2 with ml@r1
+        self.pump()
+        for task_id, column in ((science, "cancelled_at"), (ml, "cancelled_at")):
+            view = self.view(task_id)
+            self.assertEqual((view["task"].brief_revision, view["task"].target.event), (2, "explicit_cancellation"))
+            [now] = [r for r in view["reports"] if r.status != "superseded"]
+            self.assertEqual((now.revision, now.brief_revision), (2, 2))
+            self.assertIn(column, now.answer)
+        joined = [r for r in self.view(out["task_id"])["reports"] if r.status != "superseded"]
+        self.assertEqual(len(joined), 1)
+        self.assertTrue({f"{science}@r2", f"{ml}@r2"} <= set(joined[0].child_reports), joined[0].child_reports)
 
     def test_r22_the_teams_question_still_waits_is_said_once(self):
         out = self.ask()

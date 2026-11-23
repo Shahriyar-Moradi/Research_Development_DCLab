@@ -429,7 +429,7 @@ class _Contract:
         self.assertIn("18:40", new.answer)
         self.assertIn("was 18:32", new.answer)
         self.assertTrue(new.simulated)
-        self.assertEqual(new.evidence[0].input_revision, f"{fixtures.DISPATCH};kitchen+8m")
+        self.assertEqual(new.evidence[0].input_revision, f"{fixtures.DISPATCH};kitchen_minutes=8@r1")  # T2: names its base report
         self.pump()
         parent = self.view("T-dispatch")
         first, second = sorted(parent["reports"], key=lambda r: r.revision)
@@ -524,7 +524,343 @@ class _Crashes:
         self.assertEqual(len([d for d in self.work.deliveries(project_id=self.pid, task_id="D") if d["kind"] == "reply"]), 1)
 
 
-class FileTeamAgentsTests(_Crashes, _Contract, unittest.TestCase):
+class _Corrections:
+    """T2 (2026-11-23): a crash resumes the specialist once, and a correction names the report revision it is based on, on
+    files and PostgreSQL. A score left running is finished, never scored twice; an explicit zero withdraws the kitchen's
+    delay through a new report; a repeated correction adds nothing; a late one on an older base is refused with a visible
+    "please reconcile" reply."""
+
+    ETA = "T-dispatch.eta"
+
+    def settled(self, task_id="T-dispatch"):
+        """Nothing stranded: every row delivered, every task closed with one current report and one reply per revision, every
+        action terminal, one completed score per input revision, and no report built on a score that did not succeed."""
+        self.assertFalse([(d["kind"], d["task_id"], d["status"]) for d in self.work.deliveries(project_id=self.pid)
+                          if d["status"] != "delivered"])
+        for tid in (task_id, f"{task_id}.eta", f"{task_id}.acceptance"):
+            view = self.view(tid)
+            self.assertEqual(view["task"].status, "complete", tid)
+            self.assertTrue(all(tw.can_claim(a) for a in view["actions"]), tid)
+            current = [r for r in view["reports"] if r.status != "superseded"]
+            self.assertEqual(len(current), 1, tid)
+            replies = [d["item_id"] for d in self.work.deliveries(project_id=self.pid, task_id=tid) if d["kind"] == "reply"]
+            self.assertEqual(sorted(replies), sorted(r.id for r in view["reports"]), tid)  # one reply per revision
+            done = [a.input_revision for a in view["actions"] if a.action == "score" and a.status in tw.DONE_ACTIONS]
+            self.assertEqual(len(done), len(set(done)), tid)
+            scored = {a.input_revision: a for a in view["actions"] if a.action == "score"}
+            for report in view["reports"]:
+                for e in report.evidence:
+                    if tid != task_id:
+                        self.assertIn(scored[e.input_revision].status, tw.DONE_ACTIONS, (tid, report.id))
+        return self.view(task_id)
+
+    def scores(self, task_id=None):
+        return [a for a in self.view(task_id or self.ETA)["actions"] if a.action == "score"]
+
+    def eta_reports(self):
+        return sorted(self.view(self.ETA)["reports"], key=lambda r: r.revision)
+
+    def kept(self, kind):
+        return [e.payload for e in self.services.experience.read(kinds=[kind]) if e.payload.get("task") == self.ETA]
+
+    # ------------------------------------------------------------------ crashes on the first score
+    def test_a_crash_before_the_score_is_written_resumes_with_one_score(self):
+        real, fired = type(self.work).record_action, {"n": 0}
+
+        def crash(store, project_id, action):
+            if action.action == "score" and not fired["n"]:
+                fired["n"] += 1
+                raise RuntimeError("worker killed")
+            return real(store, project_id, action)
+        self.open_dispatch("T-dispatch")
+        with mock.patch.object(type(self.work), "record_action", crash):
+            delivery.run(self.services, {"project_id": self.pid, "task_id": self.ETA})
+        self.assertEqual((fired["n"], self.scores()), (1, []))
+        self.pump()
+        view = self.settled()
+        self.assertEqual([(a.status, a.input_revision) for a in self.scores()], [("simulated", fixtures.DISPATCH)])
+        self.assertEqual([r.answer for r in view["reports"]], [FOOD])
+
+    def test_a_score_left_running_by_a_crash_is_finished_once_never_reported_unfinished(self):
+        real, fired = type(self.work).finish_action, {"n": 0}
+
+        def crash(store, project_id, task_id, action_id, status, **kw):
+            if action_id.startswith("score-") and not fired["n"]:
+                fired["n"] += 1
+                raise RuntimeError("worker killed")
+            return real(store, project_id, task_id, action_id, status, **kw)
+        self.open_dispatch("T-dispatch")
+        with mock.patch.object(type(self.work), "finish_action", crash):
+            delivery.run(self.services, {"project_id": self.pid, "task_id": self.ETA})
+        [held] = self.scores()
+        self.assertEqual(held.status, "running")  # the result was made, its terminal record was not
+        self.assertEqual(self.view(self.ETA)["reports"], [])
+        self.pump()  # before T2: the specialist reported the running score, the report was refused, the row blocked
+        view = self.settled()
+        [score] = self.scores()
+        self.assertEqual((score.action_id, score.status), (held.action_id, "simulated"))  # the same attempt, finished once
+        self.assertEqual([r.answer for r in view["reports"]], [FOOD])
+
+    def test_a_crash_after_the_report_before_the_acknowledgement_runs_no_step_again(self):
+        real, fired = type(self.work).delivery_done, {"n": 0}
+
+        def crash(store, delivery_id, receipt=None, project_id=None):
+            row = store.delivery(delivery_id, project_id)
+            if row and (row["task_id"], row["kind"]) == (self.ETA, "task") and not fired["n"]:
+                fired["n"] += 1
+                raise RuntimeError("worker killed")
+            return real(store, delivery_id, receipt, project_id)
+        self.open_dispatch("T-dispatch")
+        with mock.patch.object(type(self.work), "delivery_done", crash):
+            try:
+                delivery.run(self.services, {"project_id": self.pid, "task_id": self.ETA})
+            except RuntimeError:
+                pass
+        self.assertEqual(fired["n"], 1)
+        self.assertEqual([r.id for r in self.view(self.ETA)["reports"]], [f"{self.ETA}@r1"])
+        actions = list(self.view(self.ETA)["actions"])
+        self.pump()  # the task row again: nothing left for the specialist
+        self.assertEqual(self.view(self.ETA)["actions"], actions)  # no step ran again
+        view = self.settled()
+        self.assertEqual(len(self.scores()), 1)
+        self.assertEqual([r.answer for r in view["reports"]], [FOOD])
+
+    # ------------------------------------------------------------------ crashes inside a correction
+    def test_a_crash_inside_a_correction_resumes_once_with_one_score_and_one_report(self):
+        def before_scoring(real, fired):
+            def crash(store, project_id, action):
+                if action.action == "score" and "kitchen_minutes" in action.input_revision and not fired["n"]:
+                    fired["n"] += 1
+                    raise RuntimeError("worker killed")
+                return real(store, project_id, action)
+            return "record_action", crash
+
+        def before_terminal(real, fired):
+            def crash(store, project_id, task_id, action_id, status, **kw):
+                if action_id.startswith("score-") and not fired["n"]:
+                    fired["n"] += 1
+                    raise RuntimeError("worker killed")
+                return real(store, project_id, task_id, action_id, status, **kw)
+            return "finish_action", crash
+
+        for n, (name, make) in enumerate((("before scoring", before_scoring), ("before the terminal write", before_terminal))):
+            with self.subTest(crash=name):
+                self.ETA = f"T-c{n}.eta"
+                self.food(f"T-c{n}", "eta", "acceptance")
+                self.pump()
+                fired = {"n": 0}
+                method, crash = make(getattr(type(self.work), "record_action" if n == 0 else "finish_action"), fired)
+                with mock.patch.object(type(self.work), method, crash):
+                    with self.assertRaises(RuntimeError):
+                        agents.correct(self.services, self.pid, self.ETA, kitchen_minutes=8, correction_id=f"k-{n}")
+                self.assertEqual(fired["n"], 1)
+                self.assertEqual([r.revision for r in self.eta_reports()], [1])  # no report while the score is unfinished
+                out = agents.correct(self.services, self.pid, self.ETA, kitchen_minutes=8, correction_id=f"k-{n}")  # the resend
+                self.assertEqual((out["refused"], out["verdict"]), ([], "apply"))
+                self.pump()
+                self.settled(f"T-c{n}")
+                corrected = [a for a in self.scores() if "kitchen_minutes" in a.input_revision]
+                self.assertEqual([a.status for a in corrected], ["simulated"])
+                old, new = self.eta_reports()
+                self.assertEqual((new.supersedes, old.superseded_by), (old.id, new.id))
+                self.assertIn("18:40", new.answer)
+                self.assertEqual([p["verdict"] for p in self.kept("team.correction.applied")], ["apply"])
+                self.assertEqual(agents.correct(self.services, self.pid, self.ETA, kitchen_minutes=8,
+                                                correction_id=f"k-{n}")["verdict"], "duplicate")
+                self.assertEqual(len(self.eta_reports()), 2)
+
+    def test_a_correction_whose_reply_is_not_acknowledged_is_joined_once(self):
+        self.food("T-dispatch", "eta", "acceptance")
+        self.pump()
+        self.assertEqual(agents.correct(self.services, self.pid, self.ETA, kitchen_minutes=8)["verdict"], "apply")
+        real, fired = type(self.work).delivery_done, {"n": 0}
+
+        def crash(store, delivery_id, receipt=None, project_id=None):
+            row = store.delivery(delivery_id, project_id)
+            if row and (row["item_id"], row["kind"]) == (f"{self.ETA}@r2", "reply") and not fired["n"]:
+                fired["n"] += 1
+                raise RuntimeError("worker killed")
+            return real(store, delivery_id, receipt, project_id)
+        with mock.patch.object(type(self.work), "delivery_done", crash):
+            try:
+                self.pump()
+            except RuntimeError:
+                pass
+        self.assertEqual(fired["n"], 1)
+        self.pump()
+        view = self.settled()
+        self.assertEqual([r.revision for r in view["reports"]], [1, 2])
+        self.assertEqual(sorted(max(view["reports"], key=lambda r: r.revision).child_reports),
+                         ["T-dispatch.acceptance@r1", f"{self.ETA}@r2"])
+
+    # ------------------------------------------------------------------ the owner's sequence
+    def test_the_owners_sequence_withdraws_restores_and_refuses_a_late_correction(self):
+        from dclab_rnd.ledger import capture
+
+        self.food("T-dispatch", "eta", "acceptance")
+        self.pump()
+        acceptance = self.view("T-dispatch.acceptance")
+        seen, real = [], capture._put
+
+        def keep(point, subject, answers, value, used, **kw):
+            if point == "team.correction_accept":
+                seen.append((value, kw.get("state")))
+            return real(point, subject, answers, value, used, **kw)
+
+        def eta_now():
+            return self.eta_reports()[-1]
+
+        with mock.patch.object(capture, "_put", keep):
+            self.assertEqual(eta_now().answer, "At 18:00 the estimated arrival was 18:32.")  # r1: 18:32
+            out = agents.correct(self.services, self.pid, self.ETA, kitchen_minutes=8, correction_id="kitchen-1")  # +8 on r1
+            self.assertEqual((out["verdict"], out["refused"]), ("apply", []))
+            self.pump()
+            self.assertIn("18:40", eta_now().answer)
+            self.assertIn("was 18:32", eta_now().answer)
+            out = agents.correct(self.services, self.pid, self.ETA, kitchen_minutes=0, base_revision=2, correction_id="kitchen-2")
+            self.assertEqual(out["verdict"], "apply")  # the kitchen withdraws its delay: a new revision, never a duplicate
+            self.pump()
+            r3 = eta_now()
+            self.assertEqual(r3.revision, 3)
+            self.assertIn("18:32", r3.answer)
+            self.assertIn("was 18:40", r3.answer)  # the superseded report's value, not the first score's
+            self.assertIn("withdrawn", r3.answer)
+            self.assertNotIn("added 0", r3.answer)
+            self.assertEqual(r3.evidence[0].input_revision, f"{fixtures.DISPATCH};kitchen_minutes=0@r2")
+            out = agents.correct(self.services, self.pid, self.ETA, kitchen_minutes=8, base_revision=3, correction_id="kitchen-3")
+            self.assertEqual(out["verdict"], "apply")
+            self.pump()
+            self.assertIn("18:40", eta_now().answer)
+            self.assertIn("was 18:32", eta_now().answer)
+            before = (len(self.view(self.ETA)["actions"]), len(self.view("T-dispatch")["reports"]), self.all_messages())
+            for again in ({"kitchen_minutes": 8, "base_revision": 3, "correction_id": "kitchen-3"},  # the same +8 twice
+                          {"kitchen_minutes": 8, "correction_id": "kitchen-1"}):  # the first +8 again, late, with no base
+                out = agents.correct(self.services, self.pid, self.ETA, **again)
+                self.assertEqual((out["verdict"], out["skipped"], out["refused"]), ("duplicate", True, []))
+                self.pump()
+                self.assertEqual((len(self.view(self.ETA)["actions"]), len(self.view("T-dispatch")["reports"]),
+                                  self.all_messages()), before)
+            out = agents.correct(self.services, self.pid, self.ETA, kitchen_minutes=5, base_revision=2, correction_id="kitchen-late")
+            self.assertEqual((out["verdict"], out["refused"]), ("stale_base", []))
+            self.pump()
+        reports = self.eta_reports()
+        self.assertEqual([r.revision for r in reports], [1, 2, 3, 4])  # nothing new for the late one
+        self.assertEqual([r.supersedes for r in reports], [None, f"{self.ETA}@r1", f"{self.ETA}@r2", f"{self.ETA}@r3"])
+        self.assertEqual([r.superseded_by for r in reports], [f"{self.ETA}@r2", f"{self.ETA}@r3", f"{self.ETA}@r4", None])
+        self.assertIn("18:40", reports[-1].answer)
+        [skipped] = [a for a in self.scores() if a.status == "skipped"]
+        self.assertEqual(skipped.input_revision, f"{fixtures.DISPATCH};kitchen_minutes=5@r2")
+        self.assertIn("please reconcile", skipped.reason)
+        [reconcile] = self.said("data_science", "reconcile", self.ETA)  # visible to the requester, once
+        self.assertIn("Please reconcile", reconcile["text"])
+        self.assertIn(f"{self.ETA}@r4", reconcile["text"])
+        self.assertEqual(agents.correct(self.services, self.pid, self.ETA, kitchen_minutes=5, base_revision=2,
+                                        correction_id="kitchen-late")["verdict"], "stale_base")
+        self.assertEqual(len(self.said("data_science", "reconcile", self.ETA)), 1)  # the same late one again: no second reply
+        self.assertEqual(len([a for a in self.scores() if a.status == "skipped"]), 1)
+        view = self.settled()  # the Business brief shows the current value
+        current = max(view["reports"], key=lambda r: r.revision)
+        self.assertEqual(current.revision, 4)
+        self.assertIn("18:40", current.answer)
+        self.assertIn("72%", current.answer)
+        self.assertIn(f"{self.ETA}@r4", current.child_reports)
+        last = self.said("business", "reply", "T-dispatch")[-1]
+        self.assertTrue(last["text"].startswith("Simulated (fixture E1/A1): Revised: the estimated arrival is 18:40"), last["text"])
+        after = self.view("T-dispatch.acceptance")  # only the affected task is recomputed
+        self.assertEqual((after["reports"], after["actions"]), (acceptance["reports"], acceptance["actions"]))
+        self.assertEqual(after["reports"][0].evidence[0].input_revision, fixtures.DISPATCH)
+        # each correction judged and recorded once (the late one's second sending came after the ledger was watched)
+        self.assertEqual([v for v, _ in seen], ["apply", "apply", "apply", "duplicate", "duplicate", "stale_base"])
+        self.assertEqual([s["base_revision"] for _, s in seen[:3]], [1, 2, 3])
+        applied = self.kept("team.correction.applied")
+        self.assertEqual([(p["base_revision"], p["revision"], p["report"]) for p in applied],
+                         [(1, 2, f"{self.ETA}@r2"), (2, 3, f"{self.ETA}@r3"), (3, 4, f"{self.ETA}@r4")])
+        refused = self.kept("team.correction.refused")
+        self.assertEqual([(p["verdict"], p["base_revision"], p["revision"]) for p in refused],
+                         [("duplicate", 3, 4), ("duplicate", 1, 4), ("stale_base", 2, 4), ("stale_base", 2, 4)])
+        self.assertEqual([p.get("request") for p in applied], ["kitchen-1", "kitchen-2", "kitchen-3"])
+
+    def test_a_zero_with_no_delay_adds_nothing_and_a_base_that_names_no_report_is_refused(self):
+        self.food("T-dispatch", "eta", "acceptance")
+        self.pump()
+        out = agents.correct(self.services, self.pid, self.ETA, kitchen_minutes=0)
+        self.assertEqual((out["verdict"], out["skipped"]), ("duplicate", True))  # nothing to withdraw
+        out = agents.correct(self.services, self.pid, self.ETA, kitchen_minutes=8, base_revision=2)
+        self.assertIsNone(out["verdict"])
+        self.assertIn("names no answer", out["refused"][0])
+        self.assertEqual([r.revision for r in self.eta_reports()], [1])
+        agents.correct(self.services, self.pid, self.ETA, kitchen_minutes=8, correction_id="k")
+        out = agents.correct(self.services, self.pid, self.ETA, kitchen_minutes=9, correction_id="k")  # the id of another correction
+        self.assertIsNone(out["verdict"])
+        self.assertIn("another correction", out["refused"][0])
+        self.assertEqual([r.revision for r in self.eta_reports()], [1, 2])
+        self.assertEqual([p["reason"] for p in self.kept("team.correction.refused")], ["unchanged"])  # not "already applied"
+
+    # ------------------------------------------------------------------ review of T2 (2026-11-23)
+    def test_a_late_correction_with_no_base_on_a_revised_report_is_refused_not_applied(self):
+        self.food("T-dispatch", "eta", "acceptance")
+        self.pump()
+        agents.correct(self.services, self.pid, self.ETA, kitchen_minutes=8)  # r2: 18:40
+        self.pump()
+        agents.correct(self.services, self.pid, self.ETA, kitchen_minutes=0, base_revision=2)  # r3: the delay withdrawn
+        self.pump()
+        out = agents.correct(self.services, self.pid, self.ETA, kitchen_minutes=8)  # the first +8 again, late, no base, no id
+        self.assertIsNone(out["verdict"])
+        self.assertIn("names the revision it is based on", out["refused"][0])
+        self.pump()
+        self.assertEqual([r.revision for r in self.eta_reports()], [1, 2, 3])
+        self.assertIn("18:32", self.eta_reports()[-1].answer)
+
+    def test_minutes_outside_zero_to_four_hours_are_refused(self):
+        self.food("T-dispatch", "eta", "acceptance")
+        self.pump()
+        for minutes in (-40, 241, 1500):
+            out = agents.correct(self.services, self.pid, self.ETA, kitchen_minutes=minutes)
+            self.assertIsNone(out["verdict"], minutes)
+            self.assertIn("between 0 and 240", out["refused"][0])
+        self.assertEqual([r.revision for r in self.eta_reports()], [1])
+
+    def test_a_correction_id_that_starts_another_ids_name_is_its_own(self):
+        self.food("T-dispatch", "eta", "acceptance")
+        self.pump()
+        self.assertEqual(agents.correct(self.services, self.pid, self.ETA, kitchen_minutes=8, correction_id="k:2")["verdict"], "apply")
+        self.pump()
+        out = agents.correct(self.services, self.pid, self.ETA, kitchen_minutes=9, base_revision=2, correction_id="k")
+        self.assertEqual((out["verdict"], out["refused"]), ("apply", []))
+        self.pump()
+        self.assertEqual([r.revision for r in self.eta_reports()], [1, 2, 3])
+
+    def test_two_corrections_on_one_base_the_one_that_lost_the_race_is_refused_visibly(self):
+        from dclab_rnd.teamspace import tools
+
+        self.food("T-dispatch", "eta", "acceptance")
+        self.pump()
+        task = self.work.task(self.pid, self.ETA)
+        late = tools.judge_correction(self.work, self.pid, task, 8, 1, "b")  # B judged on r1 before A reported
+        self.assertEqual(late["verdict"], "apply")
+        agents.correct(self.services, self.pid, self.ETA, kitchen_minutes=5, base_revision=1, correction_id="a")  # A: r2
+        self.pump()
+        real, calls = tools.judge_correction, {"n": 0}
+
+        def as_judged_before(*args, **kw):  # B's turn still sees r1 (its judgment and its score ran before A's report)
+            calls["n"] += 1
+            return late if calls["n"] <= 2 else real(*args, **kw)
+
+        with mock.patch.object(tools, "judge_correction", as_judged_before):
+            out = agents.correct(self.services, self.pid, self.ETA, kitchen_minutes=8, base_revision=1, correction_id="b")
+        self.assertEqual(out["verdict"], "stale_base")  # scored, but it supersedes nothing: never said to be applied
+        self.pump()
+        self.assertEqual([r.revision for r in self.eta_reports()], [1, 2])
+        self.assertIn("18:37", self.eta_reports()[-1].answer)
+        [reconcile] = self.said("data_science", "reconcile", self.ETA)
+        self.assertIn(f"{self.ETA}@r2", reconcile["text"])
+        refused = self.kept("team.correction.refused")
+        self.assertEqual([(p["verdict"], p["base_revision"], p["revision"], p.get("request")) for p in refused],
+                         [("stale_base", 1, 2, "b")])
+        self.assertEqual([p.get("request") for p in self.kept("team.correction.applied")], ["a"])
+
+
+class FileTeamAgentsTests(_Corrections, _Crashes, _Contract, unittest.TestCase):
     env = {"DCLAB_DATABASE_URL": ""}
 
     def test_with_teams_set_up_the_person_answers_only_for_a_team_they_are_in(self):
@@ -544,7 +880,7 @@ class FileTeamAgentsTests(_Crashes, _Contract, unittest.TestCase):
         self.assertEqual(self.view("T-renewal")["task"].status, "complete")
 
 
-class PgTeamAgentsTests(_Crashes, _Contract, unittest.TestCase):
+class PgTeamAgentsTests(_Corrections, _Crashes, _Contract, unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.url = pgtest.require()

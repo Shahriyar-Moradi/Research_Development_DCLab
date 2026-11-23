@@ -586,6 +586,14 @@ def deliver(env: Any, row: Mapping[str, Any]) -> Row:
     receipt: Row = {"inbox": row["to_team"]}
     if getattr(env, "team_threads", None) is None and _home(env) is None:
         return receipt
+    from .commercial import refused_at_delivery
+
+    try:
+        why = refused_at_delivery(env, row)  # T3: a Sales or Marketing reply resting on a member no longer in the team
+    except LookupError:
+        why = None  # no team work to read: nothing rests on a member's answer
+    if why:
+        raise PermanentFailure(f"not delivered: {why}")
     try:
         return {**receipt, **post_delivery(env, row)}
     except ThreadError as exc:  # the row as it is can never be posted: blocked at once, never retried

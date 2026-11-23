@@ -448,7 +448,7 @@ class DirectoryTest(unittest.TestCase):
 
 class ContractTest(unittest.TestCase):
     def test_the_records_are_registered_versioned_and_round_trip(self):
-        self.assertEqual(tw.CONTRACT, "dclab_core.team_work.v2")  # 0.169.0: its decisions are v2
+        self.assertEqual(tw.CONTRACT, "dclab_core.team_work.v3")  # 0.169.0: its decisions are v2; 0.170.0: its tasks are v2
         for name in ("team_task", "team_action", "work_report", "team_decision", "agent_config", "team_work"):
             self.assertIn(name, CONTRACTS)
         child = task()
@@ -544,7 +544,7 @@ class DecisionWriteTest(unittest.TestCase):
         bundle = {"schema_version": "dclab_core.team_work.v1", "problem_id": "PB-1", "tasks": [], "actions": [], "reports": [],
                   "decisions": [v1]}
         work = tw.TeamWork.read(bundle)
-        self.assertEqual((work.schema_version, work.decisions[0].revision), ("dclab_core.team_work.v2", 1))
+        self.assertEqual((work.schema_version, work.decisions[0].revision), ("dclab_core.team_work.v3", 1))
         self.assertEqual(tw.TeamWork.read(json.loads(work.model_dump_json())), work)
         self.assertEqual(tw.TeamDecision.read(current.model_dump_json()), current)
 

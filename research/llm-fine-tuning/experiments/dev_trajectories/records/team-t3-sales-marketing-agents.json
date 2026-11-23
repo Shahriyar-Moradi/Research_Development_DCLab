@@ -1,0 +1,174 @@
+{
+  "package": "team-t3-sales-marketing-agents",
+  "title": "Sales and Marketing ask their own teams, and answer with a capped list or checked terms instead of a permanent blocker",
+  "date": "2026-11-23",
+  "request": "Package T3 of the team workspace plan: Sales and Marketing were placeholders (Sales always blocked on 'the call capacity is not on record'; Marketing had no rules, so a question for it stayed open for ever). Make both real deterministic agents: Sales reads the dated do-not-contact list, asks a member of the Sales team for the call capacity (0 to 30) and returns a call list capped at it as a restricted reference, counts only; Marketing asks a member of the Marketing team for the offer's amount, budget, dates and eligibility and returns them checked, or a blocker naming what is missing. A member's answer is recorded as theirs, once; someone outside the team cannot answer; a member removed before delivery blocks the reply; Sales and Marketing work independently; words that could answer two open tasks answer none; an agent with no rules says 'unsupported' at once.",
+  "spec": "dclab-core 0.170.0 (no shape change): team_work.DIRECTORY marketing.confirm_terms bound to human:marketing_team (was human:marketing_owner), descriptions of ask_capacity and confirm_terms. dclab_rnd: new teamspace/commercial.py (ACCOUNTS fixture counts, ASKS, capacity_of, terms_of, team_has_members, awaiting, refused_at_delivery, act for the six commercial tools, the sales and marketing rules, open_asks, hint, answer); teamspace/tools.py (COMMERCIAL_ACTS, own_team_binding, post_own to_team, _responder and _clarify for an own-team question, _act hands commercial tools to commercial.act; check_exclusions moved out); teamspace/agents.py (Sales and Marketing from commercial, _unsupported, askable, OPEN_ACTIONS per team, from_thread with task_id and response_id: Sales/Marketing threads, several asks from one Business thread, the which-task question, deliver answers an unsupported task at once); teamspace/threads.py deliver (the delivery-time refusal); agentic/api_models.py TeamMessagePost task_id and response_id; agentic/routers/team_threads.py (the message keyed by response_id, both passed to the agent); agentic/web/src/views/team.html (Answer this / Answer <task> buttons, Escape, a response id kept until sent).",
+  "plan": [
+    "make the own-team question a first-class human binding: asked in the agent's own thread, the task stays accepted, nothing travels to the requester",
+    "compute the six commercial tools in one module, each recorded under its retry key like every action",
+    "write the Sales and Marketing rules over the stored task, resumable after a crash with the same answer",
+    "route a member's message in a Sales or Marketing thread to the question its agent asked, by task id when several are open",
+    "refuse at delivery a reply resting on a member no longer in the team",
+    "answer a task for an agent with no rules with an unsupported blocker",
+    "tests on files and PostgreSQL, one route test, the frontend rebuilt"
+  ],
+  "decisions": [
+    {
+      "decision": "the member's answer feeds the next step through the subject's response id (capacity-18@m-s-1), not a stored copy of their words",
+      "why": "the words stay in the team's own thread; the action records carry only the number or the checked term, and a retry with the same response is the same action id"
+    },
+    {
+      "decision": "a Marketing report carries no evidence row; the checked actions and the restricted reference are its record",
+      "why": "team_work refuses evidence from a source outside the task's allowed inputs (tables), and calling a member's answer a table would misattribute it"
+    },
+    {
+      "decision": "without a team of the kind to ask, Sales keeps its old blocker naming who supplies the capacity",
+      "why": "the Lead walkthroughs (test_lead_workspace) run without teams and rely on that blocker; asking nobody would hang the task"
+    },
+    {
+      "decision": "words that could answer two open tasks answer none; the agent posts one 'which task?' message with a button per task",
+      "why": "guessing the most recent question silently attaches a capacity to the wrong week"
+    },
+    {
+      "decision": "agents.confirm_outcome (T1) is not wired to a route here",
+      "why": "its caller is the person's Business thread after an answer, not a Sales or Marketing thread; left for T5b with its own test"
+    }
+  ],
+  "change": "dclab_core/team_work.py (DIRECTORY rows of sales.ask_capacity and marketing.confirm_terms), dclab_core/CHANGELOG.md (T3 bullet under 0.170.0); dclab_rnd/teamspace/commercial.py (new), tools.py, agents.py, threads.py; dclab_rnd/agentic/api_models.py, routers/team_threads.py, web/src/views/team.html (static/app rebuilt by make web); tests/test_team_commercial.py (new, files and PostgreSQL), tests/test_teamspace_routes.py (one route test).",
+  "findings": [
+    {
+      "id": "T3-1",
+      "source": "self",
+      "severity": "latent",
+      "defect": "a resend of the same answer after a crash could not resume",
+      "scenario": "the capacity is recorded, the turn dies before the list is drafted; the member's client resends the same response id",
+      "cause": "awaiting() only listed tasks whose own-team question was still running, so open_asks no longer found the task",
+      "fix": "awaiting() returns an answered question as resume until the final step (return_restricted_ref, return_conditions) is claimed",
+      "test": "test_the_same_answer_twice_is_recorded_once"
+    },
+    {
+      "id": "T3-2",
+      "source": "test",
+      "severity": "behaviour",
+      "defect": "Marketing's complete report was refused",
+      "scenario": "omid gives full terms; every check succeeds; team_return_report fails",
+      "cause": "its evidence named 'the Marketing team's answer' as a source, and the task allows only its sample as an input",
+      "fix": "no evidence row; the provenance is a limit and the restricted reference",
+      "test": "test_marketing_returns_checked_terms"
+    },
+    {
+      "id": "T3-3",
+      "source": "test",
+      "severity": "gap",
+      "defect": "the PostgreSQL run failed on team membership",
+      "scenario": "add_member('raha') on PostgreSQL",
+      "cause": "a team's member must be an account there",
+      "fix": "the test creates accounts on PostgreSQL, plain ids on files",
+      "test": "PgCommercialTests"
+    },
+    {
+      "id": "T3-R1",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "a resent answer could land on a task opened since",
+      "scenario": "Raha's '18' (response r1) finishes task A; Business opens B; her browser resends r1; the route saw no new message but still called the agent, which picked B",
+      "cause": "from_thread picked among the tasks open now; the route also passed the resend's words, not the saved message's",
+      "fix": "the route passes resend=not made and message['text']; on a resend only a task that already recorded that response by that person resumes (_answered_with), in Sales, Marketing and Business threads",
+      "test": "test_a_resent_answer_never_lands_on_a_task_opened_since; the route test resends other words with the same response id"
+    },
+    {
+      "id": "T3-R2",
+      "source": "reviewer",
+      "severity": "latent",
+      "defect": "most crashes left a Sales or Marketing task stuck",
+      "scenario": "a crash between two Marketing checks, or after the list, or between writing the question (running) and posting it",
+      "cause": "resume covered only the window before the first step; a running question was never posted again",
+      "fix": "resume until the final step; a running question with no answer in the turn is asked again once per turn (_ask_again; tools._clarify reuses the running attempt and its post is keyed)",
+      "test": "test_a_question_lost_in_a_crash_is_asked_again_once"
+    },
+    {
+      "id": "T3-R3",
+      "source": "reviewer",
+      "severity": "privacy",
+      "defect": "a refused Sales reply still reached the Lead's joined report",
+      "scenario": "the Lead routes to Data Science and Sales; Raha answers 18; she is removed; Data Science replies; the Lead joins 'Sales can make 18 calls'",
+      "cause": "the refusal stopped only the thread post; _join reads stored child reports",
+      "fix": "commercial.answer_withdrawn, read at delivery and in _join: such a report is not joined, the parent is partial and names Sales",
+      "test": "test_the_lead_never_joins_a_reply_whose_member_left_the_team"
+    },
+    {
+      "id": "T3-R4",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "'budget EUR 1,000' was read as EUR 1 and reported complete with 0 offers funded",
+      "scenario": "a member writes the budget with a thousands separator",
+      "cause": "the amount pattern was \\d+",
+      "fix": "groups of three after a comma or point are thousands, a last group of one or two digits cents; a budget funding no offer is a blocker",
+      "test": "test_amounts_with_separators_and_a_budget_that_funds_nothing"
+    },
+    {
+      "id": "T3-R5",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "Sales took the first number as the capacity",
+      "scenario": "'2 of us are off, so 18' became 2",
+      "cause": "capacity_of read the first whole number",
+      "fix": "only a single distinct number is read; several get the hint",
+      "test": "test_a_number_is_read_only_when_it_is_the_only_one"
+    },
+    {
+      "id": "T3-R6",
+      "source": "reviewer",
+      "severity": "latent",
+      "defect": "a client's response id named an ask across threads and people; the page reused an id across asks; reply buttons showed on an agent's own copy of a question sent elsewhere",
+      "fix": "the ask's task id is a digest of thread, person and response id; the page's pending id includes the ask; reply buttons only where the question is for the thread's team",
+      "test": "route and agent tests; the page by build --check",
+      "scenario": "a client's response id named an ask across threads and people; the page reused an id across asks; reply buttons showed on an agent's own copy of a question sent elsewhere",
+      "cause": "a client's response id named an ask across threads and people; the page reused an id across asks; reply buttons showed on an agent's own copy of a question sent elsewhere"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "the review's findings as tests",
+      "gate": "every high finding has a test that fails before its fix and passes after",
+      "fixed_before_run": true,
+      "result": "5 new tests (resend, lost question, Lead join, separators and empty budget, several numbers) and a resend-with-other-words route check; all pass after the fixes",
+      "verdict": "pass"
+    },
+    {
+      "name": "the T3 test group on files",
+      "gate": "test_teamspace_threads, test_team_api, test_team_screens, test_teamspace_routes, test_teamspace_delivery, test_lead_workspace, test_web_client, test_teams, test_team_target, test_teamspace_agents, test_team_acceptance, test_team_commercial pass",
+      "fixed_before_run": true,
+      "result": "332 tests in 12 files OK on files after the review fixes",
+      "verdict": "pass"
+    },
+    {
+      "name": "the frontend",
+      "gate": "make web, then build --check up to date",
+      "fixed_before_run": true,
+      "result": "up to date",
+      "verdict": "pass"
+    },
+    {
+      "name": "live model calls",
+      "gate": "none needed (deterministic agents)",
+      "fixed_before_run": true,
+      "result": "0 calls, EUR 0",
+      "verdict": "pass"
+    }
+  ],
+  "outcome": "Sales and Marketing answer real questions in their own threads. A capacity of 18 gives '18 of the 102 eligible accounts' as a restricted reference; 0 is a blocker; a full set of terms gives 'EUR 10 an offer; a budget of EUR 1000 funds 100 offers'; a missing budget is named. Not committed.",
+  "lessons": [
+    "a question an agent asks its own team is not a clarification to the requester: it must not move the task to waiting_for_person or travel back",
+    "an idempotent answer needs both a message key and an agent path that can still find the task after the answer was recorded",
+    "an idempotency key on a message is not enough: a resend must resume only the work that already took that key, never pick again among what is open now"
+  ],
+  "risks": [
+    "the capacity and terms are read with regular expressions; unusual phrasings are refused with a hint rather than guessed",
+    "ACCOUNTS is an invented fixture; a real Sales table is not read yet",
+    "a crash between recording the answer and the next step resumes only when the same response id is sent again",
+    "the requester can still read a withdrawn report on its task page (read_team_task); only joining and delivery refuse it"
+  ],
+  "commits": []
+}

@@ -134,6 +134,41 @@ class SignedInTeamsTests(unittest.TestCase):
     def read(self, who, pid, thread_id):
         return self.clients[who].get(f"/api/projects/{pid}/team-threads/{thread_id}")
 
+    def test_a_sales_member_answers_its_agent_in_the_sales_thread_once(self):
+        """T3: Sara asks Sales; the Sales agent asks its own team in the Sales thread; Rob answers there with the reply
+        button's task id and a response id; the same answer sent twice is one message and one record; Sara gets one reply."""
+        pid, prob = self.project("Renewal calls")
+        rob = self.accounts.create_user(f"rob-{os.getpid()}-{os.urandom(3).hex()}@example.com", "Rob", password=PASSWORD)
+        self.accounts.set_member(self.w1, rob["id"], "data_scientist")
+        teams = open_teams(self.services.store.home)
+        sales = teams.create_team(f"Sales {os.urandom(2).hex()}", "sales")["id"]
+        teams.add_member(sales, rob["id"])
+        self.users["rob"] = rob
+        self.clients["rob"] = self.sign_in("rob")
+        sara_thread = self.open("sara", self.business, pid, prob)
+        base = f"/api/projects/{pid}/team-threads"
+        asked = self.clients["sara"].post(f"{base}/{sara_thread}/messages", json={"text": "Who should Sales call this week?", "ask": "sales"})
+        self.assertEqual(asked.status_code, 201, asked.text)
+        settled_by_the_worker(self.services)
+        sales_thread = self.open("rob", sales, pid, prob)
+        question = self.read("rob", pid, sales_thread).json()["messages"][-1]
+        self.assertEqual((question["author"]["id"], question["handoff"]["kind"]), ("sales", "clarification"))
+        task_id = question["handoff"]["task_id"]
+        body = {"text": "18", "task_id": task_id, "response_id": "rob-answer-1"}
+        first = self.clients["rob"].post(f"{base}/{sales_thread}/messages", json=body)
+        again = self.clients["rob"].post(f"{base}/{sales_thread}/messages", json={**body, "text": "25"})  # a resend: the saved words count
+        self.assertEqual((first.status_code, again.status_code), (201, 201))
+        self.assertEqual(first.json()["id"], again.json()["id"])
+        settled_by_the_worker(self.services)
+        view = delivery.store_for(self.services).task_view(pid, task_id)
+        self.assertEqual(view["task"].status, "complete")
+        [ask] = [a for a in view["actions"] if a.action == "ask_capacity"]
+        self.assertEqual(ask.responded_by.id, rob["id"])
+        replies = [m for m in self.read("sara", pid, sara_thread).json()["messages"] if (m.get("handoff") or {}).get("kind") == "reply"]
+        self.assertEqual(len(replies), 1)
+        self.assertIn("18 calls", replies[0]["text"])
+        self.assertEqual(self.read("sara", pid, sales_thread).status_code, 403)  # the Sales thread stays the Sales team's
+
     def test_sara_and_dan_finish_the_renewal_round_trip_through_their_own_threads(self):
         pid, prob = self.project("Renewal retention")
         sara_thread, dan_thread = self.open("sara", self.business, pid, prob), self.open("dan", self.science, pid, prob)

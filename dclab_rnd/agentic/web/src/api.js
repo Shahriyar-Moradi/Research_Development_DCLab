@@ -383,6 +383,8 @@
   /** @typedef {Object} TeamMessagePost
    *  @property {*=} text
    *  @property {(string|null)=} ask
+   *  @property {(string|null)=} task_id
+   *  @property {(string|null)=} response_id
    */
   /** @typedef {Object} TeamRename
    *  @property {*=} name

@@ -16,7 +16,8 @@
             "time_absent",
             "labels_not_joined",
             "labels_contradict",
-            "not_checked"
+            "not_checked",
+            "target_event"
           ],
           "title": "Code",
           "type": "string"
@@ -43,9 +44,9 @@
       "type": "object"
     }
   },
-  "$id": "https://dclab.dev/schemas/dclab_core.problem_data_check.v1.json",
+  "$id": "https://dclab.dev/schemas/dclab_core.problem_data_check.v2.json",
   "additionalProperties": false,
-  "description": "What the problem and the data disagree on; ``ready`` when nothing blocks.",
+  "description": "What the problem and the data disagree on; ``ready`` when nothing blocks. v2 (0.170.0) adds the mismatch\n``target_event``; a v1 check reads unchanged.",
   "properties": {
     "mismatches": {
       "items": {
@@ -61,8 +62,8 @@
       "type": "boolean"
     },
     "schema_version": {
-      "const": "dclab_core.problem_data_check.v1",
-      "default": "dclab_core.problem_data_check.v1",
+      "const": "dclab_core.problem_data_check.v2",
+      "default": "dclab_core.problem_data_check.v2",
       "title": "Schema Version",
       "type": "string"
     }

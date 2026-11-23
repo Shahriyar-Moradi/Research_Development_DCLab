@@ -19,7 +19,8 @@ that keep it honest. Pure pydantic and Python: the host stores the records, deli
   read, what it may never do. :data:`DIRECTORY` has one per row of the owner's action directory.
 - :class:`TeamWork`: one problem's work in one document (tasks, actions, reports, decisions), for export and replay.
 
-Contract ``dclab_core.team_work.v2`` (:data:`CONTRACT`; v2 carries ``team_decision.v2`` and reads v1), with each record
+Contract ``dclab_core.team_work.v3`` (:data:`CONTRACT`; v3 carries ``team_task.v2``, whose ``target`` is the outcome a
+person confirmed (``dclab_core.target_contract``, 0.170.0); v2 carried ``team_decision.v2``; it reads v1 and v2), with each record
 also versioned on its own so a host can store it as a row. Names, references and short words only: never a table's value.
 """
 
@@ -33,8 +34,9 @@ from typing import Any, ClassVar, Iterable, Literal, Mapping, Optional, Sequence
 from pydantic import Field, field_validator, model_validator
 
 from dclab_core.contracts import CONTRACTS, Contract, Versioned, _version
+from dclab_core.target_contract import TargetContract
 
-CONTRACT = "dclab_core.team_work.v2"
+CONTRACT = "dclab_core.team_work.v3"
 
 ID = r"^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,119}$"
 NAME = r"^[a-z][a-z0-9_]*(:[A-Za-z0-9_.-]+)?$"  # a team, agent or action name, with an optional qualifier (model:eta)
@@ -118,9 +120,14 @@ class Requester(Contract):
 
 
 class TeamTask(Versioned):
-    """One assignment: a question, one accountable owner, what counts as done, what it may use."""
+    """One assignment: a question, one accountable owner, what counts as done, what it may use.
 
-    schema_version: Literal["dclab_core.team_task.v1"] = _version("team_task")
+    v2 (0.170.0) adds ``target``: the outcome a person confirmed for this task, as a contract (the event as a code, with
+    their words), so the owner checks the data against what was asked and the next team reads it as a field, never out
+    of a sentence. A v1 task reads as one with no confirmed target."""
+
+    schema_version: Literal["dclab_core.team_task.v2"] = _version("team_task", 2)
+    READS: ClassVar[frozenset[str]] = frozenset({"dclab_core.team_task.v1"})  # the same fields, without target
     id: str = Field(pattern=ID)
     workspace_id: str = Field(pattern=ID)
     project_id: str = Field(pattern=ID)
@@ -138,6 +145,15 @@ class TeamTask(Versioned):
     status: TaskStatus = "open"
     superseded_by: Optional[str] = Field(default=None, pattern=ID)
     created_at: str
+    target: Optional[TargetContract] = Field(default=None, description="v2: the outcome a person confirmed for this task.")
+
+    @model_validator(mode="before")
+    @classmethod
+    def _v1(cls, data: Any) -> Any:
+        """A v1 task (alone, or inside a stored bundle or row) is the same task with no confirmed target."""
+        if isinstance(data, Mapping) and data.get("schema_version") in cls.READS:
+            return {**data, "schema_version": cls.model_fields["schema_version"].default}
+        return data
 
     @field_validator("created_at")
     @classmethod
@@ -146,6 +162,8 @@ class TeamTask(Versioned):
 
     @model_validator(mode="after")
     def _rules(self):
+        if self.target is not None and self.target.brief_revision > self.brief_revision:
+            raise ValueError("a confirmed target is never on a later brief revision than its task")
         if self.parent_task_id == self.id:
             raise ValueError("a task cannot be its own parent")
         if (self.status == "superseded") != (self.superseded_by is not None):
@@ -541,10 +559,11 @@ class AgentConfig(Versioned):
 
 class TeamWork(Versioned):
     """One problem's team work in one document: its tasks, actions, reports and decisions. v2 (0.169.0): its decisions are
-    ``team_decision.v2``; a v1 document reads unchanged, its decisions at revision 1."""
+    ``team_decision.v2``. v3 (0.170.0): its tasks are ``team_task.v2`` (a confirmed target). A v1 or v2 document reads
+    unchanged, its decisions at revision 1 and its tasks with no confirmed target."""
 
-    schema_version: Literal["dclab_core.team_work.v2"] = _version("team_work", 2)
-    READS: ClassVar[frozenset[str]] = frozenset({"dclab_core.team_work.v1"})
+    schema_version: Literal["dclab_core.team_work.v3"] = _version("team_work", 3)
+    READS: ClassVar[frozenset[str]] = frozenset({"dclab_core.team_work.v1", "dclab_core.team_work.v2"})
     problem_id: str = Field(pattern=ID)
     tasks: list[TeamTask] = Field(default_factory=list, max_length=2000)
     actions: list[TeamAction] = Field(default_factory=list, max_length=20000)
@@ -554,7 +573,7 @@ class TeamWork(Versioned):
     @classmethod
     def read(cls, document: Any):
         data = json.loads(document) if isinstance(document, (str, bytes)) else dict(document)
-        if data.get("schema_version") in cls.READS:  # a v1 document: the same fields; its decisions upgrade themselves
+        if data.get("schema_version") in cls.READS:  # an older document: the same fields; its decisions and tasks upgrade themselves
             data = {**data, "schema_version": cls.model_fields["schema_version"].default}
         return super().read(data)
 
@@ -620,7 +639,7 @@ DIRECTORY: dict[str, AgentConfig] = {c.name: c for c in (
           "intended_use"],
          ["team", "project", "problem", "model_version"], ("approve", "deploy", "contact_customers")),
     _cfg("sales", "team_agent", "Sales team", "Produce an outreach plan within confirmed capacity",
-         [("ask_capacity", "human:sales_team", "Ask the team how many contacts it can make."),
+         [("ask_capacity", "human:sales_team", "Ask a member of the Sales team how many contacts it can make (0 to 30)."),
           ("check_exclusions", "tool:check_exclusions", "Remove accounts that must not be contacted."),
           ("draft_contact_list", "tool:draft_list", "Draft the list within capacity."),
           ("return_restricted_ref", "tool:share_reference", "Return a restricted reference to the draft."),
@@ -631,7 +650,7 @@ DIRECTORY: dict[str, AgentConfig] = {c.name: c for c in (
          [("check_eligibility", "tool:offer_rules", "Check who the offer applies to."),
           ("check_campaign_dates", "tool:campaign_calendar", "Check the campaign's dates."),
           ("check_cost", "tool:offer_cost", "Check what the offer costs."),
-          ("confirm_terms", "human:marketing_owner", "Confirm the terms with their owner."),
+          ("confirm_terms", "human:marketing_team", "Ask a member of the Marketing team for the offer's dated terms and cost."),
           ("return_conditions", "tool:share_reference", "Return the offer's conditions.")],
          ["applicable_offer_or_reason", "source", "constraints", "next_reviewer"],
          ["team", "project", "problem"], _NEVER),
@@ -805,6 +824,53 @@ def validate_transition(task: TeamTask, new_status: str, by: Actor, *, supersede
                                     "superseded_by": superseded_by if new_status == "superseded" else None})
 
 
+REVISABLE = frozenset({"complete", "partial", "blocked"})  # 0.170.0: an answered task works again on a revised brief
+
+
+def target_revision(task: TeamTask, event: str) -> int:
+    """The brief revision a confirmed outcome of ``event`` stands on for this task (:func:`confirm_target`'s rule): the
+    task's own when it is the same event, or a first one while it works; the next one otherwise."""
+    held = task.target
+    if held is not None and held.event == event:
+        return held.brief_revision
+    if held is None and task.status not in REVISABLE:
+        return task.brief_revision
+    return task.brief_revision + 1
+
+
+def confirm_target(task: TeamTask, target: TargetContract, by: Actor) -> tuple[TeamTask, bool]:
+    """The task with the outcome a person confirmed (0.170.0, T1), and whether that revised its brief.
+
+    Why: what "feasible" means rests on the outcome. A first confirmed target given while the task works is set on the
+    task's own brief revision. The same event in other words later changes nothing (the work that rested on it still
+    stands). Another event, or a first one given after the task answered without one (its answer rested on an outcome
+    nobody confirmed, or it blocked because the words did not settle it), is a new question: the task's brief revision
+    rises by one, and ``target.brief_revision`` must be that new revision. A
+    task that had answered (complete, partial or blocked) works again (accepted) on the new revision: its delivered
+    report stays exactly as it was until the next revision supersedes it, and a parent refuses replies on the old
+    revision (``accept_reply``). This is the one way an answered task works again; every other move still goes through
+    :func:`validate_transition`. Only the task's owner or its requester records the target, always for a person
+    (``target.confirmed_by``); a cancelled, superseded or failed task takes none."""
+    team = by.team or (by.id if by.kind == "team" else None)
+    if team not in (task.owner_team, task.requester.team):
+        raise ValueError("only the task's owner or its requester records the outcome a person confirmed")
+    if task.status in ("cancelled", "superseded", "failed"):
+        raise ValueError(f"a {task.status} task takes no confirmed outcome")
+    held = task.target
+    if held is not None and held.event == target.event:
+        return task, False
+    if held is None and task.status not in REVISABLE:  # asked while it works: its answer will rest on this outcome
+        if target.brief_revision != task.brief_revision:
+            raise ValueError(f"a first confirmed outcome is on the task's brief revision ({task.brief_revision})")
+        return TeamTask.model_validate({**task.model_dump(), "target": target.model_dump()}), False
+    revision = task.brief_revision + 1
+    if target.brief_revision != revision:
+        raise ValueError(f"a changed outcome is on the next brief revision ({revision})")
+    status = "accepted" if task.status in REVISABLE else task.status
+    return TeamTask.model_validate({**task.model_dump(), "target": target.model_dump(), "brief_revision": revision,
+                                    "status": status}), True
+
+
 def budget_fits(parent: TeamTask, children: Sequence[TeamTask]) -> bool:
     """Whether the parent's live children (not cancelled or superseded) spend no more than the parent's budget.
 
@@ -817,12 +883,15 @@ def budget_fits(parent: TeamTask, children: Sequence[TeamTask]) -> bool:
 def delegate(parent: TeamTask, *, id: str, owner_team: str, question: str, expected_output: str,
              done_criteria: Sequence[str], by: Actor, thread_id: str, created_at: str,
              allowed_inputs: Sequence[str] = (), allowed_tools: Sequence[str] = (), budget_eur: float = 0.0,
-             siblings: Sequence[TeamTask] = ()) -> TeamTask:
+             siblings: Sequence[TeamTask] = (), target: Optional[TargetContract] = None) -> TeamTask:
     """A child task asked by the parent's owner.
 
     Why: a delegation never hands the parent over. The parent keeps its owner and stays open; the child has its own
     owner and points back, so its reply returns to the delegating agent and nowhere else. Its budget, with its
-    siblings' (the parent's children so far), fits inside the parent's."""
+    siblings' (the parent's children so far), fits inside the parent's. ``target`` (0.170.0): the outcome a person
+    confirmed on another task, carried as a field (on the child's own brief revision), never re-read from a sentence."""
+    if target is not None:
+        target = target.model_copy(update={"brief_revision": parent.brief_revision})
     if parent.status not in ("accepted", "waiting_for_team", "partial"):
         raise ValueError(f"a {parent.status} task does not delegate: only an accepted task still at work does")
     if (by.team or "") != parent.owner_team:
@@ -833,7 +902,7 @@ def delegate(parent: TeamTask, *, id: str, owner_team: str, question: str, expec
                                          thread_id=thread_id),
                      owner_team=owner_team, question=question, expected_output=expected_output,
                      done_criteria=list(done_criteria), allowed_inputs=list(allowed_inputs),
-                     allowed_tools=list(allowed_tools), budget_eur=budget_eur, created_at=created_at)
+                     allowed_tools=list(allowed_tools), budget_eur=budget_eur, created_at=created_at, target=target)
     if any(s.id == id for s in siblings):
         raise ValueError(f"a child task {id} already exists")
     if not budget_fits(parent, [*siblings, child]):
@@ -924,14 +993,17 @@ def join_status(parent: TeamTask, children_reports: Iterable[WorkReport], *, chi
     the one outstanding. Each child is joined once, by its current report (the latest revision not superseded); a
     partial child report is not a result; a cancelled or superseded child is no longer expected; a report from another
     branch is ignored; a current report on an older brief revision than the parent's is refused (it answers a question
-    the parent no longer asks)."""
+    the parent no longer asks); a child revised since its current report (0.170.0) is still out."""
     expected = [c for c in children if c.parent_task_id == parent.id and c.status not in ("cancelled", "superseded")]
     ids = {c.id for c in expected}
     current = _latest(r for r in children_reports if r.task_id in ids and r.parent_task_id == parent.id)
     stale = [r.id for r in current.values() if r.brief_revision < parent.brief_revision]
     if stale:
         raise ValueError(f"child reports on an older brief revision than the parent's: {stale}")
-    returned = [c.id for c in expected if c.id in current and current[c.id].status in RETURNED_REPORTS]
+    # 0.170.0 (T1): a child whose brief was revised (a changed confirmed outcome) is out again until it answers the new
+    # revision: its earlier report rests on an outcome nobody asks any more, and is never joined as its result
+    returned = [c.id for c in expected if c.id in current and current[c.id].status in RETURNED_REPORTS
+                and current[c.id].brief_revision >= c.brief_revision]
     outstanding = [c.id for c in expected if c.id not in returned]
     unresolved = [t for t in returned if current[t].status != "complete"]
     return Join(status="partial" if outstanding else "complete", returned=returned, outstanding=outstanding,
@@ -1119,3 +1191,54 @@ def may_approve(actor: Actor, decision: TeamDecision) -> bool:
     """Whether the actor may approve. Why: permission to answer is not permission to decide; an agent (or a team acting
     as one) never approves on behalf of the decision owner, however good its recommendation is."""
     return actor.kind == "person" and decision.decision_owner.kind == "person" and actor.id == decision.decision_owner.id
+
+
+# --- T2: corrections with a base revision (2026-11-23) ---
+
+CORRECTION_VERDICTS = ("apply", "duplicate", "stale_base")
+_FIELD = re.compile(r"^[a-z][a-z0-9_]*$")
+_VALUE = re.compile(r"^-?[A-Za-z0-9_.:+-]+$")
+_CORRECTION = re.compile(r";([a-z][a-z0-9_]*)=(-?[A-Za-z0-9_.:+-]+)@r([1-9][0-9]*)$")
+
+
+def correction_revision(snapshot: str, field: str, value: Any, base_revision: int) -> str:
+    """The input revision of an estimate corrected on one field: the snapshot it reads, the field and its value, and the
+    report revision the correction is based on (``dispatch:1042@18:00;kitchen_minutes=8@r1``).
+
+    Why: a correction is an attempt of its own (its retry key is this revision), so an explicit zero (a delay withdrawn) is
+    never the base snapshot again (which would return the first estimate as a duplicate), and the same value on another
+    base is another correction (a late one on an older base is judged by :func:`accept_correction`, never replayed)."""
+    snapshot, field = str(snapshot or ""), str(field or "")
+    if not snapshot or ";" in snapshot:
+        raise ValueError("a correction names the snapshot it corrects (with no ';' in it)")
+    if not _FIELD.match(field):
+        raise ValueError(f"a corrected field is a lower-case name, not {field!r}")
+    if value is None or isinstance(value, bool) or not _VALUE.match(str(value)):
+        raise ValueError(f"a correction's value is a number or a short code, not {value!r}")
+    if isinstance(base_revision, bool) or int(base_revision) < 1:
+        raise ValueError("a correction is based on a report revision (1 or later)")
+    out = f"{snapshot};{field}={value}@r{int(base_revision)}"
+    if len(out) > 120:
+        raise ValueError("a correction's revision is at most 120 characters")
+    return out
+
+
+def read_correction(revision: str) -> Optional[tuple[str, str, int]]:
+    """The field, value and base revision of a corrected input revision, or None for an uncorrected one."""
+    found = _CORRECTION.search(str(revision or ""))
+    return (found.group(1), found.group(2), int(found.group(3))) if found else None
+
+
+def accept_correction(current_revision: int, base_revision: int, *, already_applied: bool = False) -> str:
+    """Whether a correction is applied: ``apply`` (based on the current revision: it becomes the next one), ``duplicate``
+    (already applied: nothing changes), or ``stale_base`` (based on an older revision than the current one).
+
+    Why: the last correction to arrive must not win because it arrived last. A correction says which answer it corrects;
+    when that answer has been replaced since, applying it would overwrite a newer answer it never saw, so it is refused
+    and the sender reconciles. A base later than the current revision, or before the first, names no answer: refused."""
+    current, base = int(current_revision), int(base_revision)
+    if current < 1 or base < 1 or base > current:
+        raise ValueError(f"a correction based on revision {base} names no answer: the current revision is {current}")
+    if already_applied:
+        return "duplicate"
+    return "apply" if base == current else "stale_base"

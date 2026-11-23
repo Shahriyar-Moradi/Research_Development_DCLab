@@ -44,7 +44,7 @@ import re
 import secrets
 import tempfile
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Iterator, Mapping, Optional, Sequence
@@ -90,6 +90,12 @@ class Written:
     verdict: Optional[tw.Verdict] = None
     duplicate: bool = False
     replaced: Any = None  # the superseded report, on a correction
+    # a confirmed outcome (0.170.0, T1): whether it changed, the tasks that work again, the reports that rested on the
+    # earlier answer, and every answer row it sent (one per revised task; ``delivery`` is the first)
+    changed: bool = False
+    revised: list = field(default_factory=list)
+    stale: list = field(default_factory=list)
+    rows: list = field(default_factory=list)
 
 
 def _now() -> str:
@@ -359,11 +365,14 @@ class _TeamWork:
 
     def delegate(self, project_id: str, parent_id: str, *, id: str, owner_team: str, question: str, expected_output: str,
                  done_criteria: Sequence[str], by: tw.Actor, thread_id: str, created_at: str, allowed_inputs: Sequence[str] = (),
-                 allowed_tools: Sequence[str] = (), budget_eur: float = 0.0, initiator: Any = None, parent_waits: bool = False) -> Written:
+                 allowed_tools: Sequence[str] = (), budget_eur: float = 0.0, initiator: Any = None, parent_waits: bool = False,
+                 target_from: Optional[str] = None) -> Written:
         """A child task asked by the parent's owner (``team_work.delegate`` given the stored siblings), saved with its
         delivery. The same child asked again returns the saved one. A child acts for the parent's member when none is given.
         ``parent_waits``: an accepted parent moves to ``waiting_for_team`` in the same transaction (W5), so a crash never
-        leaves a child out with its parent still saying it works alone."""
+        leaves a child out with its parent still saying it works alone. ``target_from`` (0.170.0, T1): a task of the same
+        parent (or the parent itself) whose confirmed outcome the child carries, copied here as stored (never written by
+        the delegating agent); refused when that task has none."""
         who = initiator_of(initiator)
         cites = _citations(allowed_inputs)
         if cites:
@@ -384,9 +393,16 @@ class _TeamWork:
                 self._parent_waits(tx, parent_row, by, parent_waits)
                 result = Written(same, tx.delivery_by_key(f"task:{id}"), duplicate=True)
             else:
+                target = None
+                if target_from is not None:
+                    source = next((s for s in [parent, *siblings] if s.id == target_from), None)
+                    if source is None or source.target is None:
+                        raise ValueError(f"{target_from} is not a task of {parent_id} with a confirmed outcome to carry")
+                    target = source.target
                 child = tw.delegate(parent, id=id, owner_team=owner_team, question=question, expected_output=expected_output,
                                     done_criteria=done_criteria, by=by, thread_id=thread_id, created_at=created_at,
-                                    allowed_inputs=allowed_inputs, allowed_tools=allowed_tools, budget_eur=budget_eur, siblings=siblings)
+                                    allowed_inputs=allowed_inputs, allowed_tools=allowed_tools, budget_eur=budget_eur, siblings=siblings,
+                                    target=target)
                 tx.insert_task(child, who)
                 row = self._send(tx, self._delivery("task", f"task:{child.id}", child, item_id=child.id, from_team=parent.owner_team,
                                                     to_team=owner_team, text=question, thread_id=None, initiator=who))
@@ -457,6 +473,57 @@ class _TeamWork:
         self._emit([self._event("answer.sent", thread=task.requester.thread_id, team=task.owner_team, from_node=task.requester.team,
                                 to_node=task.owner_team, state="pending", project=project_id)])
         return Written(task, sent)
+
+    def confirm_target(self, project_id: str, task_id: str, target: Any, *, by: tw.Actor, initiator: Any = None) -> Written:
+        """The outcome a person confirmed for the task (0.170.0, T1; ``team_work.confirm_target``), saved in one
+        transaction with what it changes. The first one is set on the task's brief revision; the same event again changes
+        nothing (``duplicate``). Another event raises the brief revision, and so for every task of the problem that
+        carries a copy of the earlier answer (the same response, ``delegate(target_from=)``): each works again on its new
+        revision, and its owner gets the new words as an ``answer`` row (``target:<task>:b<revision>``), so it rechecks.
+        The written task is ``item``; ``changed`` says whether the outcome changed, ``revised`` the tasks that work again,
+        ``stale`` the current reports that rested on the earlier answer (the revised tasks' and their parents')."""
+        who = initiator_of(initiator)
+        rows: list[Row] = []
+        revised: list[tw.TeamTask] = []
+        stale: list[str] = []
+        events: list[dict] = []
+        with self._tx(project_id) as tx:
+            row = tx.task(task_id)
+            task = self._in_project(row, project_id, task_id)
+            before = task.target
+            moved, changed = tw.confirm_target(task, target, by)
+            if moved == task:
+                return Written(task, duplicate=True)
+            tx.update_task(moved, row["version"])
+            work = [(row, task, moved)]
+            if changed and before is not None and before.response:
+                for other in tx.tasks(problem_id=task.problem_id):
+                    copy = other["task"]
+                    if (copy.id == task.id or copy.target is None or copy.target.response != before.response
+                            or copy.status in ("cancelled", "superseded", "failed")):
+                        continue
+                    agent = tw.Actor(kind="agent", id=copy.requester.team, team=copy.requester.team)
+                    again, _ = tw.confirm_target(copy, target.model_copy(update={"brief_revision": copy.brief_revision + 1}), agent)
+                    tx.update_task(again, other["version"])
+                    work.append((other, copy, again))
+            if changed:
+                parents = set()
+                for held, old, new in work:
+                    revised.append(new)
+                    current = [r["report"] for r in tx.reports([old.id]) if r["report"].status != "superseded"]
+                    stale += [r.id for r in current]
+                    if old.parent_task_id:
+                        parents.add(old.parent_task_id)
+                    rows.append(self._send(tx, self._delivery(
+                        "answer", f"target:{new.id}:b{new.brief_revision}", new, item_id=new.id, from_team=new.requester.team,
+                        to_team=new.owner_team, text=target.words, thread_id=None, initiator=who or held["initiator"])))
+                    if old.status != new.status:
+                        events.append(self._moved(new, old.status, new.status, by))
+                for parent_id in sorted(parents - {t.id for t in revised}):
+                    stale += [r["report"].id for r in tx.reports([parent_id]) if r["report"].status != "superseded"]
+        self._emit(events)
+        return Written(moved, rows[0] if rows else None, changed=changed, revised=revised, stale=sorted(dict.fromkeys(stale)),
+                       rows=rows)
 
     # ------------------------------------------------------------------ actions
     def record_action(self, project_id: str, action: tw.TeamAction) -> Written:

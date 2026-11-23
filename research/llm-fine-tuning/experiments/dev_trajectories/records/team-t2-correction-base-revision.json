@@ -1,0 +1,132 @@
+{
+  "package": "team-t2-correction-base-revision",
+  "title": "A correction names the answer it corrects, so the last one to arrive never wins only because it arrived last",
+  "date": "2026-11-23",
+  "request": "Package T2 of the team workspace plan (the review's P2, 'a withdrawn delay preserves an obsolete ETA'): correcting the kitchen's extra minutes from 8 back to 0 returned 'skipped' and kept 18:40, because the correction branch used truthiness. Distinguish absence from an explicit zero, give each correction a base revision, allow the same value again on another base, refuse a late correction on an older base with a visible 'please reconcile' reply, make an identical retry add nothing, propagate to the Business brief, and keep the original acceptance score on its original revision. Test 0 -> 8 -> 0 -> 8.",
+  "spec": "dclab-core 0.170.0 (pure functions, no contract change; the event kinds team.correction.applied/refused and the ledger point team.correction_accept were declared with T5a in 0.169.0): team_work.correction_revision(snapshot, field, value, base_revision), read_correction, accept_correction(current, base, already_applied=) and CORRECTION_VERDICTS. dclab_rnd: teamspace/tools.py judge_correction (the stored task's current report, the correction id's earlier attempt, minutes 0-240, a base required once revised), _reconcile, _model_call (a stale base writes a skipped attempt and the reconcile reply), the model_call tool's base_revision and correction_id; teamspace/agents.py correct() (judged before the turn, events and ledger once per call, an overtaken apply re-judged as stale_base) and the specialist's correction step. No migration.",
+  "plan": [
+    "write the core rule as pure functions with the 0 -> 8 -> 0 -> 8 cases, a repeated value on another base and a base that names no report as tests",
+    "make the corrected input revision carry the field, the value and the base, so an explicit zero is never the base snapshot",
+    "judge each correction on the stored task before the specialist's turn; apply supersedes, duplicate writes nothing, stale_base writes a skipped attempt and tells the requester to reconcile",
+    "record each judgment once (experience event and ledger point) and keep the acceptance task untouched",
+    "CHANGELOG and CORE_INTEGRATION; tests on files and PostgreSQL; independent review and fixes"
+  ],
+  "decisions": [
+    {
+      "decision": "the base revision is part of the corrected input revision (snapshot;kitchen_minutes=0@r2), which is also the score's retry key",
+      "why": "with the value alone, 'withdraw the delay' (0) is the uncorrected snapshot and the first estimate comes back as a duplicate; with the base, the same 8 minutes on r1 and on r3 are two corrections, and a resend of one of them is the same attempt"
+    },
+    {
+      "decision": "a correction on an older base is refused (stale_base) and the requester reads 'please reconcile' in its thread, never merged",
+      "why": "applying it would overwrite a newer answer it never saw; only the sender knows whether it still applies"
+    },
+    {
+      "decision": "the rule stays in dclab-core as pure functions; the host reads the stored task and reports",
+      "why": "the main product needs the same judgment on its own records, and a pure rule needs no schema change"
+    },
+    {
+      "decision": "a base is required once the first report has been superseded (the review's finding 1)",
+      "why": "a correction with no base was taken as based on the newest report, so a late resend of the first +8 overwrote the later withdrawal: the very case the package exists to stop"
+    }
+  ],
+  "change": "dclab_core/team_work.py (the T2 block: correction_revision, read_correction, accept_correction, CORRECTION_VERDICTS), CHANGELOG 0.170.0 bullet; dclab_rnd/teamspace/tools.py (CORRECTED, MAX_MINUTES, _tag, _tagged, judge_correction, _reconcile, _model_call, the model_call schema); dclab_rnd/teamspace/agents.py (correct, _correction_event, the specialist's correction step); docs/guides/CORE_INTEGRATION.md; tests/test_core_team_corrections.py (new) and tests/test_teamspace_agents.py (_Corrections).",
+  "findings": [
+    {
+      "id": "T2-1",
+      "source": "owner",
+      "severity": "behaviour",
+      "defect": "withdrawing the kitchen's delay kept the obsolete 18:40 estimate",
+      "scenario": "dispatch at 18:00, estimate 18:32; +8 minutes gives 18:40; correcting back to 0 returned 'skipped' and 18:40 stayed the current report",
+      "cause": "the correction branch tested the minutes by truthiness, so 0 read as 'no correction' and the input revision was the base snapshot, whose score already existed",
+      "fix": "correction_revision carries the field, the value and the base revision; 0 is an explicit value",
+      "test": "tests/test_teamspace_agents.py test_the_owners_sequence_withdraws_restores_and_refuses_a_late_correction; tests/test_core_team_corrections.py"
+    },
+    {
+      "id": "T2-2",
+      "source": "test",
+      "severity": "latent",
+      "defect": "the owner's-sequence test expected one ledger row fewer than the code records",
+      "scenario": "the late stale_base correction is sent twice; the second sending happened after the ledger patch's with-block had ended",
+      "cause": "the expectation was wrong, not the code: each call is judged and recorded once, and only calls inside the patch are seen",
+      "fix": "the expectation counts the calls inside the patch and the experience events count both sendings",
+      "test": "tests/test_teamspace_agents.py test_the_owners_sequence_withdraws_restores_and_refuses_a_late_correction"
+    },
+    {
+      "id": "T2-3",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "a correction with no base was never stale",
+      "scenario": "+8 (r2), then 0 (r3, delay withdrawn); the first +8 arrives late with no base and no id: it was taken as 8@r3, applied, and r4 said 18:40 again",
+      "cause": "a missing base defaulted to the current report's revision",
+      "fix": "judge_correction refuses a correction with no base (and no known correction id) once the first report is superseded",
+      "test": "tests/test_teamspace_agents.py test_a_late_correction_with_no_base_on_a_revised_report_is_refused_not_applied"
+    },
+    {
+      "id": "T2-4",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "of two corrections on one base, the one that lost the race was reported as applied and nobody was told",
+      "scenario": "A (5@r1) and B (8@r1) both judged apply; B's score finishes after A reported r2: no report, no event, no reconcile reply, but verdict 'apply'",
+      "cause": "correct() returned early when an apply made no report",
+      "fix": "a scored apply that made no report because the report moved on is re-judged stale_base, recorded as refused and the requester gets the reconcile reply (keyed per attempt, so once)",
+      "test": "tests/test_teamspace_agents.py test_two_corrections_on_one_base_the_one_that_lost_the_race_is_refused_visibly"
+    },
+    {
+      "id": "T2-5",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "correction id 'k' matched the earlier attempt of id 'k:2'",
+      "scenario": "'k:2' (+8) applied; 'k' (+9, base 2) was refused as 'already given for another correction'",
+      "cause": "the tag was matched with startswith(tag + ':') and a safe id may contain ':'",
+      "fix": "the tag ends with ': ' (a safe id has no space)",
+      "test": "tests/test_teamspace_agents.py test_a_correction_id_that_starts_another_ids_name_is_its_own"
+    },
+    {
+      "id": "T2-6",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "negative or very large minutes were accepted",
+      "scenario": "-40 gave an arrival before the dispatch estimate; 1500 wrapped past midnight",
+      "cause": "no bound on the minutes in correct() or the tool schema",
+      "fix": "0 to 240 minutes in judge_correction and in the model_call schema",
+      "test": "tests/test_teamspace_agents.py test_minutes_outside_zero_to_four_hours_are_refused"
+    },
+    {
+      "id": "T2-7",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "a zero with no delay to withdraw was recorded as 'already_applied', and the reconcile reply invited a resend with the same id, which is refused",
+      "scenario": "first correction 0 on r1; a stale correction resent against the current report under its old id",
+      "cause": "one reason code for every duplicate; the reply did not say a new correction id is needed",
+      "fix": "reason 'unchanged' for a no-op; the reply asks for a new correction against the current report",
+      "test": "tests/test_teamspace_agents.py test_a_zero_with_no_delay_adds_nothing_and_a_base_that_names_no_report_is_refused"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "the review's findings as tests, before their fixes",
+      "gate": "every new or extended test fails before its fix and passes after",
+      "fixed_before_run": true,
+      "result": "5 failing before (no base applied, -40 applied, 'k' refused, race reported apply, reason already_applied); 0 after",
+      "verdict": "pass"
+    },
+    {
+      "name": "the T2 test groups on files and on PostgreSQL",
+      "gate": "test_teamspace_agents, test_core_team_corrections, test_team_acceptance, test_team_target, test_teamspace_delivery, test_teamspace_store, test_lead_workspace, test_team_screens pass in both modes",
+      "fixed_before_run": true,
+      "result": "after the review fixes: 244 tests in the 8 files OK on files and OK on PostgreSQL (99 in the first four, 145 in the other four)",
+      "verdict": "pass"
+    }
+  ],
+  "outcome": "A correction of a team's answer names the report revision it is based on: 0 -> 8 -> 0 -> 8 makes four revisions, a repeat adds nothing, a late one on an older base (or one overtaken on the same base) is refused with a visible reconcile reply, the Business brief shows the current value and the acceptance score keeps its revision. Not done: a crash between the report and its 'applied' event leaves that event missing (a resend records only a duplicate); a dispatch snapshot near 120 characters cannot be corrected (the revision's cap); no route lets a person send a correction from a thread yet; no live model run.",
+  "lessons": [
+    "Never test a correction's value by truthiness: zero is the most common meaningful correction (a delay withdrawn).",
+    "A stale-base rule refuses only what states its base: a default base of 'the newest' silently turns every late resend into an apply.",
+    "When a judgment can change between judging and writing, re-judge at the end and record what actually happened, not what was planned."
+  ],
+  "risks": [
+    "Requiring a base once revised makes every caller track the revision it saw; a caller that does not is refused, never guessed for.",
+    "Event recording is best effort: a crash after the report and before the event loses the applied event."
+  ],
+  "commits": []
+}

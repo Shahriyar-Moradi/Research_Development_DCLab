@@ -127,6 +127,10 @@ CONTRACT_ADAPTERS: dict[str, str] = {
     "team_decision": LIBRARY + " (W1 of 2026-11-20: a decision owner's choice on a team problem; the pinned host has no team decision record)",
     "agent_config": LIBRARY + " (W1 of 2026-11-20: a team agent's job description; the pinned host has no team agents)",
     "team_work": LIBRARY + " (W1 of 2026-11-20: one problem's team work in one document; the pinned host has no team work)",
+    "target_contract": LIBRARY + " (T1 of 2026-11-23: the outcome a person confirmed for a team task; the pinned host has no team task, and "
+                                 "its semantic target answers are not mapped onto it yet)",
+    "label_declaration": LIBRARY + " (T1 of 2026-11-23: which event a table's label column records; the pinned host's datasets declare no "
+                                   "event for a label column)",
     "business_example": LIBRARY + " (30.5: knowledge for the understanding and planning agents; the main product has no store of examples yet)",
     "recipe_part": LIBRARY + " (30.10: a task kind or a modifier as one contract; the main product's task kinds and its expansion pack can be read as parts the same way)",
     "resolved_recipe": LIBRARY + " (30.10: the choices one run resolves to, each with its part and reason; the main product's training plan has no such record yet)",
@@ -169,6 +173,8 @@ POINTS_NOT_MAPPED: dict[str, str] = {
     **{p: _NO_NAME.format(what="team workspace routing point (W7)") for p in ("team.task_owner",)},
     **{p: _NO_NAME.format(what="team workspace point (0.169.0: a decision's approval, a correction's acceptance)")
        for p in ("team.decision_approve", "team.correction_accept")},
+    **{p: _NO_NAME.format(what="team workspace point (0.170.0: a confirmed outcome against what the table records)")
+       for p in ("team.target_agreement",)},
     **{p: _NO_NAME.format(what="image problem's check (26.8)") for p in ("image.near_copy", "image.label_suspect", "image.flip_safe")},
     **{p: _NO_NAME.format(what="recipe modifier (30.11)") for p in ("modifier.rare_positives", "modifier.groups", "modifier.time_order",
                                                                          "modifier.noisy_labels", "modifier.review_capacity")},

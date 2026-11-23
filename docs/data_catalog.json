@@ -274,7 +274,7 @@
   {
    "contract": "experience_event",
    "reads": [],
-   "version": "dclab_core.experience_event.v19"
+   "version": "dclab_core.experience_event.v20"
   },
   {
    "contract": "experience_session",
@@ -320,6 +320,11 @@
    "contract": "knowledge_item",
    "reads": [],
    "version": "dclab_core.knowledge_item.v1"
+  },
+  {
+   "contract": "label_declaration",
+   "reads": [],
+   "version": "dclab_core.label_declaration.v1"
   },
   {
    "contract": "leak_evidence",
@@ -451,8 +456,10 @@
   },
   {
    "contract": "problem_data_check",
-   "reads": [],
-   "version": "dclab_core.problem_data_check.v1"
+   "reads": [
+    "dclab_core.problem_data_check.v1"
+   ],
+   "version": "dclab_core.problem_data_check.v2"
   },
   {
    "contract": "problem_map",
@@ -607,6 +614,11 @@
    "version": "dclab_core.table_entry.v1"
   },
   {
+   "contract": "target_contract",
+   "reads": [],
+   "version": "dclab_core.target_contract.v1"
+  },
+  {
    "contract": "task_execution_plan",
    "reads": [],
    "version": "dclab_core.task_execution_plan.v1"
@@ -635,15 +647,18 @@
   },
   {
    "contract": "team_task",
-   "reads": [],
-   "version": "dclab_core.team_task.v1"
+   "reads": [
+    "dclab_core.team_task.v1"
+   ],
+   "version": "dclab_core.team_task.v2"
   },
   {
    "contract": "team_work",
    "reads": [
-    "dclab_core.team_work.v1"
+    "dclab_core.team_work.v1",
+    "dclab_core.team_work.v2"
    ],
-   "version": "dclab_core.team_work.v2"
+   "version": "dclab_core.team_work.v3"
   },
   {
    "contract": "track_outcome",
@@ -763,7 +778,7 @@
    "what": "A solved project from its problem to its report, one row per project: the card, the map, the routes, the stages run and the report's kept sentences, never a row of its table; only projects whose consent allows training, and none at all below the builder's minimum of projects (30.19)."
   }
  ],
- "dclab_core": "0.169.0",
+ "dclab_core": "0.170.0",
  "decision_points": [
   {
    "about": "Which tool does the agent call next?",
@@ -1551,6 +1566,17 @@
    "point": "team.next_node",
    "subjects": [
     "draft",
+    "project"
+   ]
+  },
+  {
+   "about": "Does the table record the outcome the person confirmed?",
+   "answer": "choice",
+   "decided_in": "ledger/capture.py team_target_agreement, called from teamspace/tools.py where Data Science inspects the table and ML Engineering validates the contract (T1): whether a label column records the event the person confirmed, and is mature",
+   "kind": "workflow",
+   "main_product": null,
+   "point": "team.target_agreement",
+   "subjects": [
     "project"
    ]
   },
@@ -2761,7 +2787,9 @@
    "train_only": []
   },
   {
-   "emitted_by": [],
+   "emitted_by": [
+    "dclab_rnd/teamspace/agents.py"
+   ],
    "example": "python -m dclab_rnd.experience search --kind team.correction.applied",
    "family": "team",
    "fields": {
@@ -2781,7 +2809,9 @@
    "train_only": []
   },
   {
-   "emitted_by": [],
+   "emitted_by": [
+    "dclab_rnd/teamspace/agents.py"
+   ],
    "example": "python -m dclab_rnd.experience search --kind team.correction.refused",
    "family": "team",
    "fields": {
@@ -3056,6 +3086,53 @@
     "task": "meta"
    },
    "kind": "team.report.written",
+   "leaves_at": "improve",
+   "never_leaves": [],
+   "train_only": []
+  },
+  {
+   "emitted_by": [
+    "dclab_rnd/teamspace/tools.py"
+   ],
+   "example": "python -m dclab_rnd.experience search --kind team.target.confirmed",
+   "family": "team",
+   "fields": {
+    "brief_revision": "count",
+    "by": "meta",
+    "changed": "meta",
+    "event": "meta",
+    "previous": "meta",
+    "problem": "meta",
+    "response": "meta",
+    "source": "meta",
+    "stale": "count",
+    "task": "meta"
+   },
+   "kind": "team.target.confirmed",
+   "leaves_at": "improve",
+   "never_leaves": [],
+   "train_only": []
+  },
+  {
+   "emitted_by": [
+    "dclab_rnd/teamspace/tools.py"
+   ],
+   "example": "python -m dclab_rnd.experience search --kind team.target.mismatch",
+   "family": "team",
+   "fields": {
+    "brief_revision": "count",
+    "by": "meta",
+    "columns": "count",
+    "event": "meta",
+    "missing": "meta",
+    "problem": "meta",
+    "recorded": "meta",
+    "source": "meta",
+    "supplier": "meta",
+    "task": "meta",
+    "verdict": "meta"
+   },
+   "kind": "team.target.mismatch",
    "leaves_at": "improve",
    "never_leaves": [],
    "train_only": []
