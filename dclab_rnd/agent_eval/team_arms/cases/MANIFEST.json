@@ -1,0 +1,22 @@
+{
+ "note": "The team-arms case sets. The dev and sealed sets are written by an independent session (CASES.md), never by the builder of the arms or of this harness. Their author writes each file's sha256 here when the file is final (shasum -a 256 <file>); a run refuses a set that is not pinned or does not match its pin. The quick file is a harness smoke test and is never scored.",
+ "sets": {
+  "quick": {
+   "file": "quick_example.json",
+   "scored": false,
+   "author": "the harness's builder (B4), smoke only"
+  },
+  "dev": {
+   "file": "cases_dev.json",
+   "sha256": "6936df81182422cd782d935d660c3b694b6921032addb4ae6346a72d3f0485ec",
+   "author": "an independent case-author agent (2026-11-24), never a builder of the arms or the harness",
+   "cases": 40
+  },
+  "sealed": {
+   "file": "cases_sealed.json",
+   "sha256": "28f357551f9f4430c627684625941231f1e0b46ba2b91a5367e0bb96283fa2dd",
+   "author": "an independent case-author agent (2026-11-24), never a builder of the arms or the harness",
+   "cases": 70
+  }
+ }
+}

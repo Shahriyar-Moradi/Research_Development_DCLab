@@ -1,0 +1,7 @@
+{
+  "campaign_id": "team_arms_v1",
+  "objective": "Rules (R), helper (H) and agent (A) brains for each team role (B4 of the team workspace, 2026-11-24): the same written cases, invented data, tools, permissions and budgets, played through the real team runtime with a scripted person; scored by code from the records (main score, hard zeros, counts), with an optional free non-Claude judge that is advisory only. The winner of each role is chosen by team_arms_gate_v1, pinned by hash before any run.",
+  "rule": "The cases are written by an independent session; the dev set is improved on, the sealed set is run once. No Claude model in any arm or judge. Every run is capped at 0.5 euro. A difference inside its bootstrap interval is noise. Nothing here says a team agent is ready for production.",
+  "command": "python -m dclab_rnd.agent_eval.team_arms plan|run|report [--set quick|dev|sealed] [--roles ...] [--families ...] [--models ...] [--yes --cap-eur 0.5] [--judge M]",
+  "known_limits": ["The team agents read invented fixtures only in this release (real tables come with T4a).", "The person and the team members are scripted: a real person may answer differently or not at all.", "The rules arm shows no plan of its own, so the judge's plan score favours the arms that write one."]
+}
