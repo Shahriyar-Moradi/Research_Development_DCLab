@@ -1761,3 +1761,36 @@ same state (which tool next), checked, recorded, never acted on. Its request is 
 after their run ends, outside the delivery and its time limit, so a slow model never holds, fails or repeats a
 delivery; a turn that raised is recorded as `stopped` and asks no model. Its seats (B2) and its loop (B3) come next;
 B3's acting agent arm takes its own delivery deadline, the rules keeping theirs.
+
+## The helper arm's seats (2026-11-23, dclab-core 0.172.0)
+
+In the `helper` arm code still decides every step. A model helps at named seats (`team_brain.SEATS`), and its answer is
+used only where a code check passes; otherwise the rules' own answer stands and the fallback is recorded. A host gives a
+role only the seats `team_brain.ROLE_SEATS` lists for it, and only while that role is switched to `helper`; a role on the
+rules reaches no seat and asks nothing.
+
+| Seat | When | What code checks before the answer is used | If the check fails |
+|---|---|---|---|
+| `read_target` (Lead, Business) | before the team that owns the outcome would ask what it means, and where the keyword reader cannot read the person's answer | the event is one allowed (`check_code`); it equals the keyword reader's event whenever that reads the words; a mature label column records it (`target_contract.agreement`). The model is never shown which event the table records | the rules ask the person, as before |
+| `route_teams` (Lead) | before the Lead hands out a request whose words name no outreach | the answer is `sales` or `none`, and Sales answers in this release | the rules' route |
+| `word_question` (Data Science) | when the rules must ask | the question id is one the rules allow; `check_question` (one question, no number, no promise, every option still named, short) | the rules' wording |
+| `explain_report` (every team, its own reports) | after the turn returned a report | every sentence cites the report, every number is the report's, no production-ready, a word limit (the host's citation check) | nothing is shown; the report is never changed |
+| `list_risks` (every team, its own reports) | after the turn returned a report | short sentences, no number the report does not write, no overclaim, no promise | nothing is shown; risks never block or approve |
+
+What the host owes:
+
+1. Ask a before-seat (`BEFORE_SEATS`) before the rules act on that choice, with a bounded wait for the whole turn; when
+   the time runs out the rules' answer stands, recorded as `timeout`. A delivery whose turn can wait on a before-seat
+   gets those seconds on top of the rules' time limit; every other delivery keeps the rules' limit.
+2. Ask the after-seats (`AFTER_SEATS`) after the turn, never in its way.
+3. Record one `SeatRecord` per seat reached (the experience kind `team.helper.seat`, the ledger point
+   `team.helper_seat`), and keep the model's exchange with its thinking summary; the prompts ask only for the answer's
+   fields, never for reasoning.
+4. When a reading from the request is used as the task's outcome, say so wherever the outcome is shown (the person did
+   not confirm it; they can correct it), and record `read_by: helper` on `team.target.confirmed`.
+
+In the R&D studio (`dclab_rnd/teamspace/seats.py`) the before-seats share `DCLAB_TEAM_HELPER_SEAT_SECONDS` (20) per turn,
+`delivery.timeout_seconds` adds them for a helper turn, and the after-seats run on B1's capped background thread; what
+passes is posted in the thread where the report is read, marked as the helper's. `critic_gate.py` is not used for the
+risks: it recomputes a campaign stage's selection rule, and a team report has none.
+

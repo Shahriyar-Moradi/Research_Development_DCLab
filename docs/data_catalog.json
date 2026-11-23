@@ -274,7 +274,7 @@
   {
    "contract": "experience_event",
    "reads": [],
-   "version": "dclab_core.experience_event.v21"
+   "version": "dclab_core.experience_event.v22"
   },
   {
    "contract": "experience_session",
@@ -646,6 +646,11 @@
    "version": "dclab_core.team_decision.v2"
   },
   {
+   "contract": "team_helper_seat",
+   "reads": [],
+   "version": "dclab_core.team_helper_seat.v1"
+  },
+  {
    "contract": "team_record",
    "reads": [],
    "version": "dclab_core.team_record.v1"
@@ -783,7 +788,7 @@
    "what": "A solved project from its problem to its report, one row per project: the card, the map, the routes, the stages run and the report's kept sentences, never a row of its table; only projects whose consent allows training, and none at all below the builder's minimum of projects (30.19)."
   }
  ],
- "dclab_core": "0.171.0",
+ "dclab_core": "0.172.0",
  "decision_points": [
   {
    "about": "Which tool does the agent call next?",
@@ -1569,6 +1574,17 @@
    "kind": "workflow",
    "main_product": null,
    "point": "team.decision_approve",
+   "subjects": [
+    "project"
+   ]
+  },
+  {
+   "about": "At a helper seat, does the turn go on with the model's answer or the rules'?",
+   "answer": "choice",
+   "decided_in": "ledger/capture.py team_helper_seat, called from teamspace/seats.py wherever a helper-arm role's seat was reached (B2): the rules' answer always, the model's beside it (its code when its check passed, else None with the reason), and whose answer the turn went on with",
+   "kind": "workflow",
+   "main_product": null,
+   "point": "team.helper_seat",
    "subjects": [
     "project"
    ]
@@ -2984,6 +3000,31 @@
   },
   {
    "emitted_by": [
+    "dclab_rnd/teamspace/seats.py"
+   ],
+   "example": "python -m dclab_rnd.experience search --kind team.helper.seat",
+   "family": "team",
+   "fields": {
+    "agent": "meta",
+    "answer": "meta",
+    "check": "meta",
+    "outcome": "meta",
+    "problem": "meta",
+    "report": "meta",
+    "request": "meta",
+    "role": "meta",
+    "seat": "meta",
+    "seconds": "count",
+    "task": "meta",
+    "used": "meta"
+   },
+   "kind": "team.helper.seat",
+   "leaves_at": "improve",
+   "never_leaves": [],
+   "train_only": []
+  },
+  {
+   "emitted_by": [
     "dclab_rnd/orchestra/board.py"
    ],
    "example": "python -m dclab_rnd.experience search --kind team.interrupt",
@@ -3144,6 +3185,7 @@
     "event": "meta",
     "previous": "meta",
     "problem": "meta",
+    "read_by": "meta",
     "response": "meta",
     "source": "meta",
     "stale": "count",

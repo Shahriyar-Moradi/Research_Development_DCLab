@@ -4,11 +4,20 @@ Every team agent acts through one strict layer (the ``team`` tools, their guard,
 only its *brain* differs (``dclab_core.team_brain``):
 
 - ``rules``: today's agents (``agents.BRAINS`` through ``agents.ScriptedChoices``), unchanged, the default of every role;
-- ``helper``: code decides and a model helps at named seats (the seats are B2's);
+- ``helper``: code decides and a model helps at named seats, its answer used only where a code check passes (B2:
+  ``teamspace/seats.py``; the seats each role has are ``dclab_core.team_brain.ROLE_SEATS``);
 - ``agent``: a model chooses the agent's next call inside the strict layer (the full loop is B3's).
 
-**In B1 the rules always act, and never wait on a model.** A role switched to ``helper`` or ``agent`` also asks its model
-once per turn which tool comes next. Its request is *built* before the rules act, from the same stored state the rules
+**B2, the helper arm.** B1's helper placeholder (which tool next, in shadow) is replaced by the seats. The rules still
+choose every call. Where they reach a seat whose answer changes what they do next (reading the person's words, the teams a
+request goes to, a question's wording), the turn waits for the helper within its bounded seconds and goes on with the
+helper's answer only when code accepts it; the seats that change nothing the rules do (the report explained, the risks)
+are asked after the turn on the thread below. :func:`finish` records the turn's summary (``acted`` is ``helper`` when one
+of its answers was used) and starts the after-seats. A helper-arm turn's delivery gets the seats' seconds on top of the
+rules' limit (``delivery.timeout_seconds``); a role on the rules keeps its limit.
+
+**The agent arm in B1 always lets the rules act, and never waits on a model.** A role switched to ``agent`` also asks its
+model once per turn which tool comes next. Its request is *built* before the rules act, from the same stored state the rules
 read (so the two answers are comparable), and *sent* only after the rules' run has ended, on a thread of its own outside
 the delivery (:func:`finish`): a slow model never holds, fails, repeats or delays a delivery (the review of B1, F1). The
 answer is checked by code (a tool the agent may call, or "none") and recorded beside the rules' first call; it is never
@@ -21,7 +30,8 @@ runs in the turn's context: the same run id, and a span of the turn's trace (``t
 
 **B3** (the agent arm acts): its loop runs inside the delivery and needs longer than the rules' 30 s. The deadline belongs
 to the arm then: ``delivery.timeout_seconds`` reads the recipient's arm (``arm_for``) and gives an acting model arm its
-own limit, the rules keeping theirs. B1 adds no such limit: no model acts inside a delivery yet.
+own limit, the rules keeping theirs. B2 made that seam for the helper: a turn where a helper before-seat can run gets the
+rules' limit plus the seats' seconds (``seats.waits_in``, ``seats.seat_seconds``).
 
 **The switch** (:func:`switch`): one audited change per role, by a reviewer or the owner, with a reason; stored in the
 workspace's routing document (``models/routing.py``, the same file or PostgreSQL row the model purposes use) under
@@ -36,7 +46,6 @@ model's, whether they agreed, and the model request whose exchange holds the thi
 from __future__ import annotations
 
 import atexit
-import json
 import os
 import re
 import sys
@@ -308,26 +317,17 @@ class _ModelBrain:
         return self.send(asked) if isinstance(asked, Asked) else asked
 
 
-class HelperBrain(_ModelBrain):
-    """B1's helper: shown the rules' chosen step, it names the tool it would call next as one JSON object. B2 replaces
-    this with its seats (reading the person's words, the clarifying question, the report's explanation, the risks)."""
+class HelperBrain:
+    """B2's helper: no request of its own per turn. The turn's seats (``seats.Seats``, attached to the turn before the rules
+    run) are asked where the rules reach them; ``prepare`` hands them to :func:`finish`, which records the turn's summary
+    and starts the after-seats."""
 
-    arm, purpose, prompt = "helper", "team_helper", "team_helper"
+    arm, purpose = "helper", "team_helper"
 
-    def messages(self, turn: Any, first: Call, offered: tuple[str, ...]) -> list[dict[str, Any]]:
-        out = super().messages(turn, first, offered)
-        out[-1] = {**out[-1], "content": out[-1]["content"] + f"\nThe rules chose: {first[0]}."}
-        return out
+    def prepare(self, turn: Any, first: Call, offered: tuple[str, ...], registry: Any) -> Any:
+        from . import seats
 
-    def read(self, out: dict[str, Any], offered: tuple[str, ...]) -> Optional[str]:
-        text = str(out.get("content") or "").strip()
-        text = re.sub(r"^```(?:json)?\s*|\s*```$", "", text)
-        try:
-            value = json.loads(text)
-        except (ValueError, TypeError):
-            return None
-        tool = _code(value.get("tool")) if isinstance(value, dict) else None
-        return tool if tool in (*offered, "none") else None
+        return seats.of(turn)
 
 
 class AgentBrain(_ModelBrain):
@@ -416,11 +416,18 @@ def drain(seconds: float = 30.0) -> bool:
 atexit.register(drain, 130.0)
 
 
-def finish(turn: Any, arm: str, source: str, first: Call, prepared: Any, run: Optional[str], completed: bool) -> None:
+def finish(turn: Any, arm: str, source: str, first: Call, prepared: Any, run: Optional[str], completed: bool, steps: Any = ()) -> None:
     """After the rules' run, whether it completed or raised (a Stop, a failing tool): record which brain answered. A prepared
     request is sent only when the rules' run completed, on a thread of its own in this turn's context (its run id and its
-    span), so the delivery never waits on it; a turn that did not complete asks no model (``stopped``). Never raises."""
+    span), so the delivery never waits on it; a turn that did not complete asks no model (``stopped``). B2: a helper turn
+    records its before-seats' summary, and a completed one that returned a report starts its after-seats on that thread
+    (``busy`` when the cap is reached, ``error`` when no thread starts). Never raises."""
     try:
+        from . import seats
+
+        if isinstance(prepared, seats.Seats):
+            _finish_helper(turn, arm, source, first, prepared, run, completed, steps)
+            return
         if not isinstance(prepared, Asked):
             record(turn, arm, source, first, prepared, run)
             return
@@ -446,6 +453,33 @@ def finish(turn: Any, arm: str, source: str, first: Call, prepared: Any, run: Op
         print(f"teamspace: the brain of {turn.agent}'s turn was not recorded ({type(exc).__name__})", file=sys.stderr, flush=True)
 
 
+def _finish_helper(turn: Any, arm: str, source: str, first: Call, held: Any, run: Optional[str], completed: bool, steps: Any) -> None:
+    from . import seats
+
+    model = held.summary()
+    if model is None and not completed:
+        model = {"purpose": "team_helper", "tool": None, "request": None, "fallback": "stopped"}
+    record(turn, arm, source, first, model, run, acted="helper" if held.acted() else core.DEFAULT_ARM)
+    if not completed:
+        return
+    import contextvars
+
+    from .. import experience
+
+    role = str(turn.agent).split(":")[0]
+    for _task, report, seat, job in seats.after(turn, seats.returned(steps), run):
+        def go(job: Callable[[], None] = job) -> None:
+            with experience.bind(run=run):
+                job()
+        context = contextvars.copy_context()
+        try:
+            _RUNNER["run"](lambda go=go, context=context: context.run(go))
+        except Busy:  # a burst of reports on a switched role never starts a thread each: the report stands, unexplained
+            seats.record_seat(turn, role, seat, "busy", rule="none", report=report, run=run)
+        except Exception:  # noqa: BLE001 - no thread to ask it on: the report stands, and the seat is recorded
+            seats.record_seat(turn, role, seat, "error", rule="none", report=report, run=run)
+
+
 # ---------------------------------------------------------------------------------------------------------- the record
 def record(turn: Any, arm: str, source: str, first: Call, model: Optional[dict[str, Any]], run: Optional[str],
            acted: str = core.DEFAULT_ARM) -> None:
@@ -460,9 +494,9 @@ def record(turn: Any, arm: str, source: str, first: Call, model: Optional[dict[s
         mode = _code((turn.row or {}).get("kind") or turn.extra.get("mode") or "turn")
         payload = {"task": turn.task_id, "problem": getattr(task, "problem_id", None) or turn.extra.get("problem_id"), "agent": turn.agent,
                    "arm": arm, "source": source, "acted": acted, "rule_tool": first[0], "mode": mode}
-        if model is not None:
+        if model is not None:  # B2: a helper turn names no tool (its seats are their own records): no agreement to state
             payload.update(fallback=model.get("fallback"), model_tool=model.get("tool"), request=model.get("request"),
-                           agreed=None if model.get("fallback") else model.get("tool") == first[0])
+                           agreed=None if model.get("fallback") or model.get("tool") is None else model.get("tool") == first[0])
         try:
             from .. import experience
 

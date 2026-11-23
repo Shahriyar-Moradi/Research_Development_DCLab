@@ -32,6 +32,7 @@ import re
 from dataclasses import dataclass
 from typing import Any, Callable, Mapping, Optional
 
+from dclab_core import target_contract as _tc
 from dclab_core import team_work as tw
 
 from . import fixtures
@@ -42,6 +43,9 @@ Call = tuple[str, dict[str, Any]]
 AGENT = "teamspace"  # harness.AGENTS: the team agents' runs (policy names teamspace.<agent>)
 MAX_STEPS = 40
 CLARIFY_TARGET = "Does churn mean cancellation, or failure to renew by the contractual renewal date?"
+# B2: a reworded CLARIFY_TARGET must still name both events it offers (``team_brain.check_question``), as the keyword reader
+# reads them (``target_contract.EVENTS``)
+CLARIFY_OPTIONS = tuple(e.names for e in _tc.EVENTS.values())
 SYSTEM = ("A deterministic team agent: code chooses each tool call from the task's stored state. No language model is "
           "asked; nothing here is a prompt.")
 
@@ -300,7 +304,7 @@ def _data_science(turn: TeamTurn) -> Optional[Call]:
                 from .tools import confirmed_outcome
 
                 response = asked.output_ref.split(":", 1)[1]
-                if confirmed_outcome(task, _answer_text(view), asked.responded_by.id, response) is not None:
+                if confirmed_outcome(task, _answer_text(view), asked.responded_by.id, response, turn=turn) is not None:
                     return ("team_record_human_response", {"task_id": task.id, "action": "confirm_target", "response_id": response,
                                                            "responded_by": asked.responded_by.id})
             return ("team_accept", {"task_id": task.id})
@@ -321,7 +325,10 @@ def _data_science(turn: TeamTurn) -> Optional[Call]:
         if kinds:
             return None
         if _needs_outcome(task) and asked is None:
-            return ("team_clarify", {"task_id": task.id, "action": "confirm_target", "question": CLARIFY_TARGET})
+            from . import seats  # B2: on the helper arm, the question may be worded plainly where its check passes
+
+            return ("team_clarify", {"task_id": task.id, "action": "confirm_target",
+                                     "question": seats.of(turn).question(task, "confirm_target", CLARIFY_TARGET, CLARIFY_OPTIONS)})
         return _feasibility(turn, view)
     if status == "blocked":
         return None if _answered(view) else _blocker_report(turn, view)
@@ -365,9 +372,20 @@ def _outcome_lines(task: tw.TeamTask, check: Row) -> tuple[list[str], list[str]]
     confirmed them, and the event with the column that records it, so a Business member reads it in the report."""
     from dclab_core import target_contract as tc
 
+    from . import seats
+
     t = task.target
     if t is None:
         return [], []
+    if seats.read_by_helper(t):  # B2: read from the request by the helper and checked by code; the person did not confirm it
+        return ([f"The outcome is: {tc.event_label(t.event)}, read from {t.confirmed_by}'s request by the helper and checked against "
+                 f"the table's label; {t.confirmed_by} can correct it."],
+                [f"The outcome checked is {tc.event_label(t.event)}, as the helper read {t.confirmed_by}'s request (brief revision "
+                 f"{t.brief_revision}, not confirmed by them): {check.get('outcome')} records it, with known outcomes."])
+    if seats.reading(t) == "answer":  # B2, review F7: the person's words, the helper's reading of them
+        return ([f"The outcome is: {t.words} (said by {t.confirmed_by}; read by the helper as {tc.event_label(t.event)})."],
+                [f"The outcome checked is {tc.event_label(t.event)}, as the helper read {t.confirmed_by}'s answer (brief revision "
+                 f"{t.brief_revision}): {check.get('outcome')} records it, with known outcomes."])
     return ([f"The outcome is: {t.words} (confirmed by {t.confirmed_by})."],
             [f"The outcome checked is {tc.event_label(t.event)}, as {t.confirmed_by} confirmed (brief revision {t.brief_revision}): "
              f"{check.get('outcome')} records it, with known outcomes."])
@@ -619,6 +637,11 @@ def _contract_report(turn: TeamTurn, view: Row, done: tw.TeamAction) -> Call:
     column = (check.get("outcome") if task.target is not None else excluded) or "the outcome column"
     outcome = (f"the outcome is \"{said.strip().rstrip('.')}\", as confirmed with Data Science (in the sample: {column}, never an input)"
                if said else f"the outcome is the one Data Science confirms (in the sample: {column}, never an input)")
+    from . import seats
+
+    if task.target is not None and seats.reading(task.target):  # B2, review F2: never "confirmed" for what the helper read
+        label, how = seats.outcome_words(task.target)
+        outcome = f"the outcome is {label}, {how} (in the sample: {column}, never an input)"
     answer = (f"The experiment can be set up: score each account {moment}, train on earlier renewals and hold out the latest "
               f"renewals by time; {outcome}. Nothing was trained: a training run needs the owner's approval and a budget.")
     assumptions, checked = _outcome_lines(task, check)
@@ -671,7 +694,7 @@ def _lead(turn: TeamTurn) -> Optional[Call]:
         if pre.status in tw.FAILED_ACTIONS:
             return ("team_block", {"task_id": task.id, "reason": pre.failure_ref or "a prerequisite is missing"})
         inputs = [i for i in task.allowed_inputs if not i.startswith(HELP)]
-        for team in tw.lead_route(help_of(task) or "", task.question):
+        for team in _route(turn, view):
             child = f"{task.id}.{team}"
             question = task.question
             if team == "ml_engineering":  # review F4: after Data Science has answered, with what it found and what the person confirmed
@@ -699,8 +722,21 @@ def _lead(turn: TeamTurn) -> Optional[Call]:
                                        "unblocks": "declare what the teams may read for this project (its team inputs)",
                                        "answer": f"Blocked before any team was asked: {why}."})
     if view["children"] and status in ("accepted", "waiting_for_team", "partial", "complete"):
-        return _join(turn, view, attribute=True, order=[f"{task.id}.{t}" for t in tw.lead_route(help_of(task) or "", task.question)])  # the route's order
+        return _join(turn, view, attribute=True, order=[f"{task.id}.{t}" for t in _route(turn, view)])  # the route's order
     return None
+
+
+def _route(turn: TeamTurn, view: Row) -> tuple[str, ...]:
+    """The teams the Lead hands this request to (``team_work.lead_route``). B2: Sales stays in it when a Sales task was
+    opened for it (the helper read outreach the keyword rule missed, on an earlier turn); on the helper arm, before the
+    Lead delegates anything, the helper may add Sales where its check passes (``seats.Seats.route``)."""
+    from . import seats
+
+    task = view["task"]
+    teams = tw.lead_route(help_of(task) or "", task.question)
+    if teams and "sales" not in teams and any(c.id == f"{task.id}.sales" for c in view["children"]):
+        teams = teams + ("sales",)
+    return seats.of(turn).route(task, teams, help_of(task) or "", view)
 
 
 def _data_science_answer(turn: TeamTurn, view: Row) -> Optional[str]:
@@ -844,43 +880,52 @@ def run_turn(turn: TeamTurn, registry: Any = None) -> dict[str, Any]:
     helper or agent arm builds its model's request on the state the rules are about to read, and sends it only after the
     rules' run has ended, on its own thread (``brains.finish``): the rules, and the delivery around them, never wait on a
     model. In B1 the rules always act, and a model that cannot answer falls back to them with its reason. Every turn that
-    ran records which brain answered, even when its run raised. The rules arm runs as before. Returns ``brain`` too."""
+    ran records which brain answered, even when its run raised. The rules arm runs as before. Returns ``brain`` too.
+
+    B2 (2026-11-23): the turn's helper seats (``seats.attach``) are on it before the rules choose anything, so the rules'
+    functions and the tools reach the seats a helper-arm role has (none on the rules: the rules run exactly as before).
+    Before Data Science's rules would ask what the outcome means, the requester's helper may read the request
+    (``seats.before_rules``). ``brain.acted`` is ``helper`` when one of its checked answers was used."""
     from ..agents.harness import tracer
     from ..agents.runtime import Policy, run as run_policy
-    from . import brains
+    from . import brains, seats
 
     base = turn.agent.split(":")[0]
     brain = BRAINS.get(base) or (_unsupported if turn.extra.get("unsupported") and base in CONFIGS else None)
     if brain is None:
         raise KeyError(f"{turn.agent} has no deterministic agent in this release")
-    first = brain(turn)
-    if first is None:
-        return {"agent": turn.agent, "task_id": turn.task_id, "skipped": True, "steps": [], "refused": [], "run": None}
-    if registry is None:
-        from ..agents import default_registry
-
-        registry = default_registry()
-    policy = _rules_policy(Policy)(name=f"{AGENT}.{base}", system=SYSTEM, tools=config_of(turn.agent).policy_tools, max_steps=MAX_STEPS,
-                    max_seconds=120.0)
     from .. import observe
 
+    name = f"{AGENT}.{base}"
     arm, source = brains.arm_for(turn.env, base)
-    trace = tracer(policy.name)  # the run's id, known before it starts: the model asked beside the rules joins this run
-    why = (turn.row or {}).get("kind") or turn.extra.get("mode") or "turn"
-    messages = [{"role": "user", "content": f"{why} on {turn.task_id}"}]
-    # one span for the turn: the rules' run and the model's request (sent after it, on its own thread) share its trace
-    with observe.span(name=f"team_turn {policy.name}"[:120], **{"dclab.agent": policy.name, "dclab.run": trace.run_id}):
+    trace = tracer(name)  # the run's id, known before it starts: a model asked at a seat or beside the rules joins this run
+    held = seats.attach(turn, arm, trace.run_id)
+    # one span for the turn: the seats asked before and inside the rules' run, the run, and the requests sent after it
+    with observe.span(name=f"team_turn {name}"[:120], **{"dclab.agent": name, "dclab.run": trace.run_id}):
+        seats.before_rules(turn)
+        first = brain(turn)
+        if first is None:
+            return {"agent": turn.agent, "task_id": turn.task_id, "skipped": True, "steps": [], "refused": [], "run": None}
+        if registry is None:
+            from ..agents import default_registry
+
+            registry = default_registry()
+        policy = _rules_policy(Policy)(name=name, system=SYSTEM, tools=config_of(turn.agent).policy_tools, max_steps=MAX_STEPS,
+                                       max_seconds=120.0)
+        why = (turn.row or {}).get("kind") or turn.extra.get("mode") or "turn"
+        messages = [{"role": "user", "content": f"{why} on {turn.task_id}"}]
         prepared = brains.brain(arm).prepare(turn, first, policy.tools, registry)  # built on the state the rules read; not sent
-        completed = False
+        completed, result = False, None
         try:
             result = run_policy(policy, ScriptedChoices(brain, turn, first), registry, messages, context=turn, trace=trace)
             completed = True
-        finally:  # recorded whether the run completed or raised; the model is asked only after a completed run, never waited on
-            brains.finish(turn, arm, source, first, prepared, trace.run_id, completed)
+        finally:  # recorded whether the run completed or raised; a model beside the rules is asked only after a completed run
+            brains.finish(turn, arm, source, first, prepared, trace.run_id, completed, steps=result.steps if result is not None else ())
     steps = [{"tool": s.tool, "ok": s.ok, "result": s.result} for s in result.steps]
     return {"agent": turn.agent, "task_id": turn.task_id, "skipped": False, "steps": steps, "stopped": result.stopped,
             "refused": [s["result"]["error"] for s in steps if not s["ok"]], "final": result.final,
-            "brain": {"arm": arm, "source": source, "acted": "rules", "asked": isinstance(prepared, brains.Asked)}}
+            "brain": {"arm": arm, "source": source, "acted": "helper" if held.acted() else "rules",
+                      "asked": isinstance(prepared, brains.Asked) or bool(held.records)}}
 
 
 # ---------------------------------------------------------------------------------------------------------- entry points

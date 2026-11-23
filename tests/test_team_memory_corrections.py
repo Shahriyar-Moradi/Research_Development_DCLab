@@ -528,7 +528,7 @@ class _Contract:
         late = experience.record("team.correction.refused", "agent", {"task": "T-eta", "problem": self.prob, "by": "data_science",
                                  "by_kind": "agent", "verdict": "stale_base", "base_revision": 1, "revision": 3,
                                  "reason": "based on revision 1; the answer is at revision 3"}, log=self.log, project=self.pid)
-        self.assertEqual((done.schema_version, late.payload["verdict"]), ("dclab_core.experience_event.v21", "stale_base"))
+        self.assertEqual((done.schema_version, late.payload["verdict"]), ("dclab_core.experience_event.v22", "stale_base"))
         self.assertTrue(all(c in ("meta", "count") for e in (done, late) for c in e.classes.values()))
 
     def test_a_v1_decision_stored_before_t5a_reads_and_takes_its_next_write(self):

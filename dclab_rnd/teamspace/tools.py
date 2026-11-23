@@ -463,10 +463,13 @@ def _record_human_response(ctx: TeamTurn, task_id: str, action: str, response_id
         # T1: the person's answer to "what does the outcome mean?" is the task's confirmed outcome when its words are clear
         key = f"answer:{task.id}:r-{safe_id(response_id)}"
         words = next((d["text"] for d in ctx.work.task_view(ctx.project_id, task.id)["deliveries"] if d["key"] == key), None)
-        target = confirmed_outcome(task, words, responded_by, response_id)
+        target = confirmed_outcome(task, words, responded_by, response_id, turn=ctx)
         out["outcome"] = target.event if target is not None else "unsure"
         if target is not None:
-            save_outcome(ctx.env, ctx.work, ctx.project_id, task, target, by=ctx.actor, initiator=ctx.initiator)
+            from . import seats
+
+            save_outcome(ctx.env, ctx.work, ctx.project_id, task, target, by=ctx.actor, initiator=ctx.initiator,
+                         read_by="helper" if seats.reading(target) else None)  # B2: the keyword reader could not: the helper read it
     return out
 
 
@@ -478,26 +481,44 @@ def sample_of(task: tw.TeamTask) -> Optional[str]:
     return next((i for i in task.allowed_inputs if i.startswith("sample:")), None)
 
 
-def confirmed_outcome(task: tw.TeamTask, words: Optional[str], person: str, response_id: str) -> Optional[Any]:
+def confirmed_outcome(task: tw.TeamTask, words: Optional[str], person: str, response_id: str, turn: Any = None) -> Optional[Any]:
     """The person's words as the task's confirmed outcome (``target_contract.TargetContract``), or None when they do not
     settle it (``target_contract.read_event``: two events, none, one both ways, a hedge). The event is read from the events
     the task's table records and the others DCLab reads, so a person can name one the table lacks (that is then a
     blocker, never a silent swap). The rest of the contract is the sample's (``fixtures.terms``), on the brief revision
-    ``team_work.target_revision`` gives."""
+    ``team_work.target_revision`` gives.
+
+    B2: inside a turn (``turn``), where the keyword reader cannot read the words, the requester's helper may (``seats``:
+    only on the helper arm, and its event is used only when it is allowed and the table's label records it); else None."""
+    from dclab_core import target_contract as tc
+
+    event = tc.read_event(words, fixtures.offered(sample_of(task)))
+    if event is None and turn is not None:
+        from . import seats
+
+        event = seats.of(turn).read_target(task, words, where="answer")
+        if event is not None:  # the review of B2, F7: marked, so a report says the helper read the person's answer
+            return contract_for(task, event, words, person, f"{seats.HELPER_ANSWER}{response_id}")
+    if event is None:
+        return None
+    return contract_for(task, event, words, person, response_id)
+
+
+def contract_for(task: tw.TeamTask, event: str, words: Optional[str], person: str, response_id: str) -> Any:
+    """The confirmed outcome of ``event`` in the person's ``words``, with the rest of the sample's contract."""
     from dclab_core import target_contract as tc
 
     sample = sample_of(task)
-    event = tc.read_event(words, fixtures.offered(sample))
-    if event is None:
-        return None
     terms = {k: v for k, v in fixtures.terms(sample, task.question).items() if v}
     return tc.TargetContract(event=event, words=str(words)[:tc.TEXT], brief_revision=tw.target_revision(task, event),
                              confirmed_by=str(person)[:120], response=safe_id(response_id), **terms)
 
 
-def save_outcome(env: Any, work: Any, project_id: str, task: tw.TeamTask, target: Any, *, by: tw.Actor, initiator: Any = None) -> Any:
+def save_outcome(env: Any, work: Any, project_id: str, task: tw.TeamTask, target: Any, *, by: tw.Actor, initiator: Any = None,
+                 read_by: Optional[str] = None) -> Any:
     """Save a confirmed outcome (``store.confirm_target``), queue the answer rows it sent (one per task that works again on
-    the new revision), and record it (``team.target.confirmed``: codes, ids and counts, never the person's words)."""
+    the new revision), and record it (``team.target.confirmed``: codes, ids and counts, never the person's words; B2:
+    ``read_by`` ``helper`` when the helper read the event from the person's words and code checked it)."""
     before = task.target
     written = work.confirm_target(project_id, task.id, target, by=by, initiator=initiator)
     if written.duplicate:
@@ -514,8 +535,10 @@ def save_outcome(env: Any, work: Any, project_id: str, task: tw.TeamTask, target
 
         payload = {"task": task.id, "problem": task.problem_id, "event": target.event, "by": target.confirmed_by,
                    "brief_revision": written.item.brief_revision, "source": target.label_source, "changed": bool(written.changed),
-                   "previous": before.event if before is not None else None, "stale": len(written.stale), "response": target.response}
-        experience.record("team.target.confirmed", "person", {k: v for k, v in payload.items() if v is not None}, project=project_id)
+                   "previous": before.event if before is not None else None, "stale": len(written.stale), "response": target.response,
+                   "read_by": read_by}
+        experience.record("team.target.confirmed", "agent" if read_by else "person", {k: v for k, v in payload.items() if v is not None},
+                          project=project_id)
     except Exception:  # noqa: BLE001 — the record is best effort: the outcome stands
         pass
     return written

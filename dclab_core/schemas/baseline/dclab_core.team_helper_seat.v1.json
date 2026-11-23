@@ -1,0 +1,128 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "agent": {
+      "maxLength": 80,
+      "minLength": 1,
+      "type": "string"
+    },
+    "answer": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z0-9_]{1,60}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "check": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z0-9_]{1,60}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "outcome": {
+      "enum": [
+        "used",
+        "no_model",
+        "no_live_models",
+        "refused",
+        "timeout",
+        "invalid_output",
+        "error",
+        "stopped",
+        "busy",
+        "unsure",
+        "check_failed"
+      ],
+      "type": "string"
+    },
+    "request": {
+      "anyOf": [
+        {
+          "maxLength": 120,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "role": {
+      "enum": [
+        "lead",
+        "business",
+        "data_science",
+        "ml_engineering",
+        "sales",
+        "marketing"
+      ],
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "dclab_core.team_helper_seat.v1",
+      "default": "dclab_core.team_helper_seat.v1",
+      "type": "string"
+    },
+    "seat": {
+      "enum": [
+        "read_target",
+        "route_teams",
+        "word_question",
+        "explain_report",
+        "list_risks"
+      ],
+      "type": "string"
+    },
+    "seconds": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "task": {
+      "anyOf": [
+        {
+          "maxLength": 200,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "used": {
+      "enum": [
+        "model",
+        "rule"
+      ],
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "seat",
+    "role",
+    "agent",
+    "outcome",
+    "used"
+  ],
+  "type": "object"
+}

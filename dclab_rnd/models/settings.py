@@ -50,10 +50,11 @@ PURPOSES: dict[str, Purpose] = {
     # B1 of the team workspace (2026-11-23): a team agent's brain when its role is switched to the helper or the agent arm.
     # Shown the team's own records, never a table: not "shown cells" (cell_values 0), so each exchange is kept whole with its
     # thinking in the workspace; keeps_text False: a team's notes stay in the workspace (team privacy), never leave it to train
-    "team_helper": Purpose("standard", 60, "B1: one team agent's turn as the helper arm sees it: the agent's role and job, the task's "
-                                           "status, kind and brief revision, the brief's words (the person's question), the turn's "
-                                           "reason, the names of the tools the agent may call and the step the rules chose; never a "
-                                           "table, a row or a cell value", cell_values=0),
+    "team_helper": Purpose("standard", 60, "B2: one helper seat of a team agent's turn: the person's words (their request, or their "
+                                           "answer to the team's question) with the outcome events allowed (never which one the table "
+                                           "records), the request with its kind of help and the teams chosen, the rules' question to "
+                                           "reword, or one report the team returned (its answer, limits, assumptions and next owner, as "
+                                           "the team wrote them); never a table, a row or a cell value", cell_values=0),
     "team_agent": Purpose("standard", 120, "B1: one team agent's turn as the agent arm sees it: the agent's role and job, the task's "
                                            "status, kind and brief revision, the brief's words (the person's question), the turn's "
                                            "reason and the schemas of the tools the agent may call; never a table, a row or a cell value",

@@ -749,22 +749,37 @@ class DataLimitTests(unittest.TestCase):
         self.assertEqual(self.assertWithinLimit("task_planner"), set())
 
     def test_the_team_brains_see_the_task_and_the_tools_never_a_table(self):
-        """B1 (2026-11-23): a team agent's helper and agent arms are shown the agent's job, the task's state, the person's
-        question and the tools' names or schemas; the turn reads no table, so no cell of the project's table can reach them."""
+        """B1 (2026-11-23): a team agent's agent arm is shown the agent's job, the task's state, the person's question and the
+        tools' schemas. B2: the helper's seats are shown the person's words with the events allowed, the rules' question, and
+        a report the team returned (its words, limits and next owner). The turn reads no table, so no cell of the project's
+        table can reach them."""
         from types import SimpleNamespace
 
         from dclab_rnd.agents import default_registry
-        from dclab_rnd.teamspace import brains
+        from dclab_rnd.teamspace import agents, brains, seats
 
         marked_table()  # the project's table exists beside the task; the brains never read it
-        task = SimpleNamespace(id="T-1", status="open", brief_revision=1, owner_team="data_science", requester=SimpleNamespace(team="business"),
-                               question="Who should Sales call before renewal?")
-        g = gateway({"team_helper": [{"content": '{"tool": "team_accept"}', "tool_calls": [], "usage": {}}],
-                     "team_agent": [tool_call("team_accept", {"task_id": "T-1"})]})
-        turn = SimpleNamespace(env=SimpleNamespace(gateway=g), work=SimpleNamespace(task=lambda pid, tid: task), project_id="p1",
-                               agent="data_science", task_id="T-1", row={"kind": "task"}, extra={})
+        task = SimpleNamespace(id="T-1", status="open", brief_revision=1, owner_team="data_science", problem_id="P-1", target=None,
+                               requester=SimpleNamespace(team="business", thread_id=None), allowed_inputs=("sample:renewal_v1",),
+                               question="Customers who quietly leave: who should Sales call before renewal?")
+        report = SimpleNamespace(id="T-1@1", owner="data_science", status="complete", answer="The sample has renewal dates.", limits=["A sample only."],
+                                 evidence=[SimpleNamespace(assumptions=["The outcome is: non-renewal."])], simulated=True,
+                                 next_task=SimpleNamespace(owner="business", unblocks=None))
+        helper = [{"content": '{"event": "non_renewal_by_date"}', "tool_calls": [], "usage": {}},
+                  {"content": '{"question_id": "confirm_target", "question": "Do you mean customers who cancel, or who do not renew?"}',
+                   "tool_calls": [], "usage": {}},
+                  {"content": '{"explanation": "The sample has renewal dates [report]."}', "tool_calls": [], "usage": {}}]
+        g = gateway({"team_helper": helper, "team_agent": [tool_call("team_accept", {"task_id": "T-1"})]})
+        turn = SimpleNamespace(env=SimpleNamespace(gateway=g), project_id="p1", agent="data_science", task_id="T-1", row={"kind": "task"}, extra={},
+                               work=SimpleNamespace(task=lambda pid, tid: task, task_view=lambda pid, tid: {"task": task, "reports": [report]}))
+        held = seats.attach(turn, "helper")
+        held.arms["business"] = "helper"
+        self.assertEqual(held.read_target(task, task.question, where="request"), "non_renewal_by_date")
+        turn.env.gateway = gateway({"team_helper": helper[1:]})  # each client of this transport starts its replies again
+        self.assertIn("who do not renew", held.question(task, "confirm_target", agents.CLARIFY_TARGET, agents.CLARIFY_OPTIONS))
+        turn.env.gateway = gateway({"team_helper": helper[2:], "team_agent": [tool_call("team_accept", {"task_id": "T-1"})]})
+        seats._after_seat(turn, "data_science", "explain_report", "T-1", "T-1@1", None)
         offered = ("team_accept", "team_block", "team_return_report")
-        self.assertEqual(brains.HelperBrain().beside(turn, ("team_accept", {}), offered, default_registry())["tool"], "team_accept")
         self.assertEqual(brains.AgentBrain().beside(turn, ("team_accept", {}), offered, default_registry())["tool"], "team_accept")
         self.assertEqual(self.assertWithinLimit("team_helper"), set())
         self.assertEqual(self.assertWithinLimit("team_agent"), set())

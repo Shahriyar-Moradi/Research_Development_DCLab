@@ -7,7 +7,8 @@ corrects). For each row the job:
 
 1. rechecks the member who started it, now, with write permission (``memory.scope.revalidate_job_scope``): a member who
    lost access, or was made a viewer, gets the row refused and the target is never called;
-2. hands the row to the delivery target, within a time limit (``DCLAB_TEAM_DELIVERY_TIMEOUT_SECONDS``, 30): the default,
+2. hands the row to the delivery target, within a time limit (``DCLAB_TEAM_DELIVERY_TIMEOUT_SECONDS``, 30; B2: plus the
+   helper seats' seconds for a turn where a helper-arm role may be asked before the rules act): the default,
    :func:`default_target`, posts it into its team thread (W3, ``teamspace/threads.py``: the recipient's, or for a reply
    the thread its task came from, once per row id) and then gives the recipient team's agent its turn (W5,
    ``teamspace/agents.py``); :func:`set_target` replaces it (tests);
@@ -97,8 +98,22 @@ def backoff_seconds() -> float:
     return max(0.0, float(os.environ.get("DCLAB_TEAM_DELIVERY_BACKOFF_SECONDS") or 2.0))
 
 
-def timeout_seconds() -> float:
-    return max(0.01, float(os.environ.get("DCLAB_TEAM_DELIVERY_TIMEOUT_SECONDS") or 30.0))
+def timeout_seconds(env: Any = None, row: Optional[Mapping[str, Any]] = None, store: Any = None) -> float:
+    """How long one delivery may take: ``DCLAB_TEAM_DELIVERY_TIMEOUT_SECONDS`` (30). B2: a delivery whose turn can wait on a
+    helper seat before the rules act (its recipient, or the requester whose person's words it may read, is on the helper
+    arm with such a seat: ``seats.waits_in``) gets the seats' bounded seconds on top (``seats.seat_seconds``), so a helper
+    that answers in time never makes the delivery time out; every other delivery keeps the rules' limit."""
+    base = max(0.01, float(os.environ.get("DCLAB_TEAM_DELIVERY_TIMEOUT_SECONDS") or 30.0))
+    if env is None or not row:
+        return base
+    try:
+        from . import seats
+
+        task = (store or store_for(env)).task(row["project_id"], row["task_id"])
+        requester = task.requester.team if task is not None else None
+        return base + seats.seat_seconds() if seats.waits_in(env, row.get("to_team"), requester) else base
+    except Exception:  # noqa: BLE001 - the limit is never in the way of a delivery: the rules' own
+        return base
 
 
 def _home(env: Any) -> Optional[Path]:
@@ -275,7 +290,7 @@ def run(env: Any, payload: Mapping[str, Any]) -> list[Row]:
             done.append(store.delivery_stop(row["id"], "refused", REFUSED, error=exc, project_id=project_id))
             continue
         try:
-            receipt = _call(_HOOKS["target"] or default_target, env, row, timeout_seconds())
+            receipt = _call(_HOOKS["target"] or default_target, env, row, timeout_seconds(env, row, store))
         except PermanentFailure as exc:
             done.append(store.delivery_stop(row["id"], "blocked", f"Not delivered: {team_label(row['to_team'])} cannot take it "
                                             f"({type(exc).__name__}).", error=exc, project_id=project_id))

@@ -4,6 +4,26 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.172.0 (2026-11-23)
+
+- `team_brain` (B2 of the team workspace, the helper arm): in the `helper` arm code still decides everything and a model
+  helps at named seats, its answer used only where a code check passes. `SEATS` (`read_target`, `route_teams`,
+  `word_question`, `explain_report`, `list_risks`); `BEFORE_SEATS` (they change what the rules do next, so a host asks
+  them before the rules act, within a bounded number of seconds per turn) and `AFTER_SEATS` (they change nothing the
+  rules do: asked after the turn, never waited on); `ROLE_SEATS` (which seats each role's helper has: the Lead reads its
+  person's words and adds Sales where the keyword rule missed outreach, Business reads its member's words, Data Science
+  words its clarifying question, and every team explains its own reports and lists their risks); `UNSURE`;
+  `SEAT_OUTCOMES` (`used`, or one of `FALLBACKS`, which now also holds `unsure` and `check_failed`). `SeatRecord`
+  (`dclab_core.team_helper_seat.v1`): one seat on one turn, whose answer was used and why, a code seat's answer as a
+  code, the check's refusal as a code, the model request and the seconds waited. `check_code(answer, allowed)` and
+  `check_question(text, options=, limit=)` (one question, no number, no promise of an action, every option of the rules'
+  question still named, `QUESTION_CHARS` at most; `QUESTION_CHECKS` names each refusal).
+- `experience`: `ExperienceEvent` v22 adds `team.helper.seat` (codes, ids and the seconds waited; never the person's
+  words, a prompt or a reply) and `read_by` on `team.target.confirmed` (`helper` when the helper read the event from the
+  person's words and code checked it). v21 reads unchanged.
+- `ledger`: the workflow point `team.helper_seat` (at a helper seat, does the turn go on with the model's answer or the
+  rules'?), with the state fields `helper_seat` and `seat_outcome`; recorded at level 2 (act with a check).
+
 ## 0.171.0 (2026-11-23)
 
 - New `team_brain` (B1 of the team workspace): which brain a team agent runs with. `ARMS` (`rules`, `helper`, `agent`;

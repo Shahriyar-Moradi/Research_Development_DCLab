@@ -1,8 +1,8 @@
 """B1 of the team workspace (2026-11-23): the brain switch.
 
 Each team role runs with one brain, chosen by one audited switch (default: the rules). The rules arm is today's agents,
-unchanged. A role switched to the helper or the agent arm asks its model once per turn, beside the rules and on the same
-stored state; in B1 the rules always act, and a model that cannot answer (none configured, DCLAB_NO_LIVE_MODELS=1, a
+unchanged. A role switched to the agent arm asks its model once per turn, beside the rules and on the same stored state
+(B2: the helper arm's seats replaced B1's helper; ``tests/test_team_helper.py`` tests each seat); in B1 the rules always act, and a model that cannot answer (none configured, DCLAB_NO_LIVE_MODELS=1, a
 timeout, an answer its check refuses) falls back to them with the reason recorded. Every turn that ran records which
 brain answered (``team.brain.answered`` and the ledger point ``team.brain``), and every model call keeps its thinking.
 On files and on PostgreSQL (``tests/run_parallel.py --pg``; never run directly: that empties ``dclab_test``).
@@ -180,53 +180,50 @@ class _Brains(_Contract):
                          ("helper", "no_live_models", False))
         self.assertTrue(all(r["arm"] == "rules" for r in self.answered() if r["agent"] == "business"))  # only the switched role
 
-    # ------------------------------------------------------------------ the helper, beside the rules, thinking kept
-    def test_the_helper_answers_beside_the_rules_its_thinking_is_kept_and_the_rules_still_act(self):
+    # ------------------------------------------------------------------ the helper (B2): its seats, thinking kept
+    def test_the_helpers_seat_is_asked_where_the_rules_reach_it_and_the_turn_records_it(self):
+        """B2 replaced B1's helper (which tool next, in shadow) with seats (tests/test_team_helper.py has each seat). Here:
+        the turn's record. Data Science's turn reaches its question seat; the helper's wording passes its check and is
+        asked; the turn says the helper acted, names the seat's request, and states no tool agreement (a helper names none)."""
         self.switch("data_science", "helper")
-        transport = self.scripted(said('{"tool": "team_accept"}'))
-        self.open_renewal()
-        self.pump(only={"T-renewal"})
-        self.assertTrue(brains.drain(10))  # sent after the rules' run, on its own thread
-        self.assertEqual([s.payload.get("tool") for s in self.steps("teamspace.data_science")], ["team_accept", "team_clarify", None])
-        [seen] = transport.seen  # one request for the one Data Science turn
-        system, user = seen["messages"][0]["content"], seen["messages"][1]["content"]
-        self.assertNotIn("<thinking>", system + user)
-        for words in ("reasoning", "explain your", "your steps", "step by step"):
-            self.assertNotIn(words, system.lower())  # the model's thinking comes from the API, never asked for in its words
-        self.assertIn("The rules chose: team_accept", user)
-        self.assertIn("Customers are leaving", user)
-        self.assertEqual((seen["options"].get("_single_attempt"), seen["options"].get("timeout")), (True, 60.0))
-        [ds] = [r for r in self.answered() if r["agent"] == "data_science"]
-        self.assertEqual((ds["arm"], ds["acted"], ds["model_tool"], ds["agreed"]), ("helper", "rules", "team_accept", True))
-        self.assertNotIn("fallback", ds)
-        [doc] = exchanges(self.home)
-        self.assertEqual((doc["purpose"], doc["whole"], doc["model_request"]), ("team_helper", True, ds["request"]))
-        self.assertEqual(doc["thinking"], [{"text": "the task is open, so accepting it comes first"}])
-        self.assertEqual(doc["thinking_asked"], "adaptive")
-        record = next(r for r in self.decisions() if r.state.get("team") == "data_science")
-        model = next(a for a in record.answers if a.by == "model_role")
-        self.assertEqual((model.value, model.raw, model.source, record.state["agreed"]), ("helper", "team_accept", ds["request"], True))
-        requests = [e for e in self.services.experience.read(kinds=["model.request"])]
-        self.assertEqual([e.ids.run for e in requests], [record.run])  # the model's request joins the turn's run
-        [run] = [e for e in self.services.experience.read(kinds=["run.recorded"]) if e.ids.run == record.run]
-        self.assertTrue(requests[0].ids.trace)
-        self.assertEqual(requests[0].ids.trace, run.ids.trace)  # F4: and the turn's trace, though sent after the run ended
-
-    def test_an_answer_the_check_refuses_or_a_timeout_falls_back_to_the_rules(self):
-        self.switch("data_science", "helper")
-        self.scripted(said('{"tool": "team_approve_everything"}'))
+        plain = "Do you mean customers who cancel, or customers who do not renew by their renewal date?"
+        transport = self.scripted(said(json.dumps({"question_id": "confirm_target", "question": plain}), why="a plainer question"))
         self.open_renewal()
         self.pump(only={"T-renewal"})
         self.assertTrue(brains.drain(10))
+        self.assertEqual([s.payload.get("tool") for s in self.steps("teamspace.data_science")], ["team_accept", "team_clarify", None])
+        [seen] = transport.seen  # one request: the one seat the turn reached
+        system, user = seen["messages"][0]["content"], seen["messages"][1]["content"]
+        self.assertIn("Seat: a clarifying question for the person.", system)
+        for words in ("reasoning", "explain your", "your steps", "step by step", "<thinking>"):
+            self.assertNotIn(words, (system + user).lower())  # the model's thinking comes from the API, never asked for in its words
+        self.assertIn("Customers are leaving", user)
+        self.assertEqual(seen["options"].get("_single_attempt"), True)
         [ds] = [r for r in self.answered() if r["agent"] == "data_science"]
-        self.assertEqual((ds["fallback"], ds.get("model_tool")), ("invalid_output", None))
-        self.assertEqual(self.view("T-renewal")["task"].status, "waiting_for_person")  # the rules' turn stands
+        self.assertEqual((ds["arm"], ds["acted"], ds.get("model_tool"), ds.get("agreed")), ("helper", "helper", None, None))
+        self.assertNotIn("fallback", ds)
+        [doc] = exchanges(self.home)
+        self.assertEqual((doc["purpose"], doc["whole"], doc["model_request"]), ("team_helper", True, ds["request"]))
+        self.assertEqual(doc["thinking"], [{"text": "a plainer question"}])
+        record = next(r for r in self.decisions() if r.state.get("team") == "data_science")
+        self.assertEqual((record.used, record.value_used, record.level), ("model_role", "helper", 2))
+        requests = [e for e in self.services.experience.read(kinds=["model.request"])]
+        self.assertEqual([e.ids.run for e in requests], [record.run])  # the seat's request joins the turn's run
+        [run] = [e for e in self.services.experience.read(kinds=["run.recorded"]) if e.ids.run == record.run]
+        self.assertEqual(requests[0].ids.trace, run.ids.trace)  # and the turn's trace
+
+    def test_a_helper_answer_its_check_refuses_leaves_the_rules_answer_and_says_why(self):
+        from dclab_rnd.teamspace import agents
+
+        self.switch("data_science", "helper")
+        self.scripted(said(json.dumps({"question_id": "confirm_target", "question": "Within 30 days: cancel, or not renew?"})))
+        self.open_renewal()
+        self.pump(only={"T-renewal"})
+        [ds] = [r for r in self.answered() if r["agent"] == "data_science"]
+        self.assertEqual((ds["fallback"], ds["acted"]), ("check_failed", "rules"))
+        self.assertEqual(self.view("T-renewal")["task"].status, "waiting_for_person")  # the rules' question was asked
+        self.assertEqual([m["text"] for m in self.said("business", "clarification")], [agents.CLARIFY_TARGET])
         self.assertEqual(len(exchanges(self.home)), 1)  # its exchange and thinking are kept all the same
-        out = brains.HelperBrain().beside(self.turn("data_science", "T-renewal"), ("team_block", {}), ("team_block",), None)
-        self.assertEqual(out["fallback"], "error")  # the script is spent: the transport raised, and the rules' turn would stand
-        self.scripted(TimeoutError("late"))
-        out = brains.HelperBrain().beside(self.turn("data_science", "T-renewal"), ("team_block", {}), ("team_block",), None)
-        self.assertEqual((out["fallback"], out["tool"]), ("timeout", None))
 
     # ------------------------------------------------------------------ the agent arm, offered the agent's own tools
     def test_the_agent_arm_chooses_from_the_agents_own_tools_and_its_call_is_never_run(self):
@@ -251,11 +248,12 @@ class _Brains(_Contract):
     # ------------------------------------------------------------------ the review of B1: never in the delivery's way
     def test_a_slow_model_never_fails_repeats_or_delays_a_delivery(self):
         """F1: a model slower than the delivery's time limit. The rules' turn is not held: the row is delivered on its first
-        attempt, the rules run once, the model is asked once (after the rules), and its answer is still recorded."""
-        self.switch("data_science", "helper")
+        attempt, the rules run once, the model is asked once (after the rules), and its answer is still recorded. (B2: the
+        agent arm's shadow; the helper's before-seats wait within their own seconds, tests/test_team_helper.py.)"""
+        self.switch("data_science", "agent")
         # the limit leaves the rules' own turn room on a loaded machine (0.4 s failed on PostgreSQL during a gate); the model
         # is twice as slow as the limit, so a delivery that waited on it would time out
-        transport = self.scripted(said('{"tool": "team_accept"}'), delay=4.0)
+        transport = self.scripted(said(tool_calls=[{"id": "c1", "name": "team_accept", "arguments": {"task_id": "T-renewal"}}]), delay=4.0)
         with mock.patch.dict(os.environ, {"DCLAB_TEAM_DELIVERY_TIMEOUT_SECONDS": "2"}):
             self.open_renewal()
             self.pump(only={"T-renewal"})
@@ -297,7 +295,7 @@ class _Brains(_Contract):
         """Shadow requests out at once are capped: a turn past ``MAX_LIVE`` starts no thread and asks no model."""
         from dclab_rnd.teamspace import agents
 
-        self.switch("data_science", "helper")
+        self.switch("data_science", "agent")
         transport = self.scripted(said('{"tool": "team_accept"}'))
         self.open_renewal()
         held = [object() for _ in range(brains.MAX_LIVE)]
@@ -311,7 +309,7 @@ class _Brains(_Contract):
         self.assertTrue(brains.drain(10))
         self.assertEqual(transport.seen, [])
         [helper] = [r for r in self.answered() if r["agent"] == "data_science"]
-        self.assertEqual((helper["arm"], helper["fallback"], helper["acted"]), ("helper", "busy", "rules"))
+        self.assertEqual((helper["arm"], helper["fallback"], helper["acted"]), ("agent", "busy", "rules"))
 
     def test_a_thread_that_cannot_start_holds_no_slot_and_the_turn_is_recorded(self):
         """Re-review: a failed ``start()`` leaves no slot taken for good (every later turn would be ``busy``)."""
@@ -319,7 +317,7 @@ class _Brains(_Contract):
 
         from dclab_rnd.teamspace import agents
 
-        self.switch("data_science", "helper")
+        self.switch("data_science", "agent")
         transport = self.scripted(said('{"tool": "team_accept"}'))
         self.open_renewal()
         with mock.patch.object(threading.Thread, "start", side_effect=RuntimeError("can't start new thread")):
@@ -328,7 +326,7 @@ class _Brains(_Contract):
         self.assertTrue(brains.drain(1))
         self.assertEqual(transport.seen, [])
         [helper] = [r for r in self.answered() if r["agent"] == "data_science"]
-        self.assertEqual((helper["arm"], helper["fallback"]), ("helper", "error"))
+        self.assertEqual((helper["arm"], helper["fallback"]), ("agent", "error"))
 
     def test_a_store_error_while_preparing_never_fails_the_rules_turn(self):
         """Re-review: the client lookup reads whether the project is private; a store error there is the ``error``

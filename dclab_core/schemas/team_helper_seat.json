@@ -1,0 +1,149 @@
+{
+  "$id": "https://dclab.dev/schemas/dclab_core.team_helper_seat.v1.json",
+  "additionalProperties": false,
+  "description": "One helper seat on one turn (0.172.0, B2): whose answer the host used, and why. The model's answer is kept here only\nas a code (an event, a team, a question id); a text seat's words stay in the model's exchange (``request``) and, when\nits check passed, in what the host showed. Never the person's words, a prompt or a table's value.",
+  "properties": {
+    "agent": {
+      "description": "The agent whose turn asked (Data Science reads Business's person's words).",
+      "maxLength": 80,
+      "minLength": 1,
+      "title": "Agent",
+      "type": "string"
+    },
+    "answer": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z0-9_]{1,60}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "A code seat's answer (an event, a team, a question id).",
+      "title": "Answer"
+    },
+    "check": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z0-9_]{1,60}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Why the code check refused it, as a code.",
+      "title": "Check"
+    },
+    "outcome": {
+      "enum": [
+        "used",
+        "no_model",
+        "no_live_models",
+        "refused",
+        "timeout",
+        "invalid_output",
+        "error",
+        "stopped",
+        "busy",
+        "unsure",
+        "check_failed"
+      ],
+      "title": "Outcome",
+      "type": "string"
+    },
+    "request": {
+      "anyOf": [
+        {
+          "maxLength": 120,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "The model request whose exchange keeps the reply and its thinking.",
+      "title": "Request"
+    },
+    "role": {
+      "description": "The role whose helper sat: its arm is the one switched to helper.",
+      "enum": [
+        "lead",
+        "business",
+        "data_science",
+        "ml_engineering",
+        "sales",
+        "marketing"
+      ],
+      "title": "Role",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "dclab_core.team_helper_seat.v1",
+      "default": "dclab_core.team_helper_seat.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "seat": {
+      "enum": [
+        "read_target",
+        "route_teams",
+        "word_question",
+        "explain_report",
+        "list_risks"
+      ],
+      "title": "Seat",
+      "type": "string"
+    },
+    "seconds": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "How long the turn waited on the seat (a before-seat only).",
+      "title": "Seconds"
+    },
+    "task": {
+      "anyOf": [
+        {
+          "maxLength": 200,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Task"
+    },
+    "used": {
+      "description": "Whose answer the turn went on with: the model's only when outcome is used.",
+      "enum": [
+        "model",
+        "rule"
+      ],
+      "title": "Used",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "seat",
+    "role",
+    "agent",
+    "outcome",
+    "used"
+  ],
+  "title": "SeatRecord",
+  "type": "object"
+}

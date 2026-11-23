@@ -107,6 +107,8 @@ STATE_FIELDS: dict[str, tuple[str, tuple[str, ...]]] = {
     # 0.171.0 (B1): a team agent's turn, the brain its role is switched to (an arm), where that came from (default, stored,
     # override), and why a model arm fell back to the rules (a code of dclab_core.team_brain.FALLBACKS)
     "brain_arm": (CODE, ()), "brain_source": (CODE, ()), "brain_fallback": (CODE, ()),
+    # 0.172.0 (B2): a helper seat (dclab_core.team_brain.SEATS) and its outcome (used, or why the rules' answer stood)
+    "helper_seat": (CODE, ()), "seat_outcome": (CODE, ()),
     "verdict": (CODE, ()), "agreed": (FLAG, ()),  # 28.6: the second opinion's judge, and whether its two readers agreed
     # 30.11: the modifiers' evidence, as aggregates of the training rows
     "rows_per_key": (MEASURE, ()), "rate_change": (MEASURE, ()), "class_shift": (MEASURE, ()), "level_shift": (MEASURE, ()),
@@ -283,6 +285,11 @@ POINTS: dict[str, Point] = {p.key: p for p in (
     # answer; a helper or agent arm answers beside them, and a model arm that cannot answer falls back to the rules
     _p("team.brain", W, "project", "choice", "Which brain's call does a team agent's turn act on?",
        choices=("rules", "helper", "agent")),
+    # 0.172.0 (B2, 2026-11-23): at a helper seat, whose answer the turn goes on with: the model's only where its code check
+    # passed (an allowed code that agrees with the table's label; a question that names every option, has no number and
+    # promises nothing; an explanation whose numbers are the report's), else the rules' own
+    _p("team.helper_seat", W, "project", "choice", "At a helper seat, does the turn go on with the model's answer or the rules'?",
+       choices=("model", "rule")),
     # H2 (2026-10-28): the kind of help a request needs, read before anything else on Home; labelled by the person's choice
     _p("request.intent", W, "draft", "choice", "Which kind of help does the request need?",
        choices=("prediction", "analysis", "preparation", "reporting", "business", "advice")),

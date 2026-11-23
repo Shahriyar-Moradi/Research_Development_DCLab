@@ -1406,9 +1406,41 @@ def team_brain_answered(project_id: str, task_id: str, agent: str, *, arm: str, 
         fallback = _code(model.get("fallback"))
         answers.append(answer("model_role", str(model.get("purpose") or f"team_{arm}"), None if fallback else arm,
                               raw=_code(model.get("tool")), reason=fallback, source=str(model.get("request") or "") or None))
+        # B2: a helper turn names no tool (its seats are their own records, team.helper_seat): no agreement to state
         state.update(model_available=fallback not in ("no_model", "no_live_models"), brain_fallback=fallback,
-                     agreed=None if fallback else _code(model.get("tool")) == _code(rule_tool))
+                     agreed=None if fallback or model.get("tool") is None else _code(model.get("tool")) == _code(rule_tool))
     used = "rule" if acted == "rules" else "model_role"
+    # B2: a helper turn that went on with a checked answer acts at level 2 (act with a check); the rules' turns stay at 0
     record = _put("team.brain", ("project", f"{project_id}:{task_id}:{base}:{run or 'turn'}"[:200]), answers, acted, used, state=state,
-                  options=list(BRAIN_ARMS), project=project_id, run=run)
+                  options=list(BRAIN_ARMS), level=0 if used == "rule" else 2, project=project_id, run=run)
+    return getattr(record, "id", None)
+
+
+# ---------------------------------------------------------------------- 0.172.0: a helper seat on a team agent's turn
+
+HELPER_SEAT_CHOICES = ("model", "rule")
+
+
+@_quiet
+def team_helper_seat(project_id: str, task_id: str, agent: str, *, role: str, seat: str, outcome: str, rule: Any = None,
+                     answer_code: Optional[str] = None, request: Optional[str] = None, run: Optional[str] = None) -> Optional[str]:
+    """B2: at a helper seat (``teamspace/seats.py``), whose answer the turn went on with. The rules' answer always (``rule``:
+    their code, such as the event they could not read, ``unsure``, or the rules' question id); the helper's beside it: its
+    code when its check passed (``outcome`` ``used``), else None with the outcome as the reason, and the model request
+    that keeps the exchange and its thinking as ``source``. Codes and ids: never a prompt, a reply or the person's words.
+    One record per seat per turn."""
+    from dclab_core.team_brain import SEAT_OUTCOMES, SEATS
+
+    if seat not in SEATS or outcome not in SEAT_OUTCOMES:
+        raise ValueError(f"a helper seat is one of {SEATS} with an outcome of {SEAT_OUTCOMES}, not {seat!r} / {outcome!r}")
+    base, team = _code(str(agent).split(":")[0]) or "team", _code(role) or "team"
+    used = "model" if outcome == "used" else "rule"
+    answers = [answer("rule", f"rule:teamspace.{seat}", "rule", raw=_code(rule)),
+               answer("model_role", "team_helper", "model" if used == "model" else None, raw=_code(answer_code),
+                      reason=None if used == "model" else outcome, source=str(request or "") or None)]
+    state: dict[str, Any] = {"team": team, "helper_seat": seat, "seat_outcome": outcome,
+                             "model_available": outcome not in ("no_model", "no_live_models")}
+    record = _put("team.helper_seat", ("project", f"{project_id}:{task_id}:{team}:{seat}:{base}:{run or 'turn'}"[:200]), answers,
+                  used, "model_role" if used == "model" else "rule", state=state, options=list(HELPER_SEAT_CHOICES),
+                  level=2, project=project_id, run=run)  # a helper seat acts with a check (level 2), whether or not this answer passed
     return getattr(record, "id", None)
