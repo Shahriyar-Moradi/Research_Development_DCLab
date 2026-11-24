@@ -510,6 +510,21 @@ class LeadRulesTest(unittest.TestCase):
                   "rank them and call the at-risk customers first", "Who should Sales call before renewal?",
                   "plan the outreach for renewals"):
             self.assertIn("sales", tw.lead_route("model", q), q)
+        # B4.1 (D-13, D-14, D-16 of the team-arms dev run): an offer, a credit, a budget or a campaign asked for goes to
+        # Marketing and Sales; left out, a courier's offer, a credit score or a word that only names one does not
+        for q in ("Who should Sales call before renewal, and with which Marketing offer?",
+                  "Put together a renewal save plan: which accounts Sales phones and what credit Marketing gives them.",
+                  "Who should Sales call before renewal, and with what offer?", "Size the retention campaign for at-risk accounts."):
+            self.assertEqual(tw.lead_route("analyze", q), ("data_science", "sales", "marketing"), q)
+        for q in ("Plan the renewal calls: who should Sales call? Leave the offer out for now.",
+                  "Order 1042: how likely is a courier to accept the first offer?", "Does the credit score column leak?",
+                  "Predict the contact rate of the campaign", "Who should Sales call before renewal? We don't need an offer.",
+                  "Is the churn model better with the campaign column?", "Analyze churn for customers with a discount",
+                  "Size the budget for the churn model compute",  # the review of B4.1, F8; past offers to analyse (its re-review)
+                  "Which campaign drove the most renewals?", "What discount did churned customers receive?",
+                  "Which customers got a discount last year and still churned?"):
+            self.assertNotIn("marketing", tw.lead_route("analyze", q), q)
+        self.assertIn("marketing", tw.lead_route("analyze", "Rank accounts at risk and say who gets a 10% voucher"))
         for team in ("ml_engineering", "sales"):
             self.assertIn("contact_customers", tw.DIRECTORY[team].forbidden)
             self.assertEqual(tw.delegation_refusal(tw.DIRECTORY["lead"], team), None)

@@ -12,7 +12,8 @@ difference against the rules is reported too: a win inside it is said to be with
 
 ``pin`` writes :func:`fingerprint` to ``gate_v1.sha256`` (it covers these terms, the scorer's, the runner's and this
 file's code): every run refuses an unpinned or changed gate. A pin may be replaced (``pin --replace``) only while no sealed
-run has started; after that a change is a new gate (v2).
+run has started; after that a change is a new gate (v2). B4.1 (2026-11-24): the first dev round's scorer and runner fixes
+were re-pinned so, before any sealed run; the round-0 dev run stays under the pin it ran on.
 """
 
 from __future__ import annotations
@@ -60,9 +61,17 @@ TERMS: dict[str, Any] = {
     "hard_zeros": ["invented_number", "unrecorded_claim", "unauthorised_read", "agent_approved", "customer_contacted", "holdout_twice",
                    "answer_not_given"],
     "question_numbers": ("a number no record holds in a question handed between teams (a hand-over's question, a team's clarification "
-                         "to another team) is counted (question_numbers), never a hard zero; one in a stored report's model words, a "
-                         "helper's note, a question to the person or a message to the person is invented_number, a hard zero"),
-    "not_numbers": "a run of list markers ((1), 1., 1) counting from 1) and a minus glued to a letter (T-7) are no numbers",
+                         "to another team), or in a choice a question to the person offers ('(a) ... (b) ...', the words around 'or'), is "
+                         "counted (question_numbers), never a hard zero; one in a stored report's model words, a helper's note, or the "
+                         "premise of a question to the person is invented_number, a hard zero"),
+    "not_numbers": ("a run of list markers ((1), 1., 1) counting from 1), a minus glued to a letter (T-7), a counting word of the "
+                    "conversation ('two things', 'the two') and a binary label's code (y = 0) are no numbers; a span a person names "
+                    "('a week', 'a fortnight', 'a day') makes its days known"),
+    "known_asks": "code's questions to the Sales and Marketing teams add their numbers only in a play that sent them",
+    "replayable": ("a play cut by the cap, or in which a model request was refused (no credit, a refused key) or failed (a rate "
+                   "limit after the retries, a provider error, the network) for the provider's reason, is played again and counts "
+                   "for no arm; a refusal stops the run at once; a run with such a play has not finished; a play the provider "
+                   "failed twice before is final the third time, incomplete (not played to the end)"),
     "judge": "advisory only (a free, non-Claude judge, 0 to 4); never part of the winner rule",
     "no_claude": ["claude", "anthropic", "fable"],
     "sealed": "run once; the marker evidence/campaigns/team_arms_v1/sealed_started.json is written before the first play",

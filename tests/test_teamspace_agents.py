@@ -860,7 +860,56 @@ class _Corrections:
         self.assertEqual([p.get("request") for p in self.kept("team.correction.applied")], ["a"])
 
 
-class FileTeamAgentsTests(_Corrections, _Crashes, _Contract, unittest.TestCase):
+class _DeliveryWords:
+    """B4.1 (the first dev round of the team-arms comparison): a delivery request in everyday words, on the rules."""
+
+    LANDING = "Order 1042 left the kitchen at 6pm. When's it landing at the customer's door, and will a rider grab it on the first ping?"
+
+    def test_a_delivery_request_in_everyday_words_reaches_both_specialists_and_is_never_asked_about_churn(self):
+        # D-07: the rules asked "Does churn mean cancellation ...?" about an order's arrival ("left" read as customers leaving)
+        out = agents.open_case(self.services, self.pid, self.prob, task_id="T-landing", question=self.LANDING, thread_id=self.biz_thread,
+                               member="sara", initiator=self.sara, inputs=(fixtures.DISPATCH,))
+        self.assertEqual(out["refused"], [])
+        self.pump()
+        view = self.view("T-landing")
+        self.assertEqual(sorted(c.owner_team for c in view["children"]), ["model:acceptance", "model:eta"])
+        self.assertFalse([d for d in view["deliveries"] if d["kind"] == "clarification"])
+        self.assertEqual(view["task"].status, "complete")
+        for question in ("What time will order 1042 reach the customer? It was dispatched at 18:00.",
+                         "When will order 1042 arrive (dispatched at 18:00), and what's the margin of error on that in minutes?"):
+            task = SimpleNamespace(question=question, allowed_inputs=[fixtures.DISPATCH], target=None)
+            self.assertEqual(agents._specialists(task), ["eta"], question)  # never acceptance where nobody asked it
+            self.assertFalse(agents._needs_outcome(task))
+
+    def test_a_long_answer_from_the_person_still_travels_whole(self):
+        # the review of B4.1, F1: a length limit on team_answer's text refused a person's long answer on every arm
+        self.open_renewal()
+        self.pump()
+        long = ANSWER + " " + " ".join(["We mean the contract, not a cancellation."] * 70)
+        self.assertGreater(len(long), 2000)
+        out = agents.person_replies(self.services, self.pid, "T-renewal", person="sara", text=long, initiator=self.sara)
+        self.assertEqual(out["refused"], [])
+        self.assertEqual([d["text"] for d in self.view("T-renewal")["deliveries"] if d["kind"] == "answer"], [long])
+
+    def test_the_checks_on_a_dispatch_input_never_speak_of_renewals(self):
+        # D-03, D-07, D-21: "known only after renewal", "rank by days since last login", "no account was scored" on an order
+        from dclab_rnd.agents import default_registry
+
+        self.open_dispatch("T-dispatch")
+        registry = default_registry()
+        outputs = []
+        for action in ("inspect_schema", "check_leakage", "define_baseline", "explain_uncertainty"):
+            registry.call("team_act", {"task_id": "T-dispatch", "action": action}, context=self.turn("data_science", "T-dispatch"), scope="team")
+            [done] = [a for a in self.view("T-dispatch")["actions"] if a.action == action]
+            outputs.append(" ".join(str(x) for x in (done.output_ref, done.failure_ref) if x))
+        said = " ".join(outputs).lower()
+        for words in ("renewal", "last login", "account"):
+            self.assertNotIn(words, said)
+        self.assertIn("model:eta", said)
+        self.assertIn("dispatch:", said)
+
+
+class FileTeamAgentsTests(_DeliveryWords, _Corrections, _Crashes, _Contract, unittest.TestCase):
     env = {"DCLAB_DATABASE_URL": ""}
 
     def test_with_teams_set_up_the_person_answers_only_for_a_team_they_are_in(self):
@@ -880,7 +929,7 @@ class FileTeamAgentsTests(_Corrections, _Crashes, _Contract, unittest.TestCase):
         self.assertEqual(self.view("T-renewal")["task"].status, "complete")
 
 
-class PgTeamAgentsTests(_Corrections, _Crashes, _Contract, unittest.TestCase):
+class PgTeamAgentsTests(_DeliveryWords, _Corrections, _Crashes, _Contract, unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.url = pgtest.require()

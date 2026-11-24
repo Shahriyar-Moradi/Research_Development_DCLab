@@ -295,8 +295,15 @@ class Seats:
         labels = fixtures.labels(sample) if sample else []
         rule = tc.read_event(words, offered)
         used: Optional[str] = None
+        from .agents import _ambiguous_target
+
         if not labels:  # nothing declares what the table records: no reading could pass the check, so none is asked
             self._record(role, "read_target", "check_failed", task=task, rule=rule or core.UNSURE, check="no_label")
+        elif rule is None and len({d.event for d in labels}) > 1 and _ambiguous_target(str(words)):
+            # B4.1 (D-10 of the first dev run: "Customers are leaving us" read as non-renewal; the person meant cancelling): a
+            # vague word ("leaving", "churn") on a table that records more than one of the events fits each of them, so only
+            # the person can say which they mean. No reading could pass, so none is asked: the rules ask the person
+            self._record(role, "read_target", "check_failed", task=task, rule=core.UNSURE, check="words_fit_several")
         else:
             # the review of B2, F1: in DCLab's own order, never the table's (the table's events come first in ``offered``, so
             # that order would tell the model which event the table records, and an echo would pass the label check)

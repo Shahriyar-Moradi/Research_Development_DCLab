@@ -722,14 +722,58 @@ OUTREACH = re.compile(  # review F2: a verb aimed at people, or "who/which … s
     r"\b(?:call|contact|e-?mail|reach out)\w*"
     r"|\boutreach\b", re.I)
 OUTREACH_TRACKS = ("model", "analyze")
+# 0.173.2 (B4.1, the team-arms dev run): a request that asks for an offer, a credit, a discount, a budget or a campaign also
+# goes to Marketing (the offer's terms and cost), and to Sales, which works the accounts it is for. A sentence that leaves
+# the offer out ("leave the offer out", "no offer", "without a discount", "not ... the budget") does not.
+# a word that names data, not an offer asked for ("the campaign column", "the budget for the model's compute": the review
+# of B4.1, F8)
+_DATA_AFTER = (r"(?!\s+(?:column|columns|feature|features|field|fields|data|variable|variables|flag|flags|history|"
+               r"for\s+(?:the\s+)?(?:[\w-]+\s+)?(?:model|compute|training|run|cloud|gpus?|servers?))\b)")
+OFFER = re.compile(r"\b(?:offers?|credits?(?!\s+(?:cards?|scores?|scoring|risk|ratings?|limits?|lines?|history|checks?|bureau)\b)|"
+                   r"discounts?|incentives?|vouchers?|coupons?|budgets?|campaigns?|promotions?|promo)\b" + _DATA_AFTER, re.I)
+_NO_OFFER = re.compile(r"(?:\b(?:no|not|without|leave|leaving|left|skip|skipping|exclude|excluding|except|drop|ignore)|\w+n't)\b"
+                       r"(?:\s+[\w'-]+){0,3}?\s+(?:offers?|credits?|discounts?|incentives?|vouchers?|coupons?|budgets?|campaigns?|"
+                       r"promotions?|promo)\b", re.I)
+_SENTENCES = re.compile(r"(?<=[.!?;])\s+")
+# a dispatch's offer to a courier is no customer offer ("will a courier accept the first offer?")
+_COURIER_OFFER = re.compile(r"\b(?:first|courier|rider|driver|delivery|dispatch|job)(?:'s)?\s+offers?\b|"
+                            r"\boffers?\s+(?:to|for)\s+(?:a\s+|the\s+|each\s+)?(?:courier|rider|driver)s?\b|"
+                            r"\baccept\w*\s+(?:the\s+|an?\s+|its\s+)?(?:[\w-]+\s+)?offers?\b", re.I)
+
+
+# what asks for one: "with which offer", "what credit Marketing gives", "an offer budget", "plan the campaign"; never a word
+# that only names one ("predict the contact rate of the campaign")
+_ASKS = re.compile(r"\b(?:which|what|give|gives|giving|gets|get|receive|receives|offer|offering|propose|proposing|set|size|sizing|choose|"
+                   r"pick|design|launch|run|plan|fund|spend|put\s+together|recommend|suggest|decide)\b(?:\s+[\w'%-]+){0,3}?\s+$", re.I)
+
+
+# an offer of the past to analyse, not one asked for ("Which campaign drove the most renewals?", "What discount did churned
+# customers receive?", "customers who got a discount last year": the re-review of B4.1)
+_PAST_BEFORE = re.compile(r"\b(?:got|received|used|had|took|was\s+given|were\s+given)\s+(?:[\w'%-]+\s+){0,2}$", re.I)
+_PAST_AFTER = re.compile(r"\s+(?:did|drove|worked|was|were|performed|led|had|brought|ran|cost)\b", re.I)
+
+
+def asks_for_offer(question: str) -> bool:
+    """Whether a request asks for an offer, a credit, a budget or a campaign (one of ``OFFER`` after a word that asks for it,
+    within three words) in a sentence that does not leave it out."""
+    for part in _SENTENCES.split(_COURIER_OFFER.sub(" ", str(question or ""))):
+        if _NO_OFFER.search(part):
+            continue
+        if any(_ASKS.search(part[:m.start()]) and not _PAST_BEFORE.search(part[:m.start()]) and not _PAST_AFTER.match(part[m.end():])
+               for m in OFFER.finditer(part)):
+            return True
+    return False
 
 
 def lead_route(track: str, question: str = "") -> tuple[str, ...]:
     """The team agents the Lead asks for one kind of help (``LEAD_ROUTES``), in order, and Sales after them when the
-    request is about calling or contacting accounts (``OUTREACH``); empty when the Lead does not take the kind of help."""
+    request is about calling or contacting accounts (``OUTREACH``); 0.173.2: Sales and Marketing after them when it asks
+    for an offer, a credit, a budget or a campaign (``asks_for_offer``). Empty when the Lead does not take the kind of help."""
     teams = LEAD_ROUTES.get(str(track or ""), ())
-    if teams and str(track) in OUTREACH_TRACKS and OUTREACH.search(str(question or "")):
+    if teams and str(track) in OUTREACH_TRACKS and (OUTREACH.search(str(question or "")) or asks_for_offer(question)):
         teams = teams + ("sales",)
+    if teams and str(track) in OUTREACH_TRACKS and asks_for_offer(question):
+        teams = teams + ("marketing",)
     return teams
 
 

@@ -35,6 +35,7 @@ from pathlib import Path
 from typing import Any, Callable, Optional
 
 from dclab_core import team_work as tw
+from dclab_core.team_brain import PLAN_CHARS as _PLAN_CHARS
 
 from ..agents.registry import Registry, Tool
 from . import fixtures
@@ -682,12 +683,26 @@ def _act(ctx: TeamTurn, task_id: str, action: str, subject: Optional[str] = None
     sample_ref = next((i for i in task.allowed_inputs if i.startswith("sample:")), None)
     if tool == "inspect_schema":
         found = fixtures.sample(sample_ref) if sample_ref else None
-        if found is None:
+        dispatch = next((i for i in task.allowed_inputs if i.startswith("dispatch:")), None)
+        if found is None and sample_ref is None and dispatch:  # B4.1: what it reads instead, so the agent knows where to go
+            status, ref = "failed", (f"no table for {task.id}: it reads the dispatch snapshot {dispatch}, which the model specialists "
+                                     "estimate from (model:eta, model:acceptance)")
+        elif found is None:
             status, ref = "failed", f"no permitted sample for {task.id}"
         else:
             check = fixtures.feasibility(sample_ref, task.target)  # T1: against the outcome the person confirmed, when one is
             ref = f"schema:{sample_ref}:{len(found['columns'])} columns" + ("" if check["ok"] else f"; missing {check['missing']}")
             judge_outcome(ctx, task, check)
+    elif tool in ("leakage_check", "define_baseline", "explain_uncertainty") and sample_ref is None:
+        # B4.1 (D-03, D-07, D-21 of the first dev run): no table to read (a dispatch snapshot, or nothing): never a renewal
+        # table's words. A dispatch is estimated by the model specialists; the checks a table answers do not apply
+        dispatch = next((i for i in task.allowed_inputs if i.startswith("dispatch:")), None)
+        what = (f"the task reads the dispatch snapshot {dispatch}, not a table: its estimates come from the model specialists "
+                "(model:eta for the arrival, model:acceptance for the first offer)") if dispatch else f"no permitted sample for {task.id}"
+        if tool == "explain_uncertainty":
+            ref = (f"uncertainty:{what}; their results are fixtures, not measured" if dispatch else f"uncertainty:{what}")
+        else:
+            status, ref = "failed", f"no table to {'check for leakage' if tool == 'leakage_check' else 'name a baseline for'}: {what}"
     elif tool == "leakage_check":
         check = fixtures.feasibility(sample_ref or "", task.target)
         ref = "excluded:" + (",".join(check.get("excluded") or ()) or "none") + " (known only after renewal)"
@@ -984,16 +999,23 @@ def _schema(properties: dict[str, Any], required: list[str]) -> dict[str, Any]:
 
 _S = {"type": "string"}
 _TASK = {"type": "string", "description": "The task, by its id in this project."}
+
+
+def _text(limit: int, description: Optional[str] = None) -> dict[str, Any]:
+    """A text field with the store's own limit (B4.1: the first dev run had 18 texts refused for their length, a limit the
+    model never saw): the model reads it in the schema, and the registry refuses a longer one before anything runs. Only on
+    a field the store itself limits: never on a person's own words (``team_answer.text``), which travel whole."""
+    return {"type": "string", "maxLength": limit, **({"description": description} if description else {})}
 _ACTION = {"type": "string", "description": "The directory action this call performs."}
 
 TOOLS = (
     Tool("team_accept", "Accept a task this team owns.", _schema({"task_id": _TASK}, ["task_id"]), _accept,
          effect="write", scope=SCOPE, move="accept", takes_context=True, errors=_errors),
     Tool("team_block", "Block a task this team owns: its report will name what unblocks it.",
-         _schema({"task_id": _TASK, "reason": _S}, ["task_id", "reason"]), _block,
+         _schema({"task_id": _TASK, "reason": _text(tw.SHORT, "What blocks it, in one sentence.")}, ["task_id", "reason"]), _block,
          effect="write", scope=SCOPE, move="block", takes_context=True, errors=_errors),
     Tool("team_clarify", "Ask a person one question for a human-bound directory action; the task stays open.",
-         _schema({"task_id": _TASK, "action": _ACTION, "question": _S}, ["task_id", "action", "question"]), _clarify,
+         _schema({"task_id": _TASK, "action": _ACTION, "question": _text(tw.TEXT)}, ["task_id", "action", "question"]), _clarify,
          effect="write", scope=SCOPE, move="clarify", takes_context=True, errors=_errors),
     Tool("team_record_human_response", "Record the person's response to a human-bound directory action.",
          _schema({"task_id": _TASK, "action": _ACTION, "response_id": _S,
@@ -1001,10 +1023,11 @@ TOOLS = (
                  ["task_id", "action", "response_id"]), _record_human_response,
          effect="write", scope=SCOPE, move="record_human_response", takes_context=True, errors=_errors),
     Tool("team_answer", "Carry the person's recorded answer to the task's owner.",
-         _schema({"task_id": _TASK, "response_id": _S, "text": _S}, ["task_id", "response_id", "text"]), _answer,
+         _schema({"task_id": _TASK, "response_id": _S, "text": _S}, ["task_id", "response_id", "text"]), _answer,  # the person's own words: never cut short (B4.1 review, F1)
          effect="write", scope=SCOPE, move="answer", takes_context=True, errors=_errors),
     Tool("team_delegate", "Open a task for another team: a new top-level task, or a child of a task this team owns.",
-         _schema({"action": _ACTION, "new_task_id": _S, "owner_team": _S, "question": _S, "expected_output": _S,
+         _schema({"action": _ACTION, "new_task_id": _S, "owner_team": _S, "question": _text(tw.TEXT),
+                  "expected_output": _text(tw.SHORT, "What the team returns, in a short phrase."),
                   "done_criteria": {"type": "array", "items": _S, "minItems": 1}, "task_id": _TASK, "problem_id": _S,
                   "thread_id": _S, "allowed_inputs": {"type": "array", "items": _S}, "budget_eur": {"type": "number", "minimum": 0},
                   "brief_revision": {"type": "integer", "minimum": 1},
@@ -1022,8 +1045,9 @@ TOOLS = (
                  ["task_id", "action"]),
          _model_call, effect="write", scope=SCOPE, move="model_call", takes_context=True, errors=_errors),
     Tool("team_return_report", "Return the task's report, built from its action log and its children's reports.",
-         _schema({"task_id": _TASK, "answer": _S, "outcome": {"type": "string", "enum": ["complete", "partial", "blocked"]},
-                  "revision": {"type": "integer", "minimum": 1}, "next_owner": _S, "unblocks": _S,
+         _schema({"task_id": _TASK, "answer": _text(tw.TEXT), "outcome": {"type": "string", "enum": ["complete", "partial", "blocked"]},
+                  "revision": {"type": "integer", "minimum": 1}, "next_owner": _S,
+                  "unblocks": _text(tw.SHORT, "What unblocks it, in a short phrase."),
                   "evidence": {"type": "array", "items": {"type": "object"}}, "limits": {"type": "array", "items": _S}},
                  ["task_id", "answer", "outcome", "revision"]), _return_report,
          effect="write", scope=SCOPE, move="return_report", takes_context=True, errors=_errors),
@@ -1031,7 +1055,7 @@ TOOLS = (
     # a write; each read asks the guard (TeamGuard.read_refusal) before it reads anything
     Tool("team_plan", "Write your plan for this turn before your first action: the steps in order, the tool each uses, whom "
                       "you hand work to, and when you stop. It is kept whole. Call it again to say how the plan changed.",
-         _schema({"plan": {"type": "string", "description": "The plan, one numbered step a line."}}, ["plan"]), _plan,
+         _schema({"plan": {"type": "string", "maxLength": _PLAN_CHARS, "description": "The plan, one numbered step a line."}}, ["plan"]), _plan,
          scope=SCOPE, takes_context=True, errors=_errors),
     Tool("team_read_task", "Read a task this team owns or asked for: its brief, state, action log, reports, the tasks it handed "
                            "out and what travelled on it.",

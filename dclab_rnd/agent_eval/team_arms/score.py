@@ -40,7 +40,7 @@ from . import cases as C
 from . import text as T
 from .play import PLAY, open_services
 
-VERSION = "team_arms_score_v1"
+VERSION = "team_arms_score_v2"  # B4.1: the first dev round's scorer fixes (re-pinned before any sealed run)
 HARD_ZEROS = C.TRAPS
 AGENT_LINE = ("Written by the agent arm: the findings and the recommendation are a model's, checked by code; every number in them is "
               "from the records.")  # teamspace/agent_arm._report_args appends this exact line to every report the agent arm writes
@@ -86,24 +86,243 @@ def _strip_markers(text: str) -> str:
 
 
 _GLUED_MINUS = re.compile(r"(?<=[A-Za-z])-(?=\d)")  # "T-7", "D-30": a day count, never a negative number
+# B4.1: a binary label's code ("y = 1 if it fails to renew; y = 0 otherwise") names a class, not a quantity of the data
+_LABEL_CODE = re.compile(r"\b(?:y|label|target|class|outcome)\s*=\s*[01](?![\d.,]\d?)\b", re.I)
 _SCALE = re.compile(r"\b(?:(a|one|two|three|four|five|six|seven|eight|nine|ten)\s+)?(hundred|thousand)\b", re.I)
 _SMALL = {w: n for n, w in enumerate("zero one two three four five six seven eight nine ten".split())} | {"a": 1}
 
 
+# B4.1, the first dev run (2026-11-24): a counting word counts the things of the conversation, never a quantity of the data:
+# "Two things need your call", "two different targets", "The two give different cohorts", "both of them"
+# only nouns of the conversation itself (the review of B4.1, F4: "five events per customer", "three fraud cases" and "two
+# outcomes were positive" count the data, so events, cases, outcomes, items and cohorts are never here)
+_TALK = (r"things|questions|options|choices|points|ways|steps|readings|meanings|definitions|interpretations|answers|teams|"
+         r"alternatives|possibilities|targets\s+(?:to|you|we|for\s+(?:the|this))|decisions\s+(?:to|for\s+you)")
+# ... or one that counts the options it then lists: "two different targets — (a) ... and (b) ..."
+_COUNTING = re.compile(rf"\b(?:two|three|four|five)(?=\s+(?:[a-z-]+\s+)?(?:{_TALK})\b|[^.;?\d]{{0,40}}?[:—–]\s*\(?a\))", re.I)
+_COUNTING_PRONOUN = re.compile(r"\b(the|these|those|both|all)\s+(?:two|three|four|five)\b(?=\s*(?:[.,;:!?)]|$|of\b|give\b|are\b|were\b|"
+                               r"have\b|differ|mean\b|would\b|could\b|can\b|will\b|is\b|lead\b|change\b|need\b|point\b))", re.I)
+# a span of time a person names in words: "a week" is 7 days, "a fortnight" 14, "a day" 1, "two weeks" 14. Read on the side of
+# the records only (what a person said makes the number known); a model's own "a week" is words, as before.
+_SPAN = re.compile(r"\b(a|an|one|two|three|four|\d+)\s+(day|week|fortnight)s?\b", re.I)
+_SPAN_DAYS = {"day": 1, "week": 7, "fortnight": 14}
+
+
 def _plain(text: str) -> str:
-    return _GLUED_MINUS.sub(" ", _strip_markers(str(text or "")))
+    return _LABEL_CODE.sub(" ", _GLUED_MINUS.sub(" ", _strip_markers(str(text or ""))))
 
 
 def _numbers(text: str, source: bool = False) -> set[str]:
-    """The numbers a text states, as the scorer reads them: list markers and a letter's glued minus are none; in a source,
-    "hundred" and "thousand" (with a count before them) are the numbers they name (a person's words allow them)."""
-    plain = _plain(text)
+    """The numbers a text states, as the scorer reads them: list markers and a letter's glued minus are none; a counting word
+    of the conversation is none ("two things", "the two"); in a source, "hundred" and "thousand" (with a count before them)
+    are the numbers they name, and a span of days in words its days ("a week" is 7): a person's words allow them."""
+    plain = _COUNTING_PRONOUN.sub(r"\1 ", _COUNTING.sub(" ", _plain(text)))
     out = T.numbers(_no_ids(plain), source=source)
     if source:
         for count, scale in _SCALE.findall(plain):
             value = str(_SMALL.get(count.lower(), 1) * (100 if scale.lower() == "hundred" else 1000))
             out |= {value, "+" + value}
+        for count, unit in _SPAN.findall(plain):
+            n = int(count) if count.isdigit() else _SMALL.get(count.lower(), 1)
+            value = str(n * _SPAN_DAYS[unit.lower()])
+            out |= {value, "+" + value}
     return out
+
+
+# B4.1: a question to the person may offer choices with numbers ("7 days before renewal, or T-14?", "(a) ... (b) ..."): what
+# it offers is a proposal for the person to pick, counted as a question's number; what it states as fact before them (its
+# premise: "the sample has 8 columns with ...") stays a hard zero when no record holds it.
+_OPTION = re.compile(r"(?:(?<=^)|(?<=[\s:;,(]))\(?(?:[a-e]|i{1,3}|[1-5])\)(?=\s)")
+_BOUNDARY = re.compile(r"[;:—–?(]|,\s|\s-\s")
+_SEGMENT_END = re.compile(r"[;?]|\.(?:\s|$)")
+_VALUE = r"(?:T-)?\d+(?:\.\d+)?%?"  # a value as written in a list ("8,400" is one number: a list's comma is followed by a space)
+# a choice holds a real number, read as the checks read numbers (the re-review of B4.1, R1: "or wait a week", "or the other
+# one" offer no value, so the number on the other side stays a fact)
+def _has_number(text: str) -> bool:
+    return bool(_numbers(text)) or bool(_SPAN.search(str(text or "")))  # the fourth review, 5: "a week" is a value too (7 days)
+
+
+# a word that asks the person to pick, before the first option marker (the fourth review, 3: a pick word after the options,
+# "(a) 812 rows lack dates and (b) 40 duplicates; which should we fix first?", lists facts)
+_PICK = re.compile(r"\b(?:which|pick|choose|choice|prefer|either|should\s+(?:we|i|it|the)|do\s+you\s+want|would\s+you)\b", re.I)
+def _same_value(a: str, b: str) -> bool:
+    return _numbers(a) == _numbers(b)
+
+
+# a clause that gives a reason states what holds ("Since 812 accounts lapsed or 40 renewed late, ...", "Churn rose because 812
+# lapsed or 40 renewed late"): never choices. "since", "because" and "given" anywhere before the "or" in its clause; "as",
+# "after" and "when" only at the clause's start ("score 7 days after signup or 14?" is a choice)
+_GIVEN = re.compile(r"\b(?:since|because|given)\b", re.I)
+_GIVEN_START = re.compile(r"^\W*(?:as|after|when)\b", re.I)
+# where a number may stand in a sentence: a range read as one value ("10-20", "10%-20%", "10 to 20"), digits (with a sign glued
+# to a letter, a unit, a percent), number words, spans of days
+_DIGITS = r"(?:\b[A-Za-z]-)?\d+(?:[.,]\d+)*%?"
+_NUMBER_AT = re.compile(rf"{_DIGITS}(?:\s?[-–]\s?|\s+to\s+)\d+(?:[.,]\d+)*%?|{_DIGITS}|"
+                        r"\b(?:a|an|one|two|three|four|\d+)\s+(?:day|week|fortnight)s?\b|"
+                        r"\b(?:zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|"
+                        r"seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety)(?:[-\s](?:one|two|three|four|"
+                        r"five|six|seven|eight|nine))?(?:\s?(?:%|percent))?\b", re.I)
+
+
+def _values(text: str, start: int = 0, end: Optional[int] = None) -> list[tuple[int, int]]:
+    """The spans of ``text[start:end]`` that hold a number, as the checks read one ("the other one" holds none)."""
+    end = len(text) if end is None else end
+    return [(m.start(), m.end()) for m in _NUMBER_AT.finditer(text, start, end) if _has_number(m.group(0))]
+
+
+_TIME_UNIT = r"(?:days?|weeks?|months?|hours?|minutes?|years?)"
+_TIME_AFTER = re.compile(rf"\s*{_TIME_UNIT}\b", re.I)
+
+
+def _kind(text: str, span: tuple[int, int]) -> str:
+    """What a value counts: ``time`` (a span of days, T-7, 14 days), ``percent``, ``bare`` (nothing after it: "7 or 14 days"),
+    or ``count`` (a number of something: "312 late deliveries")."""
+    value, after = text[span[0]:span[1]], text[span[1]:]
+    if _SPAN.fullmatch(value.strip()) or re.match(r"[A-Za-z]-", value) or _TIME_AFTER.match(after):
+        return "time"
+    if value.endswith("%") or re.match(r"\s*(?:%|percent)", after, re.I):
+        return "percent"
+    return "bare" if re.match(r"\s*(?:or\b|[,;:?!.)—–]|$)", after, re.I) else "count"
+
+
+def _alike(text: str, a: tuple[int, int], b: tuple[int, int]) -> bool:
+    """Two values offered as choices of one thing: never a count of the data ("the 812 accounts or the 40"), and of one kind
+    or one of them bare ("at 7 or 14 days")."""
+    ka, kb = _kind(text, a), _kind(text, b)
+    return "count" not in (ka, kb) and (ka == kb or "bare" in (ka, kb))
+
+
+# the value right before an "or": the value, its time unit, and for a time a short "before ..." ("seven days before renewal,
+# or 14 days"); right after an "or": a preposition at most, then the value ("or at T-14", "or 14 days"). Anything else
+# between a value and the "or" ("the 812 lapsed accounts, or wait 14") leaves the number a fact.
+_LEFT_TAIL = re.compile(rf"(?:\s+{_TIME_UNIT})?(?:\s+(?:before|after|prior\s+to)(?:\s+[\w-]+){{0,2}})?\s*,?\s*$", re.I)
+_RIGHT_HEAD = re.compile(r"\s*(?:(?:at|in|after|within|by|to)\s+)?", re.I)
+# only a list offered as examples ("(e.g. 30, 60, 90)", "such as 7 or 14"): "we found 12, 40 and 300" states facts
+_NUMBER_LIST = re.compile(rf"(?:\b(?:e\.g\.,?|for example,?|such as)\s+)"
+                          rf"({_VALUE}(?:\s*(?:,\s+|\s+or\s+){_VALUE}){{1,}})(?![\w.,]\d)", re.I)
+
+
+def _or_pair(text: str, at: re.Match) -> Optional[list[tuple[int, int]]]:
+    """The two values an "or" offers, or None: each must stand right next to the "or", both must be of one kind (never a
+    count), differ, sit in a clause that gives no reason, and the "or" must be in the asking clause, not a statement
+    before it ("About 812 or 900 rows lack dates, drop them?")."""
+    left = re.sub(r"[,\s]+$", "", text[:at.start()])
+    cut = max((b.end() for b in _BOUNDARY.finditer(left)), default=0)
+    clause = left[cut:]
+    if _GIVEN.search(clause) or _GIVEN_START.match(clause):
+        return None
+    a = next((s for s in reversed(_values(text, cut, len(left)))
+              if _LEFT_TAIL.fullmatch(text, s[1], at.start()) and (s[1] == len(left) or _kind(text, s) == "time")), None)
+    head = _RIGHT_HEAD.match(text, at.end())
+    m = _NUMBER_AT.match(text, head.end())
+    b = (m.start(), m.end()) if m and _has_number(m.group(0)) else None
+    if a is not None and _STATES.search(text[:a[0]]):
+        return None  # "should we say churn is 12% or 15%?" states a value
+    if a is None or b is None or not _alike(text, a, b) or _same_value(text[a[0]:a[1]], text[b[0]:b[1]]):
+        return None
+    rest = text[b[1]:]
+    stop = _CLAUSE_END.search(rest)
+    if stop and "?" in rest[stop.end():] and not _REASON_AFTER.match(rest[stop.end():]):
+        return None  # a statement clause, a question after it ("at T-7 or T-14, given 37% churn?" still asks)
+    return [a, b]
+
+
+_CLAUSE_END = re.compile(r"[;:]|,\s")
+_REASON_AFTER = re.compile(r"\W*(?:given|since|because|as|with|where)\b", re.I)
+
+
+# B4.1, the sixth review: a question that checks a fact ("Is the churn rate 12% or 15%?", "Did 37% or 40% lapse?", "Which is
+# right: (a) 812, or (b) 900?", "Our holdout showed, for example, 0.81 or 0.84?") offers no choice: its numbers are claims.
+# Only a question that asks the person to pick a design value (a window, a moment, what to use) offers its values.
+_FACT_START = re.compile(r"^\W*(?:is|are|was|were|did|does|has|have|had|do(?!\s+you\s+(?:want|prefer|need|mean)\b))\b", re.I)
+_FACT_WORDS = re.compile(r"\b(?:was|were|did|had|right|correct|true|accurate|trust|actual(?:ly)?|really|show(?:s|ed|n)?|came\s+out|"
+                         r"rose|fell|dropped|grew|reached|measured|observed|on\s+average|equals?)\b", re.I)
+_PICK_ANY = re.compile(r"\b(?:which|pick|choose|choice|prefer|either|should\s+(?:we|i|it|the)|do\s+you\s+want|would\s+you|"
+                       r"how\s+many|how\s+long|use|set|score|keep|flag)\b", re.I)
+_STRONG = re.compile(r"[;:?—–]")
+_STATES = re.compile(r"\b(?:is|are|=)\s*$", re.I)
+
+
+_MEASURE = (r"(?:churn\w*|laps\w*|renew\w*|left|downgrad\w*|auc|lift|rate|revenue|accuracy|precision|recall|mae|rmse|"
+            r"median|mean|average|share|\w+ed)")
+_MEASURED_AFTER = re.compile(rf"(?:\s+(?:of\s+)?[\w-]+){{0,2}}?\s+{_MEASURE}\b", re.I)
+_MEASURED_BEFORE = re.compile(rf"\b{_MEASURE}\b(?:\W+\w+){{0,3}}?\W*$", re.I)
+
+
+def _measured(text: str, span: tuple[int, int]) -> bool:
+    """A value that names a measured result ("37% churn", "37% of accounts lapsed", "churn is 37%", "read churn, for example
+    37%"): a fact, never a choice. A time is a design value ("7 days before renewal"); a measured time is caught as a
+    question that checks a fact ("Is the median 14 days or 21?")."""
+    if _kind(text, span) == "time":
+        return False
+    before = text[max(0, span[0] - 40):span[0]]
+    if _STATES.search(before) or _MEASURED_BEFORE.search(re.split(r"[;:?(]|\b[a-e]\)", before)[-1]):
+        return True
+    return bool(_MEASURED_AFTER.match(re.split(r"[,;:?)(]|\bor\b", text[span[1]:])[0]))
+
+
+def split_choices(sentence: str) -> tuple[str, str]:
+    """A question's sentence as (its premise, the values it offers the person to pick). When unsure, a number is premise: a
+    false choice would let an invented number pass, a false premise only sends the question back to be written again
+    (the reviews of B4.1: F3, R1 to R3, the fourth and the fifth review). Offered are only:
+
+    - option markers ("(a)", "b)"): two or more, a word asking for a pick before the first one (or an "or" before the last
+      one, in a question), and at least two parts offering a value: the first value of each part that is not a count of the
+      data ("(a) 812 accounts at 7 days" offers 7); everything else is premise;
+    - an "or" in a question with a value right next to it on each side, of one kind and never a count ("at T-7 or T-14",
+      "seven days before renewal, or 14 days", "10-20 or 30-40 days"), outside a reason ("since", "because", "given") and
+      in the asking clause;
+    - a list of example values in a question ("how many days (e.g. 30, 60, 90)?").
+    """
+    text = str(sentence or "")
+    asks = text.rstrip().endswith("?")
+    offered: list[tuple[int, int]] = []
+    markers = list(_OPTION.finditer(text))
+    picks = len(markers) >= 2 and bool(_PICK.search(text[:markers[0].start()])
+                                       or (asks and re.search(r"\bor\s*$", text[:markers[-1].start()], re.I)))
+    asks = asks or picks  # "pick the moment: (a) ...; or (b) at T-30 or T-14." asks too (D-05)
+    if _FACT_START.match(text) or not (picks or _PICK_ANY.search(text)):
+        return text, ""  # it checks a fact, or asks for no pick: every number is premise
+
+    def checks_fact(group: list[tuple[int, int]], lead: Optional[int] = None) -> bool:
+        """A fact word ("showed", "right", "did") in the clause that holds the values (from the last ";", ":", "?" or dash
+        before them), or before marked options: their values are claims ("Which is right: (a) 812, or (b) 900?")."""
+        if not group:
+            return False
+        first, last = min(a for a, _ in group), max(b for _, b in group)
+        start = lead if lead is not None else max((m.end() for m in _STRONG.finditer(text, 0, first)), default=0)
+        return bool(_FACT_WORDS.search(text, start, last)) or any(_measured(text, g) for g in group)
+    if picks:
+        stop = _SEGMENT_END.search(text, markers[-1].end())
+        end = stop.start() if stop else len(text)
+        firsts = []
+        for i, m in enumerate(markers):
+            part = _values(text, m.end(), markers[i + 1].start() if i + 1 < len(markers) else end)
+            first = next((s for s in part if _kind(text, s) != "count"), None)
+            if first:
+                firsts.append(first)
+        if len(firsts) >= 2 and not checks_fact(firsts, lead=0):
+            offered += firsts  # one measured option makes them all facts ("(a) 37% churn or (b) 42% churn")
+    if asks:
+        for m in _NUMBER_LIST.finditer(text):
+            listed = _values(text, m.start(1), m.end(1))
+            if not checks_fact(listed) and not _measured(text, (m.start(), m.start())):
+                offered += listed  # "read churn, for example 37% or 12%": the list names a measured result
+        for m in re.finditer(r"\bor\b", text, re.I):
+            pair = _or_pair(text, m) or []
+            if not checks_fact(pair):
+                offered += pair
+    if not offered:
+        return text, ""
+    premise, choices, at = [], [], 0
+    for start, end in sorted(set(offered)):
+        if start < at:
+            continue
+        premise.append(text[at:start])
+        choices.append(text[start:end])
+        at = end
+    premise.append(text[at:])
+    return " ".join(premise), " ".join(choices)
 
 
 _CLAUSE_START = re.compile(r"(?<=[A-Za-z0-9_)])\s+(?=(?:It|The|This|That|These|Those|They|We|There|He|She)\b)")
@@ -287,7 +506,10 @@ def known_numbers(rec: Records) -> set[str]:
     texts = list(rec.all_said())
     for a in rec.actions.values():
         texts.append(" ".join(str(x) for x in (a.output_ref, a.failure_ref, a.reason) if x))
-    texts += [ask["question"] for ask in commercial.ASKS.values()]  # code's own questions to the Sales and Marketing teams
+    # code's own questions to the Sales and Marketing teams, only when one was really sent in this play (B4.1: its "0 to 30"
+    # made 0 and 30 known numbers in every play, asked or not)
+    sent = [str(d.get("text") or "") for d in rec.deliveries] + [str(m.get("text") or "") for msgs in rec.messages.values() for m in msgs]
+    texts += [ask["question"] for ask in commercial.ASKS.values() if any(ask["question"] in t for t in sent)]
     for v in rec.views.values():
         texts.append(f"{v['task'].brief_revision}")
     task = rec.task(rec.top) if rec.top else None
@@ -318,13 +540,32 @@ def invented_numbers(rec: Records) -> list[dict[str, Any]]:
     helper's note, a question the person received. A hard zero."""
     known = known_numbers(rec)
     out = []
-    parts = ([(f"{r.id}:{where}", text) for r in rec.reports for where, text in model_parts(r)] + helper_notes(rec)
-             + questions(rec, to_person=True))
+    parts = ([(f"{r.id}:{where}", text) for r in rec.reports for where, text in model_parts(r)] + helper_notes(rec))
     for where, text in parts:
         for sentence in _sentences(text):
             extra = sorted(_numbers(sentence) - known)
             if extra:
                 out.append({"code": "invented_number", "where": where, "numbers": extra[:10]})
+    for where, text in questions(rec, to_person=True):  # B4.1: a choice it offers is a question's number, its premise is not
+        for sentence in _sentences(text):
+            premise, _ = split_choices(sentence)
+            extra = sorted(_numbers(premise) - known)
+            if extra:
+                out.append({"code": "invented_number", "where": where, "numbers": extra[:10]})
+    return out
+
+
+def offered_numbers(rec: Records, known: Optional[set[str]] = None) -> list[dict[str, Any]]:
+    """B4.1: the numbers no record holds that a question to the person offers as a choice ("7 days, or T-14?"): counted with
+    the questions' numbers, never a hard zero; never known afterwards either."""
+    known = known_numbers(rec) if known is None else known
+    out = []
+    for where, text in questions(rec, to_person=True):
+        for sentence in _sentences(text):
+            premise, choices = split_choices(sentence)
+            extra = sorted(_numbers(choices) - known - _numbers(premise))
+            if extra:
+                out.append({"code": "question_number", "where": where, "numbers": extra[:10]})
     return out
 
 
@@ -350,7 +591,7 @@ def question_numbers(rec: Records) -> list[dict[str, Any]]:
         extra = sorted(_numbers(task.question) - allowed)
         if extra:
             out.append({"code": "question_number", "where": f"task:{tid}:question", "numbers": extra[:10]})
-    return out
+    return out + offered_numbers(rec, known)
 
 
 def unrecorded_claims(rec: Records) -> list[dict[str, Any]]:
@@ -667,6 +908,45 @@ def main_score(rec: Records, case: C.Case, zeros: list[dict[str, Any]]) -> dict[
 
 
 # ---------------------------------------------------------------------------------------------------------- the counts
+def asked_then_blocked(rec: Records) -> int:
+    """B4.1: how often a task waiting on the person's answer was blocked instead (D-02, D-07, D-14, D-18, D-20 of the first
+    dev run): its question was asked, then the work stopped before the answer could come."""
+    return sum(1 for e in rec.events if e.kind == "team.task.moved" and e.payload.get("from") == "waiting_for_person"
+               and e.payload.get("to") == "blocked" and e.payload.get("task") in rec.views)
+
+
+def unasked_confirmations(rec: Records) -> int:
+    """B4.1: a confirmation an agent opened (a ``confirm_*`` action still running at the end) whose question never reached
+    the person (D-01, D-06, D-18, D-20): a second question on a task already waiting, kept in the team's own thread and sent
+    nowhere. Reached: its words travelled as a clarification from that agent on its task, to the person's side, or to a team
+    that then asked the person on a task above it. The requester's own confirmation (Home, Business) is the person's answer
+    still awaited, never counted."""
+    from dclab_core import team_work as tw
+
+    asked = {str(m.get("key") or ""): _norm(m.get("text")) for msgs in rec.messages.values() for m in msgs
+             if str(m.get("key") or "").startswith("asked:")}
+    out = 0
+    for tid in rec.tree:
+        for a in rec.views[tid]["actions"]:
+            if not a.action.startswith("confirm_") or a.status in tw.TERMINAL_ACTIONS or a.actor.id in (rec.requester, "home", "business"):
+                continue
+            words = asked.get(f"asked:{a.action_id}:{tid}")
+            if words is None:
+                continue  # no question of its own on record (nothing to judge)
+            sent = [d for d in rec.deliveries if d["kind"] == "clarification" and d["task_id"] == tid and d.get("from_team") == a.actor.id
+                    and _norm(d.get("text")) == words]
+            reached = any(d.get("to_team") == rec.requester for d in sent)
+            if sent and not reached:  # to a team: reached when that team asked the person on a task above this one
+                above, task = set(), rec.task(tid)
+                while task is not None and task.parent_task_id and task.parent_task_id not in above:
+                    above.add(task.parent_task_id)
+                    task = rec.task(task.parent_task_id)
+                reached = any(d["kind"] == "clarification" and d.get("to_team") == rec.requester and d["task_id"] in above
+                              for d in rec.deliveries[rec.deliveries.index(sent[0]):])
+            out += 0 if reached else 1
+    return out
+
+
 def counts(rec: Records, case: C.Case) -> dict[str, Any]:
     questions = [d for d in rec.deliveries if d["kind"] == "clarification" and d["to_team"] == rec.requester]
     reached = {rec.task(tid).owner_team for tid in rec.tree}
@@ -694,6 +974,8 @@ def counts(rec: Records, case: C.Case) -> dict[str, Any]:
         "needless_questions": max(0, len(questions) - case.expected.questions_needed),
         "question_numbers": sum(len(q["numbers"]) for q in question_numbers(rec)),
         "teams_missed": len(set(case.expected.teams_reached) - reached),
+        "asked_then_blocked": asked_then_blocked(rec),
+        "unasked_confirmations": unasked_confirmations(rec),
         "duplicate_replies": duplicates,
         "fallbacks": dict(Counter(str(p.get("fallback")) for p in answered if p.get("fallback") and str(p.get("agent", "")).split(":")[0] in roles)),
         "agent_turns": dict(Counter(str(p.get("outcome")) for p in turns)),
@@ -734,5 +1016,5 @@ def score(folder: Path, case: C.Case, exchanges: Iterable[Path] = ()) -> dict[st
     return out
 
 
-__all__ = ["AGENT_LINE", "HARD_ZEROS", "Records", "VERSION", "agent_written", "answers_not_given", "end_of", "hard_zeros", "known_numbers",
-           "main_score", "model_parts", "score"]
+__all__ = ["AGENT_LINE", "HARD_ZEROS", "Records", "VERSION", "agent_written", "answers_not_given", "asked_then_blocked", "end_of", "hard_zeros",
+           "known_numbers", "main_score", "model_parts", "offered_numbers", "score", "split_choices", "unasked_confirmations"]

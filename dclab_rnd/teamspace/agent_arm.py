@@ -160,6 +160,8 @@ class _State:
     request: Optional[str] = None
     requests: list[str] = field(default_factory=list)
     euros: float = 0.0
+    passed: list[dict[str, Any]] = field(default_factory=list)  # B4.1: code's steps that recorded and passed a person's answer
+    checked: list[dict[str, Any]] = field(default_factory=list)  # B4.1: questions and hand-overs refused for their words
 
     def seconds(self) -> float:
         return time.monotonic() - self.started
@@ -250,7 +252,11 @@ class _Tools:
         elif write and state.until is not None and time.monotonic() > state.until:
             value = {"error": "Not run: this turn's hold on its delivery has ended."}
         elif write and tool.move == "delegate":
-            value = _delegate_args(turn, args)
+            value = _delegate_args(turn, args) or _check_words(turn, state, args, "delegate")
+        elif write and tool.move == "clarify":
+            value = _check_words(turn, state, args, "clarify")
+        elif write and tool.move == "block":
+            value = _block_refusal(turn, args)
         elif write and tool.move == "return_report":
             value, pending = _report_args(turn, state, args)
         if value is None and write and not _mark(state, writes=state.begun + 1):
@@ -324,6 +330,7 @@ def _delegate_args(turn: Any, args: dict[str, Any]) -> Optional[dict[str, Any]]:
     parent = turn.work.task(turn.project_id, str(args["task_id"]))
     if parent is None:
         return None  # the registry's guard names it
+    args["owner_team"] = team_id(args.get("owner_team"))  # B4.1: "Data Science", "ds" are data_science
     owner = str(args.get("owner_team") or "")
     if owner.split(":")[0] in NO_HANDED_WORK:  # the live smoke run of 2026-11-24 (QX-03): an agent Lead handed a ranking to
         # Business, whose rules never take handed-out work, and the case hung with the task open for ever
@@ -334,7 +341,42 @@ def _delegate_args(turn: Any, args: dict[str, Any]) -> Optional[dict[str, Any]]:
         args.pop(key, None)  # brief are its parent's, and it spends nothing the parent did not give (the review of B3, F6)
     readable = [i for i in parent.allowed_inputs if not str(i).startswith("help:")]
     asked = args.get("allowed_inputs")
-    args["allowed_inputs"] = [i for i in readable if i in asked] if isinstance(asked, list) else readable
+    chosen = [i for i in readable if i in asked] if isinstance(asked, list) else []
+    # B4.1 (D-13: tasks handed out with inputs=[] could read nothing): a hand-over that names no input its parent may read
+    # takes the parent's readable inputs, never wider
+    args["allowed_inputs"] = chosen or readable
+    return None
+
+
+# B4.1 (the first dev run: 19 hand-overs refused for a team written "data science", "Data Science", "ds", "data-science"):
+# the team ids an agent hands work to, and the words a model writes for them
+TEAM_IDS = ("data_science", "ml_engineering", "sales", "marketing", "business", "lead", "model:eta", "model:acceptance")
+_TEAM_ALIASES = {"ds": "data_science", "datascience": "data_science", "data_scientist": "data_science", "data_scientists": "data_science",
+                 "ml": "ml_engineering", "mle": "ml_engineering", "ml_eng": "ml_engineering", "ml_engineer": "ml_engineering",
+                 "ml_engineers": "ml_engineering", "machine_learning": "ml_engineering", "machine_learning_engineering": "ml_engineering",
+                 "eta": "model:eta", "model_eta": "model:eta", "eta_model": "model:eta", "acceptance": "model:acceptance",
+                 "model_acceptance": "model:acceptance", "acceptance_model": "model:acceptance"}
+
+
+def team_id(name: Any) -> str:
+    """A team's id as the directory names it, from the words a model wrote: case, spaces and dashes folded ("Data Science",
+    "data-science" are data_science) and the usual short names ("ds", "ml", "eta"). A name it cannot place is returned as
+    written, folded, so the guard refuses it and says why."""
+    raw = str(name or "").strip()
+    if raw.lower().startswith("model:"):
+        return "model:" + re.sub(r"[\s-]+", "_", raw.split(":", 1)[1].strip().lower())
+    folded = re.sub(r"[\s-]+", "_", raw.lower()).strip("_")
+    folded = re.sub(r"_team$", "", folded)
+    return _TEAM_ALIASES.get(folded, folded)
+
+
+def _block_refusal(turn: Any, args: Mapping[str, Any]) -> Optional[dict[str, Any]]:
+    """B4.1 (D-02, D-14, D-18 of the first dev run: a question was asked, then the task blocked before the answer came): no
+    block while a question to the person on that task is still open."""
+    task = turn.work.task(turn.project_id, str(args.get("task_id") or ""))
+    if task is not None and task.status == "waiting_for_person":
+        return {"error": "Not run: a question to the person on this task is still open. Wait for their answer: end this turn "
+                         "(answer Done.). Their answer comes back to you and the work goes on from it; block only on what no answer can give."}
     return None
 
 
@@ -404,6 +446,278 @@ def check_sentence(sentence: str, known: set[str], spoken: set[str], done: set[s
         return "overclaims"
     if core.promises_action(sentence):
         return "promises_action"
+    return None
+
+
+# B4.1: what reads like a number in a question and is none, the same rules the comparison's scorer reads with (its own copy):
+# a counting word of the conversation ("two things", "the two"), a minus glued to a letter (T-7) and a binary label's code
+# (y = 0); and what a person's words make known: a span of days ("a week" is 7)
+# only nouns of the conversation itself (the review of B4.1, F4: "five events per customer", "three fraud cases" and "two
+# outcomes were positive" count the data, so events, cases, outcomes, items and cohorts are never here)
+_TALK = (r"things|questions|options|choices|points|ways|steps|readings|meanings|definitions|interpretations|answers|teams|"
+         r"alternatives|possibilities|targets\s+(?:to|you|we|for\s+(?:the|this))|decisions\s+(?:to|for\s+you)")
+# ... or one that counts the options it then lists: "two different targets — (a) ... and (b) ..."
+_COUNTING = re.compile(rf"\b(?:two|three|four|five)(?=\s+(?:[a-z-]+\s+)?(?:{_TALK})\b|[^.;?\d]{{0,40}}?[:—–]\s*\(?a\))", re.I)
+_COUNTING_PRONOUN = re.compile(r"\b(the|these|those|both|all)\s+(?:two|three|four|five)\b(?=\s*(?:[.,;:!?)]|$|of\b|give\b|are\b|were\b|"
+                               r"have\b|differ|mean\b|would\b|could\b|can\b|will\b|is\b|lead\b|change\b|need\b|point\b))", re.I)
+_GLUED_MINUS = re.compile(r"(?<=[A-Za-z])-(?=\d)")
+_LABEL_CODE = re.compile(r"\b(?:y|label|target|class|outcome)\s*=\s*[01](?![\d.,]\d?)\b", re.I)
+_SPAN = re.compile(r"\b(a|an|one|two|three|four|\d+)\s+(day|week|fortnight)s?\b", re.I)
+_SPAN_DAYS = {"day": 1, "week": 7, "fortnight": 14}
+_SMALL = {w: n for n, w in enumerate("zero one two three four five six seven eight nine ten".split())} | {"a": 1, "an": 1}
+_OPTION = re.compile(r"(?:(?<=^)|(?<=[\s:;,(]))\(?(?:[a-e]|i{1,3}|[1-5])\)(?=\s)")
+_BOUNDARY = re.compile(r"[;:—–?(]|,\s|\s-\s")
+_SEGMENT_END = re.compile(r"[;?]|\.(?:\s|$)")
+_VALUE = r"(?:T-)?\d+(?:\.\d+)?%?"  # a value as written in a list ("8,400" is one number: a list's comma is followed by a space)
+# a choice holds a real number, read as the checks read numbers (the re-review of B4.1, R1: "or wait a week", "or the other
+# one" offer no value, so the number on the other side stays a fact)
+def _cited_numbers(text: str) -> set[str]:
+    from .. import cited
+
+    return cited.numbers(text)
+
+
+def _has_number(text: str) -> bool:
+    return bool(_cited_numbers(_no_ids(_read(text)))) or bool(_SPAN.search(str(text or "")))  # the fourth review, 5: "a week" is a value too (7 days)
+
+
+# a word that asks the person to pick, before the first option marker (the fourth review, 3: a pick word after the options,
+# "(a) 812 rows lack dates and (b) 40 duplicates; which should we fix first?", lists facts)
+_PICK = re.compile(r"\b(?:which|pick|choose|choice|prefer|either|should\s+(?:we|i|it|the)|do\s+you\s+want|would\s+you)\b", re.I)
+def _same_value(a: str, b: str) -> bool:
+    return _cited_numbers(_no_ids(_read(a))) == _cited_numbers(_no_ids(_read(b)))
+
+
+# a clause that gives a reason states what holds ("Since 812 accounts lapsed or 40 renewed late, ...", "Churn rose because 812
+# lapsed or 40 renewed late"): never choices. "since", "because" and "given" anywhere before the "or" in its clause; "as",
+# "after" and "when" only at the clause's start ("score 7 days after signup or 14?" is a choice)
+_GIVEN = re.compile(r"\b(?:since|because|given)\b", re.I)
+_GIVEN_START = re.compile(r"^\W*(?:as|after|when)\b", re.I)
+# where a number may stand in a sentence: a range read as one value ("10-20", "10%-20%", "10 to 20"), digits (with a sign glued
+# to a letter, a unit, a percent), number words, spans of days
+_DIGITS = r"(?:\b[A-Za-z]-)?\d+(?:[.,]\d+)*%?"
+_NUMBER_AT = re.compile(rf"{_DIGITS}(?:\s?[-–]\s?|\s+to\s+)\d+(?:[.,]\d+)*%?|{_DIGITS}|"
+                        r"\b(?:a|an|one|two|three|four|\d+)\s+(?:day|week|fortnight)s?\b|"
+                        r"\b(?:zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|"
+                        r"seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety)(?:[-\s](?:one|two|three|four|"
+                        r"five|six|seven|eight|nine))?(?:\s?(?:%|percent))?\b", re.I)
+
+
+def _values(text: str, start: int = 0, end: Optional[int] = None) -> list[tuple[int, int]]:
+    """The spans of ``text[start:end]`` that hold a number, as the checks read one ("the other one" holds none)."""
+    end = len(text) if end is None else end
+    return [(m.start(), m.end()) for m in _NUMBER_AT.finditer(text, start, end) if _has_number(m.group(0))]
+
+
+_TIME_UNIT = r"(?:days?|weeks?|months?|hours?|minutes?|years?)"
+_TIME_AFTER = re.compile(rf"\s*{_TIME_UNIT}\b", re.I)
+
+
+def _kind(text: str, span: tuple[int, int]) -> str:
+    """What a value counts: ``time`` (a span of days, T-7, 14 days), ``percent``, ``bare`` (nothing after it: "7 or 14 days"),
+    or ``count`` (a number of something: "312 late deliveries")."""
+    value, after = text[span[0]:span[1]], text[span[1]:]
+    if _SPAN.fullmatch(value.strip()) or re.match(r"[A-Za-z]-", value) or _TIME_AFTER.match(after):
+        return "time"
+    if value.endswith("%") or re.match(r"\s*(?:%|percent)", after, re.I):
+        return "percent"
+    return "bare" if re.match(r"\s*(?:or\b|[,;:?!.)—–]|$)", after, re.I) else "count"
+
+
+def _alike(text: str, a: tuple[int, int], b: tuple[int, int]) -> bool:
+    """Two values offered as choices of one thing: never a count of the data ("the 812 accounts or the 40"), and of one kind
+    or one of them bare ("at 7 or 14 days")."""
+    ka, kb = _kind(text, a), _kind(text, b)
+    return "count" not in (ka, kb) and (ka == kb or "bare" in (ka, kb))
+
+
+# the value right before an "or": the value, its time unit, and for a time a short "before ..." ("seven days before renewal,
+# or 14 days"); right after an "or": a preposition at most, then the value ("or at T-14", "or 14 days"). Anything else
+# between a value and the "or" ("the 812 lapsed accounts, or wait 14") leaves the number a fact.
+_LEFT_TAIL = re.compile(rf"(?:\s+{_TIME_UNIT})?(?:\s+(?:before|after|prior\s+to)(?:\s+[\w-]+){{0,2}})?\s*,?\s*$", re.I)
+_RIGHT_HEAD = re.compile(r"\s*(?:(?:at|in|after|within|by|to)\s+)?", re.I)
+# only a list offered as examples ("(e.g. 30, 60, 90)", "such as 7 or 14"): "we found 12, 40 and 300" states facts
+_NUMBER_LIST = re.compile(rf"(?:\b(?:e\.g\.,?|for example,?|such as)\s+)"
+                          rf"({_VALUE}(?:\s*(?:,\s+|\s+or\s+){_VALUE}){{1,}})(?![\w.,]\d)", re.I)
+
+
+def _or_pair(text: str, at: re.Match) -> Optional[list[tuple[int, int]]]:
+    """The two values an "or" offers, or None: each must stand right next to the "or", both must be of one kind (never a
+    count), differ, sit in a clause that gives no reason, and the "or" must be in the asking clause, not a statement
+    before it ("About 812 or 900 rows lack dates, drop them?")."""
+    left = re.sub(r"[,\s]+$", "", text[:at.start()])
+    cut = max((b.end() for b in _BOUNDARY.finditer(left)), default=0)
+    clause = left[cut:]
+    if _GIVEN.search(clause) or _GIVEN_START.match(clause):
+        return None
+    a = next((s for s in reversed(_values(text, cut, len(left)))
+              if _LEFT_TAIL.fullmatch(text, s[1], at.start()) and (s[1] == len(left) or _kind(text, s) == "time")), None)
+    head = _RIGHT_HEAD.match(text, at.end())
+    m = _NUMBER_AT.match(text, head.end())
+    b = (m.start(), m.end()) if m and _has_number(m.group(0)) else None
+    if a is not None and _STATES.search(text[:a[0]]):
+        return None  # "should we say churn is 12% or 15%?" states a value
+    if a is None or b is None or not _alike(text, a, b) or _same_value(text[a[0]:a[1]], text[b[0]:b[1]]):
+        return None
+    rest = text[b[1]:]
+    stop = _CLAUSE_END.search(rest)
+    if stop and "?" in rest[stop.end():] and not _REASON_AFTER.match(rest[stop.end():]):
+        return None  # a statement clause, a question after it ("at T-7 or T-14, given 37% churn?" still asks)
+    return [a, b]
+
+
+_CLAUSE_END = re.compile(r"[;:]|,\s")
+_REASON_AFTER = re.compile(r"\W*(?:given|since|because|as|with|where)\b", re.I)
+
+
+# B4.1, the sixth review: a question that checks a fact ("Is the churn rate 12% or 15%?", "Did 37% or 40% lapse?", "Which is
+# right: (a) 812, or (b) 900?", "Our holdout showed, for example, 0.81 or 0.84?") offers no choice: its numbers are claims.
+# Only a question that asks the person to pick a design value (a window, a moment, what to use) offers its values.
+_FACT_START = re.compile(r"^\W*(?:is|are|was|were|did|does|has|have|had|do(?!\s+you\s+(?:want|prefer|need|mean)\b))\b", re.I)
+_FACT_WORDS = re.compile(r"\b(?:was|were|did|had|right|correct|true|accurate|trust|actual(?:ly)?|really|show(?:s|ed|n)?|came\s+out|"
+                         r"rose|fell|dropped|grew|reached|measured|observed|on\s+average|equals?)\b", re.I)
+_PICK_ANY = re.compile(r"\b(?:which|pick|choose|choice|prefer|either|should\s+(?:we|i|it|the)|do\s+you\s+want|would\s+you|"
+                       r"how\s+many|how\s+long|use|set|score|keep|flag)\b", re.I)
+_STRONG = re.compile(r"[;:?—–]")
+_STATES = re.compile(r"\b(?:is|are|=)\s*$", re.I)
+
+
+_MEASURE = (r"(?:churn\w*|laps\w*|renew\w*|left|downgrad\w*|auc|lift|rate|revenue|accuracy|precision|recall|mae|rmse|"
+            r"median|mean|average|share|\w+ed)")
+_MEASURED_AFTER = re.compile(rf"(?:\s+(?:of\s+)?[\w-]+){{0,2}}?\s+{_MEASURE}\b", re.I)
+_MEASURED_BEFORE = re.compile(rf"\b{_MEASURE}\b(?:\W+\w+){{0,3}}?\W*$", re.I)
+
+
+def _measured(text: str, span: tuple[int, int]) -> bool:
+    """A value that names a measured result ("37% churn", "37% of accounts lapsed", "churn is 37%", "read churn, for example
+    37%"): a fact, never a choice. A time is a design value ("7 days before renewal"); a measured time is caught as a
+    question that checks a fact ("Is the median 14 days or 21?")."""
+    if _kind(text, span) == "time":
+        return False
+    before = text[max(0, span[0] - 40):span[0]]
+    if _STATES.search(before) or _MEASURED_BEFORE.search(re.split(r"[;:?(]|\b[a-e]\)", before)[-1]):
+        return True
+    return bool(_MEASURED_AFTER.match(re.split(r"[,;:?)(]|\bor\b", text[span[1]:])[0]))
+
+
+def split_choices(sentence: str) -> tuple[str, str]:
+    """A question's sentence as (its premise, the values it offers the person to pick). When unsure, a number is premise: a
+    false choice would let an invented number pass, a false premise only sends the question back to be written again
+    (the reviews of B4.1: F3, R1 to R3, the fourth and the fifth review). Offered are only:
+
+    - option markers ("(a)", "b)"): two or more, a word asking for a pick before the first one (or an "or" before the last
+      one, in a question), and at least two parts offering a value: the first value of each part that is not a count of the
+      data ("(a) 812 accounts at 7 days" offers 7); everything else is premise;
+    - an "or" in a question with a value right next to it on each side, of one kind and never a count ("at T-7 or T-14",
+      "seven days before renewal, or 14 days", "10-20 or 30-40 days"), outside a reason ("since", "because", "given") and
+      in the asking clause;
+    - a list of example values in a question ("how many days (e.g. 30, 60, 90)?").
+    """
+    text = str(sentence or "")
+    asks = text.rstrip().endswith("?")
+    offered: list[tuple[int, int]] = []
+    markers = list(_OPTION.finditer(text))
+    picks = len(markers) >= 2 and bool(_PICK.search(text[:markers[0].start()])
+                                       or (asks and re.search(r"\bor\s*$", text[:markers[-1].start()], re.I)))
+    asks = asks or picks  # "pick the moment: (a) ...; or (b) at T-30 or T-14." asks too (D-05)
+    if _FACT_START.match(text) or not (picks or _PICK_ANY.search(text)):
+        return text, ""  # it checks a fact, or asks for no pick: every number is premise
+
+    def checks_fact(group: list[tuple[int, int]], lead: Optional[int] = None) -> bool:
+        """A fact word ("showed", "right", "did") in the clause that holds the values (from the last ";", ":", "?" or dash
+        before them), or before marked options: their values are claims ("Which is right: (a) 812, or (b) 900?")."""
+        if not group:
+            return False
+        first, last = min(a for a, _ in group), max(b for _, b in group)
+        start = lead if lead is not None else max((m.end() for m in _STRONG.finditer(text, 0, first)), default=0)
+        return bool(_FACT_WORDS.search(text, start, last)) or any(_measured(text, g) for g in group)
+    if picks:
+        stop = _SEGMENT_END.search(text, markers[-1].end())
+        end = stop.start() if stop else len(text)
+        firsts = []
+        for i, m in enumerate(markers):
+            part = _values(text, m.end(), markers[i + 1].start() if i + 1 < len(markers) else end)
+            first = next((s for s in part if _kind(text, s) != "count"), None)
+            if first:
+                firsts.append(first)
+        if len(firsts) >= 2 and not checks_fact(firsts, lead=0):
+            offered += firsts  # one measured option makes them all facts ("(a) 37% churn or (b) 42% churn")
+    if asks:
+        for m in _NUMBER_LIST.finditer(text):
+            listed = _values(text, m.start(1), m.end(1))
+            if not checks_fact(listed) and not _measured(text, (m.start(), m.start())):
+                offered += listed  # "read churn, for example 37% or 12%": the list names a measured result
+        for m in re.finditer(r"\bor\b", text, re.I):
+            pair = _or_pair(text, m) or []
+            if not checks_fact(pair):
+                offered += pair
+    if not offered:
+        return text, ""
+    premise, choices, at = [], [], 0
+    for start, end in sorted(set(offered)):
+        if start < at:
+            continue
+        premise.append(text[at:start])
+        choices.append(text[start:end])
+        at = end
+    premise.append(text[at:])
+    return " ".join(premise), " ".join(choices)
+
+
+WORD_CHECKS = ("clarify", "delegate")
+
+
+def _read(text: str) -> str:
+    return _LABEL_CODE.sub(" ", _GLUED_MINUS.sub(" ", _COUNTING_PRONOUN.sub(r"\1 ", _COUNTING.sub(" ", str(text or "")))))
+
+
+def _spans(text: str) -> set[str]:
+    out: set[str] = set()
+    for count, unit in _SPAN.findall(str(text or "")):
+        n = int(count) if count.isdigit() else _SMALL.get(count.lower(), 1)
+        value = str(n * _SPAN_DAYS[unit.lower()])
+        out |= {value, "+" + value}
+    return out
+
+
+def check_words(sentence: str, known: set[str], spoken: set[str], done: set[str], *, choices: bool = False) -> Optional[str]:
+    """Why a sentence of a question or a hand-over may not be sent, as a code of ``team_brain.REPORT_REFUSALS``, or None: a
+    number (or a number word) no record holds, or an action claimed without its terminal record. With ``choices`` (a question
+    to the person), a number in a choice it offers ("7 days, or T-14?") is allowed; one in its premise is not."""
+    from .. import cited
+
+    premise = split_choices(sentence)[0] if choices else sentence
+    if not cited.numbers(_no_ids(_read(premise))) <= known:
+        return "number_not_in_records"
+    if not cited.number_words(_read(premise)) <= spoken:
+        return "number_word_not_in_records"
+    if core.unrecorded_claims(sentence, sorted(done)):
+        return "claims_unrecorded_action"
+    return None
+
+
+def _check_words(turn: Any, state: _State, args: dict[str, Any], kind: str) -> Optional[dict[str, Any]]:
+    """B4.1: a question (``team_clarify``) or a hand-over's question (``team_delegate``) checked like a report's sentences,
+    before it is sent: its numbers from the records (the person's words, code's records), no action claimed without its
+    terminal record. Refused whole, with the sentence and why, so the model writes it again."""
+    from .. import cited
+
+    task = turn.work.task(turn.project_id, str(args.get("task_id") or ""))
+    view = turn.work.task_view(turn.project_id, task.id) if task is not None else None
+    if task is None or view is None:
+        return None  # the guard names it
+    texts, done = _sources(turn, state, view)
+    known = set().union(*(cited.numbers(_no_ids(t), source=True) | _spans(t) for t in texts)) if texts else set()
+    spoken = set().union(*(cited.words_of(t) for t in texts)) if texts else set()
+    for sentence in cited.sentences(str(args.get("question") or "")):
+        why = check_words(sentence, known, spoken, done, choices=kind == "clarify")
+        if why:
+            state.checked.append({"tool": f"team_{kind}", "task": task.id, "text": sentence, "reason": why})
+            said = {"number_not_in_records": "it states a number no record holds (only the person's words and code's records hold numbers; a "
+                                             "choice you offer the person may carry one)",
+                    "number_word_not_in_records": "it states an amount in words no record holds",
+                    "claims_unrecorded_action": "it says an action was done that no record says ended"}[why]
+            return {"error": f"Not sent: {said}: \"{sentence[:300]}\". Write it again without that, from what the records hold."}
     return None
 
 
@@ -502,7 +816,7 @@ def _keep_report(turn: Any, state: _State, check: dict[str, Any], value: Any) ->
 
 
 # ---------------------------------------------------------------------------------------------------------- what the model reads
-def brief(turn: Any, offered: tuple[str, ...], budget: Mapping[str, float]) -> str:
+def brief(turn: Any, offered: tuple[str, ...], budget: Mapping[str, float], passed: Optional[list[dict[str, Any]]] = None) -> str:
     """The turn as the model first reads it: who it is and its job, its action directory, the task and the person's
     question, what arrived on this turn, the tools it may call and its budget. The team's own records: never a table."""
     from . import brains
@@ -523,7 +837,22 @@ def brief(turn: Any, offered: tuple[str, ...], budget: Mapping[str, float]) -> s
     lines.append(f"Your action directory: {directory}.")
     lines.append("You may never: " + ", ".join(sorted(set(config.forbidden) | {"approve", "contact_customers"})) + ".")
     lines.append(f"Your budget this turn: {int(budget['steps'])} tool calls and {int(budget['seconds'])} seconds.")
-    return "\n".join(lines)
+    return "\n".join(lines + passed_lines(passed))
+
+
+def passed_lines(passed: Optional[list[dict[str, Any]]]) -> list[str]:
+    """What the brief says about code's passing of the person's answer: only the steps that ran (the review of B4.1, F7), and
+    a refused one by name."""
+    done = [x["tool"] for x in passed or () if x.get("ok")]
+    failed = [x["tool"] for x in passed or () if not x.get("ok")]
+    lines = []
+    if done:
+        lines.append("DCLab's code has already recorded the person's answer on this turn and passed it to the teams that asked "
+                     f"({', '.join(dict.fromkeys(done))}): never record or carry it again. Go on with your task from it.")
+    if failed:
+        lines.append(f"DCLab's code could not finish passing the person's answer on ({', '.join(dict.fromkeys(failed))} was refused): "
+                     "read the task (team_read_task) to see where the answer stands.")
+    return lines
 
 
 # ---------------------------------------------------------------------------------------------------------- the turn
@@ -568,6 +897,14 @@ def act(turn: Any, registry: Any, *, base: str, source: str, name: str, trace: A
                     run=before.get("run"))
             return _skipped(turn, base, source, claimed)
         state.until = time.monotonic() + lease_seconds()
+    if rule[0] in ANSWER_CALLS:  # B4.1: a person's answer arrived: code records it and passes it on, as the rules do
+        passed = _pass_answer(turn, registry, brain, state, name)
+        if passed is not None and not _work_left(turn):
+            # nothing is left for this agent until a team replies or the person answers again: the turn was code's (the
+            # person's own message, as person_entry), the model is not asked, and the rules never run on top
+            fell = _fell_back(turn, state, base, "person_entry")
+            brains_record(turn, source, rule, fell.model, passed.get("run"))
+            return {**passed, "brain": {"arm": "agent", "source": source, "acted": "rules", "asked": False}}
     client, why = _client(turn)
     if client is None:
         return _fell_back(turn, state, base, why or "no_model")
@@ -581,7 +918,7 @@ def act(turn: Any, registry: Any, *, base: str, source: str, name: str, trace: A
     offered = tuple(dict.fromkeys((*config_of(turn.agent).policy_tools, *AGENT_TOOLS)))
     policy = Policy(name=name, system=prompts.text(PROMPT), tools=offered, max_steps=int(budget["steps"]), max_seconds=float(budget["seconds"]),
                     max_replies=int(budget["steps"]) + 2, max_tokens=MAX_TOKENS)
-    messages = [{"role": "system", "content": policy.system}, {"role": "user", "content": brief(turn, offered, budget)}]
+    messages = [{"role": "system", "content": policy.system}, {"role": "user", "content": brief(turn, offered, budget, state.passed)}]
     model = _Model(client, state)
     result, error = None, None
     try:
@@ -617,6 +954,76 @@ def act(turn: Any, registry: Any, *, base: str, source: str, name: str, trace: A
             "guard_refused": [s["error"] for s in state.steps if s.get("error")], "final": final,
             "brain": {"arm": "agent", "source": source, "acted": "agent", "asked": True},
             "agent_turn": {"outcome": outcome, "stopped": stopped, "writes": state.writes, "refused": state.refused, "plan": state.plan is not None}}
+
+
+# B4.1 (D-05, D-09, D-10, D-16 of the first dev run: 33 calls to record or carry the person's answer were refused, and turns
+# ran out of time right after the answer): a person's answer is code's to record and pass on, never the model's to retype
+ANSWER_CALLS = ("team_record_human_response", "team_answer")
+
+
+def _answer_brain(brain: Any) -> Any:
+    """The rules' calls that record a person's answer and pass it on (to each team that asked), and the one accept that takes
+    the task up again after it; then nothing, so the model goes on from there (G1: only code records a person's answer, from
+    that person's own words: the guard checks every one of these calls as it checks the rules')."""
+    took_up: list[str] = []
+
+    def answer_only(turn: Any) -> Any:
+        call = brain(turn)
+        if call is None:
+            return None
+        name, args = call
+        if name in ANSWER_CALLS:
+            return call
+        if name == "team_accept" and not took_up:
+            task = turn.work.task(turn.project_id, str(args.get("task_id") or ""))
+            if task is not None and task.status == "waiting_for_person":
+                took_up.append(task.id)
+                return call
+        return None
+
+    return answer_only
+
+
+def _pass_answer(turn: Any, registry: Any, brain: Any, state: _State, name: str) -> Optional[dict[str, Any]]:
+    """Run the rules' answer calls on a run of their own (traced as the rules', never the model's), before the model's turn.
+    Returns the run's result (the shape of ``agents.run_turn``'s), or None when nothing ran."""
+    from ..agents.harness import tracer
+    from ..agents.runtime import Policy, run as run_policy
+    from .agents import MAX_STEPS, SYSTEM, ScriptedChoices, _rules_policy, config_of
+
+    trace = tracer(name)
+    policy = _rules_policy(Policy)(name=name, system=SYSTEM, tools=config_of(turn.agent).policy_tools, max_steps=MAX_STEPS, max_seconds=60.0)
+    result = run_policy(policy, ScriptedChoices(_answer_brain(brain), turn, None), registry,
+                        [{"role": "user", "content": f"answer on {turn.task_id}"}], context=turn, trace=trace)
+    steps = [{"tool": x.tool, "ok": bool(x.ok)} for x in result.steps if x.tool]
+    state.passed = [{**x, "by": "code", "run": trace.run_id} for x in steps]
+    if not any(x["ok"] for x in steps):
+        return None
+    return {"agent": turn.agent, "task_id": turn.task_id, "skipped": False, "run": trace.run_id,
+            "steps": [{"tool": x.tool, "ok": x.ok, "result": x.result} for x in result.steps], "stopped": result.stopped,
+            "refused": [], "guard_refused": [x.result.get("error") for x in result.steps if not x.ok and isinstance(x.result, dict)],
+            "final": result.final}
+
+
+def _work_left(turn: Any) -> bool:
+    """Whether the agent has work on its task now that the answer is passed on: not while the task waits on the person
+    again or on teams that have not replied (their reply is its next turn); yes when it was taken up with nothing out."""
+    try:
+        view = turn.work.task_view(turn.project_id, turn.task_id) if turn.task_id else None
+    except Exception:  # noqa: BLE001 - unknown: the model decides
+        return True
+    if view is None:
+        return False
+    task, join = view["task"], view.get("join")
+    if task.status in tw.CLOSED_TASKS or task.status == "waiting_for_person":
+        return False
+    return not (join is not None and join.outstanding)
+
+
+def brains_record(turn: Any, source: str, rule: tuple[str, dict[str, Any]], model: dict[str, Any], run: Optional[str]) -> None:
+    from . import brains
+
+    brains.record(turn, "agent", source, rule, model, run, acted="rules")
 
 
 def _still_open(turn: Any) -> bool:
@@ -688,6 +1095,7 @@ def _journal(turn: Any, state: _State, outcome: str, stopped: Optional[str], fal
     doc = {"run": state.run, "agent": turn.agent, "task": turn.task_id, "project": turn.project_id, "delivery": state.delivery,
            "outcome": outcome, "stopped": stopped, "fallback": fallback, "plan": state.plan, "plans": state.plans, "steps": state.steps,
            "reports": state.reports, "writes": state.writes, "refused": state.refused, "euros": round(state.euros, 6),
+           "passed_answer": state.passed, "checked_words": state.checked,
            "seconds": round(state.seconds(), 3), "requests": state.requests, "budget": state.budget}
     try:
         path = journal_path(home, state.run)

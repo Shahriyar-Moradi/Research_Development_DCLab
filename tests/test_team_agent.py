@@ -475,17 +475,24 @@ class _Agent(_Contract):
                        initiator=self.sara, inputs=("sample:renewal_v1",))
         tid = out["task_id"]
         child = f"{tid}.data_science"
-        self.scripted(
+        transport = self.scripted(
             said(call("team_plan", plan="1. Accept.\n2. Ask Data Science.")),
+            # B4.1: a hand-over's question is checked like a report: its 37% is refused before anything is sent
             said(call("team_accept", task_id=tid), call("team_act", task_id=tid, action="check_prerequisites"),
                  call("team_delegate", action="delegate", task_id=tid, new_task_id="x", owner_team="data_science",
                       question="Confirm that 37% of accounts will not renew, seven days before renewal.", expected_output="a check",
-                      done_criteria=["says whether it holds"])), DONE,
+                      done_criteria=["says whether it holds"])),
+            said(call("team_delegate", action="delegate", task_id=tid, new_task_id="x", owner_team="data_science",
+                      question="Can the sample rank accounts by the risk of not renewing, seven days before renewal?",
+                      expected_output="a check", done_criteria=["says whether it holds"])), DONE,
             said(call("team_plan", plan=PLAN)),
             said(call("team_accept", task_id=child), call("team_act", task_id=child, action="inspect_schema")),
             said(call("team_return_report", task_id=child, outcome="complete", revision=1,
                       answer="About 37% of accounts will not renew. Score each account seven days before renewal.")), DONE, rest=DONE)
         self.pump(only={tid})
+        told = json.dumps(transport.seen[2]["messages"])
+        self.assertIn("Not sent: it states a number no record holds", told)
+        self.assertNotIn("37%", self.work.task(self.pid, child).question)
         self.pump(only={child})
         [report] = self.view(child)["reports"]
         self.assertNotIn("37%", report.answer)
@@ -717,11 +724,150 @@ for _name in [n for n in dir(_Contract) if n.startswith("test_")]:  # the fixtur
     setattr(_Agent, _name, None)
 
 
-class FileTeamAgentTests(_Agent, unittest.TestCase):
+class _DevRound:
+    """B4.1, the first dev round of the team-arms comparison (2026-11-24): each from what that run's plays showed."""
+
+    CLARIFY = "Does churn mean cancellation, or failure to renew by the contractual renewal date?"
+
+    def _ds_asks(self, *more):
+        return [said(call("team_plan", plan=PLAN)),
+                said(call("team_accept", task_id="T-renewal"),
+                     call("team_clarify", task_id="T-renewal", action="confirm_target", question=self.CLARIFY)), *more, DONE]
+
+    def test_the_persons_answer_is_recorded_and_passed_on_by_code_and_the_model_goes_on_from_it(self):
+        # D-05, D-09, D-10, D-16: 33 calls to record or carry an answer were refused, and turns ran out of time after it
+        self.switch("data_science")
+        transport = self.scripted(*self._ds_asks(),
+                                  said(call("team_plan", plan=PLAN)), said(call("team_act", task_id="T-renewal", action="inspect_schema")),
+                                  DONE, rest=DONE)
+        self.open_renewal()
+        self.pump()
+        self.assertEqual(self.view("T-renewal")["task"].status, "waiting_for_person")
+        out = agents.person_replies(self.services, self.pid, "T-renewal", person="sara", text=ANSWER, initiator=self.sara)
+        self.assertEqual(out["refused"], [])
+        self.pump()
+        view = self.view("T-renewal")
+        [confirmed] = [a for a in view["actions"] if a.action == "confirm_target"]
+        self.assertEqual((confirmed.status, confirmed.responded_by.id), ("succeeded", "sara"))  # recorded by code, from her words
+        self.assertIsNotNone(view["task"].target)
+        self.assertIn("inspect_schema", self.mine("T-renewal"))  # the model went on with its work from the answer
+        brief = transport.seen[3]["messages"][1]["content"]
+        self.assertIn("already recorded the person's answer", brief)
+        sent = [c["function"]["name"] for r in transport.seen for m in r["messages"] if m.get("role") == "assistant"
+                for c in m.get("tool_calls") or []]
+        self.assertFalse(set(sent) & {"team_record_human_response", "team_answer"})  # the model never had to
+        turn = [t for t in self.turns("data_science") if t["outcome"] == "acted"][-1]
+        journal = agent_arm.journal(self.services, turn["run"])
+        self.assertEqual([x["tool"] for x in journal["passed_answer"]], ["team_record_human_response", "team_accept"])
+        self.assertTrue(all(x["by"] == "code" for x in journal["passed_answer"]))
+
+    def test_a_lead_whose_teams_are_still_out_passes_the_answer_without_asking_its_model(self):
+        self.switch("lead")
+        out = lead.ask(self.services, self.pid, self.prob, question=BRIEF, track="analyze", person="sara", draft_id=self.draft,
+                       initiator=self.sara, inputs=("sample:renewal_v1",))
+        tid = out["task_id"]
+        child = f"{tid}.data_science"
+        transport = self.scripted(
+            said(call("team_plan", plan="1. Accept.\n2. Hand the analysis to Data Science.")),
+            said(call("team_accept", task_id=tid), call("team_act", task_id=tid, action="check_prerequisites"),
+                 call("team_delegate", action="delegate", task_id=tid, new_task_id="x", owner_team="Data Science",
+                      question="Can the sample rank accounts by the risk of not renewing, seven days before renewal?",
+                      expected_output="a feasibility answer", done_criteria=["says whether the data can answer"], allowed_inputs=[])),
+            DONE,
+            said(call("team_plan", plan="1. Ask the person Data Science's question.")),
+            said(call("team_clarify", task_id=tid, action="confirm_with_requester", question=agents.CLARIFY_TARGET)), DONE, rest=DONE)
+        self.pump(only={tid})
+        task = self.work.task(self.pid, child)
+        self.assertIsNotNone(task)  # "Data Science" is data_science (D-01: 19 hand-overs refused for a team's spelling)
+        self.assertEqual(task.allowed_inputs, ["sample:renewal_v1"])  # inputs=[]: the parent's readable inputs (D-13)
+        self.pump(only={tid, child})
+        self.assertEqual(self.view(tid)["task"].status, "waiting_for_person")
+        asked = len(transport.seen)
+        out = lead.answer(self.services, self.pid, tid, person="sara", text=ANSWER, initiator=self.sara)
+        self.pump(only={tid})
+        self.assertEqual(len(transport.seen), asked)  # nothing left for the Lead's model: Data Science is still out
+        self.assertTrue([d for d in self.view(child)["deliveries"] if d["kind"] == "answer" and d["text"] == ANSWER])
+        last = self.turns("lead")[-1]
+        self.assertEqual((last["outcome"], last["fallback"]), ("fell_back", "person_entry"))
+        self.assertTrue([a for a in self.view(tid)["actions"] if a.action == "confirm_with_requester" and a.status == "succeeded"])
+
+    def test_no_block_while_a_question_to_the_person_is_open(self):
+        # D-02, D-14, D-18: a question was asked, then the task blocked before the answer came
+        self.switch("data_science")
+        transport = self.scripted(*self._ds_asks(said(call("team_block", task_id="T-renewal", reason="waiting on the person"))), rest=DONE)
+        self.open_renewal()
+        self.pump(only={"T-renewal"})
+        self.assertEqual(self.view("T-renewal")["task"].status, "waiting_for_person")
+        told = json.dumps(transport.seen[-1]["messages"])
+        self.assertIn("a question to the person on this task is still open", told)
+
+    def test_a_question_is_checked_like_a_report_and_a_choice_it_offers_may_carry_a_number(self):
+        self.switch("data_science")
+        bad = "The sample has 12 columns with an auto-renew status. Does churn mean cancellation, or failure to renew?"
+        good = "Should we score seven days before renewal, or 14 days before it?"
+        claim = "We scored every account already. Does churn mean cancellation, or failure to renew?"
+        transport = self.scripted(said(call("team_plan", plan=PLAN)),
+                                  said(call("team_accept", task_id="T-renewal"),
+                                       call("team_clarify", task_id="T-renewal", action="confirm_target", question=bad),
+                                       call("team_clarify", task_id="T-renewal", action="confirm_target", question=claim),
+                                       call("team_clarify", task_id="T-renewal", action="confirm_prediction_moment", question=good)),
+                                  DONE, rest=DONE)
+        self.open_renewal()
+        self.pump(only={"T-renewal"})
+        [turn] = self.turns("data_science")
+        journal = agent_arm.journal(self.services, turn["run"])
+        self.assertEqual([c["reason"] for c in journal["checked_words"]], ["number_not_in_records", "claims_unrecorded_action"])
+        asked = [d["text"] for d in self.view("T-renewal")["deliveries"] if d["kind"] == "clarification"]
+        self.assertEqual(asked, [good])  # the choice it offers holds 14: a proposal for the person to pick
+        told = json.dumps(transport.seen[-1]["messages"])
+        self.assertIn("Not sent: it states a number no record holds", told)
+        # the corrected rules: counting words are no quantity, a person's "a week" is 7
+        known = agent_arm.check_words("Two things need your call: the scoring moment is a week before renewal, T-7.", {"7", "+7"}, set(), set())
+        self.assertIsNone(known)
+        self.assertEqual(agent_arm._spans("I'd like to know a week before"), {"7", "+7"})
+        self.assertIn("8 columns", agent_arm.split_choices("We hold 8 columns: (a) 7 days before or (b) 30 days before?")[0])
+        self.assertNotIn("30", agent_arm.split_choices("We hold 8 columns: (a) 7 days before or (b) 30 days before?")[0])
+        for words in ("Do you mean the 500 customers who left or the ones who downgraded?", "Your table has 8,400 rows or so; which one?",
+                      "Should we score the 8,400 accounts at T-7 or T-14?"):  # the third review, R3: the 8,400 is stated as fact
+            self.assertEqual(agent_arm.check_words(words, set(), set(), set(), choices=True), "number_not_in_records", words)
+        self.assertIsNone(agent_arm.check_words("Should we score the 8,400 accounts at T-7 or T-14?", {"8400", "+8400"}, set(), set(),
+                                                choices=True))  # the fact on record, the two moments offered
+
+    def test_the_brief_says_the_answer_was_passed_on_only_for_the_steps_that_ran(self):
+        # the review of B4.1, F7
+        ran = [{"tool": "team_record_human_response", "ok": True}, {"tool": "team_answer", "ok": False}]
+        lines = agent_arm.passed_lines(ran)
+        self.assertIn("(team_record_human_response)", lines[0])
+        self.assertIn("team_answer was refused", lines[1])
+        self.assertEqual(agent_arm.passed_lines([{"tool": "team_record_human_response", "ok": False}])[0][:40],
+                         "DCLab's code could not finish passing th")
+        self.assertEqual(agent_arm.passed_lines([]), [])
+
+    def test_team_ids_are_normalised_and_the_tool_schemas_show_their_text_limits(self):
+        for said_as, team in (("data science", "data_science"), ("Data Science", "data_science"), ("ds", "data_science"),
+                              ("data-science", "data_science"), ("ML Engineering", "ml_engineering"), ("eta", "model:eta"),
+                              ("model:acceptance", "model:acceptance"), ("Marketing team", "marketing"), ("analytics", "analytics")):
+            self.assertEqual(agent_arm.team_id(said_as), team, said_as)
+        from dclab_rnd.agents import default_registry
+
+        schemas = {(x.get("function") or x)["name"]: (x.get("function") or x)["parameters"]["properties"] for x in default_registry().schemas("team")}
+        self.assertEqual(schemas["team_delegate"]["expected_output"]["maxLength"], tw.SHORT)
+        self.assertEqual(schemas["team_return_report"]["unblocks"]["maxLength"], tw.SHORT)
+        self.assertEqual(schemas["team_clarify"]["question"]["maxLength"], tw.TEXT)
+        self.assertEqual(schemas["team_block"]["reason"]["maxLength"], tw.SHORT)
+        self.assertEqual(schemas["team_plan"]["plan"]["maxLength"], core.PLAN_CHARS)
+        from dclab_rnd import prompts
+
+        system = prompts.text("team_agent")
+        for words in ("model:eta", "model:acceptance", "marketing", "data_science", "ml_engineering", "never ask the person about it again"):
+            self.assertIn(words, system)
+
+
+class FileTeamAgentTests(_DevRound, _Agent, unittest.TestCase):
     env = {"DCLAB_DATABASE_URL": ""}
 
 
-class PgTeamAgentTests(_Agent, unittest.TestCase):
+class PgTeamAgentTests(_DevRound, _Agent, unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.url = pgtest.require()

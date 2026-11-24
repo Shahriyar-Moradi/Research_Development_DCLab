@@ -36,6 +36,13 @@ FORBIDDEN = ("claude", "anthropic", "fable")  # the owner (2026-11-15): never a 
 MAX_ROUNDS = 12  # scripted messages a case may send, plus the opening: a script that keeps firing is cut here
 MAX_DELIVERIES = 400
 PLAY = "play.json"
+# B4.1 (the first dev run, 2026-11-24): the provider refused every request for want of credit (HTTP 402) and the model arms
+# quietly fell back to the rules, their plays marked final. A model request's outcome, as the gateway records it
+# (``models/client.failure``'s words), says whose failure it was:
+PROVIDER_REFUSED = ("the model account has no credit left", "the provider refused the key")  # the account: the run stops at once
+PROVIDER_FAILED = ("the provider is limiting requests for now", "the provider had an error",  # 429 after the retries, a 5xx,
+                   "the model endpoint could not be reached")  # the network: the play counts for no arm and is played again
+REPLAYABLE = ("cap", "provider_refused", "provider_failed")  # a play stopped so is played again by the next sitting (--resume)
 
 
 class Refused(ValueError):
@@ -55,6 +62,33 @@ def slug(text: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", str(text).lower()).strip("-") or "x"
 
 
+def provider_reason(text: Any) -> Optional[str]:
+    """``refused`` (the provider refused the account: no credit, a refused key), ``failed`` (a rate limit after the retries,
+    a provider error, an unreachable endpoint) or None (the request's own failure, or no failure) for a failed request's
+    words: an exception's text or a usage row's outcome."""
+    said = str(text or "")
+    if any(reason in said for reason in PROVIDER_REFUSED):
+        return "refused"
+    if any(reason in said for reason in PROVIDER_FAILED):
+        return "failed"
+    return None
+
+
+def provider_failures(folder: Path) -> dict[str, int]:
+    """The play's model requests that failed for the provider's reason, from its gateway's usage log: ``refused`` and ``failed``."""
+    out = {"refused": 0, "failed": 0}
+    for path in Path(folder).glob("**/usage.jsonl"):
+        for line in path.read_text(encoding="utf-8").splitlines():
+            try:
+                outcome = json.loads(line).get("outcome")
+            except (ValueError, AttributeError):
+                continue
+            kind = provider_reason(outcome) if outcome != "ok" else None
+            if kind:
+                out[kind] += 1
+    return out
+
+
 # ---------------------------------------------------------------------------------------------------------- the euros
 class RunBudget:
     """One euro cap over every client of a run, across its plays. A client's own limit (an agent turn's euros) is kept: the
@@ -69,6 +103,7 @@ class RunBudget:
         self.cap_eur, self.margin_eur = float(cap_eur), float(margin_eur)
         self.clients: list[tuple[str, Any]] = []
         self.exhausted = False
+        self.provider_refused: Optional[str] = None  # B4.1: the provider refused the account: the run stops at once
 
     def spent_eur(self, key: Optional[str] = None) -> float:
         return sum(float(getattr(c, "spent_eur", 0.0) or 0.0) for k, c in self.clients if key is None or k == key)
@@ -106,6 +141,8 @@ class _Capped:
         except Exception as exc:
             if binding and str(exc).startswith("BudgetExceeded"):
                 self._budget.exhausted = True  # refused for the run's money: the play is cut, the run stops after it
+            if provider_reason(str(exc)) == "refused":  # B4.1: no credit or a refused key: no arm can be measured any more
+                self._budget.provider_refused = self._budget.provider_refused or str(exc).split(": ", 1)[-1][:200]
             raise
 
     def complete(self, *args: Any, **kwargs: Any) -> Any:
@@ -443,6 +480,9 @@ class Player:
                     if self.budget is not None and self.budget.exhausted:
                         self.record["stopped"] = "cap"
                         break
+                    if self.budget is not None and self.budget.provider_refused:  # B4.1: at once, never on to the next message
+                        self.record["stopped"] = "provider_refused"
+                        break
                     if not self.top:
                         break
                     due = next(((r, d) for r in case.replies if r.id not in fired for d in [self._due(r)] if d is not None), None)
@@ -466,6 +506,18 @@ class Player:
         self.record["euros"] = round(usage_euros(self.folder), 6)
         if self.budget is not None and (self.budget.exhausted or self.budget.spent_eur() >= self.budget.cap_eur) and not self.record["stopped"]:
             self.record["stopped"] = "cap"  # a request was refused for the run's money, or the run spent its cap during this play
+        # B4.1: a request the provider refused or failed (402, a refused key; 429 after the retries, a 5xx, the network) turned
+        # that turn into the rules': the play measures no arm. It is played again, never scored (a client the harness does not
+        # wrap is read from the usage log too)
+        failures = provider_failures(self.folder) if self.arm != "R" else {"refused": 0, "failed": 0}
+        if any(failures.values()):
+            self.record["provider_failures"] = failures
+        if self.budget is not None and self.budget.provider_refused and not failures["refused"]:
+            failures["refused"] = 1
+        if not self.record["stopped"] and failures["refused"]:
+            self.record["stopped"] = "provider_refused"
+        elif not self.record["stopped"] and failures["failed"]:
+            self.record["stopped"] = "provider_failed"
         gw = self.services.gateway if getattr(self, "services", None) is not None else None
         if isinstance(gw, ArmGateway) and gw.refused:
             self.record["model_refused"] = gw.refused[:20]
@@ -512,5 +564,5 @@ def play(case: C.Case, arm: str, model: Optional[str], folder: Path, **kw: Any) 
     return Player(case, arm, model, folder, **kw).play()
 
 
-__all__ = ["ARMS", "ARM_NAMES", "FORBIDDEN", "PLAY", "ArmGateway", "Player", "Refused", "RunBudget", "environment", "model_refusal",
-           "open_services", "override", "play", "slug", "usage_euros"]
+__all__ = ["ARMS", "ARM_NAMES", "FORBIDDEN", "PLAY", "PROVIDER_FAILED", "PROVIDER_REFUSED", "REPLAYABLE", "ArmGateway", "Player", "Refused", "RunBudget", "environment", "model_refusal",
+           "open_services", "override", "play", "provider_failures", "provider_reason", "slug", "usage_euros"]

@@ -47,6 +47,10 @@ MAX_CAP_EUR = gate.LIMITS["max_eur_per_run"]
 # the tokens one play of an arm is guessed to use (for the estimate only; the cap is what holds)
 GUESS = {"H": {"calls": 4, "in": 2500, "out": 1500}, "A": {"calls": 6, "in": 6000, "out": 1200}}
 AGENT_TURNS_PER_ROLE = 3
+PROVIDER_STOP = "the provider refused the account: "  # B4.1: what run.json's stopped says (go on with --resume once it is fixed)
+# the review of B4.1 (F5): a run with a play failed for the provider's reason has not finished, and says so
+PROVIDER_FAILED_STOP = "plays failed for the provider's reason (a rate limit, a provider error, the network): go on with --resume"
+PROVIDER_TRIES = 2  # the review of B4.1 (F6): a play the provider failed this often already is final the next time (never a loop)
 REQUEST_TOKENS = {"in": 30000, "out": 8000}  # one request's upper bound for the cap's margin (a long agent turn, its thinking)
 
 
@@ -219,14 +223,27 @@ def code_state(root: Path = ROOT) -> dict[str, Any]:
 def _state(folder: Path) -> str:
     """Where one play stands: ``final`` (scored, and not cut by the cap: complete or not, it is never played again),
     ``unscored`` (played to its end but its score failed: scored again from its records), or ``replay`` (cut by the cap,
-    or never ended: a killed process). The re-review's N2: a crash, a failed delivery or a score error is final."""
+    or never ended: a killed process). The re-review's N2: a crash, a failed delivery or a score error is final.
+    B4.1: a play the provider refused or failed (``provider_refused``, ``provider_failed``: a turn fell back to the rules for
+    the provider's reason) is ``replay`` too: it counts neither for nor against an arm."""
     played = folder / P.PLAY
     if not played.exists():
         return "replay"
     stopped = json.loads(played.read_text(encoding="utf-8")).get("stopped")
-    if stopped == "cap":
+    if stopped in P.REPLAYABLE:
         return "replay"
     return "final" if (folder / "score.json").exists() else "unscored"
+
+
+def _provider_tries(folder: Path) -> int:
+    """How often this play was played before and failed for the provider's reason (its ``.cut-N`` folders)."""
+    out = 0
+    for cut in Path(folder).parent.glob(Path(folder).name + ".cut-*"):
+        try:
+            out += json.loads((cut / P.PLAY).read_text(encoding="utf-8")).get("stopped") == "provider_failed"
+        except (OSError, ValueError):
+            continue
+    return out
 
 
 def _row(folder: Path, case: C.Case, arm: str, model: Optional[str]) -> dict[str, Any]:
@@ -250,8 +267,8 @@ def run_cases(case_set: C.CaseSet, cases: list[C.Case], arms: list[str], models:
     builds a play's gateway in its folder (the live one, or a scripted one in tests). Writes ``run.json``.
 
     ``resume``: the same run again, in a new sitting with its own cap (a set larger than one cap: the sealed set), on the
-    same code and the same pinned cases as its first sitting (else refused). Only a play cut by the cap (or never ended) is
-    played again, from a fresh workspace, the cut one kept aside (``<folder>.cut-N``); every other play is final, complete or
+    same code and the same pinned cases as its first sitting (else refused). Only a play cut by the cap, refused or failed by
+    the provider (B4.1: the run stops at once when the provider refuses the account), or never ended is played again, from a fresh workspace, the cut one kept aside (``<folder>.cut-N``); every other play is final, complete or
     not (a crash is not a second try). ``finished`` is true once every play is final. A sealed run's ``run.json`` holds
     counts only, never a case's row."""
     from . import judge as J
@@ -304,6 +321,9 @@ def run_cases(case_set: C.CaseSet, cases: list[C.Case], arms: list[str], models:
             if budget.reached():
                 stopped = "the cap was reached"
                 break
+            if budget.provider_refused:
+                stopped = PROVIDER_STOP + budget.provider_refused
+                break
             if folder.exists():  # cut by the cap (or a killed process) in an earlier sitting: kept aside, played again fresh
                 n = 1 + len(list(folder.parent.glob(folder.name + ".cut-*")))
                 folder.rename(folder.with_name(f"{folder.name}.cut-{n}"))
@@ -311,7 +331,11 @@ def run_cases(case_set: C.CaseSet, cases: list[C.Case], arms: list[str], models:
             if arm != "R" and gateway is None:
                 raise Refused("a model arm needs the run's gateway")
             record = P.play(case, arm, model, folder, gateway=gateway, budget=budget if arm != "R" else None, set_name=case_set.set)
-            if record.get("stopped") != "cap":
+            if record.get("stopped") == "provider_failed" and _provider_tries(folder) >= PROVIDER_TRIES:
+                # failed for the provider on every try: final now, incomplete (the arm did not play it to the end), and why
+                record.update(stopped="provider_failed_again", provider_tries=_provider_tries(folder) + 1)
+                (folder / P.PLAY).write_text(json.dumps(record, indent=1, ensure_ascii=False, default=str) + "\n", encoding="utf-8")
+            if record.get("stopped") not in P.REPLAYABLE:  # B4.1: a play the provider refused or failed is never scored
                 try:  # a scoring error is the play's record, never the run's end
                     scored = S.score(folder, case, exchanges)
                 except Exception as exc:  # noqa: BLE001
@@ -325,11 +349,17 @@ def run_cases(case_set: C.CaseSet, cases: list[C.Case], arms: list[str], models:
             if record.get("stopped") == "cap":
                 stopped = "the cap was reached"
                 break
+            if record.get("stopped") == "provider_refused":  # B4.1: at once: every later model play would be the rules'
+                stopped = PROVIDER_STOP + (budget.provider_refused or "a request was refused for the account")
+                break
     except Exception as exc:  # noqa: BLE001
         stopped = f"{type(exc).__name__}: {str(exc)[:300]}"
         raise
     finally:
         sitting.update(stopped=stopped, spent_eur=round(budget.spent_eur(), 6), ended=datetime.now(timezone.utc).isoformat(timespec="seconds"))
+        if stopped is None and any(f.exists() and _state(f) == "replay" for *_, f in plays):
+            stopped = PROVIDER_FAILED_STOP  # F5: never read as a finished run with a case "not played to the end"
+            sitting["stopped"] = stopped
         doc["stopped"] = stopped
         doc["spent_eur"] = round(sum(float(x.get("spent_eur") or 0.0) for x in doc["sittings"]), 6)
         doc["finished"] = stopped is None and all(f.exists() and _state(f) == "final" for *_, f in plays)
@@ -472,6 +502,10 @@ def _cmd_run(args: argparse.Namespace) -> int:
         print(f"refused: {refused}", file=sys.stderr)
         return 2
     stamp = datetime.now(timezone.utc)
+    if resume is not None:  # the review of B4.1: a provider paid again within the pause after its refusal is asked again
+        from dclab_rnd.models import client as model_client
+
+        model_client.resume()
     run_dir = resume or RUN_ROOT / f"{stamp:%Y-%m-%d-%H%M%S}-team-arms-{args.set}"
     staging = RUN_ROOT / f"{stamp:%Y-%m-%d-%H%M%S}-team-arms-preflight-{args.set}"
     if models:  # before the sealed marker: a refused model never spends the sealed set's one run
@@ -524,11 +558,11 @@ def _cmd_run(args: argparse.Namespace) -> int:
     if not doc["thinking"]["verified"]:
         print("warning: an answered model request kept no thinking or was not kept whole (CLAUDE.md rule 9): see thinking in run.json",
               file=sys.stderr)
-    if not doc["finished"] and doc["stopped"]:
+    if not doc["finished"]:
         split = "".join(f" --{k} {','.join(v)}" for k, v in (("roles", roles), ("families", families)) if v)
         print(f"the run stopped before every play ({doc['stopped']}): go on with run --set {args.set} --arms {','.join(arms)} "
               f"--models {','.join(models)}{split} --resume {run_dir.relative_to(ROOT)} --yes --cap-eur 0.5 "
-              "(final plays are kept; plays cut by the cap are played again)")
+              "(final plays are kept; plays cut by the cap, or refused or failed by the provider, are played again)")
     print(f"next: make archive, then python -m dclab_rnd.agent_eval.team_arms receipt {run_dir.relative_to(ROOT)} --snapshot <the snapshot it printed>")
     return 0 if doc["stopped"] is None and doc["thinking"]["verified"] else 1
 

@@ -41,6 +41,10 @@ def failure(exc: BaseException) -> tuple[str, bool]:
     if "quota" in code or "credit" in code or "billing" in code:
         return "the model account has no credit left", True
     message = str(error.get("message") or "").lower() if isinstance(error, dict) else ""
+    # B4.1 (the team-arms dev run, 2026-11-24): OpenRouter refuses an account without credit with HTTP 402 and a numeric
+    # code, so the words above never matched and the refusal read as "the model request failed" (tested, never passed on)
+    if status == 402 or "insufficient credit" in message or "more credits" in message:
+        return "the model account has no credit left", True
     if status == 400 and "credit balance" in message:  # Anthropic says it in a 400; the words are tested, never passed on
         return "the model account has no credit left", True
     if status == 400 and "thinking" in message:  # 25.3: the model or the conversation would not take extended thinking (tested, never passed on)

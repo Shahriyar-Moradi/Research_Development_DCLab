@@ -4,6 +4,19 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.173.2 (2026-11-24)
+
+- `team_brain.claimed_actions` (B4.1, the first dev round of the team-arms comparison; each from a real sentence of that
+  run): "scored" claims the scoring only when it is finished (after a subject that did it, "we scored", or a finished
+  passive, "the accounts were scored", "is now scored"), never a design ("each account is scored once", "what the model is
+  scored on", "accounts scored seven days before renewal"); "approved" after an article or a determiner is an adjective, no
+  approval ("an approved offer"); "recorded" claims a decision only with "decision" as its object ("we recorded the
+  decision", "the decision was recorded"), never "a renewal recorded before the decision point". No contract changed.
+- `team_work.lead_route`: a request that asks for an offer, a credit, a discount, a budget or a campaign also goes to Sales
+  and Marketing (`OFFER`, `asks_for_offer`), unless its sentence leaves the offer out ("leave the offer out", "no offer",
+  "without a discount"); a courier's first offer on a dispatch is no customer offer, and a credit score or card is no
+  credit. Found by the same run: the rules arm never asked Marketing for the offer the person asked for. No contract changed.
+
 ## 0.173.1 (2026-11-24)
 
 - `team_brain.claimed_actions`: a denial carries over a list joined by "or" or "nor" inside its own clause ("it does not

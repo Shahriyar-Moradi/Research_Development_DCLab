@@ -203,7 +203,9 @@ class _Arms:
         scored = json.loads(next((self.root / "words").glob("plays/QX-01/*/score.json")).read_text())
         self.assertEqual(scored["main"], 1)
         self.assertTrue(scored["counts"]["fallbacks"])
-        self.assertEqual(set(scored["counts"]["fallbacks"]), {"invalid_output"})
+        # B4.1: the turns a person's answer starts are code's (person_entry: code records and passes the answer on)
+        self.assertIn("invalid_output", scored["counts"]["fallbacks"])
+        self.assertLessEqual(set(scored["counts"]["fallbacks"]), {"invalid_output", "person_entry"})
         self.assertEqual(scored["counts"]["agent_turns"].get("acted", 0), 0)
 
     def test_the_agent_reports_last_line_is_the_one_the_scorer_knows(self):
@@ -852,9 +854,16 @@ class _Smoke:
         rec = S.Records(folder)
         rec.deliveries.append({"kind": "clarification", "task_id": "x", "from_team": "data_science", "to_team": "data_science", "text": WINDOW})
         self.assertEqual(S.invented_numbers(rec), [])
-        self.assertEqual([q["numbers"] for q in S.question_numbers(rec)], [["90"]])
-        self.assertEqual(S.counts(rec, c)["question_numbers"], 1)
+        # B4.1: 30 is no longer known from Sales's "0 to 30" ask, which this play never sent
+        self.assertEqual([q["numbers"] for q in S.question_numbers(rec)], [["30", "90"]])
+        self.assertEqual(S.counts(rec, c)["question_numbers"], 2)
+        # B4.1: to the person, the numbers its option (ii) offers are a choice to pick, counted, never a hard zero
         rec.deliveries.append({"kind": "clarification", "task_id": rec.top, "from_team": "lead", "to_team": "home", "text": WINDOW})
+        self.assertEqual(S.invented_numbers(rec), [])
+        self.assertEqual(S.counts(rec, c)["question_numbers"], 4)
+        # the same number stated as a fact before the choices (its premise) stays a hard zero
+        rec.deliveries.append({"kind": "clarification", "task_id": rec.top, "from_team": "lead", "to_team": "home",
+                               "text": "The sample holds 90 cancelled accounts: should churn mean (a) a cancellation or (b) no renewal?"})
         self.assertEqual([z["numbers"] for z in S.invented_numbers(rec)], [["90"]])
         rec = S.Records(folder)
         child = next(t for t in rec.views if t != rec.top)
@@ -866,11 +875,280 @@ class _Smoke:
         self.assertEqual([z["numbers"] for z in S.invented_numbers(rec)], [["90"]])
 
 
-class FileTeamArmsTests(_Smoke, _ThirdReview, _ReReview, _Review, _Arms, unittest.TestCase):
+class Refusing(Scripted):
+    """A provider that refuses or fails every request after ``ok`` answered ones, as OpenRouter did in the first dev run."""
+
+    def __init__(self, error, ok=0, **kw):
+        super().__init__(**kw)
+        self.error, self.ok = error, ok
+
+    def complete(self, messages, tools=None, max_tokens=1800, **options):
+        if self.ok <= 0:
+            self.seen.append({"messages": messages, "tools": tools})
+            raise self.error
+        self.ok -= 1
+        return super().complete(messages, tools, max_tokens, **options)
+
+
+def provider_error(reason, transient=False):
+    error = RuntimeError(f"APIStatusError: {reason}")
+    error.transient = transient
+    return error
+
+
+class _DevRound:
+    """B4.1, the first dev round (2026-11-24): a provider refusal stops the run and stays replayable, a provider failure
+    counts for no arm, the scorer's false positives of that run, and the two new counts."""
+
+    def test_a_402_is_read_as_no_credit_and_a_provider_reason_is_told_apart(self):
+        from dclab_rnd.models.client import failure
+
+        reason, pointless = failure(SimpleNamespace(status_code=402, body={"error": {"code": 402, "message": "Insufficient credits."}}))
+        self.assertEqual((reason, pointless), ("the model account has no credit left", True))
+        self.assertEqual(P.provider_reason("ModelPaused: the model account has no credit left"), "refused")
+        self.assertEqual(P.provider_reason("the provider is limiting requests for now"), "failed")
+        self.assertEqual(P.provider_reason("the model endpoint could not be reached"), "failed")
+        self.assertIsNone(P.provider_reason("the model request failed"))  # the request's own failure: never the provider's
+
+    def test_a_provider_refusal_stops_the_run_at_once_and_the_play_is_played_again_on_resume(self):
+        cases = [case("QX-02"), case("QX-01")]
+        doc = TA.run_cases(QUICK, cases, ["R", "A"], [MODEL], self.root / "run", cap_eur=0.5,
+                           gateway_for=scripted_gateways(Refusing(provider_error("the model account has no credit left"))))
+        self.assertTrue(doc["stopped"].startswith(TA.PROVIDER_STOP), doc["stopped"])
+        self.assertFalse(doc["finished"])
+        folder = self.root / "run" / "plays" / "QX-02" / f"A__{P.slug(MODEL)}"
+        played = json.loads((folder / P.PLAY).read_text())
+        self.assertEqual(played["stopped"], "provider_refused")
+        self.assertFalse((folder / "score.json").exists())  # never scored: it counts for no arm
+        self.assertEqual(TA._state(folder), "replay")
+        self.assertFalse((self.root / "run" / "plays" / "QX-01").exists())  # the run stopped at once: nothing after it
+        self.assertEqual([(r["case"], r["arm"]) for r in doc["plays"]], [("QX-02", "R")])
+        # the provider is paid again: the next sitting plays it fresh, the refused one kept aside
+        from dclab_rnd.models import client
+
+        client.resume()
+        doc = TA.run_cases(QUICK, cases, ["R", "A"], [MODEL], self.root / "run", cap_eur=0.5,
+                           gateway_for=scripted_gateways(Scripted()), resume=True)
+        self.assertIsNone(doc["stopped"])
+        self.assertTrue(doc["finished"])
+        self.assertTrue(folder.with_name(folder.name + ".cut-1").exists())
+        self.assertTrue((folder / "score.json").exists())
+
+    def test_a_play_whose_request_failed_for_the_provider_counts_for_no_arm_and_the_run_goes_on(self):
+        failing = Refusing(provider_error("the provider is limiting requests for now"))
+        doc = TA.run_cases(QUICK, [case("QX-02"), case("QX-03")], ["A"], [MODEL], self.root / "run", cap_eur=0.5,
+                           gateway_for=scripted_gateways(failing))
+        self.assertEqual(doc["stopped"], TA.PROVIDER_FAILED_STOP)  # it went on to the next play, and says it has not finished (F5)
+        self.assertFalse(doc["finished"])
+        for cid in ("QX-02", "QX-03"):
+            folder = self.root / "run" / "plays" / cid / f"A__{P.slug(MODEL)}"
+            played = json.loads((folder / P.PLAY).read_text())
+            if played.get("provider_failures"):
+                self.assertEqual(played["stopped"], "provider_failed")
+                self.assertGreater(played["provider_failures"]["failed"], 0)
+                self.assertFalse((folder / "score.json").exists())
+                self.assertEqual(TA._state(folder), "replay")
+        self.assertTrue(any(json.loads((self.root / "run" / "plays" / c / f"A__{P.slug(MODEL)}" / P.PLAY).read_text()).get("stopped")
+                            == "provider_failed" for c in ("QX-02", "QX-03")))
+        self.assertEqual(doc["plays"], [r for r in doc["plays"] if r.get("case") not in
+                                        {c for c in ("QX-02", "QX-03") if json.loads((self.root / "run" / "plays" / c / f"A__{P.slug(MODEL)}" / P.PLAY).read_text()).get("stopped")}])
+
+    def test_a_play_the_provider_failed_twice_before_is_final_the_third_time_never_a_loop(self):
+        # the review of B4.1, F6: a play that fails the same way every time would be replayed for ever (and a sealed run never end)
+        failing = Refusing(provider_error("the model endpoint could not be reached"))
+        for sitting in range(3):
+            doc = TA.run_cases(QUICK, [case("QX-02")], ["A"], [MODEL], self.root / "run", cap_eur=0.5,
+                               gateway_for=scripted_gateways(failing), resume=sitting > 0)
+        folder = self.root / "run" / "plays" / "QX-02" / f"A__{P.slug(MODEL)}"
+        played = json.loads((folder / P.PLAY).read_text())
+        self.assertEqual((played["stopped"], played["provider_tries"]), ("provider_failed_again", 3))
+        self.assertEqual(TA._state(folder), "final")
+        self.assertTrue(doc["finished"])
+        [row] = doc["plays"]
+        self.assertEqual((row["complete"], row["main"]), (False, 0))  # incomplete: not played to the end, never a result
+
+    # the fourth review of B4.1: one value per choice is offered, every other number is a fact; both copies read alike
+    CHOICES = (
+        # (sentence, the numbers offered as choices)
+        ("The model reached 0.91 AUC or 0.88 on the holdout.", set()),  # finding 1: no question
+        ("37% of accounts churn or 12% downgrade.", set()),
+        ("Since 812 accounts lapsed or 40 renewed late, do you want the list?", set()),  # a reason, not a choice
+        ("Do you want (a) T-7, since 37% of accounts churn, or (b) T-14?", {"7", "14"}),  # finding 2: 37% stays a fact
+        ("We found (a) 812 rows lack dates and (b) 40 duplicates; which should we fix first?", set()),  # finding 3
+        ("Is churn 37% or 37%?", set()),  # finding 4
+        ("Do you want a week or 14 days?", {"14"}),  # finding 5: a week is a value
+        ("Should we score the 8,400 accounts at T-7 or T-14?", {"7", "14"}),  # R3
+        ("Since 14% of accounts churn, should we score at 7 or 14 days?", {"7", "14"}),
+        ("About 37% will not renew; do you want the list or not?", set()),
+        ("Is it 37% or not?", set()),
+        ("the 37% figure, or another?", set()),
+        ("Should we flag the 312 late deliveries or wait a week?", set()),
+        ("Do you mean the 500 customers who left or the one segment that downgraded?", set()),
+        ("Should Sales call the 1,200 at-risk accounts first or the other one?", set()),
+        ("There are three issues: (a) 812 rows lack dates, (b) 40 duplicates. Fix them?", set()),
+        ("Two things: (a) the sample has 8,400 rows (b) 23% churned.", set()),
+        ("Which window: (a) 7 days before renewal (b) 14 days; the sample has 12,000 rows.", {"7", "14"}),
+        ("Your table has 8,400 rows or so; which target do you want?", set()),
+        ("Should we score seven days before renewal, or 14 days before it?", {"7", "14"}),
+        ("Should we score seven days or fourteen days before renewal?", {"7", "14"}),
+        ("how many days (e.g. 30, 60, 90)?", {"30", "60", "90"}),
+        ("We found 12, 40 and 300 late orders; which matter?", set()),
+        ("Data Science needs you to pick the scoring moment: (a) exactly 7 days before renewal_date; or (b) earlier, at T-30 "
+         "or T-14 — a wider window.", {"7", "30", "14"}),  # D-05's offer
+        ("Pick one: (a) 7 days, where 37% churn (b) 14 days, where 12% churn?", {"7", "14"}),
+        # the fifth review: when unsure, premise. A value must stand right next to the "or", never a count of the data,
+        # in the asking clause, outside a reason anywhere in it
+        ("Should we call the 812 lapsed accounts, or wait 14?", set()),
+        ("Churn is 40% or should we call at 14?", set()),
+        ("Should we target the 812 lapsed accounts or the 40 late ones?", set()),
+        ("Fix first: (a) the 812 rows lacking dates, or (b) the 40 duplicates?", set()),
+        ("Pick: (a) 812 accounts at 7 days or (b) 40 accounts at 14 days?", {"7", "14"}),
+        ("About 812 or 900 rows lack dates, drop them?", set()),
+        ("With 812 lapsed or 40 late, should we act?", set()),
+        ("Churn rose because 812 lapsed or 40 renewed late; act?", set()),
+        ("Should we call 500 or 1000 customers?", set()),  # counts: sent back to be written again, never let through
+        ("We found errors (812, 40); which first?", set()),
+        ("Should we score 7 days after signup or 14?", {"7", "14"}),
+        ("Should we score at 7 or 14 or 30 days?", {"7", "14", "30"}),
+        ("Should we score at T-7 or T-14, given 37% churn?", {"7", "14"}),
+        # the sixth review: a question that checks a fact, or a value that names a measured result, offers nothing
+        ("Is the churn rate 12% or 15%?", set()),
+        ("Did 37% or 40% of accounts lapse?", set()),
+        ("Is the AUC 0.81, or 0.84?", set()),
+        ("Was the lift 1.4 or 2.1?", set()),
+        ("Did revenue fall by 8% or 12% last quarter?", set()),
+        ("Is the median 14 days or 21 days?", set()),
+        ("Has the data 3 years or 5 years of history?", set()),
+        ("Is it 812 or 900?", set()),
+        ("Was churn thirty-seven percent or forty-two percent?", set()),
+        ("Which is right: (a) 812, or (b) 900?", set()),
+        ("Churn came out at, e.g., 37%, 42%?", set()),
+        ("Our holdout showed, for example, 0.81 or 0.84?", set()),
+        ("Which figure do you trust: (a) churn 37%, (b) churn 42%?", set()),
+        ("Which: (a) 37% churn or (b) 42% churn?", set()),
+        ("Which do you prefer: (a) 37% of accounts lapsed, or (b) 42% lapsed?", set()),
+        ("Which one: (a) churn is 37% so keep it, (b) churn is 12% so drop it?", set()),
+        ("How should we read churn, for example 37% or 12%?", set()),
+        ("Should we say churn is 12% or 15%?", set()),
+        # ... and a design value the person picks still offers its values
+        ("Do you want to keep 37% or 40% of the rows?", {"37%", "40%"}),
+        ("Should we flag customers with a score above 0.81 or 0.9?", {"0.81", "0.9"}),
+        ("Pick a threshold such as 0.81, 0.79?", {"0.81", "0.79"}),
+    )
+
+    def test_a_range_is_one_value_so_no_half_of_it_is_left_as_a_fact(self):
+        from dclab_rnd.teamspace import agent_arm
+
+        for words in ("Should we use 10-20 or 30-40 days?", "Should we use 10%-20% or 30%-40%?",
+                      "Should we use 10 to 20 or 30 to 40 days?"):
+            premise, choices = S.split_choices(words)
+            self.assertEqual((premise, choices), agent_arm.split_choices(words), words)
+            self.assertEqual(S._numbers(premise), set(), words)
+            self.assertTrue(choices, words)
+
+    def test_one_value_per_choice_is_offered_and_both_copies_read_every_sentence_alike(self):
+        from dclab_rnd.teamspace import agent_arm
+
+        for words, offered in self.CHOICES:
+            mine = S.split_choices(words)
+            self.assertEqual(mine, agent_arm.split_choices(words), words)
+            self.assertEqual(S._numbers(mine[1]), offered, words)
+            self.assertEqual(S._numbers(words) - offered, S._numbers(mine[0]) - offered, words)  # every other number stays a fact
+
+    def test_the_new_counts_asked_then_blocked_and_unasked_confirmations(self):
+        c, folder = self.rules_play("QX-01")
+        rec = S.Records(folder)
+        base = S.counts(rec, c)
+        self.assertEqual((base["asked_then_blocked"], base["unasked_confirmations"]), (0, 0))  # the rules ask once, and it reaches the person
+        rec.events.append(SimpleNamespace(kind="team.task.moved", payload={"task": rec.top, "from": "waiting_for_person", "to": "blocked"}))
+        self.assertEqual(S.asked_then_blocked(rec), 1)
+
+    def test_a_second_question_kept_in_the_teams_own_thread_is_an_unasked_confirmation(self):
+        tid = "T-QX-02-open"
+        ds = [said(call("team_plan", plan=PLAN)),
+              said(call("team_accept", task_id=tid),
+                   call("team_clarify", task_id=tid, action="confirm_target",
+                        question="Does churn mean cancellation, or failure to renew by the contractual renewal date?"),
+                   call("team_clarify", task_id=tid, action="confirm_prediction_moment",
+                        question="Is the moment seven days before each renewal?")),
+              said(content="Done.")]
+        TA.run_cases(QUICK, [case("QX-02")], ["A"], [MODEL], self.root / "run", cap_eur=0.5,
+                     gateway_for=scripted_gateways(Scripted(agents={"data_science": ds})))
+        _, scored = self.played("QX-02", "A", MODEL)
+        self.assertGreaterEqual(scored["counts"]["unasked_confirmations"], 1)
+
+    def test_the_scorers_false_positives_of_the_first_dev_run_are_gone_and_real_ones_stay(self):
+        from dclab_rnd.agent_eval.team_arms import text as T
+
+        # 1-3: the claims (the scorer's copy and the product's own, the same sentences)
+        for claims in (T.claimed_actions, core.claimed_actions):
+            for words in ("Can our data rank accounts by risk of failing to renew by the contractual renewal date, scored seven days before it?",
+                          "For the scoring moment, may I fix it as: each account is scored once, exactly 7 days before its renewal_date?",
+                          "This fixes what the model is scored on and Data Science's label definition.",
+                          "Is the cut renewal_date - 7 days per account (each account scored at its own T-7)?",
+                          "What lead time does Sales need to receive a list and an approved offer?",
+                          "A renewal recorded before the decision point counts as a success."):
+                self.assertEqual(claims(words), [], words)
+            for words, claim in (("I've scored the 1,200 accounts.", "score"), ("We've scored every account.", "score"),  # review F2
+                                 ("All accounts scored; top 50 sent to Sales.", "score"), ("The accounts are scored now.", "score"),
+                                 ("I have recorded the final retention decision.", "record_decision"),
+                                 ("We recorded your go/no-go decision.", "record_decision"),
+                                 ("We got this approved by finance.", "approve"), ("I had that approved yesterday.", "approve"),
+                                 ("We scored every account seven days before renewal.", "score"), ("The accounts were scored at T-7.", "score"),
+                                 ("Data Science has scored the sample.", "score"), ("Sara approved the offer.", "approve"),
+                                 ("The budget was approved.", "approve"), ("We recorded the decision.", "record_decision"),
+                                 ("The decision was recorded.", "record_decision")):
+                self.assertIn(claim, claims(words), words)
+        # 4: counting words; 6: a span a person names; the label's code
+        self.assertEqual(S._numbers("Two things need your call. The two give different cohorts."), set())
+        self.assertEqual(S._numbers("We found two accounts at risk."), {"2"})  # a count of the data is still a number
+        for words, n in (("The data has five events per customer.", "5"), ("We found three fraud cases in the sample.", "3"),
+                         ("Only two outcomes were positive.", "2")):  # the review of B4.1, F4: nouns of the data, not of the talk
+            self.assertEqual(S._numbers(words), {n}, words)
+        self.assertEqual(S._numbers("It bundles two different targets — (a) the arrival and (b) the first offer."), set())
+        self.assertEqual(S._numbers("y = 1,200 rows"), {"1200"})
+        self.assertTrue({"7", "14", "1"} <= S._numbers("a week, a fortnight or a day before", source=True))
+        self.assertNotIn("7", S._numbers("only a week for sales to act"))  # a model's own "a week" is words, as before
+        self.assertEqual(S._numbers("y = 1 if it fails to renew; y = 0 otherwise"), set())
+        # 5: the choices a question offers, its premise apart
+        premise, choices = S.split_choices("Pick the scoring moment: (a) exactly 7 days before renewal; or (b) earlier, at T-30 or T-14.")
+        self.assertNotIn("7", premise)
+        self.assertIn("T-14", choices)
+        premise, choices = S.split_choices("The sample has 8 columns with an auto-renew status; should we score at T-7 or T-14?")
+        self.assertIn("8 columns", premise)
+        self.assertIn("T-14", choices)
+        # the review of B4.1, F3: a fact next to an "or", or after the options, is a fact
+        for words, fact in (("Your table has 8,400 rows or so; which target do you want?", "8,400"),
+                            ("Do you mean the 500 customers who left or the ones who downgraded?", "500"),
+                            ("Should we flag the 312 late deliveries or wait for Sales?", "312"),
+                            ("Which window: (a) 7 days before renewal (b) 14 days; the sample has 12,000 rows.", "12,000"),
+                            # the re-review: a word with no value on the other side, and facts marked (a), (b) with no pick asked
+                            ("Should we flag the 312 late deliveries or wait a week?", "312"),
+                            ("Do you mean the 500 customers who left or the one segment that downgraded?", "500"),
+                            ("Should Sales call the 1,200 at-risk accounts first or the other one?", "1,200"),
+                            ("There are three issues: (a) 812 rows lack dates, (b) 40 duplicates. Fix them?", "812"),
+                            ("Two things: (a) the sample has 8,400 rows (b) 23% churned.", "23%"),
+                            ("Should we score the 8,400 accounts at T-7 or T-14?", "8,400")):  # the third review, R3
+            self.assertIn(fact, S.split_choices(words)[0], words)
+        self.assertEqual(S._numbers(S.split_choices("Should we score seven days before renewal, or 14 days before it?")[1]), {"7", "14"})
+        self.assertIn("fourteen", S.split_choices("Should we score seven days or fourteen days before renewal?")[1])
+        self.assertEqual(S._numbers(S.split_choices("Should we score the 8,400 accounts at T-7 or T-14?")[1]), {"7", "14"})
+        # 7: Sales's ask adds its numbers only where it was sent
+        c, folder = self.rules_play("QX-01")
+        rec = S.Records(folder)
+        self.assertNotIn("30", S.known_numbers(rec))
+        from dclab_rnd.teamspace import commercial
+
+        rec.deliveries.append({"kind": "clarification", "task_id": rec.top, "from_team": "sales", "to_team": "sales",
+                               "text": commercial.ASKS["sales"]["question"]})
+        self.assertIn("30", S.known_numbers(rec))
+
+
+class FileTeamArmsTests(_DevRound, _Smoke, _ThirdReview, _ReReview, _Review, _Arms, unittest.TestCase):
     env = {"DCLAB_DATABASE_URL": ""}
 
 
-class PgTeamArmsTests(_Smoke, _ThirdReview, _ReReview, _Review, _Arms, unittest.TestCase):
+class PgTeamArmsTests(_DevRound, _Smoke, _ThirdReview, _ReReview, _Review, _Arms, unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.url = pgtest.require()

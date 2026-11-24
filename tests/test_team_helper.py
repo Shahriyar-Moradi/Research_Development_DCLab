@@ -209,6 +209,25 @@ class _Helper(_Contract):
                          [("check_failed", "rule", "label_event_mismatch"), ("check_failed", "rule", "not_allowed")])
         self.assertEqual(len(exchanges(self.home)), 2)  # their exchanges and thinking are kept all the same
 
+    def test_words_that_fit_several_events_of_the_table_are_never_read_and_the_rules_ask(self):
+        """B4.1 (D-10 of the first dev run): the helper read "Customers are leaving us" as non-renewal; the person meant an
+        explicit cancellation. On a table that records both events, a vague word fits each: no reading is asked, the rules ask."""
+        from dclab_rnd import prompts
+
+        self.switch("business")
+        transport = self.scripted(read_target=['{"event": "non_renewal_by_date"}'])
+        self.open_case("Customers are leaving us. Seven days before renewal, which accounts are most at risk?",
+                       sample="sample:renewal_with_cancellations")
+        self.pump()
+        self.assertEqual(transport.seen, [])  # no reading could pass: none is asked
+        view = self.view("T-renewal")
+        self.assertEqual(view["task"].status, "waiting_for_person")  # the rules asked the person what the outcome means
+        self.assertIsNone(view["task"].target)
+        [row] = self.seat_rows("read_target")
+        self.assertEqual((row["outcome"], row["used"], row.get("check")), ("check_failed", "rule", "words_fit_several"))
+        # the seat's prompt says it too, for words the keyword check does not catch
+        self.assertIn("fits a cancellation as well as a failure to renew", " ".join(prompts.text("team_helper_read_target").split()))
+
     def test_unsure_no_model_invalid_output_and_a_timeout_leave_the_rules_to_ask(self):
         self.switch("business")
         self.scripted(read_target=['{"event": "unsure"}', "it is probably non-renewal"])

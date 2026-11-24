@@ -193,6 +193,8 @@ def _needs_outcome(task: tw.TeamTask) -> bool:
 
     if task.target is not None:
         return False
+    if _delivery_request(task):  # B4.1 (D-07): an order's arrival or a courier's acceptance has no churn to define
+        return False
     if _ambiguous_target(task.question):
         return True
     said = task.question.lower()
@@ -200,15 +202,30 @@ def _needs_outcome(task: tw.TeamTask) -> bool:
                                                                             for e in tc.EVENTS.values())
 
 
+# B4.1 (D-07 of the first dev run: "When's it landing at the customer's door, and will a rider grab it on the first ping?"):
+# the arrival and the first-offer acceptance said in everyday words, not only "arrive", "ETA" and "accept"
+_ARRIVAL = re.compile(r"\b(?:arriv\w*|eta|landing|land|lands|reach(?:es|ing)?\s+(?:the\s+)?(?:customer|door|address|destination)|"
+                      r"get(?:s|ting)?\s+(?:there|to\s+(?:the\s+)?(?:customer|door|address))|delivered|delivery\s+time|"
+                      r"at\s+(?:the|their|the\s+customer's|the\s+customer’s)\s+door|what\s+time\s+will|when\s+will\s+(?:it|the\s+order|order))\b", re.I)
+_ACCEPTANCE = re.compile(r"\b(?:accept\w*|grab\w*|take\s+(?:it|the\s+(?:order|job|offer))|pick\w*\s+(?:it\s+)?up|"
+                         r"first\s+(?:ping|offer)|courier\s+offer)\b", re.I)
+
+
+def _delivery_request(task: tw.TeamTask) -> bool:
+    """B4.1: a request about an order's delivery: it may read a dispatch snapshot and no table sample. Its outcome needs no
+    definition (no churn), and the checks a table answers (columns, leakage, a baseline) do not apply to it."""
+    return any(i.startswith("dispatch:") for i in task.allowed_inputs) and not any(i.startswith("sample:") for i in task.allowed_inputs)
+
+
 def _specialists(task: tw.TeamTask) -> list[str]:
     """The model specialists a dispatch question needs: one for the arrival, one for first-offer acceptance."""
     if not any(i.startswith("dispatch:") for i in task.allowed_inputs):
         return []
-    said = task.question.lower()
+    said = task.question
     kinds = []
-    if re.search(r"\b(arriv\w*|eta)\b", said):
+    if _ARRIVAL.search(said):
         kinds.append("eta")
-    if re.search(r"\baccept\w*", said):
+    if _ACCEPTANCE.search(said):
         kinds.append("acceptance")
     return kinds
 
