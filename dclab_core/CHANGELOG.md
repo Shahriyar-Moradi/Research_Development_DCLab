@@ -4,6 +4,13 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.173.1 (2026-11-24)
+
+- `team_brain.claimed_actions`: a denial carries over a list joined by "or" or "nor" inside its own clause ("it does not
+  say a model was trained or an account was scored" claims neither); not over "and", which may start a new statement, and never past a new clause or subject inside the list's item ("no
+  data was missing or late and we scored every account" still claims the scoring). Found by the team-arms smoke run (B4): a helper's plain explanation was
+  read as claiming the scoring it denied. No contract changed.
+
 ## 0.173.0 (2026-11-24)
 
 - `team_brain` (B3 of the team workspace, the agent arm acts): in the `agent` arm a model chooses the turn's calls inside

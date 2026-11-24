@@ -52,7 +52,7 @@ import re
 import sys
 import threading
 import time
-from typing import Any, Mapping, Optional
+from typing import Any, Mapping, Optional, Sequence
 
 from dclab_core import team_brain as core
 
@@ -574,9 +574,31 @@ def _report_text(report: Any) -> str:
     return "\n".join(lines)
 
 
-def check_explanation(text: str, source: str) -> tuple[Optional[str], Optional[str]]:
+def done_actions(work: Any, project_id: str, view: Mapping[str, Any]) -> list[str]:
+    """The directory actions with a finished record on the report's task and on every task it handed out, and
+    ``team_brain.PERSON`` when a person's answer is recorded: what a helper's words may say was done (as the agent arm's)."""
+    from dclab_core import team_work as tw
+
+    actions = list(view.get("actions") or ())
+    for child in view.get("children") or ():
+        actions += list(((work.task_view(project_id, child.id) or {}).get("actions")) or ())
+    done = {a.action for a in actions if a.status in tw.DONE_ACTIONS}
+    if any(a.source.startswith("human:") and a.responded_by is not None and a.status in tw.DONE_ACTIONS for a in actions):
+        done.add(core.PERSON)
+    return sorted(done)
+
+
+def _claims(text: str, done: Optional[Sequence[str]]) -> bool:
+    """Whether a sentence claims an action no finished record backs (B4 smoke, 2026-11-24: the after-seats checked numbers
+    but never claims). ``done`` None: not checked (a caller with no records)."""
+    from .. import cited
+
+    return done is not None and any(core.unrecorded_claims(sentence, done) for sentence in cited.sentences(cited.CITE.sub("", text)))
+
+
+def check_explanation(text: str, source: str, done: Optional[Sequence[str]] = None) -> tuple[Optional[str], Optional[str]]:
     """The explanation as shown (its citations taken out), or why it is dropped (a code). Every sentence must pass
-    ``cited.check``; one that does not drops it all."""
+    ``cited.check`` and claim no action without its finished record (``done``); one that does not drops it all."""
     from .. import cited
 
     said = " ".join(str(text or "").split())
@@ -587,10 +609,13 @@ def check_explanation(text: str, source: str) -> tuple[Optional[str], Optional[s
         reason = (out["dropped"] or ["no citation"])[0]
         return None, {cited.REASONS[0]: "no_citation", cited.REASONS[1]: "unknown_source", cited.REASONS[2]: "number_not_in_report",
                       cited.REASONS[3]: "overclaims", cited.REASONS[4]: "too_long"}.get(reason, "dropped")
-    return " ".join(k["text"] for k in out["kept"]), None
+    shown = " ".join(k["text"] for k in out["kept"])
+    if _claims(shown, done):
+        return None, "claims_unrecorded_action"
+    return shown, None
 
 
-def check_risks(items: Any, source: str) -> tuple[Optional[list[str]], Optional[str]]:
+def check_risks(items: Any, source: str, done: Optional[Sequence[str]] = None) -> tuple[Optional[list[str]], Optional[str]]:
     """The risks as shown, or why the list is dropped (a code): a list of 1 to ``RISKS`` short sentences, each without a
     number the report does not write, an overclaim or a promise. One that fails drops the list."""
     from .. import cited
@@ -613,6 +638,8 @@ def check_risks(items: Any, source: str) -> tuple[Optional[list[str]], Optional[
             return None, "overclaims"
         if core._PROMISE.search(said):
             return None, "promises_action"
+        if _claims(said, done):
+            return None, "claims_unrecorded_action"
         out.append(said)
     return out, None
 
@@ -660,9 +687,9 @@ def _after_seat(turn: Any, role: str, seat: str, task_id: str, report_id: str, r
             if why is None and found is None:
                 why = "invalid_output"
             elif why is None and seat == "explain_report":
-                shown, check = check_explanation(str(found.get("explanation") or ""), source)
+                shown, check = check_explanation(str(found.get("explanation") or ""), source, done_actions(turn.work, turn.project_id, view))
             elif why is None:
-                shown, check = check_risks(found.get("risks"), source)
+                shown, check = check_risks(found.get("risks"), source, done_actions(turn.work, turn.project_id, view))
             if why is None and check is not None:
                 why = "check_failed"
         outcome = why or "used"

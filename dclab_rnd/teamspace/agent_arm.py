@@ -79,6 +79,7 @@ JOURNAL = "agent_turns"
 BUDGET_STOPS = ("steps", "time", "euros", "replies")
 _NO_FINDING = ("task:", "reviewed:", "presented:", "response:")  # an action's record that names what it touched, not what it found
 NO_ANSWER_STOPS = ("max_output_tokens", "tools_as_text")
+NO_HANDED_WORK = frozenset({"business", "lead", "home"})  # the requester's side: they ask, they never own a handed-out task
 
 
 # ---------------------------------------------------------------------------------------------------------- the budgets
@@ -324,6 +325,10 @@ def _delegate_args(turn: Any, args: dict[str, Any]) -> Optional[dict[str, Any]]:
     if parent is None:
         return None  # the registry's guard names it
     owner = str(args.get("owner_team") or "")
+    if owner.split(":")[0] in NO_HANDED_WORK:  # the live smoke run of 2026-11-24 (QX-03): an agent Lead handed a ranking to
+        # Business, whose rules never take handed-out work, and the case hung with the task open for ever
+        return {"error": f"Refused: {owner} does not take handed-out work. Hand analysis to data_science or ml_engineering and "
+                         "outreach limits to sales or marketing; ask the person through a question or your report."}
     args["new_task_id"] = safe_id(f"{parent.id}.{owner}")
     for key in ("thread_id", "problem_id", "brief_revision", "budget_eur"):  # code's: the child's reply thread, its problem and
         args.pop(key, None)  # brief are its parent's, and it spends nothing the parent did not give (the review of B3, F6)

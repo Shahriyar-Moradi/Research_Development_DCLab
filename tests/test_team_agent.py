@@ -65,17 +65,19 @@ DONE = said(content="Done.")
 class Scripted:
     """Replies in order, then ``rest`` for ever (default: words without a plan, which the agent arm reads as invalid)."""
 
-    def __init__(self, *replies, rest=None, delay=0.0, gate=None):
+    def __init__(self, *replies, rest=None, delay=0.0, gate=None, delays=None):
         self.replies, self.rest, self.delay, self.gate, self.seen, self.thinking = list(replies), rest, delay, gate, [], None
+        self.delays = list(delays or [])  # a delay per request, in order (then ``delay``)
 
     def complete(self, messages, tools=None, max_tokens=1800, **options):
         self.seen.append({"messages": [dict(m) for m in messages], "tools": tools, "options": options})
         if self.gate is not None:
             self.gate.wait(20)
-        if self.delay:
+        wait = self.delays.pop(0) if self.delays else self.delay
+        if wait:
             import time
 
-            time.sleep(self.delay)
+            time.sleep(wait)
         reply = self.replies.pop(0) if self.replies else (self.rest or said(content="Nothing to add."))
         if isinstance(reply, BaseException):
             raise reply
@@ -167,6 +169,27 @@ class _Agent(_Contract):
         self.assertEqual((record.used, record.value_used), ("model_role", "agent"))
 
     # ------------------------------------------------------------------ 2. the Lead breaks the request into team tasks itself
+    def test_a_hand_over_to_a_team_that_never_owns_handed_out_work_is_refused_so_no_case_hangs(self):
+        # the live smoke run of 2026-11-24 (QX-03): an agent Lead handed a ranking to Business, the task stayed open for ever
+        self.switch("lead")
+        out = lead.ask(self.services, self.pid, self.prob, question=BRIEF, track="analyze", person="sara", draft_id=self.draft,
+                       initiator=self.sara, inputs=("sample:renewal_v1",))
+        tid = out["task_id"]
+        transport = self.scripted(
+            said(call("team_plan", plan="1. Accept.\n2. Business ranks the accounts.")),
+            said(call("team_accept", task_id=tid),
+                 call("team_delegate", action="delegate", task_id=tid, owner_team="business",
+                      question="Rank the accounts by the risk of not renewing.", expected_output="a ranking",
+                      done_criteria=["a ranking"])),
+            DONE, rest=DONE)
+        self.pump(only={tid})
+        view = self.view(tid)
+        self.assertEqual([c.owner_team for c in view["children"]], [])  # nothing handed to Business
+        [turn] = self.turns("lead")
+        self.assertEqual(turn["writes"], 1)  # the accept ran; the refused hand-over was neither run nor counted
+        told = json.dumps(transport.seen[-1]["messages"])  # the model is told why, so it can hand the work to a team that takes it
+        self.assertIn("does not take handed-out work", told)
+
     def test_the_lead_on_the_agent_arm_opens_team_tasks_itself_and_the_work_reaches_the_teams(self):
         self.switch("lead")
         plan = ("1. Accept and check the prerequisites.\n2. Data Science confirms the outcome and checks the label.\n"
@@ -521,11 +544,11 @@ class _Agent(_Contract):
 
     def test_the_seconds_budget_ends_the_turn_cleanly(self):
         self.switch("data_science")
-        # 8 s and 3 s a request: the accept lands near 6 s, 2 s inside the budget even on a loaded gate (3 s and 1.2 s
-        # left only 0.6 s, and a busy PostgreSQL gate ran the plan and the claim past it on 2026-11-24)
-        with mock.patch.dict(os.environ, {"DCLAB_TEAM_AGENT_SECONDS": "8"}):
+        # the plan and the accept answer at once; only the third request outlasts the budget. Every request waiting the
+        # same time left the accept a margin a busy PostgreSQL gate overran twice on 2026-11-24, whatever the margin
+        with mock.patch.dict(os.environ, {"DCLAB_TEAM_AGENT_SECONDS": "6"}):
             self.scripted(said(call("team_plan", plan=PLAN)), said(call("team_accept", task_id="T-renewal")),
-                          said(call("team_act", task_id="T-renewal", action="inspect_schema")), DONE, delay=3.0)
+                          said(call("team_act", task_id="T-renewal", action="inspect_schema")), DONE, delays=[0, 0, 9.0])
             self.open_renewal()
             self.pump(only={"T-renewal"})
         [turn] = self.turns("data_science")
@@ -706,6 +729,18 @@ class PgTeamAgentTests(_Agent, unittest.TestCase):
 
 
 class ClaimsTests(unittest.TestCase):
+    def test_a_denial_carries_over_or_and_nor_but_not_over_and(self):
+        """The team-arms smoke run (2026-11-24): a helper's "it does not say a model was trained or an account was scored"
+        was read as claiming the scoring."""
+        self.assertEqual(core.claimed_actions("It does not say a model was trained or an account was scored"), [])
+        self.assertEqual(core.claimed_actions("Nothing was drafted, and neither a model was trained nor the accounts scored."), [])
+        self.assertEqual(core.claimed_actions("We did not train a model, and we scored the accounts."), ["score"])
+        self.assertEqual(core.claimed_actions("We drafted the list or called them."), ["draft_contact_list", "contact_customers"])
+        # the review of the fix: a new clause inside the list's item ends the denial's reach
+        self.assertEqual(core.claimed_actions("No data was missing or late and we scored every account."), ["score"])
+        self.assertEqual(core.claimed_actions("No customer was harmed or upset when Sales called the top ten accounts."), ["contact_customers"])
+        self.assertEqual(core.claimed_actions("Neither the label nor the dates were missing when we trained the model."), ["train"])
+
     def test_claims_denials_and_promises(self):
         self.assertEqual(core.claimed_actions("I inspected the schema and checked for leakage."), ["inspect_schema", "check_leakage"])
         self.assertEqual(core.claimed_actions("No model was trained."), [])

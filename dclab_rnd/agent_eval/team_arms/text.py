@@ -173,6 +173,11 @@ _NOT_DONE = re.compile(r"\b(?:no|not|never|nothing|none|neither|nor|without|cann
                        r"will|would|should|could|can|may|might|must|needs?|asks?|asked to|wants?|plans?|once)\b", re.I)
 # A denial inside a claim's own words ("we called no customers"). "Not just", "not only" and "no fewer than" widen the
 # claim instead of denying it ("we emailed not just the top accounts but all customers"), so they never count.
+# what starts a new clause inside a list's item: then the denial before the list does not reach the claim ("no data was
+# missing or late and we scored every account" claims the scoring; the review of the smoke fix, 2026-11-24)
+_NEW_CLAUSE = re.compile(r"\b(?:and|so|then|when|while|whereas|because|since|after|before|as|yet|but|until|once|which|that|we|they|it|"
+                         r"he|she|i|you|sales|marketing|business|engineering|science|lead|team)\b", re.I)
+_LIST_DENIAL = re.compile(r"\b(?:not|never|no|neither|nor|without|cannot)\b|n't\b", re.I)  # a denial a list's "or" carries
 _INNER_DENIAL = re.compile(r"\b(?:not|never|no)\b(?!\s+(?:just|only|merely|simply|fewer|less|more|later)\b)", re.I)
 
 
@@ -188,8 +193,18 @@ def claimed_actions(sentence: Any) -> list[str]:
             head = text[:match.start()]
             cut = max((m.end() for m in re.finditer(r"[;,:]|\bbut\b", head, re.I)), default=0)
             before = head[cut:].split()[-6:]
-            if _NOT_DONE.search(" ".join(before)) or _INNER_DENIAL.search(match.group(0)):
-                continue  # denied before it, or inside it ("the accounts on the list were never ... called")
+            # denied before it, or inside it ("the accounts on the list were never ... called")
+            denied = bool(_NOT_DONE.search(" ".join(before)) or _INNER_DENIAL.search(match.group(0)))
+            if not denied:  # a denial carries over a list joined by "or" or "nor" in its own clause: "it does not say a model was
+                # trained or an account was scored" claims neither (live B4 smoke, 2026-11-24). Not over "and", which may start a
+                # new statement ("we did not train a model, and we scored the accounts" claims the scoring).
+                clause = head[cut:]
+                joins = list(re.finditer(r"\b(?:or|nor)\b", clause, re.I))
+                between = clause[joins[-1].end():] if joins else ""  # the list's item: one, with no new clause or subject in it
+                denied = (bool(joins) and bool(_LIST_DENIAL.search(clause[:joins[-1].start()])) and len(between.split()) <= 6
+                          and not _NEW_CLAUSE.search(between))
+            if denied:
+                continue
             who = (match.groupdict().get("who") or "") if name == "person_confirmed" else ""
             if who and who.split()[-1].lower() in _NOT_PEOPLE:
                 continue  # a team or the agent confirmed it: its own action, not a person's answer

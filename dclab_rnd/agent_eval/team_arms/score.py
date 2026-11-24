@@ -63,8 +63,56 @@ def _no_ids(text: str) -> str:
     return _ID.sub(lambda m: m.group(0) if not re.search(r"\d", m.group(0)) else " ", str(text or ""))
 
 
+# The live smoke run of 2026-11-24 (S1, S2): what reads like a number and is none.
+# A list marker at an item's start: "(1)", "1." or "1)" at a line's start or after a colon or semicolon. Only a run that counts
+# 1, 2, 3 ... is one (a lone "(37)" is a number: a model never hides one by putting it in brackets).
+_MARKER = re.compile(r"(?:(?<=^)|(?<=[\s:;,(]))\((\d{1,2})\)(?=\s)|(?m:^[ \t]*(\d{1,2})[.)](?=\s))|(?<=[:;]\s)(\d{1,2})[.)](?=\s)")
+
+
+def _strip_markers(text: str) -> str:
+    found = list(_MARKER.finditer(text))
+    keep, want = [], 1
+    for m in found:
+        if int(next(g for g in m.groups() if g)) == want:
+            keep.append(m)
+            want += 1
+    if len(keep) < 2:
+        return text
+    out, at = [], 0
+    for m in keep:
+        out += [text[at:m.start()], " "]
+        at = m.end()
+    return "".join(out) + text[at:]
+
+
+_GLUED_MINUS = re.compile(r"(?<=[A-Za-z])-(?=\d)")  # "T-7", "D-30": a day count, never a negative number
+_SCALE = re.compile(r"\b(?:(a|one|two|three|four|five|six|seven|eight|nine|ten)\s+)?(hundred|thousand)\b", re.I)
+_SMALL = {w: n for n, w in enumerate("zero one two three four five six seven eight nine ten".split())} | {"a": 1}
+
+
+def _plain(text: str) -> str:
+    return _GLUED_MINUS.sub(" ", _strip_markers(str(text or "")))
+
+
 def _numbers(text: str, source: bool = False) -> set[str]:
-    return T.numbers(_no_ids(str(text or "")), source=source)
+    """The numbers a text states, as the scorer reads them: list markers and a letter's glued minus are none; in a source,
+    "hundred" and "thousand" (with a count before them) are the numbers they name (a person's words allow them)."""
+    plain = _plain(text)
+    out = T.numbers(_no_ids(plain), source=source)
+    if source:
+        for count, scale in _SCALE.findall(plain):
+            value = str(_SMALL.get(count.lower(), 1) * (100 if scale.lower() == "hundred" else 1000))
+            out |= {value, "+" + value}
+    return out
+
+
+_CLAUSE_START = re.compile(r"(?<=[A-Za-z0-9_)])\s+(?=(?:It|The|This|That|These|Those|They|We|There|He|She)\b)")
+
+
+def _sentences(text: str) -> list[str]:
+    """Sentences as the scorer reads them: ``text.sentences``, and a capital pronoun or article after a word with no full
+    stop starts a new one (a helper note may join its sentences without stops: S3 of the smoke run)."""
+    return [part for sentence in T.sentences(text) for part in _CLAUSE_START.split(sentence) if part.strip()]
 
 
 class Records:
@@ -223,11 +271,12 @@ def handovers(rec: Records) -> list[tuple[str, str]]:
     return out
 
 
-def questions(rec: Records) -> list[tuple[str, str]]:
+def questions(rec: Records, to_person: Optional[bool] = None) -> list[tuple[str, str]]:
     """Every question an agent sent (to the person, to another team, to its own team's members): the agent arm writes its own
-    (``team_clarify``), so a number or a claim in one is checked like a report's (the review of B4, F9)."""
+    (``team_clarify``), so a claim in one is checked like a report's (the review of B4, F9). ``to_person``: only the ones the
+    person's own side received (True), or only the ones between teams (False)."""
     return [(f"question:{d.get('task_id')}:{d.get('from_team')}>{d.get('to_team')}", str(d.get("text") or "")) for d in rec.deliveries
-            if d.get("kind") == "clarification"]
+            if d.get("kind") == "clarification" and (to_person is None or (d.get("to_team") == rec.requester) == to_person)]
 
 
 def known_numbers(rec: Records) -> set[str]:
@@ -265,17 +314,33 @@ def known_numbers(rec: Records) -> set[str]:
 
 # ---------------------------------------------------------------------------------------------------------- hard zeros
 def invented_numbers(rec: Records) -> list[dict[str, Any]]:
+    """A number no record holds, in what a model wrote for the person or for the record: a stored report's model words, a
+    helper's note, a question the person received. A hard zero."""
     known = known_numbers(rec)
     out = []
-    parts = [(f"{r.id}:{where}", text) for r in rec.reports for where, text in model_parts(r)] + helper_notes(rec) + questions(rec)
+    parts = ([(f"{r.id}:{where}", text) for r in rec.reports for where, text in model_parts(r)] + helper_notes(rec)
+             + questions(rec, to_person=True))
     for where, text in parts:
-        for sentence in T.sentences(text):
+        for sentence in _sentences(text):
             extra = sorted(_numbers(sentence) - known)
             if extra:
                 out.append({"code": "invented_number", "where": where, "numbers": extra[:10]})
-    # A handed-out task's question is an agent's words (a model's, on a model arm), and code may quote it in a report it
-    # writes (ML Engineering's "score each account <moment>"): a number there that no record holds, nor the question it was
-    # handed down from, is laundered into a report. Code's own copies of a question add no number.
+    return out
+
+
+def question_numbers(rec: Records) -> list[dict[str, Any]]:
+    """A number no record holds in a question handed between teams (a hand-over's question, a team's clarification to
+    another team): a design proposal ("a 90-day window") one team sends another, counted and never a hard zero (the owner's
+    decision, S4 of the smoke run, 2026-11-24). It never becomes known (``known_numbers`` leaves handed-out questions out),
+    so a report that repeats it is still a hard zero."""
+    known = known_numbers(rec)
+    out = []
+    for where, text in questions(rec, to_person=False):
+        extra = sorted(set().union(*(_numbers(x) for x in _sentences(text))) - known) if text.strip() else []
+        if extra:
+            out.append({"code": "question_number", "where": where, "numbers": extra[:10]})
+    # A handed-out task's question is an agent's words (a model's, on a model arm): a number there that no record holds, nor
+    # the question it was handed down from. Code's own copies of a question add no number.
     for tid, view in rec.views.items():
         task = view["task"]
         if tid in rec.tops or not task.parent_task_id:
@@ -284,7 +349,7 @@ def invented_numbers(rec: Records) -> list[dict[str, Any]]:
         allowed = known | (_numbers(parent.question, source=True) if parent is not None else set())
         extra = sorted(_numbers(task.question) - allowed)
         if extra:
-            out.append({"code": "invented_number", "where": f"task:{tid}:question", "numbers": extra[:10]})
+            out.append({"code": "question_number", "where": f"task:{tid}:question", "numbers": extra[:10]})
     return out
 
 
@@ -303,7 +368,7 @@ def unrecorded_claims(rec: Records) -> list[dict[str, Any]]:
     parts = ([(f"{r.id}:{where}", text) for r in rec.reports for where, text in model_parts(r)] + helper_notes(rec) + questions(rec)
              + handovers(rec))
     for where, text in parts:
-        for sentence in T.sentences(text):
+        for sentence in _sentences(text):
             missing = T.unrecorded_claims(sentence, sorted(done))
             if missing:
                 out.append({"code": "unrecorded_claim", "where": where, "claims": missing})
@@ -627,6 +692,7 @@ def counts(rec: Records, case: C.Case) -> dict[str, Any]:
     return {
         "person_questions": len(questions),
         "needless_questions": max(0, len(questions) - case.expected.questions_needed),
+        "question_numbers": sum(len(q["numbers"]) for q in question_numbers(rec)),
         "teams_missed": len(set(case.expected.teams_reached) - reached),
         "duplicate_replies": duplicates,
         "fallbacks": dict(Counter(str(p.get("fallback")) for p in answered if p.get("fallback") and str(p.get("agent", "")).split(":")[0] in roles)),

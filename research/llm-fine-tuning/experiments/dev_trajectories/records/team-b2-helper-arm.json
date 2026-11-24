@@ -1,247 +1,259 @@
 {
-  "package": "team-b2-helper-arm",
-  "title": "The helper arm: code decides, a model helps at five named seats, its answer used only where a code check passes",
-  "date": "2026-11-23",
-  "request": "Package B2 of the team workspace plan (Part B, step 6): replace B1's placeholder helper seat (which tool next, in shadow) with the real seats. In the helper arm code still decides everything; a model reads the person's words where the keyword reader is unsure (checked against the allowed codes and the table's label declaration), chooses and words the clarifying question (no number, short, no promise), explains a report (checked by cited.py) and lists risks (advisory only). Seats that change what the rules do run before them within a bounded wait that never breaks the delivery's time limit; a helper-arm role's delivery limit is the rules' plus the seats' seconds. Default stays rules for every role; at least Business, Data Science and the Lead get seats. Record every seat in the ledger and the experience log with thinking kept; no live calls in tests.",
-  "spec": "dclab-core 0.172.0: team_brain SEATS, BEFORE_SEATS, AFTER_SEATS, ROLE_SEATS, UNSURE, SEAT_OUTCOMES, FALLBACKS + unsure/check_failed, SeatRecord (team_helper_seat.v1), check_code, check_question; ExperienceEvent v22 (team.helper.seat; read_by on team.target.confirmed); ledger point team.helper_seat (state helper_seat, seat_outcome; level 2). dclab_rnd: teamspace/seats.py (new: Seats per turn, before_rules, read_target, route, question, after-seats, Late requests and drain, waits_in, record_seat), brains.HelperBrain replaced, brains.finish records the helper turn and starts after-seats, agents.run_turn attaches seats before the rules choose, agents._route, DS question seat, honest outcome wording, tools.confirmed_outcome/contract_for/save_outcome(read_by), delivery.timeout_seconds(env,row), ledger capture team_helper_seat, six prompt files, DCLAB_TEAM_HELPER_SEAT_SECONDS.",
-  "plan": [
-    "find every place the rules are unsure or use a fixed wording: Data Science's _needs_outcome question, read_event returning None on the person's answer, the Lead's OUTREACH keyword route, CLARIFY_TARGET",
-    "put the seat names, which role has which seat, the record shape and the portable checks in dclab_core.team_brain",
-    "build a per-turn Seats object attached before the rules choose, so the rules' functions and the tools reach it; rules-arm turns reach no seat",
-    "ask before-seats synchronously within one per-turn budget on a thread that is joined with a timeout; ask after-seats on B1's capped background thread",
-    "extend the delivery's limit by the budget only where a before-seat can run in that recipient's turn",
-    "record each seat (experience team.helper.seat, ledger team.helper_seat) and keep the exchange with its thinking through the gateway",
-    "write the failing tests per seat (used, refused, timeout, no_model, invalid output, thinking, rules unchanged), then the code; review, fix, rerun on files and PostgreSQL"
-  ],
-  "decisions": [
-    {
-      "decision": "A person's words are read by the helper of the role that speaks for that person (Business for its member, the Lead for the person on Home), asked inside the turn of the team that owns the outcome (Data Science), whose code checks it",
-      "why": "Business and the Lead represent the person; Data Science owns the outcome and only the owner or requester may save it; this gives Business a real seat without moving the save out of the owner's turn"
-    },
-    {
-      "decision": "read_target, route_teams and word_question run before the rules act, synchronously, sharing DCLAB_TEAM_HELPER_SEAT_SECONDS (20) per turn; explain_report and list_risks run after the turn on B1's capped thread",
-      "why": "the first three change what the rules do next, so their answer must exist before the rules act; the last two change nothing the rules do, so they must never be in a delivery's way"
-    },
-    {
-      "decision": "The delivery limit is the rules' limit plus the seat budget only where a before-seat can run in that recipient's turn (OWN_TURN_SEATS, REQUESTER_SEATS)",
-      "why": "a helper that answers in time must never make a delivery time out, and a rules-only turn must keep its limit (the reviewer found the first version also extended turns that could never wait)"
-    },
-    {
-      "decision": "The model is never shown which event the table records, and the events are listed in DCLab's own order",
-      "why": "the check is agreement with the label declaration; a model shown the table's event (or its order) could echo it and pass every time"
-    },
-    {
-      "decision": "A reading from the request is saved as the task's outcome with a marked response (helper.request.), the person's words and who said them, and every report says the helper read it and the person can correct it",
-      "why": "no TargetContract change was needed (a v2 would break stored v1 targets), and a report must never say a person confirmed what a model read"
-    },
-    {
-      "decision": "The keyword reader acts as a cross-check: when it reads the request clearly, the model must name the same event",
-      "why": "the rules never take a brief's sentence as confirmed; the model is the one deciding to skip the question, and it may not contradict the rule"
-    },
-    {
-      "decision": "critic_gate.py is not used for the risks; they are checked for numbers absent from the report, overclaims and promises instead",
-      "why": "critic_gate recomputes a campaign stage's selection rule; a team report has none, so the check would always pass and prove nothing"
-    },
-    {
-      "decision": "A seat's answer is kept per turn (memo) and the Lead's route is settled by the Sales task it opened, or its earlier used record",
-      "why": "the rules' functions are called several times per turn; one request and one answer keep the calls equal, and the route must not change between the turns of one task"
-    }
-  ],
-  "change": "dclab_core team_brain.py (seats, SeatRecord, checks), experience.py v22, ledger.py (team.helper_seat), workflow_labels, conformance, main_product_experience, 0.172.0, CHANGELOG, schemas. dclab_rnd teamspace/seats.py new; brains.py (HelperBrain replaced, finish/_finish_helper); agents.py (run_turn, _route, question seat, CLARIFY_OPTIONS, honest outcome lines and ML Engineering wording); tools.py (confirmed_outcome with the seat, contract_for, save_outcome read_by); delivery.py (timeout_seconds by arm); ledger capture and CAPTURED; models/settings team_helper description; settings numeric check; harness description; store coverage and STAGES comment; prompts team_helper.md rewritten plus five seat prompts; .env.example; run_parallel blanks the new setting. Tests: test_team_helper.py new; test_team_brains (helper tests moved to B2 semantics, shadow tests on the agent arm); test_model_data_limits; version strings in five tests. AEV-134, HRN-144, docs catalog and CORE_INTEGRATION.",
-  "findings": [
-    {
-      "verdict": "confirmed",
-      "id": "B2-1",
-      "source": "test",
-      "severity": "behaviour",
-      "defect": "The ledger refused every helper seat record",
-      "scenario": "the first test run: team.helper_seat records were missing although the experience events were written",
-      "cause": "a model answer that is used must be recorded at level 2 (act with a check); the capture wrote level 0",
-      "fix": "team_helper_seat records at level 2; team.brain uses level 2 when the helper acted",
-      "test": "tests/test_team_helper.py checks the ledger record of a used seat",
-      "impact": "no ledger record for any seat, so B4 could not compare arms from the ledger"
-    },
-    {
-      "verdict": "confirmed",
-      "id": "B2-2",
-      "source": "test",
-      "severity": "gap",
-      "defect": "The no-model test still had a scripted gateway installed and got an error instead of no_live_models",
-      "scenario": "a test set DCLAB_NO_LIVE_MODELS=1 after an earlier scripted gateway in the same test",
-      "cause": "a gateway with a transport serves the purpose even with live models off",
-      "fix": "the test removes the gateway before the no-model case",
-      "test": "test_unsure_no_model_invalid_output_and_a_timeout_leave_the_rules_to_ask"
-    },
-    {
-      "verdict": "confirmed",
-      "id": "B2-3",
-      "source": "reviewer",
-      "severity": "leakage",
-      "defect": "The order of the allowed events told the model which event the table records",
-      "scenario": "fixtures.offered puts the table's events first: renewal_v1 lists non-renewal first, renewal_no_dates cancellation first; a model that always names the first passes the label check on every table",
-      "cause": "the prompt listed events in offered's order",
-      "fix": "events are listed in DCLab's own order (target_contract.EVENTS)",
-      "test": "test_the_events_are_listed_in_one_order_whatever_the_table_records",
-      "impact": "the label check could be passed by echoing, the very thing the design said was impossible"
-    },
-    {
-      "verdict": "confirmed",
-      "id": "B2-4",
-      "source": "reviewer",
-      "severity": "behaviour",
-      "defect": "ML Engineering's report called a helper's reading 'confirmed with Data Science' and quoted the whole request as the outcome",
-      "scenario": "Lead on the helper arm, track model, request 'customers who quietly leave': the reading is saved, then ML Engineering words it from target.words",
-      "cause": "_contract_report used target.words and the word confirmed for every target",
-      "fix": "seats.reading/outcome_words: a helper's reading is named by its event and said to be the helper's, not confirmed by the person",
-      "test": "test_a_reading_by_the_leads_helper_is_never_called_confirmed_in_ml_engineerings_report",
-      "impact": "a report would claim a person confirmed what a model read"
-    },
-    {
-      "verdict": "confirmed",
-      "id": "B2-5",
-      "source": "reviewer",
-      "severity": "behaviour",
-      "defect": "The helper's outcome was saved without the guard's recheck of the member's access",
-      "scenario": "a member loses write access while the seat waits up to 20 s; the outcome is still written in their name",
-      "cause": "before_rules calls save_outcome directly, not through a tool",
-      "fix": "tools._authority is checked before asking and again before saving",
-      "test": "test_a_reading_is_neither_asked_nor_saved_for_a_member_who_lost_access",
-      "open": "the save is still a code write outside a recorded tool step (no agent.step for it); a directory action for it would need a core directory change"
-    },
-    {
-      "verdict": "confirmed",
-      "id": "B2-6",
-      "source": "reviewer",
-      "severity": "behaviour",
-      "defect": "A used 'add Sales' answer was lost when the Lead's run stopped between two delegations",
-      "scenario": "helper answers sales, Data Science is delegated, the run stops before Sales; on the next turn children exist, the seat is not asked and Sales is never opened",
-      "cause": "the route was settled by the existence of any child",
-      "fix": "with children and no Sales task, the seat's earlier used record (team.helper.seat) keeps Sales in the route",
-      "test": "test_the_lead_keeps_sales_after_a_stop_between_two_delegations",
-      "open": "the record is read from the experience log; a workspace whose log cannot be read falls back to the rules' route"
-    },
-    {
-      "verdict": "confirmed",
-      "id": "B2-7",
-      "source": "reviewer",
-      "severity": "behaviour",
-      "defect": "Business's reading was credited to Data Science's arm",
-      "scenario": "Data Science on the helper arm with Business's reading used in its turn: its team.brain record said acted helper at level 2",
-      "cause": "the turn summary counted every before-seat asked in the turn",
-      "fix": "summary and acted count only the turn's own role",
-      "test": "test_a_reading_by_another_roles_helper_is_not_credited_to_data_sciences_arm",
-      "impact": "B4 would credit the wrong role's arm"
-    },
-    {
-      "verdict": "confirmed",
-      "id": "B2-8",
-      "source": "reviewer",
-      "severity": "latent",
-      "defect": "The delivery limit was extended for turns that can never wait on a seat",
-      "scenario": "a row to Business with Business on the helper arm got 20 s more though Business's own turns reach no seat",
-      "cause": "any helper-arm role among recipient and requester extended it",
-      "fix": "waits_in decides per recipient: its own-turn seats, or the requester's reading in Data Science's turn",
-      "test": "test_a_helper_turn_gets_the_seats_seconds_on_top_of_the_delivery_limit_and_the_rules_keep_theirs"
-    },
-    {
-      "verdict": "confirmed",
-      "id": "B2-9",
-      "source": "reviewer",
-      "severity": "behaviour",
-      "defect": "A person's answer read by the helper was reported as confirmed by the person",
-      "scenario": "the keyword reader cannot read 'quietly drift away at contract end'; the helper reads non-renewal; the report said 'as sara confirmed'",
-      "cause": "the contract carried no marker of the helper's reading",
-      "fix": "the response is marked helper.answer.; the report says 'as the helper read sara's answer'",
-      "test": "test_the_answer_the_keyword_reader_cannot_read_is_read_by_the_helper"
-    },
-    {
-      "verdict": "confirmed",
-      "id": "B2-10",
-      "source": "reviewer",
-      "severity": "gap",
-      "defect": "A timed-out seat could not be joined to its exchange and could lose it at exit",
-      "scenario": "a seat times out: the record had no request id, and the daemon thread was not drained",
-      "cause": "the request id exists only after the request ends",
-      "fix": "seats.Late: a timed-out seat is recorded when its request ends, with its id, in the turn's context; seats.drain at exit",
-      "test": "the timeout tests drain and check the late exchange's thinking is joined to its seat"
-    },
-    {
-      "verdict": "confirmed",
-      "id": "B2-11",
-      "source": "test",
-      "severity": "behaviour",
-      "defect": "Late seat records were never written",
-      "scenario": "after B2-10, the timeout tests found no seat record",
-      "cause": "the late callback ran in the thread's empty context (only the request ran inside the copied context), so no workspace log was found",
-      "fix": "the whole thread body runs in the turn's copied context",
-      "test": "test_unsure_no_model_invalid_output_and_a_timeout_leave_the_rules_to_ask and the other timeout tests"
-    },
-    {
-      "id": "B2-12",
-      "source": "reviewer",
-      "severity": "gap",
-      "verdict": "confirmed",
-      "defect": "An after-seat that timed out was recorded without its request id",
-      "scenario": "the re-review: the after-seat's wait ends just before the client's own timeout; the seat is recorded timeout and its late exchange cannot be joined to it",
-      "cause": "_after_seat dropped the Late handle that the before-seats use",
-      "fix": "a timed-out after-seat is recorded through Late.after, with its request id once the request ends",
-      "test": "the before-seat timeout tests cover Late; the after-seat path shares it (no separate timing test: it needs a 60 s wait)"
-    },
-    {
-      "id": "B2-13",
-      "source": "reviewer",
-      "severity": "latent",
-      "verdict": "open",
-      "defect": "The Lead's resumed route reads the seat's answer from the experience log, a capture log rather than task state",
-      "scenario": "the seat record failed to write, retention deleted it, or more than 2000 newer seat events exist in the project: a run stopped between two delegations then drops Sales again",
-      "cause": "no task field or action holds the route the helper chose",
-      "fix": "kept as is for B2 and written in the module's docstring; a sturdier fix (a recorded route action on the Lead task, or Sales opened in the first delegation step) needs a directory change",
-      "open": "the route is lost again in those three rare cases; the rules' route is what remains"
-    }
-  ],
-  "measurements": [
-    {
-      "name": "the B2 seats",
-      "gate": "each seat: used when its check passes, refused when it fails, timeout/no_model/invalid output fall back to the rules, thinking stored, rules arm unchanged; on files and PostgreSQL",
-      "fixed_before_run": true,
-      "result": "tests/test_team_helper.py 42 tests pass on files and on PostgreSQL",
-      "verdict": "pass",
-      "cost_eur": 0.0,
-      "limits": [
-        "scripted transports only: no live model was asked, so whether a real model reads the words well is B4's measurement"
-      ]
-    },
-    {
-      "name": "the team suites and registries",
-      "gate": "test_team_brains, teamspace agents/threads/routes, team_api, lead_workspace, team_commercial, team_target, model data limits, harness, prompt gate, thinking, config, experience log, store sets and coverage, core contracts, conformance, web client and the version-bump files pass on files and PostgreSQL",
-      "fixed_before_run": true,
-      "result": "377 and 328 tests pass on files and on PostgreSQL; test_teamspace_threads' stream membership test failed once under load and passed alone (timing, not B2)",
-      "verdict": "pass",
-      "cost_eur": 0.0
-    },
-    {
-      "name": "the scripted judgment suite and the harness regression",
-      "gate": "make agent-eval and make harness-eval on the new prompts, every policy without errors and every case right",
-      "fixed_before_run": true,
-      "result": "AEV-134: no errors, the same summary as AEV-133; HRN-144: 17 of 17 right on every step",
-      "verdict": "pass",
-      "cost_eur": 0.0
-    }
-  ],
-  "outcome": "A role switched to helper now gets the seats team_brain.ROLE_SEATS names: the Lead and Business read their person's words where the rules would ask or cannot read an answer, the Lead adds Sales where the keyword rule missed outreach, Data Science words its clarifying question, and every team explains its own reports and lists their risks. Each answer is used only after a code check; otherwise the rules' answer stands and the seat records why. 'Customers who quietly leave' on a renewal table is read as non-renewal and no question is asked, and the report says the helper read it. Default remains rules for every role. Not committed. The reviewer passed the fixes on re-review with two low notes, one fixed (B2-12) and one left open (B2-13).",
-  "lessons": [
-    "A check that compares a model's answer with hidden data must also hide the order of the choices: the order can carry the hidden answer.",
-    "A thread that records after the fact must run its whole body in the copied context, not only the request; a callback in a bare thread finds no workspace.",
-    "When one role's helper acts inside another role's turn, credit the seat to its role, or a per-role comparison measures the wrong arm.",
-    "A time limit extended 'for helper roles' must be decided per recipient turn, by which seats can actually run there.",
-    "Persist a decision that must hold across turns where the turns already look (a child task, a record), or a stopped run loses it."
-  ],
-  "risks": [
-    "The before-seats add up to 20 s to a helper-arm delivery; a slow model makes the team slower, never wrong.",
-    "The helper's reading of a request skips a question the rules always asked (T1 never took a brief's sentence as confirmed); the label check limits it to events the table records, and the person can correct it.",
-    "The helper's save of an outcome is a code write outside a recorded tool step.",
-    "The Lead's 'add Sales' check is weak by nature (an allowed code and Sales can answer): a wrong yes costs a Sales capacity question, never a contact.",
-    "The helper notes are posted with a new handoff kind (helper_note) that the thread page was not checked against in a browser."
-  ],
-  "commits": []
+ "package": "team-b2-helper-arm",
+ "title": "The helper arm: code decides, a model helps at five named seats, its answer used only where a code check passes",
+ "date": "2026-11-23",
+ "request": "Package B2 of the team workspace plan (Part B, step 6): replace B1's placeholder helper seat (which tool next, in shadow) with the real seats. In the helper arm code still decides everything; a model reads the person's words where the keyword reader is unsure (checked against the allowed codes and the table's label declaration), chooses and words the clarifying question (no number, short, no promise), explains a report (checked by cited.py) and lists risks (advisory only). Seats that change what the rules do run before them within a bounded wait that never breaks the delivery's time limit; a helper-arm role's delivery limit is the rules' plus the seats' seconds. Default stays rules for every role; at least Business, Data Science and the Lead get seats. Record every seat in the ledger and the experience log with thinking kept; no live calls in tests.",
+ "spec": "dclab-core 0.172.0: team_brain SEATS, BEFORE_SEATS, AFTER_SEATS, ROLE_SEATS, UNSURE, SEAT_OUTCOMES, FALLBACKS + unsure/check_failed, SeatRecord (team_helper_seat.v1), check_code, check_question; ExperienceEvent v22 (team.helper.seat; read_by on team.target.confirmed); ledger point team.helper_seat (state helper_seat, seat_outcome; level 2). dclab_rnd: teamspace/seats.py (new: Seats per turn, before_rules, read_target, route, question, after-seats, Late requests and drain, waits_in, record_seat), brains.HelperBrain replaced, brains.finish records the helper turn and starts after-seats, agents.run_turn attaches seats before the rules choose, agents._route, DS question seat, honest outcome wording, tools.confirmed_outcome/contract_for/save_outcome(read_by), delivery.timeout_seconds(env,row), ledger capture team_helper_seat, six prompt files, DCLAB_TEAM_HELPER_SEAT_SECONDS.",
+ "plan": [
+  "find every place the rules are unsure or use a fixed wording: Data Science's _needs_outcome question, read_event returning None on the person's answer, the Lead's OUTREACH keyword route, CLARIFY_TARGET",
+  "put the seat names, which role has which seat, the record shape and the portable checks in dclab_core.team_brain",
+  "build a per-turn Seats object attached before the rules choose, so the rules' functions and the tools reach it; rules-arm turns reach no seat",
+  "ask before-seats synchronously within one per-turn budget on a thread that is joined with a timeout; ask after-seats on B1's capped background thread",
+  "extend the delivery's limit by the budget only where a before-seat can run in that recipient's turn",
+  "record each seat (experience team.helper.seat, ledger team.helper_seat) and keep the exchange with its thinking through the gateway",
+  "write the failing tests per seat (used, refused, timeout, no_model, invalid output, thinking, rules unchanged), then the code; review, fix, rerun on files and PostgreSQL"
+ ],
+ "decisions": [
+  {
+   "decision": "A person's words are read by the helper of the role that speaks for that person (Business for its member, the Lead for the person on Home), asked inside the turn of the team that owns the outcome (Data Science), whose code checks it",
+   "why": "Business and the Lead represent the person; Data Science owns the outcome and only the owner or requester may save it; this gives Business a real seat without moving the save out of the owner's turn"
+  },
+  {
+   "decision": "read_target, route_teams and word_question run before the rules act, synchronously, sharing DCLAB_TEAM_HELPER_SEAT_SECONDS (20) per turn; explain_report and list_risks run after the turn on B1's capped thread",
+   "why": "the first three change what the rules do next, so their answer must exist before the rules act; the last two change nothing the rules do, so they must never be in a delivery's way"
+  },
+  {
+   "decision": "The delivery limit is the rules' limit plus the seat budget only where a before-seat can run in that recipient's turn (OWN_TURN_SEATS, REQUESTER_SEATS)",
+   "why": "a helper that answers in time must never make a delivery time out, and a rules-only turn must keep its limit (the reviewer found the first version also extended turns that could never wait)"
+  },
+  {
+   "decision": "The model is never shown which event the table records, and the events are listed in DCLab's own order",
+   "why": "the check is agreement with the label declaration; a model shown the table's event (or its order) could echo it and pass every time"
+  },
+  {
+   "decision": "A reading from the request is saved as the task's outcome with a marked response (helper.request.), the person's words and who said them, and every report says the helper read it and the person can correct it",
+   "why": "no TargetContract change was needed (a v2 would break stored v1 targets), and a report must never say a person confirmed what a model read"
+  },
+  {
+   "decision": "The keyword reader acts as a cross-check: when it reads the request clearly, the model must name the same event",
+   "why": "the rules never take a brief's sentence as confirmed; the model is the one deciding to skip the question, and it may not contradict the rule"
+  },
+  {
+   "decision": "critic_gate.py is not used for the risks; they are checked for numbers absent from the report, overclaims and promises instead",
+   "why": "critic_gate recomputes a campaign stage's selection rule; a team report has none, so the check would always pass and prove nothing"
+  },
+  {
+   "decision": "A seat's answer is kept per turn (memo) and the Lead's route is settled by the Sales task it opened, or its earlier used record",
+   "why": "the rules' functions are called several times per turn; one request and one answer keep the calls equal, and the route must not change between the turns of one task"
+  }
+ ],
+ "change": "dclab_core team_brain.py (seats, SeatRecord, checks), experience.py v22, ledger.py (team.helper_seat), workflow_labels, conformance, main_product_experience, 0.172.0, CHANGELOG, schemas. dclab_rnd teamspace/seats.py new; brains.py (HelperBrain replaced, finish/_finish_helper); agents.py (run_turn, _route, question seat, CLARIFY_OPTIONS, honest outcome lines and ML Engineering wording); tools.py (confirmed_outcome with the seat, contract_for, save_outcome read_by); delivery.py (timeout_seconds by arm); ledger capture and CAPTURED; models/settings team_helper description; settings numeric check; harness description; store coverage and STAGES comment; prompts team_helper.md rewritten plus five seat prompts; .env.example; run_parallel blanks the new setting. Tests: test_team_helper.py new; test_team_brains (helper tests moved to B2 semantics, shadow tests on the agent arm); test_model_data_limits; version strings in five tests. AEV-134, HRN-144, docs catalog and CORE_INTEGRATION.",
+ "findings": [
+  {
+   "verdict": "confirmed",
+   "id": "B2-1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "The ledger refused every helper seat record",
+   "scenario": "the first test run: team.helper_seat records were missing although the experience events were written",
+   "cause": "a model answer that is used must be recorded at level 2 (act with a check); the capture wrote level 0",
+   "fix": "team_helper_seat records at level 2; team.brain uses level 2 when the helper acted",
+   "test": "tests/test_team_helper.py checks the ledger record of a used seat",
+   "impact": "no ledger record for any seat, so B4 could not compare arms from the ledger"
+  },
+  {
+   "verdict": "confirmed",
+   "id": "B2-2",
+   "source": "test",
+   "severity": "gap",
+   "defect": "The no-model test still had a scripted gateway installed and got an error instead of no_live_models",
+   "scenario": "a test set DCLAB_NO_LIVE_MODELS=1 after an earlier scripted gateway in the same test",
+   "cause": "a gateway with a transport serves the purpose even with live models off",
+   "fix": "the test removes the gateway before the no-model case",
+   "test": "test_unsure_no_model_invalid_output_and_a_timeout_leave_the_rules_to_ask"
+  },
+  {
+   "verdict": "confirmed",
+   "id": "B2-3",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "The order of the allowed events told the model which event the table records",
+   "scenario": "fixtures.offered puts the table's events first: renewal_v1 lists non-renewal first, renewal_no_dates cancellation first; a model that always names the first passes the label check on every table",
+   "cause": "the prompt listed events in offered's order",
+   "fix": "events are listed in DCLab's own order (target_contract.EVENTS)",
+   "test": "test_the_events_are_listed_in_one_order_whatever_the_table_records",
+   "impact": "the label check could be passed by echoing, the very thing the design said was impossible"
+  },
+  {
+   "verdict": "confirmed",
+   "id": "B2-4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "ML Engineering's report called a helper's reading 'confirmed with Data Science' and quoted the whole request as the outcome",
+   "scenario": "Lead on the helper arm, track model, request 'customers who quietly leave': the reading is saved, then ML Engineering words it from target.words",
+   "cause": "_contract_report used target.words and the word confirmed for every target",
+   "fix": "seats.reading/outcome_words: a helper's reading is named by its event and said to be the helper's, not confirmed by the person",
+   "test": "test_a_reading_by_the_leads_helper_is_never_called_confirmed_in_ml_engineerings_report",
+   "impact": "a report would claim a person confirmed what a model read"
+  },
+  {
+   "verdict": "confirmed",
+   "id": "B2-5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The helper's outcome was saved without the guard's recheck of the member's access",
+   "scenario": "a member loses write access while the seat waits up to 20 s; the outcome is still written in their name",
+   "cause": "before_rules calls save_outcome directly, not through a tool",
+   "fix": "tools._authority is checked before asking and again before saving",
+   "test": "test_a_reading_is_neither_asked_nor_saved_for_a_member_who_lost_access",
+   "open": "the save is still a code write outside a recorded tool step (no agent.step for it); a directory action for it would need a core directory change"
+  },
+  {
+   "verdict": "confirmed",
+   "id": "B2-6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A used 'add Sales' answer was lost when the Lead's run stopped between two delegations",
+   "scenario": "helper answers sales, Data Science is delegated, the run stops before Sales; on the next turn children exist, the seat is not asked and Sales is never opened",
+   "cause": "the route was settled by the existence of any child",
+   "fix": "with children and no Sales task, the seat's earlier used record (team.helper.seat) keeps Sales in the route",
+   "test": "test_the_lead_keeps_sales_after_a_stop_between_two_delegations",
+   "open": "the record is read from the experience log; a workspace whose log cannot be read falls back to the rules' route"
+  },
+  {
+   "verdict": "confirmed",
+   "id": "B2-7",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Business's reading was credited to Data Science's arm",
+   "scenario": "Data Science on the helper arm with Business's reading used in its turn: its team.brain record said acted helper at level 2",
+   "cause": "the turn summary counted every before-seat asked in the turn",
+   "fix": "summary and acted count only the turn's own role",
+   "test": "test_a_reading_by_another_roles_helper_is_not_credited_to_data_sciences_arm",
+   "impact": "B4 would credit the wrong role's arm"
+  },
+  {
+   "verdict": "confirmed",
+   "id": "B2-8",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "The delivery limit was extended for turns that can never wait on a seat",
+   "scenario": "a row to Business with Business on the helper arm got 20 s more though Business's own turns reach no seat",
+   "cause": "any helper-arm role among recipient and requester extended it",
+   "fix": "waits_in decides per recipient: its own-turn seats, or the requester's reading in Data Science's turn",
+   "test": "test_a_helper_turn_gets_the_seats_seconds_on_top_of_the_delivery_limit_and_the_rules_keep_theirs"
+  },
+  {
+   "verdict": "confirmed",
+   "id": "B2-9",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A person's answer read by the helper was reported as confirmed by the person",
+   "scenario": "the keyword reader cannot read 'quietly drift away at contract end'; the helper reads non-renewal; the report said 'as sara confirmed'",
+   "cause": "the contract carried no marker of the helper's reading",
+   "fix": "the response is marked helper.answer.; the report says 'as the helper read sara's answer'",
+   "test": "test_the_answer_the_keyword_reader_cannot_read_is_read_by_the_helper"
+  },
+  {
+   "verdict": "confirmed",
+   "id": "B2-10",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "A timed-out seat could not be joined to its exchange and could lose it at exit",
+   "scenario": "a seat times out: the record had no request id, and the daemon thread was not drained",
+   "cause": "the request id exists only after the request ends",
+   "fix": "seats.Late: a timed-out seat is recorded when its request ends, with its id, in the turn's context; seats.drain at exit",
+   "test": "the timeout tests drain and check the late exchange's thinking is joined to its seat"
+  },
+  {
+   "verdict": "confirmed",
+   "id": "B2-11",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "Late seat records were never written",
+   "scenario": "after B2-10, the timeout tests found no seat record",
+   "cause": "the late callback ran in the thread's empty context (only the request ran inside the copied context), so no workspace log was found",
+   "fix": "the whole thread body runs in the turn's copied context",
+   "test": "test_unsure_no_model_invalid_output_and_a_timeout_leave_the_rules_to_ask and the other timeout tests"
+  },
+  {
+   "id": "B2-12",
+   "source": "reviewer",
+   "severity": "gap",
+   "verdict": "confirmed",
+   "defect": "An after-seat that timed out was recorded without its request id",
+   "scenario": "the re-review: the after-seat's wait ends just before the client's own timeout; the seat is recorded timeout and its late exchange cannot be joined to it",
+   "cause": "_after_seat dropped the Late handle that the before-seats use",
+   "fix": "a timed-out after-seat is recorded through Late.after, with its request id once the request ends",
+   "test": "the before-seat timeout tests cover Late; the after-seat path shares it (no separate timing test: it needs a 60 s wait)"
+  },
+  {
+   "id": "B2-13",
+   "source": "reviewer",
+   "severity": "latent",
+   "verdict": "open",
+   "defect": "The Lead's resumed route reads the seat's answer from the experience log, a capture log rather than task state",
+   "scenario": "the seat record failed to write, retention deleted it, or more than 2000 newer seat events exist in the project: a run stopped between two delegations then drops Sales again",
+   "cause": "no task field or action holds the route the helper chose",
+   "fix": "kept as is for B2 and written in the module's docstring; a sturdier fix (a recorded route action on the Lead task, or Sales opened in the first delegation step) needs a directory change",
+   "open": "the route is lost again in those three rare cases; the rules' route is what remains"
+  },
+  {
+   "verdict": "confirmed",
+   "id": "B2-after-seat-claims",
+   "source": "measurement",
+   "severity": "gap",
+   "defect": "the after-seats (explain_report, list_risks) checked numbers with cited.check but never claimed actions",
+   "scenario": "found while reading the team-arms live smoke run (2026-11-24): a helper's note may say 'the accounts were scored' or 'Sales called them' with no finished record behind it, and it was posted to the person's thread",
+   "cause": "check_explanation and check_risks had no view of the task tree's finished actions",
+   "fix": "seats.done_actions (the report's task and every task it handed out, and PERSON for a recorded answer); both checks drop the note when team_brain.unrecorded_claims finds a claim, recorded as check_failed with claims_unrecorded_action",
+   "test": "test_team_helper: test_an_explanation_or_a_risk_that_claims_an_action_never_done_is_dropped",
+   "impact": "a helper note could tell the person an action was done that no record backs"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the B2 seats",
+   "gate": "each seat: used when its check passes, refused when it fails, timeout/no_model/invalid output fall back to the rules, thinking stored, rules arm unchanged; on files and PostgreSQL",
+   "fixed_before_run": true,
+   "result": "tests/test_team_helper.py 42 tests pass on files and on PostgreSQL",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "scripted transports only: no live model was asked, so whether a real model reads the words well is B4's measurement"
+   ]
+  },
+  {
+   "name": "the team suites and registries",
+   "gate": "test_team_brains, teamspace agents/threads/routes, team_api, lead_workspace, team_commercial, team_target, model data limits, harness, prompt gate, thinking, config, experience log, store sets and coverage, core contracts, conformance, web client and the version-bump files pass on files and PostgreSQL",
+   "fixed_before_run": true,
+   "result": "377 and 328 tests pass on files and on PostgreSQL; test_teamspace_threads' stream membership test failed once under load and passed alone (timing, not B2)",
+   "verdict": "pass",
+   "cost_eur": 0.0
+  },
+  {
+   "name": "the scripted judgment suite and the harness regression",
+   "gate": "make agent-eval and make harness-eval on the new prompts, every policy without errors and every case right",
+   "fixed_before_run": true,
+   "result": "AEV-134: no errors, the same summary as AEV-133; HRN-144: 17 of 17 right on every step",
+   "verdict": "pass",
+   "cost_eur": 0.0
+  }
+ ],
+ "outcome": "A role switched to helper now gets the seats team_brain.ROLE_SEATS names: the Lead and Business read their person's words where the rules would ask or cannot read an answer, the Lead adds Sales where the keyword rule missed outreach, Data Science words its clarifying question, and every team explains its own reports and lists their risks. Each answer is used only after a code check; otherwise the rules' answer stands and the seat records why. 'Customers who quietly leave' on a renewal table is read as non-renewal and no question is asked, and the report says the helper read it. Default remains rules for every role. Not committed. The reviewer passed the fixes on re-review with two low notes, one fixed (B2-12) and one left open (B2-13).",
+ "lessons": [
+  "A check that compares a model's answer with hidden data must also hide the order of the choices: the order can carry the hidden answer.",
+  "A thread that records after the fact must run its whole body in the copied context, not only the request; a callback in a bare thread finds no workspace.",
+  "When one role's helper acts inside another role's turn, credit the seat to its role, or a per-role comparison measures the wrong arm.",
+  "A time limit extended 'for helper roles' must be decided per recipient turn, by which seats can actually run there.",
+  "Persist a decision that must hold across turns where the turns already look (a child task, a record), or a stopped run loses it."
+ ],
+ "risks": [
+  "The before-seats add up to 20 s to a helper-arm delivery; a slow model makes the team slower, never wrong.",
+  "The helper's reading of a request skips a question the rules always asked (T1 never took a brief's sentence as confirmed); the label check limits it to events the table records, and the person can correct it.",
+  "The helper's save of an outcome is a code write outside a recorded tool step.",
+  "The Lead's 'add Sales' check is weak by nature (an allowed code and Sales can answer): a wrong yes costs a Sales capacity question, never a contact.",
+  "The helper notes are posted with a new handoff kind (helper_note) that the thread page was not checked against in a browser."
+ ],
+ "commits": []
 }

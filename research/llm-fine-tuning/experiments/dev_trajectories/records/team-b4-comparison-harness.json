@@ -12,7 +12,8 @@
   "write tests/test_team_arms.py: format and schema, the three smoke cases under R, H and A with scripted models, every hard zero planted, the main score, the winner rule and ties, the pin, sealed run-once, Claude refused, the cap, thinking checked",
   "run the tests on files and with run_parallel.py --pg; review with dclab-reviewer; fix every finding with a test; re-review",
   "second review (FAIL, N1 to N8): fix each with a test, re-pin, re-run on files and PostgreSQL, re-review",
-  "third review (N1 to N8 confirmed; M1 to M4 new): fix each with a test, re-pin, re-run on files and PostgreSQL, re-review"
+  "third review (N1 to N8 confirmed; M1 to M4 new): fix each with a test, re-pin, re-run on files and PostgreSQL, re-review",
+  "live smoke run (EUR 0.054, thinking verified): read its plays; fix the scorer's false positives (S1 to S4) from the real words; re-score the 9 plays from their records"
  ],
  "decisions": [
   {
@@ -74,6 +75,10 @@
   {
    "decision": "A run's code is one hash over the contents of the files the arms and the scorer run on (team runtime, harness, team prompts, team contracts, agent loop, gateway), the commit kept for information",
    "why": "a commit or a file becoming tracked changes nothing a play does, so it must never block a resume; a real content change must (the third review's M1)"
+  },
+  {
+   "decision": "A number in a question handed between teams is counted (question_numbers), never a hard zero; one in a stored report's model words, a helper note or a question to the person stays a hard zero",
+   "why": "the coordinator's call after the smoke run: a team proposing 'a 90-day window' to another team invents nothing for the person; it never becomes a record (G2, N5), so a report repeating it is still caught"
   }
  ],
  "change": "New: dclab_rnd/agent_eval/team_arms/{__init__,__main__,cases,play,score,gate,report,judge}.py, CASES.md, gate_v1.sha256, cases/{quick_example.json, MANIFEST.json, case_set.schema.json}; evidence/campaigns/team_arms_v1/manifest.json; tests/test_team_arms.py. No product code, prompt or tool scope changed.",
@@ -437,6 +442,66 @@
    "fix": "only code files (.py, .md, .json, .sha256, .toml, .yaml, .yml, .txt) and never a dot-named file or folder",
    "test": "test_m1_the_code_state_is_the_files_contents_whatever_git_says",
    "impact": "rated medium by the fourth review"
+  },
+  {
+   "verdict": "confirmed",
+   "id": "S1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "list markers were read as invented numbers",
+   "scenario": "the agent Lead's hand-over 'Report: (1) ... (2) ... (6)' was a hard zero with 2, 4, 5, 6",
+   "cause": "every digit in a question counted",
+   "fix": "a run of markers counting from 1 ((1), 1., 1)) is no number; a lone '(37)' still is",
+   "test": "test_s1_s2_list_markers_and_a_glued_minus_are_no_numbers_and_seven_allows_7",
+   "impact": "a false hard zero on the model arms in the live smoke run"
+  },
+  {
+   "verdict": "confirmed",
+   "id": "S2",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "'T-7' was read as -7",
+   "scenario": "the person said 'seven days before each renewal'; the agent wrote 'the T-7 cutoff'",
+   "cause": "a minus glued to a letter was taken as a sign",
+   "fix": "a glued minus is no sign; hundred and thousand in sources count as the numbers they name (seven already did)",
+   "test": "test_s1_s2_...",
+   "impact": "a false hard zero on the model arms in the live smoke run"
+  },
+  {
+   "verdict": "confirmed",
+   "id": "S3",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "a denial did not carry over 'or', and a note's sentences ran together",
+   "scenario": "helper note: 'It does not say a model was trained or an account was scored' flagged as claiming the scoring",
+   "cause": "claimed_actions looked only at the six words before a claim; the note had no full stops",
+   "fix": "a denial carries over or/nor in its clause (scorer copy and dclab_core 0.173.1); a capital pronoun or article after a word starts a new sentence in the scorer",
+   "test": "test_s3_a_denial_over_or_in_a_note_without_full_stops_is_no_claim; test_team_agent ClaimsTests",
+   "impact": "a false hard zero on the model arms in the live smoke run"
+  },
+  {
+   "verdict": "confirmed",
+   "id": "S4",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "a design number in a question between teams scored a hard zero",
+   "scenario": "the agent Data Science asked itself 'how many days (e.g. 30, 60, 90)?'",
+   "cause": "every clarification was a hard-zero part",
+   "fix": "between-team questions and hand-over questions go to question_numbers; to-person questions stay a hard zero",
+   "test": "test_s4_a_number_in_a_question_between_teams_is_counted_and_one_to_the_person_is_a_hard_zero",
+   "impact": "a false hard zero on the model arms in the live smoke run"
+  },
+  {
+   "verdict": "confirmed",
+   "id": "S3-review",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "the S3 carry-over let a denial reach past a new clause inside the list's item",
+   "scenario": "'No data was missing or late and we scored every account' and 'No customer was harmed or upset when Sales called the top ten accounts' no longer claimed anything",
+   "cause": "only the word count after 'or'/'nor' was checked",
+   "fix": "the denial carries only when the item after 'or'/'nor' holds no conjunction, subordinator or new subject (_NEW_CLAUSE), in dclab_core/team_brain.py and the scorer's text.py",
+   "test": "test_team_agent ClaimsTests test_a_denial_carries_over_or_and_nor_but_not_over_and; test_team_arms test_s3_...",
+   "impact": "the product's own claim guard (agent arm reports, helper notes) and the unrecorded_claim hard zero would have missed real claims"
   }
  ],
  "measurements": [
@@ -461,6 +526,17 @@
    "limits": [
     "scripted models only; no live model was called"
    ]
+  },
+  {
+   "name": "live smoke run, quick set, qwen/qwen3.8-flash (the owner's)",
+   "gate": "plays end; thinking kept; no false hard zero",
+   "fixed_before_run": true,
+   "result": "EUR 0.054, thinking verified; re-scored from records after S1 to S4: R 3/3, H 3/3, A 1/3, no hard zero (QX-01 A blocked on a label-window question; QX-03 A left a hand-over to Business that nothing answers)",
+   "verdict": "not scored",
+   "cost_eur": 0.054,
+   "limits": [
+    "three smoke cases written by the builder: never evidence of an arm's worth"
+   ]
   }
  ],
  "outcome": "The harness exists and is pinned (team_arms_gate_v1). The first dev comparison has not run: the dev and sealed sets are for an independent author, and the live runs are the owner's.",
@@ -470,7 +546,9 @@
   "On PostgreSQL a folder's path names its workspace: a harness that reuses a path reuses the workspace",
   "Sweep the rules arm for false hard zeros before trusting a hard-zero check",
   "A gate must hash only code it owns: a pin over a shared library becomes a lock on everyone else's work",
-  "A content hash meant to say 'the same code' must hash only code: a machine writes more than a person does"
+  "A content hash meant to say 'the same code' must hash only code: a machine writes more than a person does",
+  "Run a cheap live smoke before trusting a scorer: model wording (list markers, T-7, notes without stops) is not what the builder imagined",
+  "Loosening a guard to remove a false positive needs the guard's old true positives as tests in the same change"
  ],
  "risks": [
   "The judge's plan score favours arms that write a plan the person sees",

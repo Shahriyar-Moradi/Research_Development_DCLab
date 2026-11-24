@@ -295,6 +295,17 @@
       "cause": "the R2 fix read any denial word inside the match as a denial; the contact pattern allows words between the verb and its object, where 'not just', 'not only' and 'no fewer than' widen the claim",
       "fix": "_INNER_DENIAL in dclab_core/team_brain.py: a denial inside the match counts unless it is followed by just, only, merely, simply, fewer, less, more or later; 'We called no customers' stays a denial",
       "test": "ClaimsTests.test_claims_denials_and_promises"
+    },
+    {
+      "verdict": "confirmed",
+      "id": "LIVE-QX03",
+      "source": "measurement",
+      "severity": "behaviour",
+      "defect": "An agent Lead could hand work to Business, which never owns handed-out work, so the case hung with the task open for ever",
+      "scenario": "the team-arms live smoke run of 2026-11-24 (QX-03, qwen/qwen3.8-flash, arm A): the Lead delegated the ranking to business; no rule of Business takes a task it owns, the person never got a report",
+      "cause": "_delegate_args checked the task, the inputs and code's fields, never whether the owner team takes handed-out work at all",
+      "fix": "NO_HANDED_WORK (business, lead, home): a hand-over to them is refused before it runs or counts, with words naming who takes analysis and outreach work, so the model can hand it on correctly",
+      "test": "test_a_hand_over_to_a_team_that_never_owns_handed_out_work_is_refused_so_no_case_hangs"
     }
   ],
   "measurements": [

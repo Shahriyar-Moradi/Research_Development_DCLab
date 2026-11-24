@@ -56,6 +56,7 @@ def group(rows: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
             "hard_zero_cases": sum(1 for r in done if r.get("hard_zeros")),
             "hard_zeros": dict(Counter(code for r in done for code in r.get("hard_zero_codes") or [])),
             "needless_questions": sum(int(c.get("needless_questions") or 0) for c in counts),
+            "question_numbers": sum(int(c.get("question_numbers") or 0) for c in counts),
             "teams_missed": sum(int(c.get("teams_missed") or 0) for c in counts),
             "duplicate_replies": sum(int(c.get("duplicate_replies") or 0) for c in counts),
             "fallbacks": dict(fallbacks), "agent_failures": sum(int(c.get("agent_failures") or 0) for c in counts),

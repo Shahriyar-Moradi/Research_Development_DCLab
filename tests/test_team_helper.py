@@ -385,6 +385,28 @@ class _Helper(_Contract):
         kinds = {d["thinking"][0]["text"] for d in exchanges(self.home)}
         self.assertTrue({"the explain_report thought", "the list_risks thought"} <= kinds)
 
+    def test_an_explanation_or_a_risk_that_claims_an_action_never_done_is_dropped(self):
+        """B4's smoke run (2026-11-24): the after-seats checked numbers, never claims. A helper's words claim nothing the
+        task tree's finished actions do not back; a denial over "or" is no claim."""
+        self.switch("data_science")
+        denial = "It does not say a model was trained or an account was scored [report]."
+        self.scripted(word_question=[json.dumps({"question_id": "confirm_target", "question": PLAIN})],
+                      explain_report=[json.dumps({"explanation": "We called the customers on the list [report]."})],
+                      list_risks=[json.dumps({"risks": ["The model was trained on the sample, so it may overfit."]})])
+        self.renewal_to_the_end()
+        self.assertTrue(brains.drain(15))
+        rows = sorted((r["seat"], r["outcome"], r.get("check")) for r in self.seat_rows() if r["seat"] in core.AFTER_SEATS)
+        self.assertEqual(rows, [("explain_report", "check_failed", "claims_unrecorded_action"),
+                                ("list_risks", "check_failed", "claims_unrecorded_action")])
+        self.assertEqual(self.said("business", "helper_note"), [])  # nothing was shown
+        view = self.view("T-renewal")
+        done = seats.done_actions(self.work, self.pid, view)
+        self.assertIn("inspect_schema", done)
+        source = seats._report_text(view["reports"][0])
+        self.assertEqual(seats.check_explanation(denial, source, done)[1], None)
+        self.assertEqual(seats.check_explanation("The schema was inspected [report].", source, done)[1], None)  # on record
+        self.assertEqual(seats.check_risks(["An account was scored with a model."], source, done)[1], "claims_unrecorded_action")
+
     def test_after_seats_with_no_model_or_invalid_output_show_nothing(self):
         self.switch("data_science")
         with mock.patch.dict(os.environ, {"DCLAB_NO_LIVE_MODELS": "1"}):

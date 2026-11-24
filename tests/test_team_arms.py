@@ -291,7 +291,8 @@ class _Arms:
         rec = S.Records(folder)
         child = next(t for t in rec.views if t != rec.top)
         rec.views[child] = {**rec.views[child], "task": rec.views[child]["task"].model_copy(update={"question": "Score 14 days before renewal."})}
-        self.assertEqual([z["where"] for z in S.invented_numbers(rec)], [f"task:{child}:question"])
+        self.assertEqual([z["where"] for z in S.question_numbers(rec)], [f"task:{child}:question"])  # S4: counted, not a hard zero
+        self.assertEqual(S.invented_numbers(rec), [])
         # a helper's note is model words too
         rec = S.Records(folder)
         rec.messages[next(iter(rec.messages))].append({"text": "In plain words: 64% renew.", "handoff": {"kind": "helper_note", "seat": "explain_report"}})
@@ -799,11 +800,77 @@ class _ThirdReview:
         self.assertTrue(S.holds_word("fixture:E1", "score: fixture:E1=18:40"))
 
 
-class FileTeamArmsTests(_ThirdReview, _ReReview, _Review, _Arms, unittest.TestCase):
+# The live smoke run of 2026-11-24 (agent_runs/live_tests/2026-11-23-233112-team-arms-quick): the real words the scorer misread
+HANDOVER = ("Using the permitted input sample:renewal_v1, determine whether our data can rank accounts by churn risk as of seven days before "
+            "each renewal date. Report: (1) which fields exist for renewal date, churn/cancellation outcome and outcome timing; (2) whether "
+            "churn can be labelled within a defined post-renewal window from what the sample holds; (3) which features are observable at "
+            "the T-7 cutoff and which would leak future or at-renewal information; (4) account and renewal coverage (rows, distinct "
+            "accounts, renewals per account, missing rates); (5) class balance of churned vs renewed; (6) a verdict: rankable now, "
+            "rankable with stated gaps, or not rankable, with the gaps named.")
+TO_PERSON = ("The only table we may read (sample:renewal_no_dates, 7 columns) holds no contractual renewal date, so we cannot anchor a "
+             "snapshot seven days before renewal. Is there a source we can add that gives each account its contractual renewal date (and "
+             "ideally start/renewal-term fields)? Without it the \"T-7 days\" scoring moment cannot be built at all.")
+WINDOW = ("To state the churn label window as a fact rather than a choice: should \"churn\" for a renewal row mean (i) the account did not "
+          "renew at that renewal date (renewed_by_date empty/past it), or (ii) a cancellation recorded within a stated number of days AFTER "
+          "that renewal date — and if (ii), how many days (e.g. 30, 60, 90)? The sample holds the outcome date only after renewal, so your "
+          "answer decides which rows are labelable and which must be dropped as ambiguous.")
+EXPLAINED = ("In plain words (the helper's reading, checked against the report; the report itself is unchanged): This report says the "
+             "data sample is complete and can support scoring seven days before renewal It says renewed_by_date was excluded because it "
+             "is known only after renewal It says the checked outcome is failure to renew by the contractual renewal date, based on "
+             "sara's request and brief revision 1 It does not say a model was trained or an account was scored It says the results are "
+             "simulated")
+
+
+class _Smoke:
+    """The scorer's false positives in the live smoke run (S1 to S4), from the run's own words."""
+
+    def test_s1_s2_list_markers_and_a_glued_minus_are_no_numbers_and_seven_allows_7(self):
+        person = S._numbers("Customers are leaving. Can our data rank the accounts by churn risk seven days before each renewal?", source=True)
+        self.assertEqual(S._numbers(HANDOVER) - person, set())
+        self.assertEqual(S._numbers(TO_PERSON) - person - {"7"}, set())  # its 7 columns are on record; T-7 is seven days
+        self.assertNotIn("-7", S._numbers(TO_PERSON))
+        self.assertEqual(S._numbers("We kept 12 (37) accounts."), {"12", "37"})  # a lone bracket is no list: never hides a number
+        self.assertIn("200", S._numbers("about two hundred accounts", source=True))
+
+    def test_s3_a_denial_over_or_in_a_note_without_full_stops_is_no_claim(self):
+        from dclab_rnd.agent_eval.team_arms import text as T
+
+        _, folder = self.rules_play("QX-03")
+        rec = S.Records(folder)
+        rec.messages[next(iter(rec.messages))].append({"text": EXPLAINED, "handoff": {"kind": "helper_note", "seat": "explain_report"}})
+        self.assertEqual(S.unrecorded_claims(rec), [])
+        self.assertEqual(S.invented_numbers(rec), [])
+        rec.messages[next(iter(rec.messages))].append({"text": "It says the accounts were scored It says Sales called them",
+                                                       "handoff": {"kind": "helper_note", "seat": "explain_report"}})
+        self.assertTrue(S.unrecorded_claims(rec))  # a claim still is one
+        for words in ("No data was missing or late and we scored every account.",
+                      "No customer was harmed or upset when Sales called the top ten accounts."):
+            self.assertTrue(T.unrecorded_claims(words, []), words)
+
+    def test_s4_a_number_in_a_question_between_teams_is_counted_and_one_to_the_person_is_a_hard_zero(self):
+        c, folder = self.rules_play("QX-01")
+        rec = S.Records(folder)
+        rec.deliveries.append({"kind": "clarification", "task_id": "x", "from_team": "data_science", "to_team": "data_science", "text": WINDOW})
+        self.assertEqual(S.invented_numbers(rec), [])
+        self.assertEqual([q["numbers"] for q in S.question_numbers(rec)], [["90"]])
+        self.assertEqual(S.counts(rec, c)["question_numbers"], 1)
+        rec.deliveries.append({"kind": "clarification", "task_id": rec.top, "from_team": "lead", "to_team": "home", "text": WINDOW})
+        self.assertEqual([z["numbers"] for z in S.invented_numbers(rec)], [["90"]])
+        rec = S.Records(folder)
+        child = next(t for t in rec.views if t != rec.top)
+        rec.views[child] = {**rec.views[child], "task": rec.views[child]["task"].model_copy(update={"question": "Use a 90-day window."})}
+        self.assertEqual([q["where"] for q in S.question_numbers(rec)], [f"task:{child}:question"])
+        self.assertEqual(S.invented_numbers(rec), [])
+        self.assertNotIn("90", S.known_numbers(rec))  # never a record: a report repeating it is still a hard zero
+        rec.reports.append(self._agent_report(rec, "Use a 90-day window."))
+        self.assertEqual([z["numbers"] for z in S.invented_numbers(rec)], [["90"]])
+
+
+class FileTeamArmsTests(_Smoke, _ThirdReview, _ReReview, _Review, _Arms, unittest.TestCase):
     env = {"DCLAB_DATABASE_URL": ""}
 
 
-class PgTeamArmsTests(_ThirdReview, _ReReview, _Review, _Arms, unittest.TestCase):
+class PgTeamArmsTests(_Smoke, _ThirdReview, _ReReview, _Review, _Arms, unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.url = pgtest.require()
