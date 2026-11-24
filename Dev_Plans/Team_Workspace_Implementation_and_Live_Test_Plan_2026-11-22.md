@@ -2,6 +2,12 @@
 
 **Proposed engineering work · 22 November 2026 · Baseline reviewed at `7e33b994`**
 
+> **Status (2026-11-24): parked.** W1, W2 and W3 were built (as T1 to T3), and so was the approval part of W5 (only the
+> decision's owner approves, T5a). W4 and the rest of W5 are not started. W6 was replaced by a three-way comparison of
+> rules, an AI helper and an AI agent (built; first race run). The work is parked for the next plan. What was built,
+> measured and left:
+> [Team_Workspace_AI_Arms_2026-11-24/STATUS.md](Team_Workspace_AI_Arms_2026-11-24/STATUS.md).
+
 A Business member should be able to open a project, ask a question, get a defensible answer from the right teams and record what the organization decided. The acceptance journey ends when a later constraint or observed outcome reaches that same conversation. The existing Teams page, private threads, delivery queue, action log, scoped memory and report revisions are the starting point.
 
 The November 22 review reproduced four defects on temporary workspaces and found a fifth gap in the decision-approval entry point. The Teams browser walkthrough passed with seeded inputs. This plan covers those findings and the remaining distance from fixtures to an uploaded project, independent commercial branches and measured agent judgment. Broader opportunities have their own [development roadmap](DCLab_Agentic_Expansion_Roadmap_2026-11-22.md).
