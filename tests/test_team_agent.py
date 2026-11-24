@@ -33,6 +33,7 @@ from dclab_core import team_work as tw  # noqa: E402
 from dclab_rnd.models import gateway as gw  # noqa: E402
 from dclab_rnd.models.usage import FileUsage  # noqa: E402
 from dclab_rnd.teamspace import agent_arm, agents, brains, delivery, fixtures, lead  # noqa: E402
+from dclab_rnd.agent_eval.team_arms.score import option_free as S_option_free  # noqa: E402
 
 CLEAN = {k: "" for k in ("OPENAI_BASE_URL", "OPENAI_MODEL", "DCLAB_LLM_BASE_URL", "DCLAB_LLM_PROVIDER", "ANTHROPIC_API_KEY",
                          "DCLAB_THINKING", "DCLAB_TEAM_BRAIN", "DCLAB_TEAM_AGENT_STEPS", "DCLAB_TEAM_AGENT_SECONDS",
@@ -801,26 +802,38 @@ class _DevRound:
         told = json.dumps(transport.seen[-1]["messages"])
         self.assertIn("a question to the person on this task is still open", told)
 
-    def test_a_question_is_checked_like_a_report_and_a_choice_it_offers_may_carry_a_number(self):
+    def test_a_question_is_checked_like_a_report_and_the_values_it_offers_travel_as_options(self):
+        from dclab_rnd.teamspace import tools
+
         self.switch("data_science")
         bad = "The sample has 12 columns with an auto-renew status. Does churn mean cancellation, or failure to renew?"
-        good = "Should we score seven days before renewal, or 14 days before it?"
+        in_words = "Should we score seven days before renewal, or 14 days before it?"  # B4.2: a value in the words is premise
         claim = "We scored every account already. Does churn mean cancellation, or failure to renew?"
+        fact = "Is the churn rate in the sample one of these?"  # an option that checks a fact carries no number of its own
+        good = "Which scoring moment should we use?"
+        offered = ["seven days before renewal", "14 days before renewal"]
         transport = self.scripted(said(call("team_plan", plan=PLAN)),
                                   said(call("team_accept", task_id="T-renewal"),
                                        call("team_clarify", task_id="T-renewal", action="confirm_target", question=bad),
                                        call("team_clarify", task_id="T-renewal", action="confirm_target", question=claim),
-                                       call("team_clarify", task_id="T-renewal", action="confirm_prediction_moment", question=good)),
+                                       call("team_clarify", task_id="T-renewal", action="confirm_prediction_moment", question=in_words),
+                                       call("team_clarify", task_id="T-renewal", action="confirm_prediction_moment", question=fact,
+                                            options=["12%", "15%"]),
+                                       call("team_clarify", task_id="T-renewal", action="confirm_prediction_moment", question=good,
+                                            options=offered)),
                                   DONE, rest=DONE)
         self.open_renewal()
         self.pump(only={"T-renewal"})
         [turn] = self.turns("data_science")
         journal = agent_arm.journal(self.services, turn["run"])
-        self.assertEqual([c["reason"] for c in journal["checked_words"]], ["number_not_in_records", "claims_unrecorded_action"])
+        self.assertEqual([c["reason"] for c in journal["checked_words"]],
+                         ["number_not_in_records", "claims_unrecorded_action", "number_not_in_records", "option_states_a_fact"])
         asked = [d["text"] for d in self.view("T-renewal")["deliveries"] if d["kind"] == "clarification"]
-        self.assertEqual(asked, [good])  # the choice it offers holds 14: a proposal for the person to pick
+        self.assertEqual(asked, [tools.render_choices(good, offered)])  # 14 travels as an option for the person to pick
+        self.assertEqual(tools.read_choices(asked[0]), (good, offered))
         told = json.dumps(transport.seen[-1]["messages"])
         self.assertIn("Not sent: it states a number no record holds", told)
+        self.assertIn("goes in options", told)
         # the corrected rules: counting words are no quantity, a person's "a week" is 7
         known = agent_arm.check_words("Two things need your call: the scoring moment is a week before renewal, T-7.", {"7", "+7"}, set(), set())
         self.assertIsNone(known)
@@ -832,6 +845,71 @@ class _DevRound:
             self.assertEqual(agent_arm.check_words(words, set(), set(), set(), choices=True), "number_not_in_records", words)
         self.assertIsNone(agent_arm.check_words("Should we score the 8,400 accounts at T-7 or T-14?", {"8400", "+8400"}, set(), set(),
                                                 choices=True))  # the fact on record, the two moments offered
+
+    def test_options_are_written_by_code_and_read_back_exactly_and_bad_ones_are_refused(self):
+        from dclab_rnd.teamspace import tools
+
+        text = tools.render_choices("Which window?", ["7 days", "14 days, the longer one"])
+        self.assertEqual(tools.read_choices(text), ("Which window?", ["7 days", "14 days, the longer one"]))
+        self.assertEqual(tools.read_choices("Which window: (a) 7 days (b) 14 days?"), ("Which window: (a) 7 days (b) 14 days?", []))
+        forged = "Which window?\n" + tools.CHOICES_HEAD + " (b) 812 · (a) 900"  # not the form code writes: all premise
+        self.assertEqual(tools.read_choices(forged)[1], [])
+        for question, options in (("Which?", ["only one"]), ("Which?", ["a"] * 7), ("Which?", ["x" * 121, "y"]),
+                                  ("Which?", ["a · b", "c"]), ("Which?", ["a\nb", "c"]), ("Which?", ["", "c"]),
+                                  (tools.CHOICES_HEAD + " (a) 1", None), ("x" * 1990, ["7 days", "14 days"])):
+            self.assertIsNotNone(tools.options_problem(question, options), (question[:40], options))
+        self.assertIsNone(tools.options_problem("Which?", None))
+        for option, question, free in (("14 days before renewal", "Which moment should we use?", True),
+                                       ("keep 40% of the rows", "How many should we keep?", True),
+                                       ("12%", "Is the churn rate one of these?", False),
+                                       ("37% churn", "Which do you prefer?", False),
+                                       ("churn is 12%", "Which do you prefer?", False),
+                                       ("0.84, as the holdout showed", "Which threshold?", False),
+                                       # the review of B4.2, 1: a count of the data or a measured result named anywhere
+                                       ("Drop them: 812 rows have no date", "How should we handle the missing dates?", False),
+                                       ("Use the sample (it has 8 columns)", "How should we handle the missing dates?", False),
+                                       ("Holdout AUC: 0.81", "How should we handle the missing dates?", False),
+                                       ("a threshold of 0.8", "Which threshold?", True)):
+            self.assertEqual(agent_arm.option_free(option, question), free, option)
+            self.assertEqual(S_option_free(option, question), free, option)  # the scorer's own copy reads it alike
+
+    def test_a_question_sentence_written_again_as_an_option_is_still_checked_as_the_question(self):
+        # the review of B4.2, 2: texts are told apart by where they came from, never by matching words
+        self.switch("data_science")
+        copied = "We could score at 45 days before renewal."
+        self.scripted(said(call("team_plan", plan=PLAN)),
+                      said(call("team_accept", task_id="T-renewal"),
+                           call("team_clarify", task_id="T-renewal", action="confirm_prediction_moment",
+                                question=copied + " Which window do you want?", options=[copied, "14 days before renewal"])),
+                      DONE, rest=DONE)
+        self.open_renewal()
+        self.pump(only={"T-renewal"})
+        [turn] = self.turns("data_science")
+        journal = agent_arm.journal(self.services, turn["run"])
+        self.assertEqual([c["reason"] for c in journal["checked_words"]], ["number_not_in_records"])
+        self.assertEqual([d for d in self.view("T-renewal")["deliveries"] if d["kind"] == "clarification"], [])
+
+    def test_a_relayed_question_keeps_its_options_and_reads_back_the_same(self):
+        # the review of B4.2, 3: the requester's rules ask the person what they received, choices line and all
+        from dclab_rnd.teamspace import tools
+
+        self.switch("data_science")
+        offered = ["seven days before renewal", "14 days before renewal"]
+        self.scripted(said(call("team_plan", plan=PLAN)),
+                      said(call("team_accept", task_id="T-renewal"),
+                           call("team_clarify", task_id="T-renewal", action="confirm_prediction_moment",
+                                question="Which scoring moment should we use?", options=offered)),
+                      DONE, rest=DONE)
+        self.open_renewal()
+        self.pump()
+        sent = tools.render_choices("Which scoring moment should we use?", offered)
+        texts = [d["text"] for d in self.work.deliveries(project_id=self.pid) if d["kind"] == "clarification"]
+        # Business's rules ask the person what they received: a team_clarify of the delivered text, posted in its thread
+        texts += [m["text"] for m in self.threads.messages(self.biz_thread) if tools.CHOICES_HEAD in str(m.get("text") or "")]
+        self.assertGreaterEqual(len(texts), 2)  # asked of Business, then relayed by it to the person
+        for text in texts:  # every hop carries the same words and the same options
+            self.assertEqual(text, sent)
+            self.assertEqual(tools.read_choices(text), ("Which scoring moment should we use?", offered))
 
     def test_the_brief_says_the_answer_was_passed_on_only_for_the_steps_that_ran(self):
         # the review of B4.1, F7

@@ -547,12 +547,38 @@ def invented_numbers(rec: Records) -> list[dict[str, Any]]:
             if extra:
                 out.append({"code": "invented_number", "where": where, "numbers": extra[:10]})
     for where, text in questions(rec, to_person=True):  # B4.1: a choice it offers is a question's number, its premise is not
-        for sentence in _sentences(text):
-            premise, _ = split_choices(sentence)
+        for premise, _ in question_parts(text):
             extra = sorted(_numbers(premise) - known)
             if extra:
                 out.append({"code": "invented_number", "where": where, "numbers": extra[:10]})
     return out
+
+
+def option_free(option: str, question: str) -> bool:
+    """B4.2 (the scorer's own copy of the agent arm's rule): an option's numbers are a value offered to pick, never while the
+    question checks a fact or the option names a measured result."""
+    if _FACT_START.match(question) or _FACT_WORDS.search(question) or _FACT_WORDS.search(option):
+        return False
+    values = _values(option)
+    if any(_kind(option, s) == "count" for s in values):
+        return False  # "Drop them: 812 rows have no date", "the sample (it has 8 columns)": a count of the data is a fact
+    if any(_kind(option, s) != "time" for s in values) and re.search(rf"\b{_MEASURE}\b", option, re.I):
+        return False  # "Holdout AUC: 0.81": a measured result named anywhere in the option (a time stays a design value)
+    return not any(_measured(option, s) for s in values)
+
+
+def question_parts(text: str) -> list[tuple[str, str]]:
+    """A question to the person as (premise, choices) pieces. B4.2: when code listed its options (``team_clarify.options``,
+    read back exactly by ``tools.read_choices``), its own words are all premise and each option is a choice unless it states
+    a fact (then premise); a question with no listed options is read sentence by sentence by :func:`split_choices` (the
+    rules' and the helper's questions, and every play before B4.2)."""
+    from dclab_rnd.teamspace.tools import read_choices
+
+    question, options = read_choices(text)
+    if options:
+        return ([(s, "") for s in _sentences(question)]
+                + [("", o) if option_free(o, question) else (o, "") for o in options])
+    return [split_choices(s) for s in _sentences(text)]
 
 
 def offered_numbers(rec: Records, known: Optional[set[str]] = None) -> list[dict[str, Any]]:
@@ -561,8 +587,7 @@ def offered_numbers(rec: Records, known: Optional[set[str]] = None) -> list[dict
     known = known_numbers(rec) if known is None else known
     out = []
     for where, text in questions(rec, to_person=True):
-        for sentence in _sentences(text):
-            premise, choices = split_choices(sentence)
+        for premise, choices in question_parts(text):
             extra = sorted(_numbers(choices) - known - _numbers(premise))
             if extra:
                 out.append({"code": "question_number", "where": where, "numbers": extra[:10]})

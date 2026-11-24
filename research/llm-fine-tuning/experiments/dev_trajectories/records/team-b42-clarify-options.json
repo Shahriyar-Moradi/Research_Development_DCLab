@@ -1,0 +1,113 @@
+{
+ "package": "team-b42-clarify-options",
+ "title": "B4.2: the values a question offers the person travel as a list, never guessed from its words",
+ "date": "2026-11-24",
+ "request": "The owner chose, after B4.1's six review rounds on guessing choices from a question's words: the agent lists the values it offers in a separate field, so nothing has to be guessed.",
+ "spec": "the team workspace plan (more room for AI, compared three ways), B3-B4; B4.1's dev record (R19-R25, risks)",
+ "plan": [
+  "team_clarify gets options (2-6 short lines); code writes them under the question in one fixed form and reads them back exactly",
+  "agent arm: the question's own words are all premise; each option checked as a value to pick",
+  "scorer: listed options read exactly, words premise; questions with no options keep the old word rule",
+  "prompt: values to pick go in options",
+  "tests, agent-eval, harness-eval, review"
+ ],
+ "decisions": [
+  {
+   "decision": "options are rendered into the delivered text by code, in one fixed form, instead of a new delivery column",
+   "why": "no store migration and no change to the relays through Business and the Lead: the text travels whole and read_choices gives back the exact list; a text not in the exact form is all premise"
+  },
+  {
+   "decision": "an option may carry an off-record number only when it is a value to pick: never a count of the data, never a measured result, never under a question that checks a fact",
+   "why": "the same 'when unsure, premise' rule as B4.1: a false premise sends the question back, a false choice lets an invented number through; 'top 500 accounts' becomes premise by design"
+  },
+  {
+   "decision": "questions with no listed options (rules arm, helper arm, every earlier play) are still read by split_choices",
+   "why": "the comparison with round 0 stays like for like; the agent arm can no longer rely on it, since its question words are all premise"
+  }
+ ],
+ "change": "teamspace tools (options, render_choices, read_choices, options_problem, relay read-back), agent_arm (check_option, option_free, tagged texts), team_arms score (question_parts, option_free, gate re-pinned), prompt team_agent, tests",
+ "findings": [
+  {
+   "verdict": "confirmed",
+   "id": "O1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "an option stating a count of the data or a measured result passed as a choice",
+   "scenario": "options 'Drop them: 812 rows have no date', 'Use the sample (it has 8 columns)', 'Holdout AUC: 0.81'",
+   "cause": "option_free checked fact and measure words only next to a value, and never counts",
+   "fix": "an option with a count, or a non-time value and a measure word anywhere, is premise (both copies)",
+   "test": "test_options_are_written_by_code_and_read_back_exactly_and_bad_ones_are_refused",
+   "impact": ""
+  },
+  {
+   "verdict": "confirmed",
+   "id": "O2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "a question sentence written again as an option got the looser option check",
+   "scenario": "question 'We could score at 45 days before renewal. Which window?' with that sentence also as an option",
+   "cause": "texts were told apart by matching words",
+   "fix": "texts tagged by where they came from",
+   "test": "test_a_question_sentence_written_again_as_an_option_is_still_checked_as_the_question",
+   "impact": ""
+  },
+  {
+   "verdict": "confirmed",
+   "id": "O3",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "Business's rules could not relay a question with options",
+   "scenario": "Data Science asks with options; Business's rules ask the person the delivered text; the choices line was refused",
+   "cause": "a question holding the choices head was always refused",
+   "fix": "a question holding a code-written choices line and no options is read back into question and options",
+   "test": "test_a_relayed_question_keeps_its_options_and_reads_back_the_same",
+   "impact": ""
+  },
+  {
+   "verdict": "confirmed",
+   "id": "O4",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "no end-to-end scorer test for an off-record count in an option",
+   "scenario": "a rendered question with option 'Drop them: 812 rows have no date'",
+   "cause": "test gap",
+   "fix": "test added: it is a hard zero",
+   "test": "test_listed_options_are_read_exactly_the_words_are_all_premise_and_a_fact_option_is_premise",
+   "impact": ""
+  }
+ ],
+ "measurements": [
+  {
+   "name": "round-0 dev plays rescored read-only",
+   "gate": "no new hard zero",
+   "fixed_before_run": true,
+   "result": "114 plays, 0 with invented numbers",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "no play in round 0 used options"
+   ]
+  },
+  {
+   "name": "make agent-eval and make harness-eval after the prompt change",
+   "gate": "every scripted case passes",
+   "fixed_before_run": true,
+   "result": "AEV-138 and HRN-148: 17 of 17",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "scripted, no live model"
+   ]
+  }
+ ],
+ "outcome": "built, reviewed (2 findings fixed), tests pass on files and PostgreSQL (417 tests); no live run yet",
+ "lessons": [
+  "when a text rule guards a guarantee and keeps failing review, change the interface so the model states its intent in a field code can read exactly",
+  "tag texts by their source, never by matching their words"
+ ],
+ "risks": [
+  "an option's 'value to pick' test is still a word rule; it errs toward premise",
+  "a model may still write choices in its question text; it is refused and told to use options, which costs a rewrite step"
+ ],
+ "commits": []
+}

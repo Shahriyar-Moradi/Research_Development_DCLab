@@ -696,6 +696,33 @@ def check_words(sentence: str, known: set[str], spoken: set[str], done: set[str]
     return None
 
 
+def option_free(option: str, question: str) -> bool:
+    """B4.2: whether an option's numbers may be off the record: it is a value offered to pick (a window, a threshold, how
+    many to keep), never while the question checks a fact ("Is the churn rate ...", "Did ...", "... showed ...") or the
+    option names a measured result ("37% churn", "churn is 12%"). A time is a design value ("14 days before renewal")."""
+    if _FACT_START.match(question) or _FACT_WORDS.search(question) or _FACT_WORDS.search(option):
+        return False
+    values = _values(option)
+    if any(_kind(option, s) == "count" for s in values):
+        return False  # "Drop them: 812 rows have no date", "the sample (it has 8 columns)": a count of the data is a fact
+    if any(_kind(option, s) != "time" for s in values) and re.search(rf"\b{_MEASURE}\b", option, re.I):
+        return False  # "Holdout AUC: 0.81": a measured result named anywhere in the option (a time stays a design value)
+    return not any(_measured(option, s) for s in values)
+
+
+def check_option(option: str, question: str, known: set[str], spoken: set[str], done: set[str]) -> Optional[str]:
+    """Why an option of a question to the person may not be sent, or None (see :func:`option_free`)."""
+    from .. import cited
+
+    if core.unrecorded_claims(option, sorted(done)):
+        return "claims_unrecorded_action"
+    if option_free(option, question):
+        return None
+    if not cited.numbers(_no_ids(_read(option))) <= known or not cited.number_words(_read(option)) <= spoken:
+        return "option_states_a_fact"
+    return None
+
+
 def _check_words(turn: Any, state: _State, args: dict[str, Any], kind: str) -> Optional[dict[str, Any]]:
     """B4.1: a question (``team_clarify``) or a hand-over's question (``team_delegate``) checked like a report's sentences,
     before it is sent: its numbers from the records (the person's words, code's records), no action claimed without its
@@ -709,12 +736,21 @@ def _check_words(turn: Any, state: _State, args: dict[str, Any], kind: str) -> O
     texts, done = _sources(turn, state, view)
     known = set().union(*(cited.numbers(_no_ids(t), source=True) | _spans(t) for t in texts)) if texts else set()
     spoken = set().union(*(cited.words_of(t) for t in texts)) if texts else set()
-    for sentence in cited.sentences(str(args.get("question") or "")):
-        why = check_words(sentence, known, spoken, done, choices=kind == "clarify")
+    question = str(args.get("question") or "")
+    # B4.2: a question's own words are its premise, all of them (no choice guessed from its words); the values it offers
+    # travel as ``options``, each checked by check_option
+    options = [str(o or "") for o in (args.get("options") or [])] if kind == "clarify" else []
+    # tagged by where each text came from, never by matching words (the review of B4.2, 2: a question sentence written
+    # again as an option is still the question's)
+    for sentence, offered in [(s, False) for s in cited.sentences(question)] + [(o, True) for o in options]:
+        why = check_option(sentence, question, known, spoken, done) if offered else check_words(sentence, known, spoken, done)
         if why:
             state.checked.append({"tool": f"team_{kind}", "task": task.id, "text": sentence, "reason": why})
             said = {"number_not_in_records": "it states a number no record holds (only the person's words and code's records hold numbers; a "
-                                             "choice you offer the person may carry one)",
+                                             "value you offer the person to pick goes in options, never in the question)",
+                    "option_states_a_fact": "an option holds a number no record holds while it states a measured result "
+                                            "(\"37% churn\") or the question checks a fact (\"Is churn ...\"); offer values to "
+                                            "pick (a window, a threshold), or use numbers on record",
                     "number_word_not_in_records": "it states an amount in words no record holds",
                     "claims_unrecorded_action": "it says an action was done that no record says ended"}[why]
             return {"error": f"Not sent: {said}: \"{sentence[:300]}\". Write it again without that, from what the records hold."}

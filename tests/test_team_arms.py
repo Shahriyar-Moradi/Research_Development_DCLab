@@ -1036,6 +1036,29 @@ class _DevRound:
         ("Pick a threshold such as 0.81, 0.79?", {"0.81", "0.79"}),
     )
 
+    def test_listed_options_are_read_exactly_the_words_are_all_premise_and_a_fact_option_is_premise(self):
+        from dclab_rnd.teamspace.tools import render_choices
+
+        text = render_choices("Which moment should we use? The sample has 8,400 rows.", ["7 days before renewal", "T-14"])
+        parts = S.question_parts(text)
+        self.assertEqual({n for p, _ in parts for n in S._numbers(p)}, {"8400"})  # the words: premise, checked
+        self.assertEqual({n for _, c in parts for n in S._numbers(c)}, {"7", "14"})  # the options: offered
+        text = render_choices("Is the churn rate one of these?", ["12%", "15%"])  # a question that checks a fact
+        self.assertEqual({n for p, _ in S.question_parts(text) for n in S._numbers(p)}, {"12%", "15%"})
+        text = render_choices("Which do you prefer?", ["37% churn", "T-14"])  # an option that names a measured result
+        parts = S.question_parts(text)
+        self.assertIn("37%", {n for p, _ in parts for n in S._numbers(p)})
+        self.assertEqual({n for _, c in parts for n in S._numbers(c)}, {"14"})
+        # the review of B4.2, 1: an option that states a count of the data is premise, so an off-record one is a hard zero
+        c, folder = self.rules_play("QX-01")
+        rec = S.Records(folder)
+        rec.deliveries.append({"kind": "clarification", "task_id": rec.top, "from_team": "lead", "to_team": rec.requester,
+                               "text": render_choices("How should we handle the missing dates?",
+                                                      ["Drop them: 812 rows have no date", "Keep them"])})
+        self.assertIn(["812"], [z["numbers"] for z in S.invented_numbers(rec)])
+        # with no listed options, the words are read as before (the rules', the helper's and every earlier play's)
+        self.assertEqual(S.question_parts("Should we score at T-7 or T-14?"), [S.split_choices("Should we score at T-7 or T-14?")])
+
     def test_a_range_is_one_value_so_no_half_of_it_is_left_as_a_fact(self):
         from dclab_rnd.teamspace import agent_arm
 

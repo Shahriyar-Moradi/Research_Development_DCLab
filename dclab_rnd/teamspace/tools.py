@@ -489,10 +489,70 @@ def _block(ctx: TeamTurn, task_id: str, reason: str) -> Row:
     return {"task_id": task_id, "status": "blocked", "reason": reason, "duplicate": moved is None}
 
 
-def _clarify(ctx: TeamTurn, task_id: str, action: str, question: str) -> Row:
+# B4.2: the values a question offers the person to pick travel as a list (``team_clarify.options``), never guessed from its
+# words. Code writes them under the question in one fixed form, and reads them back from it (``read_choices``): the question's
+# own words are its premise, every number in them must be on record; each option is a value the person may pick.
+CHOICES_HEAD = "Choices for you to pick:"
+_CHOICE_SEP = " · "
+OPTION_LIMIT, OPTIONS_MIN, OPTIONS_MAX = 120, 2, 6
+_CHOICE_LABEL = re.compile(r"^\(([a-f])\) ")
+
+
+def render_choices(question: str, options: Optional[list[str]]) -> str:
+    """The question as the person reads it: its words, then on a line of their own the options code lists, (a) to (f)."""
+    if not options:
+        return question
+    listed = _CHOICE_SEP.join(f"({chr(97 + i)}) {o.strip()}" for i, o in enumerate(options))
+    return f"{question.rstrip()}\n{CHOICES_HEAD} {listed}"
+
+
+def read_choices(text: str) -> tuple[str, list[str]]:
+    """(the question's own words, the options code listed under it): the inverse of :func:`render_choices`. A text with no
+    code-written line of choices is all premise."""
+    text = str(text or "")
+    at = text.rfind("\n" + CHOICES_HEAD + " ")
+    if at < 0:
+        return text, []
+    question, line = text[:at], text[at + len(CHOICES_HEAD) + 2:]
+    parts = line.split(_CHOICE_SEP)
+    options = []
+    for i, part in enumerate(parts):
+        m = _CHOICE_LABEL.match(part)
+        if not m or m.group(1) != chr(97 + i):
+            return text, []  # not the form code writes: all premise
+        options.append(part[m.end():])
+    return question, options
+
+
+def options_problem(question: str, options: Optional[list[str]]) -> Optional[str]:
+    """Why a question's options cannot be sent, or None."""
+    if CHOICES_HEAD in str(question or ""):
+        return f"the question may not hold the words {CHOICES_HEAD!r}: code writes that line from options"
+    if not options:
+        return None
+    if not OPTIONS_MIN <= len(options) <= OPTIONS_MAX:
+        return f"offer {OPTIONS_MIN} to {OPTIONS_MAX} options, or none"
+    for o in options:
+        o = str(o or "")
+        if not o.strip() or len(o) > OPTION_LIMIT or "\n" in o or _CHOICE_SEP.strip() in o or CHOICES_HEAD in o:
+            return (f"each option is one line of at most {OPTION_LIMIT} characters, not empty, without "
+                    f"{_CHOICE_SEP.strip()!r} or {CHOICES_HEAD!r}")
+    if len(render_choices(question, options)) > tw.TEXT:
+        return f"the question and its options together pass {tw.TEXT} characters"
+    return None
+
+
+def _clarify(ctx: TeamTurn, task_id: str, action: str, question: str, options: Optional[list[str]] = None) -> Row:
     """Ask a person. The owner's question moves its task to waiting_for_person and travels to the requester as a
     clarification (the task stays open); the requesting agent that receives it records that it asked its person (the
-    delivery posts the question into the person's thread)."""
+    delivery posts the question into the person's thread). B4.2: ``options``, the values offered to pick, are written by
+    code under the question."""
+    if not options and CHOICES_HEAD in str(question or ""):
+        question, options = read_choices(question)  # a question relayed whole (the requester's rules ask what they received)
+    problem = options_problem(question, options)
+    if problem:
+        return {"error": f"Not sent: {problem}."}
+    question = render_choices(question, options)
     task = _task(ctx, task_id)
     held, duplicate = record(ctx, task, action, input_revision=f"brief-{task.brief_revision}")
     if tw.can_claim(held):
@@ -1015,7 +1075,15 @@ TOOLS = (
          _schema({"task_id": _TASK, "reason": _text(tw.SHORT, "What blocks it, in one sentence.")}, ["task_id", "reason"]), _block,
          effect="write", scope=SCOPE, move="block", takes_context=True, errors=_errors),
     Tool("team_clarify", "Ask a person one question for a human-bound directory action; the task stays open.",
-         _schema({"task_id": _TASK, "action": _ACTION, "question": _text(tw.TEXT)}, ["task_id", "action", "question"]), _clarify,
+         _schema({"task_id": _TASK, "action": _ACTION,
+                  "question": _text(tw.TEXT, "Your question. Every number in it must be on record; put values you offer to pick "
+                                             "in options."),
+                  "options": {"type": "array", "minItems": OPTIONS_MIN, "maxItems": OPTIONS_MAX,
+                              "items": _text(OPTION_LIMIT),
+                              "description": "Optional: the values the person may pick, one short line each (for example "
+                                             "\"7 days before renewal\", \"14 days before renewal\"). Code lists them "
+                                             "under your question."}},
+                 ["task_id", "action", "question"]), _clarify,
          effect="write", scope=SCOPE, move="clarify", takes_context=True, errors=_errors),
     Tool("team_record_human_response", "Record the person's response to a human-bound directory action.",
          _schema({"task_id": _TASK, "action": _ACTION, "response_id": _S,
